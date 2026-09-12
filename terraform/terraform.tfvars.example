@@ -1,0 +1,1 @@
+proxmox_endpoint = "https://PVE_NODE_IP:8006/"
