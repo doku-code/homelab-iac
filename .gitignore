@@ -23,6 +23,8 @@ terraform.rc
 *.tfplan
 *.plan
 
+# Generated Terraform import/audit files
+**/generated-*.tf
 
 # ============================================
 # Ansible
