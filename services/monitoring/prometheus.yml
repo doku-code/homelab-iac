@@ -11,4 +11,8 @@ scrape_configs:
   - job_name: node
     static_configs:
       - targets:
-          - 192.168.0.28:9100
+          - 192.168.0.28:9100 # deb13-monitoring
+          - 192.168.0.10:9100 # pve-infra
+          - 192.168.0.11:9100 # pve-core
+          - 192.168.0.12:9100 # pve-compute
+          - 192.168.0.14:9100 # pve-lab

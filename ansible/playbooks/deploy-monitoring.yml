@@ -47,3 +47,9 @@
       environment:
         GRAFANA_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
       no_log: true
+
+    - name: Reload Prometheus configuration
+      ansible.builtin.uri:
+        url: http://192.168.0.28:9090/-/reload
+        method: POST
+        status_code: 200
