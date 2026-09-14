@@ -1,0 +1,8 @@
+# ansible-playbook ansible/playbooks/deploy-node-exporter.yml
+---
+- name: Deploy Node Exporter on Proxmox hosts
+  hosts: proxmox
+  become: true
+
+  roles:
+    - node_exporter

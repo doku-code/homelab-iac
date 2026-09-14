@@ -1,0 +1,15 @@
+---
+- name: Audit Linux infrastructure
+  hosts: proxmox
+  gather_facts: true
+
+  tasks:
+    - name: Show host information
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "OS: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+          - "Kernel: {{ ansible_facts['kernel'] }}"
+          - "Architecture: {{ ansible_facts['architecture'] }}"
+          - "CPU: {{ ansible_facts['processor_vcpus'] }} logical CPUs"
+          - "RAM: {{ (ansible_facts['memtotal_mb'] / 1024) | round(1) }} GiB"

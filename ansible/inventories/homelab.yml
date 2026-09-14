@@ -1,0 +1,27 @@
+all:
+  children:
+    monitoring:
+      hosts:
+        deb13-monitoring:
+          ansible_host: 192.168.0.28
+          ansible_user: debian
+          ansible_python_interpreter: /usr/bin/python3
+
+    proxmox:
+      vars:
+        ansible_user: root
+        ansible_python_interpreter: /usr/bin/python3
+        ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+
+      hosts:
+        pve-core:
+          ansible_host: 192.168.0.11
+
+        pve-compute:
+          ansible_host: 192.168.0.12
+
+        pve-lab:
+          ansible_host: 192.168.0.14
+
+        pve-infra:
+          ansible_host: 192.168.0.10

@@ -1,0 +1,49 @@
+# infisical run --env=dev -- \
+# ansible-playbook ansible/playbooks/deploy-monitoring.yml
+#
+# ansible monitoring \
+#  -b \
+#  -m ansible.builtin.command \
+#  -a "docker compose -f /opt/monitoring/compose.yml ps"
+---
+- name: Deploy Grafana and Prometheus
+  hosts: monitoring
+  become: true
+
+  vars:
+    grafana_admin_password: >-
+      {{ lookup('ansible.builtin.env', 'GRAFANA_ADMIN_PASSWORD') }}
+
+  pre_tasks:
+    - name: Ensure Grafana admin password is available
+      ansible.builtin.assert:
+        that:
+          - grafana_admin_password | length > 0
+        fail_msg: "GRAFANA_ADMIN_PASSWORD is not available in the Ansible environment."
+      no_log: true
+
+  tasks:
+    - name: Create Grafana and Prometheus directory
+      ansible.builtin.file:
+        path: /opt/grafana-prometheus
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy Grafana and Prometheus configuration
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../services/monitoring/"
+        dest: /opt/monitoring/
+        owner: root
+        group: root
+
+    - name: Deploy Grafana and Prometheus containers
+      community.docker.docker_compose_v2:
+        project_src: /opt/monitoring
+        state: present
+        pull: missing
+        remove_orphans: true
+      environment:
+        GRAFANA_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+      no_log: true

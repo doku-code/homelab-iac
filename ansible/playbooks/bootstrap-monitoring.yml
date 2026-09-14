@@ -1,0 +1,65 @@
+# ansible-playbook ansible/playbooks/bootstrap-monitoring.yml
+---
+- name: Bootstrap monitoring server
+  hosts: monitoring
+  become: true
+
+  tasks:
+    - name: Install base packages
+      ansible.builtin.apt:
+        name:
+          - qemu-guest-agent
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: true
+
+    - name: Ensure QEMU Guest Agent is running
+      ansible.builtin.systemd_service:
+        name: qemu-guest-agent
+        state: started
+
+    - name: Add Docker APT repository
+      ansible.builtin.deb822_repository:
+        name: docker
+        types:
+          - deb
+        uris:
+          - https://download.docker.com/linux/debian
+        suites:
+          - '{{ ansible_facts["distribution_release"] }}'
+        components:
+          - stable
+        architectures:
+          - amd64
+        signed_by: https://download.docker.com/linux/debian/gpg
+        state: present
+        enabled: true
+        install_python_debian: true
+      register: docker_repository
+
+    - name: Update APT cache after adding Docker repository
+      ansible.builtin.apt:
+        update_cache: true
+      when: docker_repository.changed
+
+    - name: Install Docker Engine and Compose
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Ensure Docker is enabled and running
+      ansible.builtin.systemd_service:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Set monitoring server hostname
+      ansible.builtin.hostname:
+        name: deb13-monitoring

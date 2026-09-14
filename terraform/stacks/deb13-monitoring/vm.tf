@@ -1,3 +1,8 @@
+# infisical run --env=dev -- terraform -chdir=terraform/stacks/deb13-monitoring fmt
+# infisical run --env=dev -- terraform -chdir=terraform/stacks/deb13-monitoring validate
+# infisical run --env=dev -- terraform -chdir=terraform/stacks/deb13-monitoring plan
+# infisical run --env=dev -- terraform -chdir=terraform/stacks/deb13-monitoring apply
+
 resource "proxmox_download_file" "debian13_cloud" {
   content_type = "import"
   datastore_id = "local"
@@ -11,7 +16,7 @@ resource "proxmox_download_file" "debian13_cloud" {
 }
 
 resource "proxmox_virtual_environment_vm" "monitoring" {
-  name        = "monitoring"
+  name        = "deb13-monitoring"
   description = "Prometheus and Grafana monitoring stack - managed by Terraform"
 
   node_name = "pve-core"
@@ -30,7 +35,7 @@ resource "proxmox_virtual_environment_vm" "monitoring" {
 
   # Ansible installera qemu-guest-agent ensuite.
   agent {
-    enabled = false
+    enabled = true
   }
 
   cpu {

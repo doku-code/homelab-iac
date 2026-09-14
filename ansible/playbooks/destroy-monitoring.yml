@@ -1,0 +1,18 @@
+# ansible-playbook ansible/playbooks/destroy-grafana-prometheus.yml
+---
+- name: Destroy Grafana and Prometheus
+  hosts: monitoring
+  become: true
+
+  tasks:
+    - name: Remove Grafana and Prometheus containers and volumes
+      community.docker.docker_compose_v2:
+        project_src: /opt/monitoring
+        state: absent
+        remove_volumes: true
+        remove_orphans: true
+
+    - name: Remove Grafana and Prometheus directory
+      ansible.builtin.file:
+        path: /opt/monitoring
+        state: absent
