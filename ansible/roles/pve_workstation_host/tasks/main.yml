@@ -8,7 +8,6 @@
 - name: Verify workstation variables are defined
   ansible.builtin.assert:
     that:
-      - pve_workstation_vm_ids is defined
       - pve_workstation_cpu_affinity is defined
       - pve_workstation_gpu_pci_ids is defined
       - pve_workstation_gpu_devices is defined
@@ -19,6 +18,47 @@
       - pve_workstation_hook_volume is defined
       - pve_workstation_shutdown_timeout is defined
     fail_msg: "Missing required pve_workstation_* variables for pve-lab."
+
+- name: Discover workstation VMs from Proxmox tags
+  ansible.builtin.shell: |
+    set -euo pipefail
+
+    for vmid in $(qm list | awk 'NR > 1 { print $1 }'); do
+        tags="$(
+            qm config "${vmid}" |
+            awk -F': ' '$1 == "tags" { print $2 }'
+        )"
+
+        case ";${tags};" in
+            *";workstation;"*)
+                echo "${vmid}"
+                ;;
+        esac
+    done
+  args:
+    executable: /bin/bash
+  register: pve_workstation_discovery
+  changed_when: false
+  check_mode: false
+
+- name: Store discovered workstation VM IDs
+  ansible.builtin.set_fact:
+    pve_workstation_vm_ids: >-
+      {{
+        pve_workstation_discovery.stdout_lines
+        | map('int')
+        | list
+      }}
+
+- name: Verify at least one workstation was discovered
+  ansible.builtin.assert:
+    that:
+      - pve_workstation_vm_ids | length > 0
+    fail_msg: "No Proxmox VM tagged 'workstation' was found."
+
+- name: Report discovered workstation VMs
+  ansible.builtin.debug:
+    msg: "Discovered workstation VMs: {{ pve_workstation_vm_ids }}"
 
 - name: Read existing Proxmox PCI resource mappings
   ansible.builtin.command:

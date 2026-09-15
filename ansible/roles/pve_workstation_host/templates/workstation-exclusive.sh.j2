@@ -4,48 +4,65 @@ set -euo pipefail
 VMID="${1:?missing VMID}"
 PHASE="${2:?missing phase}"
 
-WORKSTATION_IDS=(
-{% for id in pve_workstation_vm_ids %}
-  {{ id }}
-{% endfor %}
-)
+SHUTDOWN_TIMEOUT={{ pve_workstation_shutdown_timeout }}
 
-# Nothing to do outside pre-start.
 if [[ "${PHASE}" != "pre-start" ]]; then
     exit 0
 fi
 
-# Prevent two workstation starts from arbitrating simultaneously.
 exec 9>/run/lock/pve-workstation-exclusive.lock
 flock -x 9
+
+mapfile -t WORKSTATION_IDS < <(
+    qm list |
+    awk 'NR > 1 { print $1 }' |
+    while read -r id; do
+        tags="$(
+            qm config "${id}" |
+            awk -F': ' '$1 == "tags" { print $2 }'
+        )"
+
+        case ";${tags};" in
+            *";workstation;"*)
+                echo "${id}"
+                ;;
+        esac
+    done
+)
 
 echo "WORKSTATION POOL: preparing VM ${VMID}"
 
 for OTHER in "${WORKSTATION_IDS[@]}"; do
     [[ "${OTHER}" == "${VMID}" ]] && continue
 
-    STATUS="$(qm status "${OTHER}" | awk '{print $2}')"
+    STATUS="$(qm status "${OTHER}" | awk '{ print $2 }')"
 
-    if [[ "${STATUS}" == "running" ]]; then
-        echo "WORKSTATION POOL: VM ${OTHER} is running."
-        echo "WORKSTATION POOL: requesting graceful shutdown..."
+    if [[ "${STATUS}" != "running" ]]; then
+        continue
+    fi
 
-        if ! qm shutdown "${OTHER}" \
-            --timeout {{ pve_workstation_shutdown_timeout }}; then
+    echo "WORKSTATION POOL: VM ${OTHER} is running."
+    echo "WORKSTATION POOL: requesting graceful shutdown."
 
-            echo "WORKSTATION POOL: VM ${OTHER} did not shut down cleanly." >&2
-            echo "WORKSTATION POOL: refusing to start VM ${VMID}." >&2
-            exit 1
-        fi
+    if ! qm shutdown "${OTHER}" --timeout "${SHUTDOWN_TIMEOUT}"; then
+        echo "WORKSTATION POOL: graceful shutdown failed." >&2
+        echo "WORKSTATION POOL: refusing to start VM ${VMID}." >&2
+        exit 1
+    fi
 
-        if ! qm wait "${OTHER}" --timeout 10; then
+    DEADLINE=$((SECONDS + SHUTDOWN_TIMEOUT))
+
+    while [[ "$(qm status "${OTHER}" | awk '{ print $2 }')" != "stopped" ]]; do
+        if (( SECONDS >= DEADLINE )); then
             echo "WORKSTATION POOL: VM ${OTHER} is still running." >&2
             echo "WORKSTATION POOL: refusing to start VM ${VMID}." >&2
             exit 1
         fi
 
-        echo "WORKSTATION POOL: VM ${OTHER} stopped."
-    fi
+        sleep 2
+    done
+
+    echo "WORKSTATION POOL: VM ${OTHER} stopped."
 done
 
 echo "WORKSTATION POOL: hardware available for VM ${VMID}."
