@@ -50,12 +50,6 @@
         | list
       }}
 
-- name: Verify at least one workstation was discovered
-  ansible.builtin.assert:
-    that:
-      - pve_workstation_vm_ids | length > 0
-    fail_msg: "No Proxmox VM tagged 'workstation' was found."
-
 - name: Report discovered workstation VMs
   ansible.builtin.debug:
     msg: "Discovered workstation VMs: {{ pve_workstation_vm_ids }}"

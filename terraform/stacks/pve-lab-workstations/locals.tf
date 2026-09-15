@@ -16,10 +16,25 @@ locals {
     ]
   }
 
+  workstation_templates = {
+    win11 = {
+      vm_id = 9101
+    }
+
+    ubuntu26 = {
+      vm_id = 8101
+    }
+
+    fedora44 = {
+      vm_id = 8200
+    }
+  }
+
   workstation_vms = {
     game = {
-      vm_id = 501
-      name  = "w11-game"
+      vm_id    = 501
+      name     = "w11-game"
+      template = null
 
       tags = [
         "windows",
@@ -45,8 +60,9 @@ locals {
     }
 
     dev = {
-      vm_id = 502
-      name  = "w11-dev"
+      vm_id    = 502
+      name     = "w11-dev"
+      template = null
 
       tags = [
         "windows",
@@ -72,8 +88,9 @@ locals {
     }
 
     school = {
-      vm_id = 503
-      name  = "w11-school"
+      vm_id    = 503
+      name     = "w11-school"
+      template = null
 
       tags = [
         "windows",
@@ -99,8 +116,9 @@ locals {
     }
 
     ubuntu = {
-      vm_id = 601
-      name  = "u26-dev"
+      vm_id    = 601
+      name     = "u26-dev"
+      template = null
 
       tags = [
         "linux",
@@ -126,8 +144,9 @@ locals {
     }
 
     fedora = {
-      vm_id = 602
-      name  = "f44-dev"
+      vm_id    = 602
+      name     = "f44-dev"
+      template = null
 
       tags = [
         "linux",

@@ -104,6 +104,18 @@ resource "proxmox_virtual_environment_vm" "workstation" {
     }
   }
 
+  dynamic "clone" {
+    for_each = each.value.template == null ? [] : [
+      local.workstation_templates[each.value.template]
+    ]
+
+    content {
+      vm_id     = clone.value.vm_id
+      node_name = local.workstation_node
+      full      = true
+    }
+  }
+
   network_device {
     bridge      = "vmbr0"
     model       = "virtio"
