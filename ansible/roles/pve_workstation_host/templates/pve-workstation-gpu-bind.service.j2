@@ -1,0 +1,12 @@
+[Unit]
+Description=Bind pve-lab workstation GPU to vfio-pci
+After=systemd-modules-load.service
+Before=pve-guests.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/pve-workstation-bind-gpu
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,378 @@
+---
+- name: Verify this role is running on pve-lab
+  ansible.builtin.assert:
+    that:
+      - ansible_facts["hostname"] == "pve-lab"
+    fail_msg: "pve_workstation_host must only run on pve-lab."
+
+- name: Verify workstation variables are defined
+  ansible.builtin.assert:
+    that:
+      - pve_workstation_vm_ids is defined
+      - pve_workstation_cpu_affinity is defined
+      - pve_workstation_gpu_pci_ids is defined
+      - pve_workstation_gpu_devices is defined
+      - pve_workstation_usb_controller is defined
+      - pve_workstation_pci_mappings is defined
+      - pve_workstation_usb_mappings is defined
+      - pve_workstation_mapping_user is defined
+      - pve_workstation_hook_volume is defined
+      - pve_workstation_shutdown_timeout is defined
+    fail_msg: "Missing required pve_workstation_* variables for pve-lab."
+
+- name: Read existing Proxmox PCI resource mappings
+  ansible.builtin.command:
+    cmd: pvesh get /cluster/mapping/pci --output-format json
+  register: pve_existing_pci_mappings
+  changed_when: false
+  check_mode: false
+
+- name: Extract existing Proxmox PCI mapping names
+  ansible.builtin.set_fact:
+    pve_existing_pci_mapping_names: >-
+      {{
+        (pve_existing_pci_mappings.stdout | from_json)
+        | map(attribute='id')
+        | list
+      }}
+
+- name: Create workstation PCI resource mappings
+  ansible.builtin.command:
+    argv:
+      - pvesh
+      - create
+      - /cluster/mapping/pci
+      - --id
+      - "{{ item.name }}"
+      - --map
+      - "{{ item.map }}"
+  loop: "{{ pve_workstation_pci_mappings }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - not ansible_check_mode
+    - item.name not in pve_existing_pci_mapping_names
+  changed_when: true
+
+- name: Report workstation PCI mappings in check mode
+  ansible.builtin.debug:
+    msg: "Would create PCI mapping {{ item.name }} -> {{ item.map }}"
+  loop: "{{ pve_workstation_pci_mappings }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - ansible_check_mode
+    - item.name not in pve_existing_pci_mapping_names
+  changed_when: true
+
+- name: Install VFIO configuration
+  ansible.builtin.template:
+    src: vfio.conf.j2
+    dest: /etc/modprobe.d/99-pve-workstation-vfio.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Rebuild workstation boot configuration
+
+- name: Load VFIO modules from initramfs
+  ansible.builtin.blockinfile:
+    path: /etc/initramfs-tools/modules
+    marker: "# {mark} ANSIBLE PVE WORKSTATION VFIO"
+    block: |
+      vfio
+      vfio_iommu_type1
+      vfio_pci
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Rebuild workstation boot configuration
+
+- name: Install GRUB workstation VFIO parameters
+  ansible.builtin.template:
+    src: grub-vfio.cfg.j2
+    dest: /etc/default/grub.d/99-pve-workstation-vfio.cfg
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Rebuild workstation boot configuration
+
+- name: Read current workstation VM configurations
+  ansible.builtin.command:
+    cmd: "qm config {{ item }}"
+  loop: "{{ pve_workstation_vm_ids }}"
+  loop_control:
+    label: "VM {{ item }}"
+  register: workstation_vm_configs
+  changed_when: false
+  check_mode: false
+
+- name: Apply X3D CCD affinity to workstation VMs
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ item.item }}
+      --affinity {{ pve_workstation_cpu_affinity }}
+  loop: "{{ workstation_vm_configs.results }}"
+  loop_control:
+    label: "VM {{ item.item }}"
+  when:
+    - not ansible_check_mode
+    - >-
+      ('affinity: ' ~ pve_workstation_cpu_affinity) not in item.stdout
+  changed_when: true
+
+- name: Report X3D affinity changes in check mode
+  ansible.builtin.debug:
+    msg: >-
+      Would set VM {{ item.item }} CPU affinity to
+      {{ pve_workstation_cpu_affinity }}
+  loop: "{{ workstation_vm_configs.results }}"
+  loop_control:
+    label: "VM {{ item.item }}"
+  when:
+    - ansible_check_mode
+    - >-
+      ('affinity: ' ~ pve_workstation_cpu_affinity) not in item.stdout
+  changed_when: true
+
+- name: Install workstation GPU binding script
+  ansible.builtin.template:
+    src: bind-workstation-gpu.sh.j2
+    dest: /usr/local/sbin/pve-workstation-bind-gpu
+    owner: root
+    group: root
+    mode: "0755"
+  register: workstation_gpu_bind_script
+
+- name: Install workstation GPU bind systemd service
+  ansible.builtin.template:
+    src: pve-workstation-gpu-bind.service.j2
+    dest: /etc/systemd/system/pve-workstation-gpu-bind.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: workstation_gpu_bind_service
+
+- name: Enable and start workstation GPU bind service
+  ansible.builtin.systemd_service:
+    name: pve-workstation-gpu-bind.service
+    daemon_reload: "{{ workstation_gpu_bind_service.changed }}"
+    enabled: true
+    state: >-
+      {{
+        'restarted'
+        if (
+          workstation_gpu_bind_script.changed
+          or workstation_gpu_bind_service.changed
+        )
+        else 'started'
+      }}
+  when: not ansible_check_mode
+
+- name: Report workstation GPU bind service changes in check mode
+  ansible.builtin.debug:
+    msg: >-
+      Would install, enable and start
+      pve-workstation-gpu-bind.service
+  when:
+    - ansible_check_mode
+    - workstation_gpu_bind_script.changed
+      or workstation_gpu_bind_service.changed
+  changed_when: true
+
+- name: Read existing Proxmox USB resource mappings
+  ansible.builtin.command:
+    cmd: pvesh get /cluster/mapping/usb --output-format json
+  register: pve_existing_usb_mappings
+  changed_when: false
+  check_mode: false
+
+- name: Extract existing Proxmox USB mapping names
+  ansible.builtin.set_fact:
+    pve_existing_usb_mapping_names: >-
+      {{
+        (pve_existing_usb_mappings.stdout | from_json)
+        | map(attribute='id')
+        | list
+      }}
+
+- name: Create workstation USB resource mappings
+  ansible.builtin.command:
+    argv:
+      - pvesh
+      - create
+      - /cluster/mapping/usb
+      - --id
+      - "{{ item.name }}"
+      - --map
+      - "{{ item.map }}"
+  loop: "{{ pve_workstation_usb_mappings }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - not ansible_check_mode
+    - item.name not in pve_existing_usb_mapping_names
+  changed_when: true
+
+- name: Report workstation USB mappings in check mode
+  ansible.builtin.debug:
+    msg: "Would create USB mapping {{ item.name }} -> {{ item.map }}"
+  loop: "{{ pve_workstation_usb_mappings }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - ansible_check_mode
+    - item.name not in pve_existing_usb_mapping_names
+  changed_when: true
+
+- name: Read existing Proxmox ACLs
+  ansible.builtin.command:
+    cmd: pvesh get /access/acl --output-format json
+  register: pve_existing_acls_raw
+  changed_when: false
+  check_mode: false
+
+- name: Parse existing Proxmox ACLs
+  ansible.builtin.set_fact:
+    pve_existing_acls: "{{ pve_existing_acls_raw.stdout | from_json }}"
+
+- name: Allow Terraform to use workstation USB mappings
+  ansible.builtin.command:
+    argv:
+      - pveum
+      - acl
+      - modify
+      - "/mapping/usb/{{ item.name }}"
+      - -user
+      - "{{ pve_workstation_mapping_user }}"
+      - -role
+      - PVEMappingUser
+  loop: "{{ pve_workstation_usb_mappings }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    mapping_path: "/mapping/usb/{{ item.name }}"
+  when:
+    - not ansible_check_mode
+    - >-
+      (
+        pve_existing_acls
+        | selectattr('path', 'equalto', mapping_path)
+        | selectattr('type', 'equalto', 'user')
+        | selectattr('ugid', 'equalto', pve_workstation_mapping_user)
+        | selectattr('roleid', 'equalto', 'PVEMappingUser')
+        | list
+        | length
+      ) == 0
+  changed_when: true
+
+- name: Read local storage configuration
+  ansible.builtin.command:
+    cmd: >-
+      pvesh get /storage/{{ pve_workstation_hook_storage }}
+      --output-format json
+  register: pve_local_storage_config
+  changed_when: false
+  check_mode: false
+
+- name: Enable snippets on local storage
+  ansible.builtin.command:
+    argv:
+      - pvesm
+      - set
+      - "{{ pve_workstation_hook_storage }}"
+      - --content
+      - >-
+        {{
+          (
+            (
+              (pve_local_storage_config.stdout | from_json).content
+              | default('')
+              | split(',')
+            )
+            + ['snippets']
+          )
+          | reject('equalto', '')
+          | unique
+          | join(',')
+        }}
+  when:
+    - not ansible_check_mode
+    - >-
+      'snippets' not in
+      (
+        (pve_local_storage_config.stdout | from_json).content
+        | default('')
+        | split(',')
+      )
+  changed_when: true
+
+- name: Report snippets storage change in check mode
+  ansible.builtin.debug:
+    msg: >-
+      Would enable snippets content on
+      {{ pve_workstation_hook_storage }}
+  when:
+    - ansible_check_mode
+    - >-
+      'snippets' not in
+      (
+        (pve_local_storage_config.stdout | from_json).content
+        | default('')
+        | split(',')
+      )
+  changed_when: true
+
+- name: Ensure local snippets directory exists
+  ansible.builtin.file:
+    path: /var/lib/vz/snippets
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install workstation exclusivity hook
+  ansible.builtin.template:
+    src: workstation-exclusive.sh.j2
+    dest: /var/lib/vz/snippets/pve-workstation-exclusive.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Read workstation VM configs for hook
+  ansible.builtin.command:
+    cmd: "qm config {{ item }}"
+  loop: "{{ pve_workstation_vm_ids }}"
+  loop_control:
+    label: "VM {{ item }}"
+  register: pve_workstation_hook_configs
+  changed_when: false
+  check_mode: false
+
+- name: Attach workstation exclusivity hook
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ item.item }}
+      --hookscript {{ pve_workstation_hook_volume }}
+  loop: "{{ pve_workstation_hook_configs.results }}"
+  loop_control:
+    label: "VM {{ item.item }}"
+  when:
+    - not ansible_check_mode
+    - >-
+      ('hookscript: ' ~ pve_workstation_hook_volume) not in item.stdout
+  changed_when: true
+
+- name: Report workstation hook changes in check mode
+  ansible.builtin.debug:
+    msg: >-
+      Would attach {{ pve_workstation_hook_volume }}
+      to VM {{ item.item }}
+  loop: "{{ pve_workstation_hook_configs.results }}"
+  loop_control:
+    label: "VM {{ item.item }}"
+  when:
+    - ansible_check_mode
+    - >-
+      ('hookscript: ' ~ pve_workstation_hook_volume) not in item.stdout
+  changed_when: true

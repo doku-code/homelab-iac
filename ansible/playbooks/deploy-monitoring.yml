@@ -25,7 +25,7 @@
   tasks:
     - name: Create Grafana and Prometheus directory
       ansible.builtin.file:
-        path: /opt/grafana-prometheus
+        path: /opt/monitoring
         state: directory
         owner: root
         group: root

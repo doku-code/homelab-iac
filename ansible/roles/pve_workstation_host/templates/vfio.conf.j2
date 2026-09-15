@@ -1,0 +1,12 @@
+# Managed by Ansible - pve_workstation_host
+
+options vfio-pci ids={{ pve_workstation_gpu_pci_ids | join(',') }} disable_vga=1
+
+blacklist nouveau
+options nouveau modeset=0
+
+blacklist nvidia
+blacklist nvidia_drm
+blacklist nvidia_modeset
+blacklist nvidia_uvm
+blacklist nvidiafb

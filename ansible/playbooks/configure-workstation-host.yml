@@ -1,0 +1,7 @@
+---
+- name: Configure pve-lab workstation hardware
+  hosts: pve-lab
+  become: true
+
+  roles:
+    - pve_workstation_host

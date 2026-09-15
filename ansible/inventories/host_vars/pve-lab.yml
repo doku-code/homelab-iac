@@ -1,0 +1,49 @@
+pve_workstation_vm_ids:
+  - 501
+  - 502
+  - 503
+  - 601
+  - 602
+
+pve_workstation_cpu_affinity: "0-7,16-23"
+
+pve_workstation_gpu_pci_ids:
+  - "10de:1e81"
+  - "10de:10f8"
+  - "10de:1ad8"
+  - "10de:1ad9"
+
+pve_workstation_gpu_devices:
+  - "0000:01:00.0"
+  - "0000:01:00.1"
+  - "0000:01:00.2"
+  - "0000:01:00.3"
+
+pve_workstation_usb_controller: "0000:0d:00.4"
+
+pve_workstation_pci_mappings:
+  - name: "pve-lab-workstation-gpu"
+    map: "node=pve-lab,path=0000:01:00,id=10de:1e81,iommugroup=13,subsystem-id=1043:8712"
+
+  - name: "pve-lab-workstation-kvm"
+    map: "node=pve-lab,path=0000:0d:00.4,id=1022:15b7,iommugroup=28,subsystem-id=1043:8877"
+
+pve_workstation_usb_mappings:
+  - name: "pve-lab-workstation-logitech"
+    map: "node=pve-lab,id=046d:c539"
+
+  - name: "pve-lab-workstation-keyboard"
+    map: "node=pve-lab,id=1038:1622"
+
+  - name: "pve-lab-workstation-brio"
+    map: "node=pve-lab,id=046d:0942"
+
+  - name: "pve-lab-workstation-scarlett"
+    map: "node=pve-lab,id=1235:8210"
+
+pve_workstation_mapping_user: "terraform@pve"
+
+pve_workstation_hook_storage: "local"
+pve_workstation_hook_volume: "local:snippets/pve-workstation-exclusive.sh"
+
+pve_workstation_shutdown_timeout: 90

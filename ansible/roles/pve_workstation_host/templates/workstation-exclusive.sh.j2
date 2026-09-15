@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VMID="${1:?missing VMID}"
+PHASE="${2:?missing phase}"
+
+WORKSTATION_IDS=(
+{% for id in pve_workstation_vm_ids %}
+  {{ id }}
+{% endfor %}
+)
+
+# Nothing to do outside pre-start.
+if [[ "${PHASE}" != "pre-start" ]]; then
+    exit 0
+fi
+
+# Prevent two workstation starts from arbitrating simultaneously.
+exec 9>/run/lock/pve-workstation-exclusive.lock
+flock -x 9
+
+echo "WORKSTATION POOL: preparing VM ${VMID}"
+
+for OTHER in "${WORKSTATION_IDS[@]}"; do
+    [[ "${OTHER}" == "${VMID}" ]] && continue
+
+    STATUS="$(qm status "${OTHER}" | awk '{print $2}')"
+
+    if [[ "${STATUS}" == "running" ]]; then
+        echo "WORKSTATION POOL: VM ${OTHER} is running."
+        echo "WORKSTATION POOL: requesting graceful shutdown..."
+
+        if ! qm shutdown "${OTHER}" \
+            --timeout {{ pve_workstation_shutdown_timeout }}; then
+
+            echo "WORKSTATION POOL: VM ${OTHER} did not shut down cleanly." >&2
+            echo "WORKSTATION POOL: refusing to start VM ${VMID}." >&2
+            exit 1
+        fi
+
+        if ! qm wait "${OTHER}" --timeout 10; then
+            echo "WORKSTATION POOL: VM ${OTHER} is still running." >&2
+            echo "WORKSTATION POOL: refusing to start VM ${VMID}." >&2
+            exit 1
+        fi
+
+        echo "WORKSTATION POOL: VM ${OTHER} stopped."
+    fi
+done
+
+echo "WORKSTATION POOL: hardware available for VM ${VMID}."
+exit 0

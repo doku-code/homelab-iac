@@ -9,12 +9,22 @@ locals {
 
     memory  = 16384
     balloon = 0
+
+    tags = [
+      "terraform",
+      "workstation",
+    ]
   }
 
   workstation_vms = {
     game = {
       vm_id = 501
       name  = "w11-game"
+
+      tags = [
+        "windows",
+        "gaming",
+      ]
 
       os_type = "win11"
       machine = "pc-q35-11.0+pve2"
@@ -38,6 +48,11 @@ locals {
       vm_id = 502
       name  = "w11-dev"
 
+      tags = [
+        "windows",
+        "dev",
+      ]
+
       os_type = "win11"
       machine = "pc-q35-11.0+pve2"
 
@@ -59,6 +74,11 @@ locals {
     school = {
       vm_id = 503
       name  = "w11-school"
+
+      tags = [
+        "windows",
+        "school",
+      ]
 
       os_type = "win11"
       machine = "pc-q35-11.0+pve2"
@@ -82,6 +102,11 @@ locals {
       vm_id = 601
       name  = "u26-dev"
 
+      tags = [
+        "linux",
+        "dev",
+      ]
+
       os_type = "l26"
       machine = "q35"
 
@@ -103,6 +128,11 @@ locals {
     fedora = {
       vm_id = 602
       name  = "f44-dev"
+
+      tags = [
+        "linux",
+        "dev",
+      ]
 
       os_type = "l26"
       machine = "q35"

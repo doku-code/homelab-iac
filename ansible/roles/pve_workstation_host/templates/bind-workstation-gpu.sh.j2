@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TARGET_DRIVER="vfio-pci"
+
+modprobe vfio-pci
+
+{% for dev in pve_workstation_gpu_devices %}
+DEVICE="{{ dev }}"
+
+if [[ ! -e "/sys/bus/pci/devices/${DEVICE}" ]]; then
+    echo "PCI device ${DEVICE} not found" >&2
+    exit 1
+fi
+
+CURRENT_DRIVER=""
+
+if [[ -L "/sys/bus/pci/devices/${DEVICE}/driver" ]]; then
+    CURRENT_DRIVER="$(basename "$(readlink -f "/sys/bus/pci/devices/${DEVICE}/driver")")"
+fi
+
+if [[ "${CURRENT_DRIVER}" == "${TARGET_DRIVER}" ]]; then
+    echo "${DEVICE} already bound to ${TARGET_DRIVER}"
+else
+    echo "Binding ${DEVICE} from ${CURRENT_DRIVER:-none} to ${TARGET_DRIVER}"
+
+    echo "${TARGET_DRIVER}" > "/sys/bus/pci/devices/${DEVICE}/driver_override"
+
+    if [[ -L "/sys/bus/pci/devices/${DEVICE}/driver" ]]; then
+        echo "${DEVICE}" > "/sys/bus/pci/devices/${DEVICE}/driver/unbind"
+    fi
+
+    echo "${DEVICE}" > /sys/bus/pci/drivers_probe
+fi
+
+{% endfor %}

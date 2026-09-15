@@ -5,6 +5,11 @@ resource "proxmox_virtual_environment_vm" "workstation" {
   vm_id     = each.value.vm_id
   name      = each.value.name
 
+  tags = concat(
+    local.workstation_profile.tags,
+    each.value.tags
+  )
+
   started = false
   on_boot = false
 
@@ -31,6 +36,36 @@ resource "proxmox_virtual_environment_vm" "workstation" {
   memory {
     dedicated = local.workstation_profile.memory
     floating  = local.workstation_profile.balloon
+  }
+
+  # GPU Passthrough section
+  hostpci {
+    device  = "hostpci0"
+    mapping = "pve-lab-workstation-gpu"
+    pcie    = true
+    rombar  = true
+    xvga    = true
+  }
+
+  # KVM section
+  usb {
+    mapping = "pve-lab-workstation-logitech"
+    usb3    = true
+  }
+
+  usb {
+    mapping = "pve-lab-workstation-keyboard"
+    usb3    = true
+  }
+
+  usb {
+    mapping = "pve-lab-workstation-brio"
+    usb3    = true
+  }
+
+  usb {
+    mapping = "pve-lab-workstation-scarlett"
+    usb3    = true
   }
 
   efi_disk {
@@ -92,10 +127,8 @@ resource "proxmox_virtual_environment_vm" "workstation" {
 
     ignore_changes = [
       started,
-
-      # Affinity est appliquée par notre couche host Ansible,
-      # car BPG requiert root@pam pour la modifier.
       cpu[0].affinity,
+      hook_script_file_id,
     ]
   }
 }
