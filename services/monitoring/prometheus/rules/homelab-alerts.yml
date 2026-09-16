@@ -24,14 +24,14 @@ groups:
           description: "Prometheus cannot scrape the Proxmox API exporter."
 
       - alert: ProxmoxClusterNoQuorum
-        expr: (max(pve_cluster_info{quorate="1"}) or vector(0)) < 1
+        expr: pve_cluster_info{quorate="0"} == 1
         for: 1m
         labels:
           severity: critical
           category: cluster
         annotations:
           summary: "Proxmox cluster lost quorum"
-          description: "The Proxmox cluster has not reported quorum for more than 1 minute."
+          description: "The Proxmox cluster has been without quorum for more than 1 minute."
 
       - alert: ProxmoxNodeDown
         expr: pve_up{id=~"node/.*"} == 0
@@ -41,7 +41,30 @@ groups:
           category: availability
         annotations:
           summary: "Proxmox node down"
-          description: "{{ $labels.id }} has been reported offline for more than 2 minutes."
+          description: "{{ $labels.id }} has been offline for more than 2 minutes."
+
+      - alert: ProxmoxExpectedGuestDown
+        expr: |
+          (pve_up{id=~"(qemu|lxc)/.*"} == 0)
+          and on(id)
+          (pve_onboot_status == 1)
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Expected Proxmox guest is down"
+          description: "{{ $labels.id }} is configured to start on boot but has been stopped for more than 2 minutes."
+
+      - alert: ProxmoxStorageDown
+        expr: pve_up{id=~"storage/.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: storage
+        annotations:
+          summary: "Proxmox storage unavailable"
+          description: "{{ $labels.id }} has been unavailable for more than 2 minutes."
 
       - alert: ProxmoxStorageHighUsage
         expr: |
@@ -72,3 +95,60 @@ groups:
         annotations:
           summary: "Proxmox storage above 95%"
           description: "{{ $labels.id }} is critically full."
+
+      - alert: HostLowAvailableMemory
+        expr: |
+          (
+            node_memory_MemAvailable_bytes{job="node"}
+            /
+            node_memory_MemTotal_bytes{job="node"}
+          ) < 0.10
+        for: 10m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "Host memory running low"
+          description: "{{ $labels.instance }} has less than 10% available memory for more than 10 minutes."
+
+      - alert: HostHighCPUUsage
+        expr: |
+          (
+            1 -
+            avg by (instance) (
+              rate(node_cpu_seconds_total{job="node",mode="idle"}[5m])
+            )
+          ) > 0.95
+        for: 15m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "Host CPU usage above 95%"
+          description: "{{ $labels.instance }} has sustained more than 95% CPU usage for 15 minutes."
+
+      - alert: PrometheusConfigReloadFailed
+        expr: |
+          max_over_time(
+            prometheus_config_last_reload_successful{job="prometheus"}[5m]
+          ) == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: monitoring
+        annotations:
+          summary: "Prometheus configuration reload failed"
+          description: "Prometheus failed to reload its configuration."
+
+      - alert: PrometheusRuleEvaluationFailures
+        expr: |
+          increase(
+            prometheus_rule_evaluation_failures_total{job="prometheus"}[5m]
+          ) > 0
+        for: 5m
+        labels:
+          severity: critical
+          category: monitoring
+        annotations:
+          summary: "Prometheus rule evaluation failures"
+          description: "Prometheus has encountered rule evaluation failures."
