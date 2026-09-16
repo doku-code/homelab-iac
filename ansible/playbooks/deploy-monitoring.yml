@@ -72,7 +72,7 @@
               PVE_EXPORTER_VERIFY_SSL={{ pve_exporter_verify_ssl | to_json }}
           no_log: true
 
-        - name: Deploy Grafana and Prometheus containers
+        - name: Deploy monitoring containers
           community.docker.docker_compose_v2:
             project_src: /opt/monitoring
             env_files:
@@ -89,8 +89,34 @@
             state: absent
           no_log: true
 
+    - name: Validate Prometheus configuration
+      ansible.builtin.command:
+        cmd: docker exec prometheus promtool check config /etc/prometheus/prometheus.yml
+      changed_when: false
+
+    - name: Validate Alertmanager configuration
+      ansible.builtin.command:
+        cmd: docker exec alertmanager amtool check-config /etc/alertmanager/alertmanager.yml
+      changed_when: false
+
     - name: Reload Prometheus configuration
       ansible.builtin.uri:
         url: http://192.168.0.28:9090/-/reload
         method: POST
         status_code: 200
+
+    - name: Reload Alertmanager configuration
+      ansible.builtin.uri:
+        url: http://192.168.0.28:9093/-/reload
+        method: POST
+        status_code: 200
+
+    - name: Reload Grafana datasource provisioning
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/admin/provisioning/datasources/reload
+        method: POST
+        user: admin
+        password: "{{ grafana_admin_password }}"
+        force_basic_auth: true
+        status_code: 200
+      no_log: true

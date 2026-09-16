@@ -1,0 +1,74 @@
+groups:
+  - name: homelab-infrastructure
+    interval: 30s
+
+    rules:
+      - alert: NodeExporterDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Node exporter unreachable"
+          description: "Prometheus cannot scrape {{ $labels.instance }} for more than 2 minutes."
+
+      - alert: PVEExporterDown
+        expr: up{job="pve"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: monitoring
+        annotations:
+          summary: "Proxmox exporter unreachable"
+          description: "Prometheus cannot scrape the Proxmox API exporter."
+
+      - alert: ProxmoxClusterNoQuorum
+        expr: (max(pve_cluster_info{quorate="1"}) or vector(0)) < 1
+        for: 1m
+        labels:
+          severity: critical
+          category: cluster
+        annotations:
+          summary: "Proxmox cluster lost quorum"
+          description: "The Proxmox cluster has not reported quorum for more than 1 minute."
+
+      - alert: ProxmoxNodeDown
+        expr: pve_up{id=~"node/.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Proxmox node down"
+          description: "{{ $labels.id }} has been reported offline for more than 2 minutes."
+
+      - alert: ProxmoxStorageHighUsage
+        expr: |
+          (
+            pve_disk_usage_bytes{id=~"storage/.*"}
+            /
+            pve_disk_size_bytes{id=~"storage/.*"}
+          ) > 0.85
+        for: 15m
+        labels:
+          severity: warning
+          category: storage
+        annotations:
+          summary: "Proxmox storage above 85%"
+          description: "{{ $labels.id }} has been above 85% usage for at least 15 minutes."
+
+      - alert: ProxmoxStorageCriticalUsage
+        expr: |
+          (
+            pve_disk_usage_bytes{id=~"storage/.*"}
+            /
+            pve_disk_size_bytes{id=~"storage/.*"}
+          ) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          category: storage
+        annotations:
+          summary: "Proxmox storage above 95%"
+          description: "{{ $labels.id }} is critically full."
