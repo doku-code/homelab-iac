@@ -16,3 +16,17 @@
     url: http://127.0.0.1:9100/metrics
     method: GET
     status_code: 200
+
+- name: Deploy monitoring containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/monitoring
+    state: present
+    pull: missing
+    remove_orphans: true
+  environment:
+    GRAFANA_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+    PVE_EXPORTER_USER: "{{ pve_exporter_user }}"
+    PVE_EXPORTER_TOKEN_NAME: "{{ pve_exporter_token_name }}"
+    PVE_EXPORTER_TOKEN_VALUE: "{{ pve_exporter_token_value }}"
+    PVE_EXPORTER_VERIFY_SSL: "{{ pve_exporter_verify_ssl }}"
+  no_log: true

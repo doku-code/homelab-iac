@@ -13,13 +13,25 @@
   vars:
     grafana_admin_password: >-
       {{ lookup('ansible.builtin.env', 'GRAFANA_ADMIN_PASSWORD') }}
+    pve_exporter_user: >-
+      {{ lookup('ansible.builtin.env', 'PVE_EXPORTER_USER') }}
+    pve_exporter_token_name: >-
+      {{ lookup('ansible.builtin.env', 'PVE_EXPORTER_TOKEN_NAME') }}
+    pve_exporter_token_value: >-
+      {{ lookup('ansible.builtin.env', 'PVE_EXPORTER_TOKEN_VALUE') }}
+    pve_exporter_verify_ssl: >-
+      {{ lookup('ansible.builtin.env', 'PVE_EXPORTER_VERIFY_SSL') }}
 
   pre_tasks:
-    - name: Ensure Grafana admin password is available
+    - name: Ensure monitoring secrets are available
       ansible.builtin.assert:
         that:
           - grafana_admin_password | length > 0
-        fail_msg: "GRAFANA_ADMIN_PASSWORD is not available in the Ansible environment."
+          - pve_exporter_user | length > 0
+          - pve_exporter_token_name | length > 0
+          - pve_exporter_token_value | length > 0
+          - pve_exporter_verify_ssl | length > 0
+        fail_msg: "Required monitoring secrets are missing."
       no_log: true
 
   tasks:
@@ -37,16 +49,45 @@
         dest: /opt/monitoring/
         owner: root
         group: root
+        mode: preserve
 
-    - name: Deploy Grafana and Prometheus containers
-      community.docker.docker_compose_v2:
-        project_src: /opt/monitoring
-        state: present
-        pull: missing
-        remove_orphans: true
-      environment:
-        GRAFANA_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
-      no_log: true
+    - name: Remove legacy Prometheus configuration file
+      ansible.builtin.file:
+        path: /opt/monitoring/prometheus.yml
+        state: absent
+
+    - name: Deploy monitoring stack
+      block:
+        - name: Create temporary Compose environment file
+          ansible.builtin.copy:
+            dest: /opt/monitoring/.env.runtime
+            owner: root
+            group: root
+            mode: "0600"
+            content: |
+              GRAFANA_ADMIN_PASSWORD={{ grafana_admin_password | to_json }}
+              PVE_EXPORTER_USER={{ pve_exporter_user | to_json }}
+              PVE_EXPORTER_TOKEN_NAME={{ pve_exporter_token_name | to_json }}
+              PVE_EXPORTER_TOKEN_VALUE={{ pve_exporter_token_value | to_json }}
+              PVE_EXPORTER_VERIFY_SSL={{ pve_exporter_verify_ssl | to_json }}
+          no_log: true
+
+        - name: Deploy Grafana and Prometheus containers
+          community.docker.docker_compose_v2:
+            project_src: /opt/monitoring
+            env_files:
+              - .env.runtime
+            state: present
+            pull: missing
+            remove_orphans: true
+          no_log: true
+
+      always:
+        - name: Remove temporary Compose environment file
+          ansible.builtin.file:
+            path: /opt/monitoring/.env.runtime
+            state: absent
+          no_log: true
 
     - name: Reload Prometheus configuration
       ansible.builtin.uri:

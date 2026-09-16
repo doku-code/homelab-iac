@@ -12,7 +12,7 @@ services:
       - --web.enable-lifecycle
 
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus:/etc/prometheus:ro
       - prometheus-data:/prometheus
 
     ports:
@@ -51,6 +51,20 @@ services:
 
     volumes:
       - /:/host:ro,rslave
+
+  pve-exporter:
+    image: prompve/prometheus-pve-exporter:3.10.0
+    container_name: pve-exporter
+    restart: unless-stopped
+
+    environment:
+      PVE_USER: ${PVE_EXPORTER_USER}
+      PVE_TOKEN_NAME: ${PVE_EXPORTER_TOKEN_NAME}
+      PVE_TOKEN_VALUE: ${PVE_EXPORTER_TOKEN_VALUE}
+      PVE_VERIFY_SSL: ${PVE_EXPORTER_VERIFY_SSL}
+
+    ports:
+      - "9221:9221"
 
 volumes:
   prometheus-data:
