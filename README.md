@@ -247,7 +247,8 @@ The workflow does not receive Proxmox or Infisical credentials and cannot apply,
 destroy, or deploy infrastructure. The `docker` runner label, container
 isolation, resource limits, and network policy remain live Forgejo
 administration prerequisites; no runner configuration is currently committed
-to this repository.
+to this repository. See [`docs/forgejo-runner.md`](docs/forgejo-runner.md) for
+the intended runner separation and one-time bootstrap checks.
 
 ## Secrets
 

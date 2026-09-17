@@ -16,6 +16,7 @@ jobs:
 
       - name: Install validation tools
         run: |
+          set -euo pipefail
           apt-get update
           apt-get install -y --no-install-recommends \
             docker-compose-v2 \
@@ -25,6 +26,7 @@ jobs:
 
       - name: Install Terraform
         run: |
+          set -euo pipefail
           curl -fsSLo /tmp/terraform.zip \
             https://releases.hashicorp.com/terraform/1.16.1/terraform_1.16.1_linux_amd64.zip
           unzip -qo /tmp/terraform.zip -d /usr/local/bin
@@ -35,6 +37,7 @@ jobs:
 
       - name: Validate Terraform formatting and configuration
         run: |
+          set -euo pipefail
           terraform fmt -check -recursive terraform
           for root in \
             terraform/stacks/pve-lab-workstations \
@@ -45,6 +48,7 @@ jobs:
 
       - name: Validate Ansible playbooks
         run: |
+          set -euo pipefail
           for playbook in ansible/playbooks/*.yml; do
             .venv/bin/ansible-playbook \
               --syntax-check \
