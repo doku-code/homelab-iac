@@ -6,6 +6,21 @@ SHELL := /bin/bash
 
 VENV := .venv
 ANSIBLE := $(VENV)/bin/ansible-playbook
+INFISICAL_ENV ?= dev
+INFISICAL_DOMAIN ?= https://secrets.doku-lab.net
+
+define INFISICAL_RUN
+	@set -euo pipefail; \
+	: "$${INFISICAL_CLIENT_ID:?Set INFISICAL_CLIENT_ID in the runtime environment}"; \
+	: "$${INFISICAL_CLIENT_SECRET:?Set INFISICAL_CLIENT_SECRET in the runtime environment}"; \
+	token="$$(infisical login --silent --plain --domain "$(INFISICAL_DOMAIN)" \
+		--method universal-auth \
+		--client-id "$$INFISICAL_CLIENT_ID" \
+		--client-secret "$$INFISICAL_CLIENT_SECRET")"; \
+	infisical run --silent --domain "$(INFISICAL_DOMAIN)" \
+		--token "$$token" \
+		--env "$(INFISICAL_ENV)" -- $(1)
+endef
 
 .PHONY: \
 	setup-controller \
@@ -65,27 +80,20 @@ workstations-bootstrap:
 
 workstations-plan:
 	rm -f $(WS_PLAN)
-	infisical run --env=dev -- \
-		terraform -chdir=$(WS_DIR) fmt
-	infisical run --env=dev -- \
-		terraform -chdir=$(WS_DIR) validate
-	infisical run --env=dev -- \
-		terraform -chdir=$(WS_DIR) plan \
-		-out=$(WS_PLAN)
+	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) fmt)
+	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) validate)
+	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) plan -out=$(WS_PLAN))
 
 workstations-apply:
 	@test -f $(WS_PLAN) || \
 		(echo "No saved workstation plan. Run 'make workstations-plan' first."; exit 1)
-	infisical run --env=dev -- \
-		terraform -chdir=$(WS_DIR) apply \
-		-parallelism=1 $(WS_PLAN)
+	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) apply -parallelism=1 $(WS_PLAN))
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(WS_PLAYBOOK) --diff
 	rm -f $(WS_PLAN)
 
 workstations-verify:
-	infisical run --env=dev -- \
-		terraform -chdir=$(WS_DIR) plan
+	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) plan)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(WS_PLAYBOOK) --check --diff
 

@@ -1,6 +1,3 @@
-# infisical run --env=dev -- \
-# ansible-playbook ansible/playbooks/deploy-monitoring.yml
-#
 # ansible monitoring \
 #  -b \
 #  -m ansible.builtin.command \
