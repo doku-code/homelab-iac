@@ -1,0 +1,28 @@
+---
+plugin: community.proxmox.proxmox
+
+url: "{{ lookup('ansible.builtin.env', 'PROXMOX_URL') }}"
+user: "{{ lookup('ansible.builtin.env', 'PROXMOX_USER') }}"
+token_id: "{{ lookup('ansible.builtin.env', 'PROXMOX_TOKEN_ID') }}"
+token_secret: "{{ lookup('ansible.builtin.env', 'PROXMOX_TOKEN_SECRET') }}"
+
+exclude_nodes: true
+strict: true
+want_facts: true
+want_proxmox_nodes_ansible_host: false
+
+filters:
+  - "'guest' in (proxmox_tags_parsed | list)"
+
+keyed_groups:
+  - key: proxmox_tags_parsed
+    parent_group: guests
+    prefix: ""
+    separator: ""
+
+compose:
+  ansible_host: >-
+    {{ proxmox_ipconfig0.ip
+       | default(proxmox_net0.ip)
+       | default(proxmox_name)
+       | regex_replace('/.*$', '') }}

@@ -37,7 +37,9 @@ locals {
       template = null
 
       tags = [
+        "guest",
         "windows",
+        "nvidia",
         "gaming",
       ]
 
@@ -65,7 +67,9 @@ locals {
       template = null
 
       tags = [
+        "guest",
         "windows",
+        "nvidia",
         "dev",
       ]
 
@@ -93,7 +97,9 @@ locals {
       template = null
 
       tags = [
+        "guest",
         "windows",
+        "nvidia",
         "school",
       ]
 
@@ -121,7 +127,9 @@ locals {
       template = null
 
       tags = [
+        "guest",
         "linux",
+        "nvidia",
         "dev",
       ]
 
@@ -149,7 +157,9 @@ locals {
       template = null
 
       tags = [
+        "guest",
         "linux",
+        "nvidia",
         "dev",
       ]
 
