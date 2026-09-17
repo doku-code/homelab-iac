@@ -236,6 +236,19 @@ The NVIDIA tag currently records declarative intent only. Guest driver
 installation is deferred until the supported Linux repositories, Windows
 driver source, and passthrough validation procedure are confirmed.
 
+## Forgejo Validation
+
+The repository includes a validation-only Forgejo Actions workflow at
+`.forgejo/workflows/validate.yml`. It runs on a runner with the `docker` label
+and performs controller bootstrap, Terraform formatting and backend-free
+validation, Ansible syntax checks, and monitoring Compose validation.
+
+The workflow does not receive Proxmox or Infisical credentials and cannot apply,
+destroy, or deploy infrastructure. The `docker` runner label, container
+isolation, resource limits, and network policy remain live Forgejo
+administration prerequisites; no runner configuration is currently committed
+to this repository.
+
 ## Secrets
 
 No credentials are committed to this repository.

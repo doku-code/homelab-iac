@@ -1,0 +1,56 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: docker
+    container:
+      image: node:24-bookworm
+
+    steps:
+      - name: Check out repository
+        uses: https://code.forgejo.org/actions/checkout@v6.0.0
+
+      - name: Install validation tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            docker-compose-v2 \
+            python3 \
+            python3-venv \
+            unzip
+
+      - name: Install Terraform
+        run: |
+          curl -fsSLo /tmp/terraform.zip \
+            https://releases.hashicorp.com/terraform/1.16.1/terraform_1.16.1_linux_amd64.zip
+          unzip -qo /tmp/terraform.zip -d /usr/local/bin
+          terraform version
+
+      - name: Rebuild controller environment
+        run: make setup-controller
+
+      - name: Validate Terraform formatting and configuration
+        run: |
+          terraform fmt -check -recursive terraform
+          for root in \
+            terraform/stacks/pve-lab-workstations \
+            terraform/stacks/deb13-monitoring; do
+            terraform -chdir="$root" init -backend=false -input=false
+            terraform -chdir="$root" validate
+          done
+
+      - name: Validate Ansible playbooks
+        run: |
+          for playbook in ansible/playbooks/*.yml; do
+            .venv/bin/ansible-playbook \
+              --syntax-check \
+              -i ansible/inventories/homelab.yml \
+              "$playbook"
+          done
+
+      - name: Validate monitoring Compose configuration
+        run: docker compose -f services/monitoring/compose.yml config --quiet
