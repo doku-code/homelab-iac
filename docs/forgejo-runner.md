@@ -7,10 +7,16 @@ It is validation-only and requests the `docker` runner label. Jobs run inside a
 container and do not receive Proxmox, Infisical, registry, or deployment
 credentials.
 
-There is no runner registration file, bootstrap playbook, Compose definition,
-Terraform resource, or checked-in runner label configuration. The live runner's
-host, placement, labels, container options, privileged mode, host mounts, and
-Docker socket access therefore cannot be verified from this repository.
+The existing runner is represented by the parameterized Terraform root
+`terraform/stacks/pve-compute-forgejo-runner/` and configured by the
+`forgejo_runner` Ansible role. The live VMID, placement details, network,
+storage, allocations, and container engine still require operator inspection;
+none are guessed in Git.
+
+Terraform adoption is intentionally a separate import step. Collect the live
+CT configuration, create a private `terraform.tfvars`, import
+`pve-compute/<VMID>`, and review a normal plan before any apply. The resource
+has `prevent_destroy = true`.
 
 ## Intended Separation
 
@@ -33,17 +39,26 @@ conceptual separation from the beginning.
 
 ## Runner Host Ownership
 
-Once the live runner host is identified, Ansible is the preferred owner for
-runner package installation, service configuration, container runtime policy,
-resource limits, and filesystem permissions. Terraform should own a runner VM
-only if a new VM is intentionally introduced. Docker Compose is appropriate
-for a self-hosted runner service only when the runner's lifecycle is actually
-containerized.
+Ansible owns runner package installation, service configuration, container
+runtime policy, and filesystem permissions. The initial role defaults to
+Forgejo Runner `13.1.0`, one job, the `docker` label mapped to
+`node:24-bookworm`, Docker execution, bridge networking, no privileged mode,
+and no valid host-volume mounts. The service is left stopped until its
+one-time registration is complete. Override these values only after verifying
+the live runner and host assumptions.
+
+Use `make runner-check` for syntax validation, `make runner-plan` for the
+backend-free Terraform root, and `FORGEJO_RUNNER_HOST=... make
+runner-configure` only when deliberately configuring the existing guest.
+Docker Compose is not used because the runner's lifecycle is not containerized
+by this repository.
 
 Do not recreate or re-register the existing runner as part of repository
-changes. Registration is a one-time manual Forgejo operation. The registration
-token and generated runner configuration must stay outside Git, preferably in
-the Forgejo administration flow or a protected secret store.
+changes. Registration is a one-time manual Forgejo operation after the role has
+installed the binary and stopped service. Register it in Forgejo, then enable
+and start `forgejo-runner.service` on the guest. The registration token and generated
+`/var/lib/forgejo-runner/.runner` configuration must stay outside Git,
+preferably in the Forgejo administration flow or a protected secret store.
 
 Normal CI runners should use isolated job containers without privileged mode,
 host networking, arbitrary host mounts, or `/var/run/docker.sock`. A separate

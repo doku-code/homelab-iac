@@ -32,6 +32,9 @@ endef
 	guests-check \
 	guests-inventory \
 	guests-apply \
+	runner-check \
+	runner-plan \
+	runner-configure \
 	deploy-monitoring
 
 setup-controller:
@@ -73,6 +76,29 @@ guests-apply:
 	@test -n "$(LIMIT)" || (echo "Set LIMIT, for example: make guests-apply LIMIT=dev"; exit 1)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(GUEST_PLAYBOOK) $(GUEST_INVENTORIES) --limit "$(LIMIT)" --diff
+
+
+# ─────────────────────────────────────────────
+# Forgejo Runner
+# ─────────────────────────────────────────────
+
+RUNNER_DIR := terraform/stacks/pve-compute-forgejo-runner
+RUNNER_PLAYBOOK := ansible/playbooks/configure-forgejo-runner.yml
+RUNNER_INVENTORY := ansible/inventories/runner.yml
+
+runner-check:
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) --syntax-check -i $(RUNNER_INVENTORY)
+
+runner-plan:
+	terraform -chdir=$(RUNNER_DIR) fmt -check
+	terraform -chdir=$(RUNNER_DIR) init -backend=false -input=false
+	terraform -chdir=$(RUNNER_DIR) validate
+
+runner-configure:
+	@test -n "$(FORGEJO_RUNNER_HOST)" || (echo "Set FORGEJO_RUNNER_HOST"; exit 1)
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --diff
 
 workstations-bootstrap:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi

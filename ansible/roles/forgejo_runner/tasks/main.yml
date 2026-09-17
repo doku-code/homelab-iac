@@ -1,0 +1,91 @@
+---
+- name: Require a Linux runner host
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Linux'
+    fail_msg: "The Forgejo runner role supports Linux hosts only."
+
+- name: Install runner and container prerequisites
+  ansible.builtin.package:
+    name:
+      - ca-certificates
+      - curl
+      - git
+      - docker.io
+    state: "{{ forgejo_runner_package_state }}"
+
+- name: Create runner group
+  ansible.builtin.group:
+    name: "{{ forgejo_runner_group }}"
+    system: true
+
+- name: Create runner user
+  ansible.builtin.user:
+    name: "{{ forgejo_runner_user }}"
+    group: "{{ forgejo_runner_group }}"
+    home: "{{ forgejo_runner_home }}"
+    create_home: true
+    system: true
+    shell: /usr/sbin/nologin
+
+- name: Add runner user to Docker group
+  ansible.builtin.user:
+    name: "{{ forgejo_runner_user }}"
+    groups: docker
+    append: true
+
+- name: Create runner directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ forgejo_runner_user }}"
+    group: "{{ forgejo_runner_group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ forgejo_runner_config_dir }}", mode: "0750" }
+    - { path: "{{ forgejo_runner_home }}", mode: "0750" }
+    - { path: "{{ forgejo_runner_home }}/logs", mode: "0750" }
+
+- name: Download Forgejo Runner
+  ansible.builtin.get_url:
+    url: "https://code.forgejo.org/forgejo/runner/releases/download/v{{ forgejo_runner_version }}/forgejo-runner-{{ forgejo_runner_version }}-linux-{{ forgejo_runner_arch }}"
+    dest: "{{ forgejo_runner_binary }}"
+    owner: root
+    group: root
+    mode: "0755"
+    force: true
+
+- name: Deploy runner configuration
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: "{{ forgejo_runner_config_file }}"
+    owner: root
+    group: "{{ forgejo_runner_group }}"
+    mode: "0640"
+  notify: Restart Forgejo Runner
+
+- name: Install runner service
+  ansible.builtin.template:
+    src: forgejo-runner.service.j2
+    dest: /etc/systemd/system/forgejo-runner.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Forgejo Runner
+
+- name: Enable and start runner service
+  ansible.builtin.systemd_service:
+    name: forgejo-runner.service
+    enabled: "{{ forgejo_runner_service_enabled }}"
+    state: "{{ forgejo_runner_service_state }}"
+    daemon_reload: true
+
+- name: Check for an existing Forgejo registration
+  ansible.builtin.stat:
+    path: "{{ forgejo_runner_state_file }}"
+  register: forgejo_runner_registration
+
+- name: Report registration prerequisite
+  ansible.builtin.debug:
+    msg: "Register this runner once in Forgejo, then keep {{ forgejo_runner_state_file }} outside Git."
+  when: not forgejo_runner_registration.stat.exists

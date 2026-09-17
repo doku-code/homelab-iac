@@ -1,0 +1,7 @@
+---
+- name: Configure Forgejo Actions runner
+  hosts: forgejo_runner
+  become: true
+  gather_facts: true
+  roles:
+    - forgejo_runner

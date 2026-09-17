@@ -1,0 +1,14 @@
+log:
+  level: info
+runner:
+  file: {{ forgejo_runner_state_file }}
+  capacity: {{ forgejo_runner_capacity }}
+  timeout: 3h
+  labels:
+    - {{ forgejo_runner_label | to_json }}
+container:
+  network: {{ forgejo_runner_container_network }}
+  privileged: {{ forgejo_runner_container_privileged | bool | lower }}
+  options: ""
+  valid_volumes: {{ forgejo_runner_valid_volumes | to_json }}
+  docker_host: ""

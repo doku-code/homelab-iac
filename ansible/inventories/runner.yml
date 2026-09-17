@@ -1,0 +1,8 @@
+all:
+  children:
+    forgejo_runner:
+      hosts:
+        forgejo-runner:
+          ansible_host: "{{ lookup('env', 'FORGEJO_RUNNER_HOST') }}"
+          ansible_user: "{{ lookup('env', 'FORGEJO_RUNNER_USER') | default('root', true) }}"
+          ansible_python_interpreter: /usr/bin/python3

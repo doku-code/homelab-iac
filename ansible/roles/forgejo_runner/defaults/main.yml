@@ -1,0 +1,18 @@
+---
+forgejo_runner_version: "13.1.0"
+forgejo_runner_arch: amd64
+forgejo_runner_label: "docker:docker://node:24-bookworm"
+forgejo_runner_capacity: 1
+forgejo_runner_user: forgejo-runner
+forgejo_runner_group: forgejo-runner
+forgejo_runner_home: /var/lib/forgejo-runner
+forgejo_runner_config_dir: /etc/forgejo-runner
+forgejo_runner_config_file: /etc/forgejo-runner/config.yml
+forgejo_runner_state_file: /var/lib/forgejo-runner/.runner
+forgejo_runner_binary: /usr/local/bin/forgejo-runner
+forgejo_runner_package_state: present
+forgejo_runner_service_state: stopped
+forgejo_runner_service_enabled: true
+forgejo_runner_container_network: bridge
+forgejo_runner_container_privileged: false
+forgejo_runner_valid_volumes: []
