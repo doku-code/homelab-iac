@@ -152,3 +152,38 @@ groups:
         annotations:
           summary: "Prometheus rule evaluation failures"
           description: "Prometheus has encountered rule evaluation failures."
+
+      - alert: TrueNASExporterDown
+        expr: up{job="truenas"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: monitoring
+        annotations:
+          summary: "TrueNAS exporter unreachable"
+          description: "Prometheus cannot scrape the TrueNAS Graphite exporter."
+
+      - alert: TrueNASMetricsStale
+        expr: |
+          time() - graphite_last_processed_timestamp_seconds{job="truenas"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          category: monitoring
+        annotations:
+          summary: "TrueNAS telemetry stopped"
+          description: "No metrics have been received from TrueNAS for more than 2 minutes."
+
+      - alert: TrueNASHighCpuTemperature
+        expr: |
+          max(
+            {job="truenas",
+             __name__=~"truenas_scale_cputemp_temperatures_cpu.*"}
+          ) > 85
+        for: 10m
+        labels:
+          severity: warning
+          category: temperature
+        annotations:
+          summary: "TrueNAS CPU temperature high"
+          description: "TrueNAS CPU temperature has remained above 85°C for 10 minutes."

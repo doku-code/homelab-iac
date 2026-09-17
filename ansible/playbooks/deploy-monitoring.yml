@@ -11,20 +11,45 @@
   become: true
 
   vars:
-    grafana_admin_password: >-
-      {{ lookup('ansible.builtin.env', 'GRAFANA_ADMIN_PASSWORD') }}
-    pve_exporter_user: >-
-      {{ lookup('ansible.builtin.env', 'PVE_EXPORTER_USER') }}
-    pve_exporter_token_name: >-
-      {{ lookup('ansible.builtin.env', 'PVE_EXPORTER_TOKEN_NAME') }}
-    pve_exporter_token_value: >-
-      {{ lookup('ansible.builtin.env', 'PVE_EXPORTER_TOKEN_VALUE') }}
-    pve_exporter_verify_ssl: >-
-      {{ lookup('ansible.builtin.env', 'PVE_EXPORTER_VERIFY_SSL') }}
-    discord_alert_webhook: >-
-      {{ lookup('ansible.builtin.env', 'DISCORD_ALERT_WEBHOOK') }}
+    infisical_url: "https://secrets.doku-lab.net"
+    infisical_environment: "dev"
+    infisical_secret_path: "/"
+    infisical_project_id: "92363d0a-b281-4867-bd6e-6d643ffa8158"
 
   pre_tasks:
+    - name: Login to Infisical
+      infisical.vault.login:
+        url: "{{ infisical_url }}"
+        auth_method: universal_auth
+        universal_auth_client_id: "{{ lookup('env', 'INFISICAL_UNIVERSAL_AUTH_CLIENT_ID') }}"
+        universal_auth_client_secret: "{{ lookup('env', 'INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET') }}"
+      register: infisical_login
+      delegate_to: localhost
+      become: false
+      no_log: true
+
+    - name: Read monitoring secrets from Infisical
+      infisical.vault.read_secrets:
+        login_data: "{{ infisical_login.login_data }}"
+        project_id: "{{ infisical_project_id }}"
+        env_slug: "{{ infisical_environment }}"
+        path: "{{ infisical_secret_path }}"
+        as_dict: true
+      register: infisical_secrets
+      delegate_to: localhost
+      become: false
+      no_log: true
+
+    - name: Map monitoring secrets
+      ansible.builtin.set_fact:
+        grafana_admin_password: "{{ infisical_secrets.secrets.GRAFANA_ADMIN_PASSWORD }}"
+        pve_exporter_user: "{{ infisical_secrets.secrets.PVE_EXPORTER_USER }}"
+        pve_exporter_token_name: "{{ infisical_secrets.secrets.PVE_EXPORTER_TOKEN_NAME }}"
+        pve_exporter_token_value: "{{ infisical_secrets.secrets.PVE_EXPORTER_TOKEN_VALUE }}"
+        pve_exporter_verify_ssl: "{{ infisical_secrets.secrets.PVE_EXPORTER_VERIFY_SSL }}"
+        discord_alert_webhook: "{{ infisical_secrets.secrets.DISCORD_ALERT_WEBHOOK }}"
+      no_log: true
+
     - name: Ensure monitoring secrets are available
       ansible.builtin.assert:
         that:

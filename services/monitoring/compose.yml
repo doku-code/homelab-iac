@@ -84,6 +84,15 @@ services:
     ports:
       - "9093:9093"
 
+  graphite-exporter:
+    image: prom/graphite-exporter
+    container_name: graphite-exporter
+    restart: unless-stopped
+
+    ports:
+      - "9109:9109"
+      - "9109:9109/udp"
+
 volumes:
   prometheus-data:
   grafana-data:

@@ -1,0 +1,17 @@
+ansible==14.4.0
+infisicalsdk==1.0.16
+
+
+
+
+
+
+
+
+
+# Notes
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-controller.txt
+ansible-galaxy collection install -r collections/requirements.yml
