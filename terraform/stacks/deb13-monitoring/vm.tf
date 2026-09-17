@@ -38,7 +38,7 @@ resource "proxmox_virtual_environment_vm" "monitoring" {
     type  = "x86-64-v2-AES"
   }
 
-  bios = "ovmf"
+  bios    = "ovmf"
   machine = "q35"
 
   efi_disk {
