@@ -1,0 +1,4 @@
+---
+- name: Set Windows guest hostname
+  ansible.windows.win_hostname:
+    name: "{{ inventory_hostname }}"

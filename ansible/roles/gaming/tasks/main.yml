@@ -1,0 +1,27 @@
+---
+- name: Require Windows for the gaming capability
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Win32NT'
+    fail_msg: "The gaming capability currently supports Windows guests only."
+
+- name: Install Windows gaming applications
+  ansible.windows.win_powershell:
+    script: |
+      $packages = @(
+        'Blizzard.BattleNet',
+        'Discord.Discord',
+        'EpicGames.EpicGamesLauncher',
+        'Google.Chrome',
+        'Valve.Steam'
+      )
+      foreach ($package in $packages) {
+        $installed = winget list --id $package --exact 2>$null
+        if ($installed -notmatch [regex]::Escape($package)) {
+          winget install --id $package --exact --silent --accept-package-agreements --accept-source-agreements
+          if ($LASTEXITCODE -ne 0) {
+            throw "winget failed to install $package"
+          }
+          $Ansible.Changed = $true
+        }
+      }

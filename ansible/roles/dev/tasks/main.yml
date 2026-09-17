@@ -1,0 +1,48 @@
+---
+- name: Validate development operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_system in ['Linux', 'Win32NT']
+    fail_msg: >-
+      dev supports Linux and Windows guests only; detected {{ ansible_system }}.
+
+- name: Configure Debian-family development tools
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - git
+      - curl
+      - unzip
+    state: present
+    update_cache: true
+  become: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Configure RedHat-family development tools
+  ansible.builtin.dnf:
+    name:
+      - gcc
+      - gcc-c++
+      - make
+      - git
+      - curl
+      - unzip
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: Configure Windows development tools
+  ansible.windows.win_powershell:
+    script: |
+      $packages = @('Git.Git', 'Microsoft.VisualStudioCode')
+      foreach ($package in $packages) {
+        $installed = winget list --id $package --exact 2>$null
+        if ($installed -notmatch [regex]::Escape($package)) {
+          winget install --id $package --exact --silent --accept-package-agreements --accept-source-agreements
+          if ($LASTEXITCODE -ne 0) {
+            throw "winget failed to install $package"
+          }
+          $Ansible.Changed = $true
+        }
+      }
+  when: ansible_system == 'Win32NT'

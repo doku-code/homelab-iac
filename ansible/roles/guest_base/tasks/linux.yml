@@ -1,0 +1,23 @@
+---
+- name: Install common Linux guest packages
+  ansible.builtin.package:
+    name:
+      - ca-certificates
+      - curl
+      - git
+      - qemu-guest-agent
+      - unzip
+    state: present
+  become: true
+
+- name: Enable the QEMU guest agent
+  ansible.builtin.service:
+    name: qemu-guest-agent
+    enabled: true
+    state: started
+  become: true
+
+- name: Set Linux guest hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  become: true

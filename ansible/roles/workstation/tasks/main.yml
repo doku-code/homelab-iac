@@ -1,0 +1,27 @@
+---
+- name: Validate workstation operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_system in ['Linux', 'Win32NT']
+    fail_msg: >-
+      workstation supports Linux and Windows guests only; detected
+      {{ ansible_system }}.
+
+- name: Configure Linux workstation tools
+  ansible.builtin.package:
+    name:
+      - btop
+      - htop
+    state: present
+  become: true
+  when: ansible_system == 'Linux'
+
+- name: Keep Windows workstation on the balanced power plan
+  ansible.windows.win_powershell:
+    script: |
+      $active = powercfg /getactivescheme
+      if ($active -notmatch '381b4222-f694-41f0-9685-ff5bb260df2e') {
+        powercfg /setactive SCHEME_BALANCED
+        $Ansible.Changed = $true
+      }
+  when: ansible_system == 'Win32NT'

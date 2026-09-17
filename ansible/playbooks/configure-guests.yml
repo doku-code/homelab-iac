@@ -1,0 +1,25 @@
+---
+- name: Configure guests from Proxmox capability tags
+  hosts: guests
+  gather_facts: true
+
+  roles:
+    - guest_base
+
+    - role: workstation
+      when: "'workstation' in group_names"
+
+    - role: dev
+      when: "'dev' in group_names"
+
+    - role: gaming
+      when: "'gaming' in group_names"
+
+  post_tasks:
+    - name: Report deferred NVIDIA capability
+      ansible.builtin.debug:
+        msg: >-
+          NVIDIA intent is present on this guest, but guest driver automation
+          is intentionally deferred until the driver/repository assumptions are
+          verified.
+      when: "'nvidia' in group_names"

@@ -1,0 +1,16 @@
+---
+- name: Validate guest operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_system in ['Linux', 'Win32NT']
+    fail_msg: >-
+      guest_base supports Linux and Windows guests only; detected
+      {{ ansible_system }}.
+
+- name: Configure Linux guest baseline
+  ansible.builtin.include_tasks: linux.yml
+  when: ansible_system == 'Linux'
+
+- name: Configure Windows guest baseline
+  ansible.builtin.include_tasks: windows.yml
+  when: ansible_system == 'Win32NT'
