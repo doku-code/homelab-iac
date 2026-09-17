@@ -265,6 +265,10 @@ terraform.tfvars.example
 .infisical.example.json
 ```
 
+The tracked `.infisical.json` contains only non-secret project-link metadata.
+Machine Identity credentials, access tokens, and exported secrets remain
+runtime-only.
+
 ## Current Status
 
 This repository is actively evolving as I expand the homelab and learn more
