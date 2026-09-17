@@ -17,7 +17,7 @@ ANSIBLE := $(VENV)/bin/ansible-playbook
 	deploy-monitoring
 
 setup-controller:
-	python3 -m venv $(VENV)
+	python3 -m venv --clear $(VENV)
 	$(VENV)/bin/python -m pip install -r requirements-controller.txt
 	$(VENV)/bin/ansible-galaxy collection install -r collections/requirements.yml
 
