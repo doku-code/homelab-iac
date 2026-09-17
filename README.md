@@ -199,6 +199,43 @@ resource mappings, CPU affinity and workstation arbitration.
 
 Contains the Prometheus/Grafana monitoring configuration.
 
+## Guest Configuration
+
+Guest configuration is discovered from Proxmox VM tags. A guest must have the
+`guest` tag, and capability tags such as `workstation`, `dev`, `gaming`, or
+`nvidia` determine which roles are selected. The `guest_base` role always runs;
+capabilities do not imply one another.
+
+The dynamic inventory reads Proxmox API credentials from runtime environment
+variables: `PROXMOX_URL`, `PROXMOX_USER`, `PROXMOX_TOKEN_ID`, and
+`PROXMOX_TOKEN_SECRET`. Guest SSH settings are supplied through
+`GUEST_LINUX_USER`, `GUEST_WINDOWS_USER`, and optionally
+`GUEST_SSH_PRIVATE_KEY_FILE`. These values must come from Infisical or another
+secure runtime injection mechanism, never from Git.
+
+Windows guests currently use OpenSSH with PowerShell as the shell. This keeps
+the Linux and Windows connection model consistent with the repository's
+existing SSH-based controller conventions. A live prerequisite remains: each
+Windows guest must have OpenSSH Server, PowerShell remoting over SSH, and the
+chosen key-based account configured before Ansible can connect.
+
+Safe local workflows are:
+
+```bash
+make guests-check
+make guests-inventory
+make guests-apply LIMIT=dev
+make guests-apply LIMIT=w11-game
+```
+
+`guests-check` validates the playbook without contacting guests.
+`guests-inventory` queries Proxmox and shows discovered groups. `guests-apply`
+requires an explicit `LIMIT`; it does not run against every guest by default.
+
+The NVIDIA tag currently records declarative intent only. Guest driver
+installation is deferred until the supported Linux repositories, Windows
+driver source, and passthrough validation procedure are confirmed.
+
 ## Secrets
 
 No credentials are committed to this repository.

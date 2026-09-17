@@ -14,6 +14,9 @@ ANSIBLE := $(VENV)/bin/ansible-playbook
 	workstations-plan \
 	workstations-apply \
 	workstations-verify \
+	guests-check \
+	guests-inventory \
+	guests-apply \
 	deploy-monitoring
 
 setup-controller:
@@ -29,10 +32,32 @@ setup-controller:
 WS_DIR := terraform/stacks/pve-lab-workstations
 WS_PLAN := /tmp/pve-lab-workstations.tfplan
 WS_PLAYBOOK := ansible/playbooks/configure-workstation-host.yml
+GUEST_PLAYBOOK := ansible/playbooks/configure-guests.yml
+GUEST_STATIC_INVENTORY := ansible/inventories/homelab.yml
+GUEST_DYNAMIC_INVENTORY := ansible/inventories/guests.proxmox.yml
+GUEST_INVENTORIES := -i $(GUEST_STATIC_INVENTORY) -i $(GUEST_DYNAMIC_INVENTORY)
 
 workstations-check:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(WS_PLAYBOOK) --check --diff
+
+
+# ─────────────────────────────────────────────
+# Guests
+# ─────────────────────────────────────────────
+
+guests-check:
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) $(GUEST_PLAYBOOK) --syntax-check -i $(GUEST_STATIC_INVENTORY)
+
+guests-inventory:
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(VENV)/bin/ansible-inventory $(GUEST_INVENTORIES) --graph
+
+guests-apply:
+	@test -n "$(LIMIT)" || (echo "Set LIMIT, for example: make guests-apply LIMIT=dev"; exit 1)
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) $(GUEST_PLAYBOOK) $(GUEST_INVENTORIES) --limit "$(LIMIT)" --diff
 
 workstations-bootstrap:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
