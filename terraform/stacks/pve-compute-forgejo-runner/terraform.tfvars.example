@@ -1,0 +1,34 @@
+proxmox_endpoint = "https://PROXMOX_NODE_IP:8006/"
+
+# Observed CT 300 values. The template is the canonical Debian 13
+# reconstruction template available on pve_library, not the historical source.
+proxmox_insecure = false
+vm_id            = 300
+unprivileged     = true
+
+rootfs_datastore_id               = "local-lvm"
+rootfs_size                       = 38
+operating_system_template_file_id = "pve_library:vztmpl/debian-13-standard_13.6-1_amd64.tar.zst"
+
+network_bridge       = "vmbr0"
+network_mac_address  = "BC:24:11:D6:4C:6D"
+network_firewall     = true
+network_ipv4_address = "192.168.0.30/24"
+network_ipv4_gateway = "192.168.0.1"
+dns_servers          = ["REPLACE_WITH_OBSERVED_DNS"]
+
+cpu_cores  = 4
+memory_mib = 6144
+swap_mib   = 512
+
+features = {
+  nesting = true
+  fuse    = false
+  keyctl  = false
+  mknod   = false
+  mount   = []
+}
+
+tags    = []
+started = true
+on_boot = true
