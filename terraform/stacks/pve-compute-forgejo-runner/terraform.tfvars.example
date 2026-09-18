@@ -16,7 +16,6 @@ network_mac_address  = "BC:24:11:D6:4C:6D"
 network_firewall     = true
 network_ipv4_address = "192.168.0.30/24"
 network_ipv4_gateway = "192.168.0.1"
-dns_servers          = ["192.168.0.20"]
 
 cpu_cores  = 4
 memory_mib = 6144

@@ -65,11 +65,6 @@ variable "network_ipv4_gateway" {
   type        = string
 }
 
-variable "dns_servers" {
-  description = "Existing container DNS servers"
-  type        = list(string)
-}
-
 variable "cpu_cores" {
   description = "Existing container CPU core allocation"
   type        = number

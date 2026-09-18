@@ -9,8 +9,8 @@ to create CT 300.
 ## Adoption procedure
 
 1. Record the existing container configuration without changing it. Confirm
-   the observed values in `terraform.tfvars.example`, especially DNS and any
-   provider fields not represented by `pct config`.
+   the observed values in `terraform.tfvars.example` and any provider fields
+   not represented by `pct config`.
 2. Create a private `terraform.tfvars` with those values and the Proxmox API
    endpoint. Do not commit that file.
 3. Initialize and validate this root, then import the existing container:
@@ -41,5 +41,10 @@ The provider does not recover the historical OS template provenance from the
 existing CT configuration. The resource therefore keeps the canonical Debian
 13 template for future reconstruction but ignores only that imported
 template-provenance field after adoption. The observed operating-system type
-(`debian`) and IPv6 DHCP configuration remain explicitly modeled. Other
-changes, including DNS initialization, remain visible in the plan for review.
+(`debian`) and IPv6 DHCP configuration remain explicitly modeled.
+
+The runner CT does not have a per-container DNS setting in Proxmox. Its
+`/etc/resolv.conf` is generated from the `pve-compute` node DNS configuration,
+so DNS is inherited runtime behavior rather than Terraform-owned CT
+initialization. It is intentionally omitted from this Terraform root to avoid
+creating a second owner.

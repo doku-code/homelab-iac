@@ -49,10 +49,6 @@ resource "proxmox_virtual_environment_container" "forgejo_runner" {
         address = "dhcp"
       }
     }
-
-    dns {
-      servers = var.dns_servers
-    }
   }
 
   operating_system {
