@@ -38,6 +38,8 @@ The import command is documentation only; this repository does not run it
 automatically. The private `terraform.tfvars` and local state remain ignored.
 
 The provider does not recover the historical OS template provenance from the
-existing CT configuration. Keep the canonical template for future
-reconstruction separate from any import-time provider normalization, and do
-not hide an unresolved replacement behind `ignore_changes`.
+existing CT configuration. The resource therefore keeps the canonical Debian
+13 template for future reconstruction but ignores only that imported
+template-provenance field after adoption. The observed operating-system type
+(`debian`) and IPv6 DHCP configuration remain explicitly modeled. Other
+changes, including DNS initialization, remain visible in the plan for review.

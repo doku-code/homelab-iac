@@ -1,7 +1,6 @@
 resource "proxmox_virtual_environment_container" "forgejo_runner" {
-  node_name   = "pve-compute"
-  vm_id       = var.vm_id
-  description = "Forgejo Actions runner - adopted existing container"
+  node_name = "pve-compute"
+  vm_id     = var.vm_id
 
   unprivileged  = var.unprivileged
   tags          = var.tags
@@ -45,6 +44,10 @@ resource "proxmox_virtual_environment_container" "forgejo_runner" {
         address = var.network_ipv4_address
         gateway = var.network_ipv4_gateway
       }
+
+      ipv6 {
+        address = "dhcp"
+      }
     }
 
     dns {
@@ -54,9 +57,21 @@ resource "proxmox_virtual_environment_container" "forgejo_runner" {
 
   operating_system {
     template_file_id = var.operating_system_template_file_id
+    type             = var.operating_system_type
+  }
+
+  console {
+    enabled   = true
+    tty_count = 2
+    type      = "tty"
   }
 
   lifecycle {
     prevent_destroy = true
+    # Proxmox does not expose the historical template used by an imported CT.
+    # Keep the canonical template for future creation without replacing CT 300.
+    ignore_changes = [
+      operating_system[0].template_file_id,
+    ]
   }
 }

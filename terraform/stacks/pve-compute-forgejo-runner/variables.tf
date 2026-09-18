@@ -34,6 +34,12 @@ variable "operating_system_template_file_id" {
   type        = string
 }
 
+variable "operating_system_type" {
+  description = "Existing container operating system type"
+  type        = string
+  default     = "debian"
+}
+
 variable "network_bridge" {
   description = "Existing container network bridge"
   type        = string

@@ -9,6 +9,7 @@ unprivileged     = true
 rootfs_datastore_id               = "local-lvm"
 rootfs_size                       = 38
 operating_system_template_file_id = "pve_library:vztmpl/debian-13-standard_13.6-1_amd64.tar.zst"
+operating_system_type             = "debian"
 
 network_bridge       = "vmbr0"
 network_mac_address  = "BC:24:11:D6:4C:6D"
