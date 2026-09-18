@@ -1,7 +1,7 @@
 ---
 - name: Configure Forgejo Actions runner
   hosts: forgejo_runner
-  become: true
+  become: "{{ runner_ansible_become | default(false) }}"
   gather_facts: true
   roles:
     - forgejo_runner

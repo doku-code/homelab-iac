@@ -106,3 +106,14 @@ variable "on_boot" {
   description = "Whether the adopted container starts on host boot"
   type        = bool
 }
+
+variable "management_ssh_public_key" {
+  description = "Optional public key to seed root SSH access when creating a new container"
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.management_ssh_public_key == null || trimspace(var.management_ssh_public_key) != ""
+    error_message = "management_ssh_public_key must be null or a non-empty public key."
+  }
+}

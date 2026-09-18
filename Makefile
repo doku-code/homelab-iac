@@ -35,6 +35,8 @@ endef
 	guests-inventory \
 	guests-apply \
 	runner-check \
+	runner-live-check \
+	runner-bootstrap-access \
 	runner-plan \
 	runner-import \
 	runner-live-plan \
@@ -89,10 +91,24 @@ guests-apply:
 RUNNER_DIR := terraform/stacks/pve-compute-forgejo-runner
 RUNNER_PLAYBOOK := ansible/playbooks/configure-forgejo-runner.yml
 RUNNER_INVENTORY := ansible/inventories/runner.yml
+RUNNER_SSH_PRIVATE_KEY_FILE ?= $(HOME)/.ssh/id_ed25519
+RUNNER_SSH_PUBLIC_KEY_FILE ?= $(RUNNER_SSH_PRIVATE_KEY_FILE).pub
 
 runner-check:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(RUNNER_PLAYBOOK) --syntax-check -i $(RUNNER_INVENTORY)
+
+runner-live-check:
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) --check --diff --limit forgejo-runner -i $(RUNNER_INVENTORY)
+
+runner-bootstrap-access:
+	@test -r "$(RUNNER_SSH_PUBLIC_KEY_FILE)" || (echo "Missing public key: $(RUNNER_SSH_PUBLIC_KEY_FILE)"; exit 1)
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) ansible/playbooks/bootstrap-forgejo-runner-access.yml \
+		-i ansible/inventories/runner-bootstrap.yml \
+		--limit forgejo-runner-bootstrap \
+		-e runner_management_public_key_file="$(RUNNER_SSH_PUBLIC_KEY_FILE)"
 
 runner-plan:
 	terraform -chdir=$(RUNNER_DIR) fmt -check
@@ -108,9 +124,8 @@ runner-live-plan:
 	$(call INFISICAL_RUN,terraform -chdir=$(RUNNER_DIR) plan -input=false -var-file=terraform.tfvars)
 
 runner-configure:
-	@test -n "$(FORGEJO_RUNNER_HOST)" || (echo "Set FORGEJO_RUNNER_HOST"; exit 1)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --diff
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner --diff
 
 workstations-bootstrap:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi

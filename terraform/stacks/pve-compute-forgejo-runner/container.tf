@@ -49,6 +49,14 @@ resource "proxmox_virtual_environment_container" "forgejo_runner" {
         address = "dhcp"
       }
     }
+
+    dynamic "user_account" {
+      for_each = var.management_ssh_public_key == null ? [] : [var.management_ssh_public_key]
+
+      content {
+        keys = [trimspace(user_account.value)]
+      }
+    }
   }
 
   operating_system {

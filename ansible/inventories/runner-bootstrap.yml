@@ -1,10 +1,11 @@
 all:
   children:
-    forgejo_runner:
+    forgejo_runner_bootstrap:
       hosts:
-        forgejo-runner:
-          ansible_host: 192.168.0.30
+        forgejo-runner-bootstrap:
+          ansible_host: 192.168.0.12
           ansible_user: root
-          ansible_become: false
+          ansible_connection: community.proxmox.proxmox_pct_remote
           ansible_ssh_private_key_file: "{{ lookup('ansible.builtin.env', 'GUEST_SSH_PRIVATE_KEY_FILE') | default('~/.ssh/id_ed25519', true) }}"
           ansible_python_interpreter: /usr/bin/python3
+          proxmox_vmid: 300

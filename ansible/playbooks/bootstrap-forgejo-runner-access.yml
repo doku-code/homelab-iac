@@ -1,0 +1,21 @@
+---
+- name: Bootstrap Forgejo runner management access
+  hosts: forgejo_runner_bootstrap
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Install the controller public key for root SSH access
+      ansible.posix.authorized_key:
+        user: root
+        state: present
+        key: "{{ lookup('ansible.builtin.file', runner_management_public_key_file) }}"
+        manage_dir: true
+        exclusive: false
+        path: /root/.ssh/authorized_keys
+
+    - name: Enforce root SSH key file permissions
+      ansible.builtin.file:
+        path: /root/.ssh/authorized_keys
+        owner: root
+        group: root
+        mode: "0600"

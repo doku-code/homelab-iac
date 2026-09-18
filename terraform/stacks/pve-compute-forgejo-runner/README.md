@@ -37,6 +37,29 @@ not run an apply from this root until its output is reviewed.
 The import command is documentation only; this repository does not run it
 automatically. The private `terraform.tfvars` and local state remain ignored.
 
+## Ansible management access
+
+The runner inventory uses the repository's existing controller convention:
+root SSH with `~/.ssh/id_ed25519` (or `GUEST_SSH_PRIVATE_KEY_FILE`). CT 300
+currently has no authorized controller key, so the one-time bootstrap path
+uses existing root SSH access to `pve-compute` and `pct exec` to add only the
+controller public key:
+
+    make runner-bootstrap-access
+
+The target is limited to CT 300, is idempotent for the selected public key,
+and must be run by an operator with root SSH access to `pve-compute`. It was
+not run as part of repository validation. It uses the pinned
+`community.proxmox.proxmox_pct_remote` connection plugin only for this
+one-time bootstrap. Normal checks then use direct guest SSH through:
+
+    make runner-live-check
+
+For future container creation, `management_ssh_public_key` optionally seeds
+the same root public-key access through Terraform container initialization.
+The imported CT leaves that variable unset, so this future-create setting does
+not alter the adopted resource.
+
 The provider does not recover the historical OS template provenance from the
 existing CT configuration. The resource therefore keeps the canonical Debian
 13 template for future reconstruction but ignores only that imported
