@@ -1,18 +1,64 @@
 ---
-forgejo_runner_version: "13.1.0"
+forgejo_runner_version: "13.0.0"
 forgejo_runner_arch: amd64
-forgejo_runner_label: "docker:docker://node:24-bookworm"
-forgejo_runner_capacity: 1
-forgejo_runner_user: forgejo-runner
-forgejo_runner_group: forgejo-runner
-forgejo_runner_home: /var/lib/forgejo-runner
-forgejo_runner_config_dir: /etc/forgejo-runner
-forgejo_runner_config_file: /etc/forgejo-runner/config.yml
-forgejo_runner_state_file: /var/lib/forgejo-runner/.runner
 forgejo_runner_binary: /usr/local/bin/forgejo-runner
 forgejo_runner_package_state: present
 forgejo_runner_service_state: stopped
 forgejo_runner_service_enabled: true
-forgejo_runner_container_network: bridge
+forgejo_runner_home: /home/runner
+forgejo_runner_group: runner
+forgejo_runner_podman_socket: unix:///run/podman/podman.sock
+forgejo_runner_packages:
+  - ca-certificates
+  - curl
+  - git
+  - podman
+  - buildah
+  - conmon
+  - crun
+  - fuse-overlayfs
+  - slirp4netns
+  - uidmap
+forgejo_runner_container_network: ""
 forgejo_runner_container_privileged: false
-forgejo_runner_valid_volumes: []
+forgejo_runner_valid_volumes:
+  - /etc/forgejo-runner-infisical.env
+  - /etc/forgejo-theme-infisical.env
+
+# Tokens are supplied at runtime by the operator's secret workflow.
+forgejo_runner_connection_tokens: {}
+
+forgejo_runner_instances:
+  - name: main
+    service_name: forgejo-runner
+    user: root
+    group: root
+    working_directory: /home/runner
+    config_file: /home/runner/runner-config.yml
+    state_file: /home/runner/.runner
+    supplementary_groups:
+      - podman
+    connections:
+      cem:
+        url: https://git.doku-lab.net/
+        labels:
+          - cem-latest:docker://localhost/cem-ci:latest
+      theme:
+        url: https://git.doku-lab.net/
+        labels:
+          - docker:docker://node:22-bookworm
+
+  - name: custom_theme
+    service_name: forgejo-custom-theme-runner
+    user: runner
+    group: runner
+    working_directory: /home/runner
+    config_file: /home/runner/forgejo-custom-theme-runner-config.yml
+    state_file: /home/runner/.runner-forgejo-custom-theme
+    supplementary_groups:
+      - podman
+    connections:
+      forgejo-custom-theme:
+        url: https://git.doku-lab.net/
+        labels:
+          - docker:docker://node:20-bookworm

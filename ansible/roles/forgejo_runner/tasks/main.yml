@@ -5,46 +5,48 @@
       - ansible_system == 'Linux'
     fail_msg: "The Forgejo runner role supports Linux hosts only."
 
-- name: Install runner and container prerequisites
+- name: Install runner and Podman prerequisites
   ansible.builtin.package:
-    name:
-      - ca-certificates
-      - curl
-      - git
-      - docker.io
+    name: "{{ forgejo_runner_packages }}"
     state: "{{ forgejo_runner_package_state }}"
 
 - name: Create runner group
   ansible.builtin.group:
-    name: "{{ forgejo_runner_group }}"
+    name: "{{ item.group }}"
     system: true
+  loop: "{{ forgejo_runner_instances }}"
+  when: item.user != 'root'
 
 - name: Create runner user
   ansible.builtin.user:
-    name: "{{ forgejo_runner_user }}"
-    group: "{{ forgejo_runner_group }}"
+    name: "{{ item.user }}"
+    group: "{{ item.group }}"
     home: "{{ forgejo_runner_home }}"
     create_home: true
     system: true
     shell: /usr/sbin/nologin
+  loop: "{{ forgejo_runner_instances }}"
+  when: item.user != 'root'
 
-- name: Add runner user to Docker group
+- name: Add runner users to Podman groups
   ansible.builtin.user:
-    name: "{{ forgejo_runner_user }}"
-    groups: docker
+    name: "{{ item.user }}"
+    groups: "{{ item.supplementary_groups }}"
     append: true
+  loop: "{{ forgejo_runner_instances }}"
+  when: item.user != 'root'
 
-- name: Create runner directories
+- name: Create runner home and config directories
   ansible.builtin.file:
-    path: "{{ item.path }}"
+    path: "{{ item }}"
     state: directory
-    owner: "{{ forgejo_runner_user }}"
-    group: "{{ forgejo_runner_group }}"
-    mode: "{{ item.mode }}"
+    owner: runner
+    group: runner
+    mode: "0750"
   loop:
-    - { path: "{{ forgejo_runner_config_dir }}", mode: "0750" }
-    - { path: "{{ forgejo_runner_home }}", mode: "0750" }
-    - { path: "{{ forgejo_runner_home }}/logs", mode: "0750" }
+    - "{{ forgejo_runner_home }}"
+    - /etc/forgejo-runner
+    - "{{ forgejo_runner_home }}/logs"
 
 - name: Download Forgejo Runner
   ansible.builtin.get_url:
@@ -55,37 +57,51 @@
     mode: "0755"
     force: true
 
-- name: Deploy runner configuration
+- name: Deploy runner configurations
   ansible.builtin.template:
     src: config.yml.j2
-    dest: "{{ forgejo_runner_config_file }}"
+    dest: "{{ item.config_file }}"
     owner: root
-    group: "{{ forgejo_runner_group }}"
-    mode: "0640"
+    group: runner
+    mode: "0600"
+  loop: "{{ forgejo_runner_instances }}"
+  loop_control:
+    loop_var: instance
+  vars:
+    runner_instance: "{{ instance }}"
+  no_log: true
   notify: Restart Forgejo Runner
 
-- name: Install runner service
+- name: Install runner services
   ansible.builtin.template:
     src: forgejo-runner.service.j2
-    dest: /etc/systemd/system/forgejo-runner.service
+    dest: "/etc/systemd/system/{{ item.service_name }}.service"
     owner: root
     group: root
     mode: "0644"
+  loop: "{{ forgejo_runner_instances }}"
+  loop_control:
+    loop_var: instance
+  vars:
+    runner_instance: "{{ instance }}"
   notify: Restart Forgejo Runner
 
-- name: Enable and start runner service
+- name: Enable and set runner services to the requested state
   ansible.builtin.systemd_service:
-    name: forgejo-runner.service
+    name: "{{ item.service_name }}.service"
     enabled: "{{ forgejo_runner_service_enabled }}"
     state: "{{ forgejo_runner_service_state }}"
     daemon_reload: true
+  loop: "{{ forgejo_runner_instances }}"
 
-- name: Check for an existing Forgejo registration
+- name: Check for existing Forgejo registrations
   ansible.builtin.stat:
-    path: "{{ forgejo_runner_state_file }}"
-  register: forgejo_runner_registration
+    path: "{{ item.state_file }}"
+  loop: "{{ forgejo_runner_instances }}"
+  register: forgejo_runner_registrations
 
-- name: Report registration prerequisite
+- name: Report registration prerequisites
   ansible.builtin.debug:
-    msg: "Register this runner once in Forgejo, then keep {{ forgejo_runner_state_file }} outside Git."
-  when: not forgejo_runner_registration.stat.exists
+    msg: "Register {{ item.item.name }} once in Forgejo, then keep {{ item.item.state_file }} outside Git."
+  loop: "{{ forgejo_runner_registrations.results }}"
+  when: not item.stat.exists

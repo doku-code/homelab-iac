@@ -1,13 +1,14 @@
 [Unit]
-Description=Forgejo Actions runner
-After=network-online.target docker.service
+Description=Forgejo Actions runner ({{ runner_instance.name }})
+After=network-online.target podman.socket
 Wants=network-online.target
 
 [Service]
-User={{ forgejo_runner_user }}
-Group={{ forgejo_runner_group }}
-WorkingDirectory={{ forgejo_runner_home }}
-ExecStart={{ forgejo_runner_binary }} daemon --config {{ forgejo_runner_config_file }}
+User={{ runner_instance.user }}
+Group={{ runner_instance.group }}
+SupplementaryGroups={{ runner_instance.supplementary_groups | join(' ') }}
+WorkingDirectory={{ runner_instance.working_directory }}
+ExecStart={{ forgejo_runner_binary }} daemon -c {{ runner_instance.config_file }}
 Restart=on-failure
 RestartSec=5s
 NoNewPrivileges=true
