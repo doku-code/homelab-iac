@@ -34,6 +34,8 @@ endef
 	guests-apply \
 	runner-check \
 	runner-plan \
+	runner-import \
+	runner-live-plan \
 	runner-configure \
 	deploy-monitoring
 
@@ -94,6 +96,14 @@ runner-plan:
 	terraform -chdir=$(RUNNER_DIR) fmt -check
 	terraform -chdir=$(RUNNER_DIR) init -backend=false -input=false
 	terraform -chdir=$(RUNNER_DIR) validate
+
+runner-import:
+	@test -f "$(RUNNER_DIR)/terraform.tfvars" || (echo "Create private $(RUNNER_DIR)/terraform.tfvars first"; exit 1)
+	$(call INFISICAL_RUN,terraform -chdir=$(RUNNER_DIR) import -input=false -var-file=terraform.tfvars proxmox_virtual_environment_container.forgejo_runner pve-compute/300)
+
+runner-live-plan:
+	@test -f "$(RUNNER_DIR)/terraform.tfvars" || (echo "Create private $(RUNNER_DIR)/terraform.tfvars first"; exit 1)
+	$(call INFISICAL_RUN,terraform -chdir=$(RUNNER_DIR) plan -input=false -var-file=terraform.tfvars)
 
 runner-configure:
 	@test -n "$(FORGEJO_RUNNER_HOST)" || (echo "Set FORGEJO_RUNNER_HOST"; exit 1)

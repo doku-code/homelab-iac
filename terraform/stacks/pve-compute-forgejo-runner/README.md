@@ -23,6 +23,17 @@ to create CT 300.
 4. Run a normal plan and reconcile only intentional drift. Do not apply until
    the plan is reviewed and the imported state matches the live container.
 
+The repository Makefile provides the explicit adoption commands:
+
+    make runner-import
+    make runner-live-plan
+
+Both commands require the ignored private terraform.tfvars and use the
+existing INFISICAL_RUN Universal Auth workflow for runtime Proxmox provider
+credentials. They do not use a human Infisical session or persist credentials
+in the repository. runner-live-plan is the first post-import plan command; do
+not run an apply from this root until its output is reviewed.
+
 The import command is documentation only; this repository does not run it
 automatically. The private `terraform.tfvars` and local state remain ignored.
 
