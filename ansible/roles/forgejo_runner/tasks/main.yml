@@ -61,8 +61,8 @@
   ansible.builtin.template:
     src: config.yml.j2
     dest: "{{ item.config_file }}"
-    owner: root
-    group: runner
+    owner: "{{ item.config_owner }}"
+    group: "{{ item.config_group }}"
     mode: "0600"
   loop: "{{ forgejo_runner_instances }}"
   loop_control:

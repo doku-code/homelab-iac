@@ -3,7 +3,7 @@ forgejo_runner_version: "13.0.0"
 forgejo_runner_arch: amd64
 forgejo_runner_binary: /usr/local/bin/forgejo-runner
 forgejo_runner_package_state: present
-forgejo_runner_service_state: stopped
+forgejo_runner_service_state: started
 forgejo_runner_service_enabled: true
 forgejo_runner_home: /home/runner
 forgejo_runner_group: runner
@@ -36,6 +36,15 @@ forgejo_runner_instances:
     working_directory: /home/runner
     config_file: /home/runner/runner-config.yml
     state_file: /home/runner/.runner
+    config_owner: runner
+    config_group: runner
+    podman_socket: unix:///run/podman/podman.sock
+    container_options: >-
+      --volume /etc/forgejo-runner-infisical.env:/run/secrets/forgejo-runner-infisical.env:ro
+      --volume /etc/forgejo-theme-infisical.env:/run/secrets/forgejo-theme-infisical.env:ro
+    valid_volumes:
+      - /etc/forgejo-runner-infisical.env
+      - /etc/forgejo-theme-infisical.env
     supplementary_groups:
       - podman
     connections:
@@ -55,6 +64,13 @@ forgejo_runner_instances:
     working_directory: /home/runner
     config_file: /home/runner/forgejo-custom-theme-runner-config.yml
     state_file: /home/runner/.runner-forgejo-custom-theme
+    config_owner: runner
+    config_group: runner
+    podman_socket: unix:///run/podman/podman.sock
+    container_options: >-
+      --volume /etc/forgejo-theme-infisical.env:/run/secrets/forgejo-runner-infisical.env:ro
+    valid_volumes:
+      - /etc/forgejo-theme-infisical.env
     supplementary_groups:
       - podman
     connections:
