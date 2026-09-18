@@ -11,7 +11,7 @@
     infisical_url: "https://secrets.doku-lab.net"
     infisical_environment: "dev"
     infisical_secret_path: "/"
-    infisical_project_id: "92363d0a-b281-4867-bd6e-6d643ffa8158"
+    infisical_project_id: "{{ (lookup('ansible.builtin.file', playbook_dir + '/../../.infisical.json') | from_json).workspaceId }}"
 
   pre_tasks:
     - name: Login to Infisical

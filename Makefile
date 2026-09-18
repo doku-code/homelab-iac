@@ -8,6 +8,7 @@ VENV := .venv
 ANSIBLE := $(VENV)/bin/ansible-playbook
 INFISICAL_ENV ?= dev
 INFISICAL_DOMAIN ?= https://secrets.doku-lab.net
+INFISICAL_PROJECT_ID ?= $(shell python3 -c 'import json; print(json.load(open(".infisical.json"))["workspaceId"])')
 
 define INFISICAL_RUN
 	@set -euo pipefail; \
@@ -19,6 +20,7 @@ define INFISICAL_RUN
 		--client-secret "$$INFISICAL_CLIENT_SECRET")"; \
 	infisical run --silent --domain "$(INFISICAL_DOMAIN)" \
 		--token "$$token" \
+		--projectId "$(INFISICAL_PROJECT_ID)" \
 		--env "$(INFISICAL_ENV)" -- $(1)
 endef
 
