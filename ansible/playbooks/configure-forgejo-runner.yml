@@ -27,6 +27,7 @@
         universal_auth_client_id: "{{ lookup('ansible.builtin.env', 'INFISICAL_CLIENT_ID') }}"
         universal_auth_client_secret: "{{ lookup('ansible.builtin.env', 'INFISICAL_CLIENT_SECRET') }}"
       register: infisical_login
+      check_mode: false
       delegate_to: localhost
       become: false
       no_log: true
