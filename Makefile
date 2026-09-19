@@ -37,6 +37,7 @@ endef
 	runner-check \
 	runner-live-check \
 	runner-bootstrap-access \
+	runner-migrate-secrets \
 	runner-plan \
 	runner-import \
 	runner-live-plan \
@@ -99,6 +100,8 @@ runner-check:
 	$(ANSIBLE) $(RUNNER_PLAYBOOK) --syntax-check -i $(RUNNER_INVENTORY)
 
 runner-live-check:
+	@test -n "$${INFISICAL_CLIENT_ID:-}" || (echo "Set INFISICAL_CLIENT_ID in the runtime environment"; exit 1)
+	@test -n "$${INFISICAL_CLIENT_SECRET:-}" || (echo "Set INFISICAL_CLIENT_SECRET in the runtime environment"; exit 1)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(RUNNER_PLAYBOOK) --check --diff --limit forgejo-runner -i $(RUNNER_INVENTORY)
 
@@ -109,6 +112,16 @@ runner-bootstrap-access:
 		-i ansible/inventories/runner-bootstrap.yml \
 		--limit forgejo-runner-bootstrap \
 		-e runner_management_public_key_file="$(RUNNER_SSH_PUBLIC_KEY_FILE)"
+
+runner-migrate-secrets:
+	@test "$(CONFIRM_RUNNER_SECRET_MIGRATION)" = "yes" || (echo "Refusing migration; rerun with CONFIRM_RUNNER_SECRET_MIGRATION=yes"; exit 1)
+	@test -n "$${INFISICAL_CLIENT_ID:-}" || (echo "Set INFISICAL_CLIENT_ID in the runtime environment"; exit 1)
+	@test -n "$${INFISICAL_CLIENT_SECRET:-}" || (echo "Set INFISICAL_CLIENT_SECRET in the runtime environment"; exit 1)
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) ansible/playbooks/migrate-forgejo-runner-secrets.yml \
+		-i ansible/inventories/runner.yml \
+		--limit forgejo-runner \
+		-e runner_secret_migration_confirm=true
 
 runner-plan:
 	terraform -chdir=$(RUNNER_DIR) fmt -check

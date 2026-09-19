@@ -21,6 +21,10 @@ forgejo_runner_packages:
   - uidmap
 forgejo_runner_container_network: ""
 forgejo_runner_container_privileged: false
+
+# Compatibility-only mounts for existing CEM and theme workflows. Keep these
+# until those external repositories use their own Forgejo-scoped Infisical
+# bootstrap secrets and the migration has been verified.
 forgejo_runner_valid_volumes:
   - /etc/forgejo-runner-infisical.env
   - /etc/forgejo-theme-infisical.env
