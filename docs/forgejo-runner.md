@@ -133,6 +133,79 @@ variables. A future deployment workflow should use the same underlying model,
 with `INFISICAL_CLIENT_ID` and `INFISICAL_CLIENT_SECRET` supplied as protected
 Forgejo secrets and never echoed in logs.
 
+### Repository-Scoped CI Bootstrap
+
+Forgejo Actions repository secrets are server-side configuration and are not
+copied into clones, forks, Git history, GitHub mirrors, or tags. Each trusted
+repository receives only its own Infisical Universal Auth bootstrap pair:
+
+```text
+INFISICAL_CLIENT_ID
+INFISICAL_CLIENT_SECRET
+```
+
+The Homelab-IaC repository uses these secrets only in protected workflows that
+need infrastructure access. The validation workflow does not receive them.
+Non-secret metadata such as the project ID from `.infisical.json`, the `dev`
+environment, the Infisical domain, and secret paths is versioned configuration.
+External repositories and arbitrary pull requests must not receive homelab
+infrastructure credentials merely because they use the same physical runner.
+
+### Runner Infrastructure Secrets
+
+The three Forgejo connection credentials used by the adopted runner are
+infrastructure secrets, not CEM or theme application secrets. Their canonical
+future location is the Homelab-IaC Infisical project:
+
+```text
+/forgejo-runner/connections/CEM_CONNECTION_TOKEN
+/forgejo-runner/connections/THEME_CONNECTION_TOKEN
+/forgejo-runner/connections/CUSTOM_THEME_CONNECTION_TOKEN
+```
+
+The runner playbook reads these values controller-side with Universal Auth,
+maps them into `forgejo_runner_connection_tokens` in memory, and keeps the
+secret-bearing template task under `no_log`. It does not use a human Infisical
+session, a persistent controller file, or manually exported individual runner
+tokens.
+
+The one-time migration helper is deliberately opt-in:
+
+```text
+CONFIRM_RUNNER_SECRET_MIGRATION=yes make runner-migrate-secrets
+```
+
+It reads the existing live runner configuration under protected tasks, refuses
+to overwrite an existing canonical secret, and verifies names after creation.
+It does not rotate or re-register runners. The operator must have temporary
+write permission for this migration; the normal homelab Machine Identity can
+remain read-only afterward. Do not run this helper until the migration is
+explicitly reviewed.
+
+### Legacy Runner Mounts
+
+The live files `/etc/forgejo-runner-infisical.env` and
+`/etc/forgejo-theme-infisical.env` are legacy project-bootstrap mounts used by
+existing CEM and theme workflows. They remain modeled and mounted for behavior
+preservation. Do not remove them until the external CEM and
+`forgejo-custom-theme` workflows have independently migrated to their own
+Forgejo repository secrets and Universal Auth projects, and their jobs have
+been verified successfully.
+
+Those external repositories are not part of this checkout, so this repository
+does not claim that their workflow migration is complete. Their required
+change is to reference their own repository secrets, authenticate to their own
+Infisical project, and stop depending on the runner-mounted project bootstrap
+files before the mounts are retired.
+
+### Trust Boundary
+
+Forgejo is the trusted operational Git and CI control plane. GitHub is an
+outbound mirror or publication surface by default. Code from forks, external
+upstreams, or other unadopted repositories is untrusted and must not run with
+infrastructure or deployment credentials. Separate low-privilege validation
+from protected deployment workflows.
+
 ## Registry Decision
 
 No repository-owned image currently exists that justifies registry publishing.
