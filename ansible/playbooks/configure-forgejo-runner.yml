@@ -39,6 +39,7 @@
         path: "{{ infisical_secret_path }}"
         as_dict: true
       register: infisical_runner_secrets
+      check_mode: false
       delegate_to: localhost
       become: false
       no_log: true
