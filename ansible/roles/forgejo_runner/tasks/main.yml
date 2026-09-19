@@ -2,7 +2,7 @@
 - name: Require a Linux runner host
   ansible.builtin.assert:
     that:
-      - ansible_system == 'Linux'
+      - ansible_facts['system'] == 'Linux'
     fail_msg: "The Forgejo runner role supports Linux hosts only."
 
 - name: Install runner and Podman prerequisites
@@ -60,9 +60,9 @@
 - name: Deploy runner configurations
   ansible.builtin.template:
     src: config.yml.j2
-    dest: "{{ item.config_file }}"
-    owner: "{{ item.config_owner }}"
-    group: "{{ item.config_group }}"
+    dest: "{{ instance.config_file }}"
+    owner: "{{ instance.config_owner }}"
+    group: "{{ instance.config_group }}"
     mode: "0600"
   loop: "{{ forgejo_runner_instances }}"
   loop_control:
@@ -75,7 +75,7 @@
 - name: Install runner services
   ansible.builtin.template:
     src: forgejo-runner.service.j2
-    dest: "/etc/systemd/system/{{ item.service_name }}.service"
+    dest: "/etc/systemd/system/{{ instance.service_name }}.service"
     owner: root
     group: root
     mode: "0644"
