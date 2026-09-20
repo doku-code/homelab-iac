@@ -18,7 +18,6 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             python3 \
-            python3-venv \
             unzip
 
       - name: Install standalone Compose v2 for static validation
@@ -43,8 +42,29 @@ jobs:
           unzip -qo /tmp/terraform.zip -d /usr/local/bin
           terraform version
 
+      - name: Install pinned controller Python
+        env:
+          CONTROLLER_PYTHON_VERSION: "3.14.0"
+          PYTHON_BUILD: "20251014"
+          PYTHON_SHA256: 493c477b4a88bb1ea2f6c6f57fa0e88ffbe55d9e7b1405c4699f2d41c04eb154
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSLo "$work/python.tar.gz" \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/${PYTHON_BUILD}/cpython-${CONTROLLER_PYTHON_VERSION}%2B${PYTHON_BUILD}-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+          printf '%s  %s\n' "$PYTHON_SHA256" "$work/python.tar.gz" | sha256sum --check --status
+          mkdir -p /opt/controller-python
+          tar -xzf "$work/python.tar.gz" -C /opt/controller-python --strip-components=1
+          test "$(/opt/controller-python/bin/python3 -c 'import platform; print(platform.python_version())')" = "$CONTROLLER_PYTHON_VERSION"
+
       - name: Rebuild controller environment
-        run: make setup-controller
+        run: |
+          set -euo pipefail
+          make setup-controller CONTROLLER_PYTHON=/opt/controller-python/bin/python3
+          .venv/bin/python --version
+          .venv/bin/python -m pip check
+          .venv/bin/ansible --version
 
       - name: Validate Terraform formatting and configuration
         run: |

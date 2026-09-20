@@ -5,6 +5,8 @@ SHELL := /bin/bash
 # ─────────────────────────────────────────────
 
 VENV := .venv
+# CI supplies an explicit standalone interpreter; local setup keeps its default.
+CONTROLLER_PYTHON ?= python3
 ANSIBLE := $(VENV)/bin/ansible-playbook
 INFISICAL_ENV ?= dev
 INFISICAL_DOMAIN ?= https://secrets.doku-lab.net
@@ -48,7 +50,7 @@ endef
 	deploy-monitoring
 
 setup-controller:
-	python3 -m venv --clear $(VENV)
+	"$(CONTROLLER_PYTHON)" -m venv --clear $(VENV)
 	$(VENV)/bin/python -m pip install -r requirements-controller.txt
 	$(VENV)/bin/ansible-galaxy collection install -r collections/requirements.yml
 
