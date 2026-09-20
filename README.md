@@ -245,8 +245,9 @@ validation, Ansible syntax checks, and monitoring Compose validation.
 
 The workflow does not receive Proxmox or Infisical credentials and cannot apply,
 destroy, or deploy infrastructure. The CT301 runner model uses one daemon and three connections.
-The manual `publish-ci-base.yml` workflow is the only image publication path;
-it requires dedicated package-write Actions secrets and explicit socket access. See [`docs/forgejo-runner.md`](docs/forgejo-runner.md) for
+The manual `publish-ci-base.yml` workflow handles later image releases;
+first publication uses a one-time controller-driven SSH procedure. The workflow
+requires package-write Actions secrets and explicit socket access. See [`docs/forgejo-runner.md`](docs/forgejo-runner.md) for
 the intended runner separation and one-time bootstrap checks.
 
 ## Secrets

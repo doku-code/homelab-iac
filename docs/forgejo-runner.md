@@ -66,42 +66,122 @@ image version for future releases and record the published digest for rollback.
 The base tag, Debian packages and Infisical CLI are not fully content-pinned:
 release artifacts are versioned, but rebuilding from source is not bit-identical.
 
-First publication needs an already-online trusted runner scoped to homelab-iac
-with label homelab-iac and explicit socket access. The public job image removes
-the ci-base dependency, but does not supply a registered runner.
-If none exists, agree a one-time publication runner/controller bootstrap before
-dispatch. Do not configure CT301 or change CT300 implicitly to resolve this.
-After publication, ordinary reconstruction pulls the stored image.
+The manual workflow is for releases after the runner is online. First publication
+uses the one-time controller procedure below, not another Forgejo connection.
+After publication, ordinary reconstruction pulls the stored image. No Dockerfile
+change or heavier generic toolchain is needed.
+
+## One-time ci-base publication
+
+This is a proposed live operation, NOT performed by repository validation.
+Use the controller's existing root SSH access to CT301 and its already-installed
+native Podman 5.4.x. There is no local Podman installation, remote-client mismatch,
+runner registration, or persistent bootstrap service. Only the committed image
+context is exported from this repository; dirty files and .git are excluded.
+
+Reuse the existing CEM publishing PAT only if it has write:package scope AND its
+account can publish under doku-code. For a user namespace this means that user;
+for an organization it means an account with organization write/admin access.
+Publishing CEM successfully does not establish doku-code access. Confirm the
+account/scope in Forgejo before proceeding, without exposing the PAT or reading
+another repository. If these permissions are absent, stop for an operator decision;
+do not automatically create another PAT or broaden permissions.
+See [Forgejo package permissions](https://forgejo.org/docs/latest/user/packages/).
+
+Reuse avoids another credential but shares its compromise/revocation impact with
+CEM publication. This one-time procedure does not copy it into homelab Actions
+Secrets or Infisical. It is entered at a hidden SSH prompt, used via password-stdin,
+and stored only in a temporary root-only /run directory, removed on exit. CT301
+root can access it during publication, so this requires trusting CT301. The
+permanent runner auth remains the separate existing READ credential. Future
+automated publication credentials can be decided when that workflow is needed.
+
+In Forgejo first confirm ci-base:1.0.0 is absent. Do not overwrite an existing
+release. Review the committed Dockerfile and authorize this build/push separately.
+Then run this block in Bash from the homelab-iac root (not with shell tracing):
+
+```bash
+(
+  set -euo pipefail
+  revision=$(git rev-parse HEAD)
+  ssh_ct301=(ssh -i "${GUEST_SSH_PRIVATE_KEY_FILE:-$HOME/.ssh/id_ed25519}" root@192.168.0.31)
+  git archive "$revision:services/ci-images/base" | "${ssh_ct301[@]}" "
+    set -eu
+    work=\$(mktemp -d /tmp/ci-base-build.XXXXXX)
+    trap 'rm -rf \"\$work\"' EXIT
+    tar -xf - -C \"\$work\"
+    podman build --platform linux/amd64 --network host \\
+      --label org.opencontainers.image.source=https://git.doku-lab.net/Homelab/homelab-iac \\
+      --label org.opencontainers.image.revision=$revision \\
+      --tag git.doku-lab.net/doku-code/ci-base:1.0.0 \"\$work\"
+  "
+  publish=$(cat <<'REMOTE'
+set +x
+set -euo pipefail
+umask 077
+auth=$(mktemp -d /run/ci-base-publish.XXXXXX)
+trap 'unset token; rm -rf "$auth"' EXIT
+read -r -p 'Existing publisher username: ' username
+read -r -s -p 'Existing package-write PAT: ' token
+printf '\n'
+test -n "$username" && test -n "$token"
+printf '%s' "$token" | podman login --authfile "$auth/auth.json" \
+  --username "$username" --password-stdin git.doku-lab.net
+unset token
+podman push --authfile "$auth/auth.json" --digestfile "$auth/digest" \
+  git.doku-lab.net/doku-code/ci-base:1.0.0
+cat "$auth/digest"
+REMOTE
+  )
+  "${ssh_ct301[@]}" -t "bash -c $(printf '%q' "$publish")"
+)
+```
+
+Verify the package/manifest in Forgejo and record the digest. Build layers/the
+image remain cached on CT301, but are not reconstruction dependencies. Temporary
+context/auth files are removed on normal exit, including command failure; after
+a killed session verify cleanup of its /tmp/ci-base-build.* and
+/run/ci-base-publish.* directories before proceeding. No service is restarted.
 
 ## Fresh registrations and operator batches
 
-1. Publication batch: add REGISTRY_PUBLISH_USERNAME and REGISTRY_PUBLISH_TOKEN
-   as homelab-iac Actions Secrets with package-write access to doku-code.
-   Push reviewed commits, confirm the trusted publication executor above, and
-   manually dispatch Publish CI base image. Verify tag 1.0.0 and retain its
-   digest. No credentials are being requested or created by this change.
+1. Publication batch: confirm reuse permissions for the existing write PAT;
+   authorize and run the one-time procedure above. Verify tag 1.0.0 and its digest.
+   No new credential, permanent executor, or Actions Secret is needed for this batch.
 2. Registration batch, after the image is ready: create fresh registrations
    together for Homelab/homelab-iac, organization CEM, and
-   doku-code/forgejo-custom-theme. Store their persistent connection tokens in
-   Homelab-IaC dev under /forgejo-runner/connections as
-   HOMELAB_IAC_CONNECTION_TOKEN, CEM_CONNECTION_TOKEN, and
-   CUSTOM_THEME_CONNECTION_TOKEN. Do not copy CT300 identities or confuse
-   registration bootstrap tokens with persistent connection tokens.
-   Record their fresh UUIDs in an operator file, for example
-   runner-connections.secrets (ignored), structured as:
+   doku-code/forgejo-custom-theme. Store all six persistent UUID/token values in
+   Homelab-IaC dev under /forgejo-runner/connections in one Infisical session:
 
-       forgejo_runner_connection_uuids:
-         homelab-iac: <fresh UUID>
-         cem: <fresh UUID>
-         forgejo-custom-theme: <fresh UUID>
+   | Connection | UUID field | Token field |
+   | --- | --- | --- |
+   | homelab-iac | HOMELAB_IAC_CONNECTION_UUID | HOMELAB_IAC_CONNECTION_TOKEN |
+   | cem | CEM_CONNECTION_UUID | CEM_CONNECTION_TOKEN |
+   | forgejo-custom-theme | CUSTOM_THEME_CONNECTION_UUID | CUSTOM_THEME_CONNECTION_TOKEN |
+
+   The existing CEM/custom-theme tokens are CT300 legacy values, NOT CT301
+   credentials. Their UUIDs and both homelab fields are currently empty. Replace
+   both legacy tokens and populate every field from three fresh registrations.
+   Do not confuse registration bootstrap tokens with persistent connection tokens.
+   No controller-local UUID file is required: Git + Infisical + Forgejo are the
+   reconstruction sources. Ansible rejects missing/blank tokens, missing/invalid
+   UUIDs, nil UUIDs, and duplicate UUIDs before the role mutates CT301. It cannot
+   prove token provenance or pairing offline; fresh registration and subsequent
+   Forgejo connectivity verification are mandatory. Do not fill new UUIDs beside
+   old tokens. There is no CT300 credential fallback.
 
 3. Review/convergence batch: with controller Universal Auth credentials exported,
-   run make runner-live-check RUNNER_CONNECTION_UUIDS_FILE=runner-connections.secrets.
+   run make runner-live-check.
    Review the diff and verify private pulls with the existing read identity.
-   Only after approval run make runner-migration-configure with the same file.
+   Only after approval run make runner-migration-configure.
    Smoke-test homelab validation, CEM workload authentication, theme behavior,
    private image pulls after reboot, and absence of automatic socket/secret mounts.
    No live check or convergence is performed in this repository-only milestone.
+
+Offline regression validation is available with
+`.venv/bin/python tests/runner-connections.py`. It executes only extracted
+assert/map tasks and template rendering on localhost with synthetic secrets;
+it never authenticates to Infisical or runs the host role.
 
 ## Later Terraform promotion
 
