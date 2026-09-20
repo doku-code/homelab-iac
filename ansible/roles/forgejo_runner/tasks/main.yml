@@ -64,6 +64,21 @@
     state: started
     daemon_reload: true
 
+- name: Inspect Podman socket ownership
+  ansible.builtin.stat:
+    path: /run/podman/podman.sock
+  register: forgejo_runner_podman_socket_stat
+
+- name: Apply Podman socket ownership immediately
+  ansible.builtin.systemd_service:
+    name: podman.socket
+    state: restarted
+    daemon_reload: true
+  when:
+    - forgejo_runner_podman_socket_stat.stat.pw_name != 'root'
+      or forgejo_runner_podman_socket_stat.stat.gr_name != forgejo_runner_podman_socket_group
+      or forgejo_runner_podman_socket_stat.stat.mode != forgejo_runner_podman_socket_mode
+
 - name: Create runner group
   ansible.builtin.group:
     name: "{{ item.group }}"
