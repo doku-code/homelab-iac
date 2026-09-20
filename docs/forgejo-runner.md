@@ -52,10 +52,12 @@ runtime policy, and filesystem permissions. The role models the two observed
 daemon purposes as reusable instances over Podman: the root-owned
 multi-connection `cem`/`theme` daemon and the separate
 `forgejo-custom-theme-runner` daemon. The live binary is `13.0.0`; the
-service model keeps one-job capacity, non-privileged job containers, and
-explicit rootful Podman socket selection. It does not overwrite live
-configuration until the external secret inputs and ownership boundaries are
-reviewed.
+service model keeps one-job capacity, non-privileged job containers, explicit
+rootful Podman socket selection, and a pinned binary checksum. The target
+service definition uses `Restart=on-failure`, starts after and wants the
+Podman socket, and grants the dedicated runner user the `podman` supplementary
+group. The hardening policy keeps home directories read-only except for the
+declared runner work area.
 
 Use `make runner-check` for syntax validation, `make runner-plan` for the
 backend-free Terraform root, and `FORGEJO_RUNNER_HOST=... make
@@ -64,11 +66,12 @@ Docker Compose is not used because the runner's lifecycle is not containerized
 by this repository.
 
 Do not recreate or re-register the existing runner as part of repository
-changes. Registration is a one-time manual Forgejo operation after the role has
-installed the binary and stopped services. Register each required instance in
-Forgejo, then enable and start the corresponding services on the guest. The
-registration tokens and generated state files must stay outside Git,
-preferably in the Forgejo administration flow or a protected secret store.
+changes. The adopted configuration carries the existing non-secret Forgejo
+connection UUIDs alongside the connection tokens from Infisical. The explicit
+connection blocks are the operational identity for this setup; the historical
+`.runner` files are absent and are not treated as a required source of truth.
+Registration remains a one-time protected bootstrap only when creating a new
+connection identity.
 
 ## Live Topology And Migration Map
 
@@ -76,10 +79,10 @@ preferably in the Forgejo administration flow or a protected secret store.
 `/run/podman/podman.sock`, and contains two Forgejo connections: `cem` with
 the `cem-latest` label and local `cem-ci` image, and `theme` with a Node
 22 job image. `forgejo-custom-theme-runner.service` runs as `runner`, has a
-separate theme registration and Node 20 label, and currently fails because it
-points to the rootful socket without effective `podman` group access. It is
-repeatedly restarted by systemd and must not be disabled or removed as part of
-adoption.
+separate theme connection identity and Node 20 label. Its current live unit
+does not pass the `podman` supplementary group to the process even though the
+user is a member, so it cannot access the rootful socket; the target unit adds
+that group without changing the Forgejo identity.
 
 Terraform owns CT 300 infrastructure and its bounded resources. Ansible should
 own the Podman prerequisites, runner binary, daemon units, non-secret config

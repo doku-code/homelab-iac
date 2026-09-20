@@ -52,6 +52,7 @@
   ansible.builtin.get_url:
     url: "https://code.forgejo.org/forgejo/runner/releases/download/v{{ forgejo_runner_version }}/forgejo-runner-{{ forgejo_runner_version }}-linux-{{ forgejo_runner_arch }}"
     dest: "{{ forgejo_runner_binary }}"
+    checksum: "{{ forgejo_runner_checksum }}"
     owner: root
     group: root
     mode: "0755"
@@ -70,7 +71,7 @@
   vars:
     runner_instance: "{{ instance }}"
   no_log: true
-  notify: Restart Forgejo Runner
+  notify: Restart Forgejo Runner instances
 
 - name: Install runner services
   ansible.builtin.template:
@@ -84,7 +85,7 @@
     loop_var: instance
   vars:
     runner_instance: "{{ instance }}"
-  notify: Restart Forgejo Runner
+  notify: Restart Forgejo Runner instances
 
 - name: Enable and set runner services to the requested state
   ansible.builtin.systemd_service:
@@ -93,15 +94,3 @@
     state: "{{ forgejo_runner_service_state }}"
     daemon_reload: true
   loop: "{{ forgejo_runner_instances }}"
-
-- name: Check for existing Forgejo registrations
-  ansible.builtin.stat:
-    path: "{{ item.state_file }}"
-  loop: "{{ forgejo_runner_instances }}"
-  register: forgejo_runner_registrations
-
-- name: Report registration prerequisites
-  ansible.builtin.debug:
-    msg: "Register {{ item.item.name }} once in Forgejo, then keep {{ item.item.state_file }} outside Git."
-  loop: "{{ forgejo_runner_registrations.results }}"
-  when: not item.stat.exists

@@ -1,7 +1,6 @@
 log:
   level: info
 runner:
-  file: {{ runner_instance.state_file }}
   capacity: 1
   timeout: 3h
   labels: []
@@ -16,6 +15,9 @@ server:
 {% for connection in runner_instance.connections | dict2items %}
     {{ connection.key }}:
       url: {{ connection.value.url | to_json }}
+{% if connection.value.uuid is defined %}
+      uuid: {{ connection.value.uuid | to_json }}
+{% endif %}
       token: {{ forgejo_runner_connection_tokens[runner_instance.name][connection.key] | to_json }}
       labels: {{ connection.value.labels | to_json }}
 {% endfor %}

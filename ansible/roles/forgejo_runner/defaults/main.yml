@@ -2,6 +2,7 @@
 forgejo_runner_version: "13.0.0"
 forgejo_runner_arch: amd64
 forgejo_runner_binary: /usr/local/bin/forgejo-runner
+forgejo_runner_checksum: "sha256:cfcfe65e9ed5c9a4b344acfdbc3c32210b274c005a5888f46967c4d988177707"
 forgejo_runner_package_state: present
 forgejo_runner_service_state: started
 forgejo_runner_service_enabled: true
@@ -39,7 +40,6 @@ forgejo_runner_instances:
     group: root
     working_directory: /home/runner
     config_file: /home/runner/runner-config.yml
-    state_file: /home/runner/.runner
     config_owner: runner
     config_group: runner
     podman_socket: unix:///run/podman/podman.sock
@@ -54,10 +54,12 @@ forgejo_runner_instances:
     connections:
       cem:
         url: https://git.doku-lab.net/
+        uuid: 84dd966e-10c4-4674-9d57-8923bb5ba2b5
         labels:
           - cem-latest:docker://localhost/cem-ci:latest
       theme:
         url: https://git.doku-lab.net/
+        uuid: 241ca848-f7a0-47c4-8557-08a4d83e3062
         labels:
           - docker:docker://node:22-bookworm
 
@@ -67,7 +69,6 @@ forgejo_runner_instances:
     group: runner
     working_directory: /home/runner
     config_file: /home/runner/forgejo-custom-theme-runner-config.yml
-    state_file: /home/runner/.runner-forgejo-custom-theme
     config_owner: runner
     config_group: runner
     podman_socket: unix:///run/podman/podman.sock
@@ -80,5 +81,6 @@ forgejo_runner_instances:
     connections:
       forgejo-custom-theme:
         url: https://git.doku-lab.net/
+        uuid: 241ca848-f7a0-47c4-8557-08a4d83e3062
         labels:
           - docker:docker://node:20-bookworm
