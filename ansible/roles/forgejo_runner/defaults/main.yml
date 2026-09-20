@@ -6,7 +6,7 @@ forgejo_runner_checksum: "sha256:cfcfe65e9ed5c9a4b344acfdbc3c32210b274c005a5888f
 forgejo_runner_package_state: present
 forgejo_runner_service_state: started
 forgejo_runner_service_enabled: true
-forgejo_runner_home: /home/runner
+forgejo_runner_home: /var/lib/forgejo-runner
 forgejo_runner_group: runner
 forgejo_runner_podman_socket: unix:///run/podman/podman.sock
 forgejo_runner_podman_socket_group: podman
@@ -32,64 +32,40 @@ forgejo_runner_registry_url: git.doku-lab.net
 forgejo_runner_registry_username: ""
 forgejo_runner_registry_token: ""
 
-# Compatibility-only mounts for existing CEM and theme workflows. Keep these
-# until those external repositories use their own Forgejo-scoped Infisical
-# bootstrap secrets and the migration has been verified.
-forgejo_runner_valid_volumes:
-  - /etc/forgejo-runner-infisical.env
-  - /etc/forgejo-theme-infisical.env
 
-# Tokens are supplied at runtime by the operator's secret workflow.
 forgejo_runner_connection_tokens: {}
-
+forgejo_runner_connection_uuids: {}
+forgejo_runner_registry_auth_dir: /etc/forgejo-runner/registry
+forgejo_runner_registry_auth_file: "{{ forgejo_runner_registry_auth_dir }}/config.json"
 forgejo_runner_instances:
   - name: main
     service_name: forgejo-runner
-    user: root
-    group: root
-    working_directory: /home/runner
-    config_file: /home/runner/runner-config.yml
-    config_owner: runner
-    config_group: runner
-    podman_socket: unix:///run/podman/podman.sock
-    container_options: >-
-      --volume /etc/forgejo-runner-infisical.env:/run/secrets/forgejo-runner-infisical.env:ro
-      --volume /etc/forgejo-theme-infisical.env:/run/secrets/forgejo-theme-infisical.env:ro
-    valid_volumes:
-      - /etc/forgejo-runner-infisical.env
-      - /etc/forgejo-theme-infisical.env
-    supplementary_groups:
-      - podman
-    connections:
-      cem:
-        url: https://git.doku-lab.net/
-        uuid: 84dd966e-10c4-4674-9d57-8923bb5ba2b5
-        labels:
-          - cem-latest:docker://localhost/cem-ci:latest
-      theme:
-        url: https://git.doku-lab.net/
-        uuid: 241ca848-f7a0-47c4-8557-08a4d83e3062
-        labels:
-          - docker:docker://node:22-bookworm
-
-  - name: custom_theme
-    service_name: forgejo-custom-theme-runner
     user: runner
     group: runner
-    working_directory: /home/runner
-    config_file: /home/runner/forgejo-custom-theme-runner-config.yml
+    working_directory: "{{ forgejo_runner_home }}"
+    config_file: /etc/forgejo-runner/config.yml
     config_owner: runner
     config_group: runner
-    podman_socket: unix:///run/podman/podman.sock
-    container_options: >-
-      --volume /etc/forgejo-theme-infisical.env:/run/secrets/forgejo-runner-infisical.env:ro
+    podman_socket: "{{ forgejo_runner_podman_socket }}"
+    container_options: ""
+    # Only trusted publication workflows may request this root-equivalent socket.
     valid_volumes:
-      - /etc/forgejo-theme-infisical.env
+      - /run/podman/podman.sock
     supplementary_groups:
       - podman
     connections:
-      forgejo-custom-theme:
-        url: https://git.doku-lab.net/
-        uuid: 241ca848-f7a0-47c4-8557-08a4d83e3062
+      homelab-iac:
+        url: https://git.doku-lab.net/Homelab/homelab-iac/
+        uuid: "{{ forgejo_runner_connection_uuids['homelab-iac'] }}"
         labels:
-          - docker:docker://node:20-bookworm
+          - homelab-iac:docker://git.doku-lab.net/doku-code/ci-base:1.0.0
+      cem:
+        url: https://git.doku-lab.net/CEM/
+        uuid: "{{ forgejo_runner_connection_uuids['cem'] }}"
+        labels:
+          - cem:docker://git.doku-lab.net/cem/cem-ci:1.0.1
+      forgejo-custom-theme:
+        url: https://git.doku-lab.net/doku-code/forgejo-custom-theme/
+        uuid: "{{ forgejo_runner_connection_uuids['forgejo-custom-theme'] }}"
+        labels:
+          - forgejo-theme:docker://git.doku-lab.net/doku-code/ci-base:1.0.0

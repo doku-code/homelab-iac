@@ -9,9 +9,10 @@ container:
   privileged: {{ forgejo_runner_container_privileged | bool | lower }}
   options: {{ runner_instance.container_options | to_json }}
   valid_volumes: {{ runner_instance.valid_volumes | to_json }}
-  docker_host: {{ runner_instance.podman_socket | to_json }}
+  # DOCKER_HOST selects the engine; never automatically mount its socket into jobs.
+  docker_host: "-"
 server:
-  connections:{% if runner_instance.connections | length == 0 %} {}{% endif %}
+  connections:{{ ' {}' if runner_instance.connections | length == 0 else '' }}
 {% for connection in runner_instance.connections | dict2items %}
     {{ connection.key }}:
       url: {{ connection.value.url | to_json }}

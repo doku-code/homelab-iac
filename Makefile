@@ -37,13 +37,10 @@ endef
 	runner-check \
 	runner-live-check \
 	runner-bootstrap-access \
-	runner-migrate-secrets \
 	runner-plan \
 	runner-import \
 	runner-live-plan \
 	runner-configure \
-	runner-configure-main \
-	runner-configure-custom-theme \
 	runner-migration-plan \
 	runner-migration-apply \
 	runner-migration-bootstrap \
@@ -98,8 +95,10 @@ guests-apply:
 RUNNER_DIR := terraform/stacks/pve-compute-forgejo-runner
 MIGRATION_RUNNER_DIR := terraform/stacks/pve-compute-forgejo-runner-migration
 RUNNER_PLAYBOOK := ansible/playbooks/configure-forgejo-runner.yml
-RUNNER_INVENTORY := ansible/inventories/runner.yml
+RUNNER_INVENTORY := ansible/inventories/runner-migration.yml
 MIGRATION_RUNNER_INVENTORY := ansible/inventories/runner-migration.yml
+RUNNER_CONNECTION_UUIDS_FILE ?=
+RUNNER_CONNECTION_ARGS = $(if $(RUNNER_CONNECTION_UUIDS_FILE),-e "@$(RUNNER_CONNECTION_UUIDS_FILE)")
 RUNNER_SSH_PRIVATE_KEY_FILE ?= $(HOME)/.ssh/id_ed25519
 RUNNER_SSH_PUBLIC_KEY_FILE ?= $(RUNNER_SSH_PRIVATE_KEY_FILE).pub
 
@@ -111,7 +110,7 @@ runner-live-check:
 	@test -n "$${INFISICAL_CLIENT_ID:-}" || (echo "Set INFISICAL_CLIENT_ID in the runtime environment"; exit 1)
 	@test -n "$${INFISICAL_CLIENT_SECRET:-}" || (echo "Set INFISICAL_CLIENT_SECRET in the runtime environment"; exit 1)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) $(RUNNER_PLAYBOOK) --check --diff --limit forgejo-runner -i $(RUNNER_INVENTORY)
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) --check --diff --limit forgejo-runner-migration -i $(RUNNER_INVENTORY) $(RUNNER_CONNECTION_ARGS)
 
 runner-bootstrap-access:
 	@test -r "$(RUNNER_SSH_PUBLIC_KEY_FILE)" || (echo "Missing public key: $(RUNNER_SSH_PUBLIC_KEY_FILE)"; exit 1)
@@ -120,16 +119,6 @@ runner-bootstrap-access:
 		-i ansible/inventories/runner-bootstrap.yml \
 		--limit forgejo-runner-bootstrap \
 		-e runner_management_public_key_file="$(RUNNER_SSH_PUBLIC_KEY_FILE)"
-
-runner-migrate-secrets:
-	@test "$(CONFIRM_RUNNER_SECRET_MIGRATION)" = "yes" || (echo "Refusing migration; rerun with CONFIRM_RUNNER_SECRET_MIGRATION=yes"; exit 1)
-	@test -n "$${INFISICAL_CLIENT_ID:-}" || (echo "Set INFISICAL_CLIENT_ID in the runtime environment"; exit 1)
-	@test -n "$${INFISICAL_CLIENT_SECRET:-}" || (echo "Set INFISICAL_CLIENT_SECRET in the runtime environment"; exit 1)
-	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) ansible/playbooks/migrate-forgejo-runner-secrets.yml \
-		-i ansible/inventories/runner.yml \
-		--limit forgejo-runner \
-		-e runner_secret_migration_confirm=true
 
 runner-plan:
 	terraform -chdir=$(RUNNER_DIR) fmt -check
@@ -157,15 +146,7 @@ runner-migration-apply:
 
 runner-configure:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner --diff
-
-runner-configure-main:
-	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner --diff -e 'forgejo_runner_instance_names=["main"]'
-
-runner-configure-custom-theme:
-	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner --diff -e 'forgejo_runner_instance_names=["custom_theme"]'
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner-migration --diff $(RUNNER_CONNECTION_ARGS)
 
 runner-migration-bootstrap:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
@@ -175,7 +156,7 @@ runner-migration-configure:
 	@test -n "$${INFISICAL_CLIENT_ID:-}" || (echo "Set INFISICAL_CLIENT_ID in the runtime environment"; exit 1)
 	@test -n "$${INFISICAL_CLIENT_SECRET:-}" || (echo "Set INFISICAL_CLIENT_SECRET in the runtime environment"; exit 1)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) ansible/playbooks/configure-forgejo-runner-migration.yml -i $(MIGRATION_RUNNER_INVENTORY) --limit forgejo-runner-migration --diff
+	$(ANSIBLE) ansible/playbooks/configure-forgejo-runner-migration.yml -i $(MIGRATION_RUNNER_INVENTORY) --limit forgejo-runner-migration --diff $(RUNNER_CONNECTION_ARGS)
 
 workstations-bootstrap:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi

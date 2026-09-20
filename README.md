@@ -239,15 +239,14 @@ driver source, and passthrough validation procedure are confirmed.
 ## Forgejo Validation
 
 The repository includes a validation-only Forgejo Actions workflow at
-`.forgejo/workflows/validate.yml`. It runs on a runner with the `docker` label
+`.forgejo/workflows/validate.yml`. It runs on a runner with the `homelab-iac` label
 and performs controller bootstrap, Terraform formatting and backend-free
 validation, Ansible syntax checks, and monitoring Compose validation.
 
 The workflow does not receive Proxmox or Infisical credentials and cannot apply,
-destroy, or deploy infrastructure. The `docker` runner label, container
-isolation, resource limits, and network policy remain live Forgejo
-administration prerequisites; no runner configuration is currently committed
-to this repository. See [`docs/forgejo-runner.md`](docs/forgejo-runner.md) for
+destroy, or deploy infrastructure. The CT301 runner model uses one daemon and three connections.
+The manual `publish-ci-base.yml` workflow is the only image publication path;
+it requires dedicated package-write Actions secrets and explicit socket access. See [`docs/forgejo-runner.md`](docs/forgejo-runner.md) for
 the intended runner separation and one-time bootstrap checks.
 
 ## Secrets

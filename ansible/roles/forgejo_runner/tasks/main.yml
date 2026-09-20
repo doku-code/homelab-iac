@@ -135,11 +135,41 @@
   when: forgejo_runner_registry_auth_required | bool
   no_log: true
 
-- name: Authenticate rootful Podman to the Forgejo registry
-  containers.podman.podman_login:
-    registry: "{{ forgejo_runner_registry_url }}"
-    username: "{{ forgejo_runner_registry_username }}"
-    password: "{{ forgejo_runner_registry_token }}"
+- name: Create persistent registry authentication directory
+  ansible.builtin.file:
+    path: "{{ forgejo_runner_registry_auth_dir }}"
+    state: directory
+    owner: root
+    group: runner
+    mode: "0750"
+  when: forgejo_runner_registry_auth_required | bool
+
+- name: Install persistent registry authentication for Podman and the runner
+  ansible.builtin.copy:
+    dest: "{{ forgejo_runner_registry_auth_file }}"
+    content: >-
+      {{ {'auths': {forgejo_runner_registry_url: {
+        'auth': (forgejo_runner_registry_username ~ ':' ~ forgejo_runner_registry_token) | b64encode
+      }}} | to_nice_json }}
+    owner: runner
+    group: runner
+    mode: "0600"
+  when: forgejo_runner_registry_auth_required | bool
+  no_log: true
+  diff: false
+  notify: Restart Forgejo Runner instances
+
+- name: Authenticate rootful Podman using the managed auth file
+  ansible.builtin.command:
+    argv:
+      - podman
+      - login
+      - --authfile
+      - "{{ forgejo_runner_registry_auth_file }}"
+      - "{{ forgejo_runner_registry_url }}"
+    stdin: ""
+    stdin_add_newline: false
+  changed_when: false
   when: forgejo_runner_registry_auth_required | bool
   no_log: true
 

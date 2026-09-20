@@ -7,6 +7,11 @@ Wants=network-online.target podman.socket
 User={{ runner_instance.user }}
 Group={{ runner_instance.group }}
 SupplementaryGroups={{ runner_instance.supplementary_groups | join(' ') }}
+Environment="DOCKER_HOST={{ runner_instance.podman_socket }}"
+{% if forgejo_runner_registry_auth_required %}
+Environment="DOCKER_CONFIG={{ forgejo_runner_registry_auth_dir }}"
+Environment="REGISTRY_AUTH_FILE={{ forgejo_runner_registry_auth_file }}"
+{% endif %}
 WorkingDirectory={{ runner_instance.working_directory }}
 ExecStart={{ forgejo_runner_binary }} daemon -c {{ runner_instance.config_file }}
 Restart=on-failure

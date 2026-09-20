@@ -7,8 +7,6 @@ on:
 jobs:
   validate:
     runs-on: homelab-iac
-    container:
-      image: node:24-bookworm
 
     steps:
       - name: Check out repository

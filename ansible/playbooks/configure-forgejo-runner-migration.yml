@@ -9,43 +9,13 @@
     infisical_secret_path: "/forgejo-runner/connections"
     infisical_registry_secret_path: "/forgejo-runner/registry"
     infisical_project_id: "{{ (lookup('ansible.builtin.file', playbook_dir + '/../../.infisical.json') | from_json).workspaceId }}"
-    forgejo_runner_home: /var/lib/forgejo-runner
     forgejo_runner_registry_auth_required: true
-    forgejo_runner_connection_uuids: {}
-    forgejo_runner_connection_tokens: {}
-    forgejo_runner_instances:
-      - name: migration
-        service_name: forgejo-runner
-        user: runner
-        group: runner
-        working_directory: /var/lib/forgejo-runner
-        config_file: /etc/forgejo-runner/config.yml
-        config_owner: runner
-        config_group: runner
-        podman_socket: unix:///run/podman/podman.sock
-        container_options: ""
-        valid_volumes: []
-        supplementary_groups:
-          - podman
-        connections:
-          homelab-iac:
-            url: https://git.doku-lab.net/Homelab/homelab-iac/
-            labels:
-              - homelab-iac:docker://node:22-bookworm
-          CEM:
-            url: https://git.doku-lab.net/CEM/cem-obsidian-importer/
-            labels:
-              - cem:docker://git.doku-lab.net/cem/cem-ci:1.0.0
-          forgejo-custom-theme:
-            url: https://git.doku-lab.net/doku-code/forgejo-custom-theme/
-            labels:
-              - forgejo-theme:docker://node:22-bookworm
 
   pre_tasks:
     - name: Require fresh connection UUIDs
       ansible.builtin.assert:
         that:
-          - forgejo_runner_connection_uuids.keys() | list | sort == ['CEM', 'forgejo-custom-theme', 'homelab-iac']
+          - forgejo_runner_connection_uuids.keys() | list | sort == ['cem', 'forgejo-custom-theme', 'homelab-iac']
         fail_msg: "Supply the three fresh Forgejo connection UUIDs after registration."
 
     - name: Require Infisical Machine Identity credentials
@@ -126,22 +96,11 @@
     - name: Map clean runner connection secrets in memory
       ansible.builtin.set_fact:
         forgejo_runner_connection_tokens:
-          migration:
+          main:
             homelab-iac: "{{ infisical_runner_secrets.secrets['HOMELAB_IAC_CONNECTION_TOKEN'] }}"
-            CEM: "{{ infisical_runner_secrets.secrets['CEM_CONNECTION_TOKEN'] }}"
+            cem: "{{ infisical_runner_secrets.secrets['CEM_CONNECTION_TOKEN'] }}"
             forgejo-custom-theme: "{{ infisical_runner_secrets.secrets['CUSTOM_THEME_CONNECTION_TOKEN'] }}"
       no_log: true
-
-    - name: Add fresh connection UUIDs to the target model
-      ansible.builtin.set_fact:
-        forgejo_runner_instances: >-
-          {{ forgejo_runner_instances | map('combine', {
-            'connections': {
-              'homelab-iac': {'url': 'https://git.doku-lab.net/Homelab/homelab-iac/', 'uuid': forgejo_runner_connection_uuids['homelab-iac'], 'labels': ['homelab-iac:docker://node:22-bookworm']},
-              'CEM': {'url': 'https://git.doku-lab.net/CEM/cem-obsidian-importer/', 'uuid': forgejo_runner_connection_uuids['CEM'], 'labels': ['cem:docker://git.doku-lab.net/cem/cem-ci:1.0.0']},
-              'forgejo-custom-theme': {'url': 'https://git.doku-lab.net/doku-code/forgejo-custom-theme/', 'uuid': forgejo_runner_connection_uuids['forgejo-custom-theme'], 'labels': ['forgejo-theme:docker://node:22-bookworm']}
-            }
-          }) | list }}
 
   roles:
     - forgejo_runner
