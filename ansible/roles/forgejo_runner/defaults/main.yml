@@ -9,6 +9,8 @@ forgejo_runner_service_enabled: true
 forgejo_runner_home: /home/runner
 forgejo_runner_group: runner
 forgejo_runner_podman_socket: unix:///run/podman/podman.sock
+forgejo_runner_podman_socket_group: podman
+forgejo_runner_podman_socket_mode: "0660"
 forgejo_runner_packages:
   - ca-certificates
   - curl

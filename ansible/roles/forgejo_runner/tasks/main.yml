@@ -32,6 +32,31 @@
     name: "{{ forgejo_runner_packages }}"
     state: "{{ forgejo_runner_package_state }}"
 
+- name: Create the Podman socket group
+  ansible.builtin.group:
+    name: "{{ forgejo_runner_podman_socket_group }}"
+    system: true
+
+- name: Create Podman socket override directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/podman.socket.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure Podman socket ownership
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/podman.socket.d/runner.conf
+    content: |
+      [Socket]
+      SocketGroup={{ forgejo_runner_podman_socket_group }}
+      SocketMode={{ forgejo_runner_podman_socket_mode }}
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Podman socket
+
 - name: Enable the rootful Podman socket
   ansible.builtin.systemd_service:
     name: podman.socket
