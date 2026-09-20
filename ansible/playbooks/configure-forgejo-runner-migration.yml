@@ -12,12 +12,6 @@
     forgejo_runner_registry_auth_required: true
 
   pre_tasks:
-    - name: Require fresh connection UUIDs
-      ansible.builtin.assert:
-        that:
-          - forgejo_runner_connection_uuids.keys() | list | sort == ['cem', 'forgejo-custom-theme', 'homelab-iac']
-        fail_msg: "Supply the three fresh Forgejo connection UUIDs after registration."
-
     - name: Require Infisical Machine Identity credentials
       ansible.builtin.assert:
         that:
@@ -82,24 +76,41 @@
         forgejo_runner_registry_token: "{{ infisical_registry_secrets.secrets['REGISTRY_READ_TOKEN'] }}"
       no_log: true
 
-    - name: Require clean runner connection secrets
+    - name: Require complete CT301 connection pairs from Infisical
       ansible.builtin.assert:
         that:
-          - "'HOMELAB_IAC_CONNECTION_TOKEN' in (infisical_runner_secrets.secrets | default({}))"
-          - "'CEM_CONNECTION_TOKEN' in (infisical_runner_secrets.secrets | default({}))"
-          - "'CUSTOM_THEME_CONNECTION_TOKEN' in (infisical_runner_secrets.secrets | default({}))"
-        fail_msg: "The clean runner connection secrets are missing from Infisical."
+          - (infisical_runner_secrets.secrets | default({})).get(item + '_CONNECTION_TOKEN', '') is string
+          - (infisical_runner_secrets.secrets | default({})).get(item + '_CONNECTION_TOKEN', '') | default('', true) | trim | length > 0
+          - (infisical_runner_secrets.secrets | default({})).get(item + '_CONNECTION_UUID', '') is string
+          - (infisical_runner_secrets.secrets | default({})).get(item + '_CONNECTION_UUID', '') | default('', true) is match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+          - (infisical_runner_secrets.secrets | default({})).get(item + '_CONNECTION_UUID', '') != '00000000-0000-0000-0000-000000000000'
+        fail_msg: "Populate all six Infisical connection fields with fresh CT301 UUID/token pairs; legacy CT300 tokens are not migration credentials."
+      loop:
+        - HOMELAB_IAC
+        - CEM
+        - CUSTOM_THEME
       delegate_to: localhost
       become: false
       no_log: true
 
     - name: Map clean runner connection secrets in memory
       ansible.builtin.set_fact:
+        forgejo_runner_connection_uuids:
+          homelab-iac: "{{ infisical_runner_secrets.secrets['HOMELAB_IAC_CONNECTION_UUID'] }}"
+          cem: "{{ infisical_runner_secrets.secrets['CEM_CONNECTION_UUID'] }}"
+          forgejo-custom-theme: "{{ infisical_runner_secrets.secrets['CUSTOM_THEME_CONNECTION_UUID'] }}"
         forgejo_runner_connection_tokens:
           main:
             homelab-iac: "{{ infisical_runner_secrets.secrets['HOMELAB_IAC_CONNECTION_TOKEN'] }}"
             cem: "{{ infisical_runner_secrets.secrets['CEM_CONNECTION_TOKEN'] }}"
             forgejo-custom-theme: "{{ infisical_runner_secrets.secrets['CUSTOM_THEME_CONNECTION_TOKEN'] }}"
+      no_log: true
+
+    - name: Require three distinct connection identities
+      ansible.builtin.assert:
+        that:
+          - forgejo_runner_connection_uuids.values() | map('lower') | unique | length == 3
+        fail_msg: "Each CT301 connection must have its own fresh Forgejo UUID."
       no_log: true
 
   roles:

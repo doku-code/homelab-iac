@@ -97,8 +97,6 @@ MIGRATION_RUNNER_DIR := terraform/stacks/pve-compute-forgejo-runner-migration
 RUNNER_PLAYBOOK := ansible/playbooks/configure-forgejo-runner.yml
 RUNNER_INVENTORY := ansible/inventories/runner-migration.yml
 MIGRATION_RUNNER_INVENTORY := ansible/inventories/runner-migration.yml
-RUNNER_CONNECTION_UUIDS_FILE ?=
-RUNNER_CONNECTION_ARGS = $(if $(RUNNER_CONNECTION_UUIDS_FILE),-e "@$(RUNNER_CONNECTION_UUIDS_FILE)")
 RUNNER_SSH_PRIVATE_KEY_FILE ?= $(HOME)/.ssh/id_ed25519
 RUNNER_SSH_PUBLIC_KEY_FILE ?= $(RUNNER_SSH_PRIVATE_KEY_FILE).pub
 
@@ -110,7 +108,7 @@ runner-live-check:
 	@test -n "$${INFISICAL_CLIENT_ID:-}" || (echo "Set INFISICAL_CLIENT_ID in the runtime environment"; exit 1)
 	@test -n "$${INFISICAL_CLIENT_SECRET:-}" || (echo "Set INFISICAL_CLIENT_SECRET in the runtime environment"; exit 1)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) $(RUNNER_PLAYBOOK) --check --diff --limit forgejo-runner-migration -i $(RUNNER_INVENTORY) $(RUNNER_CONNECTION_ARGS)
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) --check --diff --limit forgejo-runner-migration -i $(RUNNER_INVENTORY)
 
 runner-bootstrap-access:
 	@test -r "$(RUNNER_SSH_PUBLIC_KEY_FILE)" || (echo "Missing public key: $(RUNNER_SSH_PUBLIC_KEY_FILE)"; exit 1)
@@ -146,7 +144,7 @@ runner-migration-apply:
 
 runner-configure:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner-migration --diff $(RUNNER_CONNECTION_ARGS)
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner-migration --diff
 
 runner-migration-bootstrap:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
@@ -156,7 +154,7 @@ runner-migration-configure:
 	@test -n "$${INFISICAL_CLIENT_ID:-}" || (echo "Set INFISICAL_CLIENT_ID in the runtime environment"; exit 1)
 	@test -n "$${INFISICAL_CLIENT_SECRET:-}" || (echo "Set INFISICAL_CLIENT_SECRET in the runtime environment"; exit 1)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) ansible/playbooks/configure-forgejo-runner-migration.yml -i $(MIGRATION_RUNNER_INVENTORY) --limit forgejo-runner-migration --diff $(RUNNER_CONNECTION_ARGS)
+	$(ANSIBLE) ansible/playbooks/configure-forgejo-runner-migration.yml -i $(MIGRATION_RUNNER_INVENTORY) --limit forgejo-runner-migration --diff
 
 workstations-bootstrap:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
