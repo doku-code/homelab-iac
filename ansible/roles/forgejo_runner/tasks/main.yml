@@ -61,8 +61,6 @@
     mode: "0750"
   loop:
     - "{{ forgejo_runner_home }}"
-    - /etc/forgejo-runner
-    - "{{ forgejo_runner_home }}/logs"
 
 - name: Download Forgejo Runner
   ansible.builtin.get_url:
