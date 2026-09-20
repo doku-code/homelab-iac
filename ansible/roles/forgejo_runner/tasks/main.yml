@@ -186,12 +186,16 @@
       changed_when: true
 
     - name: Extract the pinned CEM build context on the controller
-      ansible.builtin.unarchive:
-        src: "{{ forgejo_runner_cem_ci_temp.path }}/cem-ci.tar"
-        dest: "{{ forgejo_runner_cem_ci_temp.path }}"
-        remote_src: true
+      ansible.builtin.command:
+        argv:
+          - tar
+          - -xf
+          - "{{ forgejo_runner_cem_ci_temp.path }}/cem-ci.tar"
+          - -C
+          - "{{ forgejo_runner_cem_ci_temp.path }}"
       delegate_to: localhost
       become: false
+      changed_when: true
 
     - name: Create the temporary remote CEM build context
       ansible.builtin.file:
