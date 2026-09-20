@@ -21,6 +21,12 @@
       - ansible_facts['system'] == 'Linux'
     fail_msg: "The Forgejo runner role supports Linux hosts only."
 
+- name: Refresh Debian package metadata
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 0
+  when: ansible_facts['os_family'] == 'Debian'
+
 - name: Install runner and Podman prerequisites
   ansible.builtin.package:
     name: "{{ forgejo_runner_packages }}"
