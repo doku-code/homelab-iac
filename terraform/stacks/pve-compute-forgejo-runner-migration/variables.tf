@@ -6,7 +6,7 @@ variable "proxmox_endpoint" {
 variable "proxmox_insecure" {
   description = "Whether to skip Proxmox API certificate verification"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "management_ssh_public_key" {
