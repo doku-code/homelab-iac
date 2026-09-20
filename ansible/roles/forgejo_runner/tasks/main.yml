@@ -115,6 +115,17 @@
   loop:
     - "{{ forgejo_runner_home }}"
 
+- name: Create runner configuration directories
+  ansible.builtin.file:
+    path: "{{ instance.config_file | dirname }}"
+    state: directory
+    owner: "{{ instance.config_owner }}"
+    group: "{{ instance.config_group }}"
+    mode: "0750"
+  loop: "{{ forgejo_runner_selected_instances }}"
+  loop_control:
+    loop_var: instance
+
 - name: Build the pinned CEM runner image from the controller checkout
   block:
     - name: Create a temporary controller build directory
@@ -215,7 +226,9 @@
 
     - name: Build cem-ci from the pinned context
       ansible.builtin.command:
-        cmd: "podman build --pull=missing --tag {{ forgejo_runner_cem_ci_image }} -f Dockerfile ."
+        cmd: >-
+          podman build --network host --pull=missing
+          --tag {{ forgejo_runner_cem_ci_image }} -f Dockerfile .
         chdir: "{{ forgejo_runner_cem_ci_remote_context }}"
       register: forgejo_runner_cem_ci_build
       changed_when: true
