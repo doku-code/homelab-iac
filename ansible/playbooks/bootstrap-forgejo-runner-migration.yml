@@ -1,0 +1,29 @@
+---
+- name: Bootstrap the clean Forgejo Runner host
+  hosts: forgejo_runner_migration
+  become: false
+  gather_facts: true
+  vars:
+    forgejo_runner_home: /var/lib/forgejo-runner
+    forgejo_runner_service_state: stopped
+    forgejo_runner_build_cem_ci: true
+    forgejo_runner_connection_tokens:
+      migration: {}
+    forgejo_runner_instances:
+      - name: migration
+        service_name: forgejo-runner
+        user: runner
+        group: runner
+        working_directory: /var/lib/forgejo-runner
+        config_file: /etc/forgejo-runner/config.yml
+        config_owner: runner
+        config_group: runner
+        podman_socket: unix:///run/podman/podman.sock
+        container_options: ""
+        valid_volumes: []
+        supplementary_groups:
+          - podman
+        connections: {}
+
+  roles:
+    - forgejo_runner

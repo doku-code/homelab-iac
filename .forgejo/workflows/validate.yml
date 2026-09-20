@@ -6,7 +6,7 @@ on:
 
 jobs:
   validate:
-    runs-on: docker
+    runs-on: homelab-iac
     container:
       image: node:24-bookworm
 
@@ -41,7 +41,8 @@ jobs:
           terraform fmt -check -recursive terraform
           for root in \
             terraform/stacks/pve-lab-workstations \
-            terraform/stacks/deb13-monitoring; do
+            terraform/stacks/deb13-monitoring \
+            terraform/stacks/pve-compute-forgejo-runner-migration; do
             terraform -chdir="$root" init -backend=false -input=false
             terraform -chdir="$root" validate
           done

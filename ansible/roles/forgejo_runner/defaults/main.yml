@@ -25,6 +25,11 @@ forgejo_runner_container_privileged: false
 # Empty selects every runner instance. Set to a list of names for staged
 # convergence, for example [main].
 forgejo_runner_instance_names: []
+forgejo_runner_build_cem_ci: false
+forgejo_runner_cem_ci_repository: "https://git.doku-lab.net/CEM/cem-obsidian-importer.git"
+forgejo_runner_cem_ci_version: "e5f4416c19878efa82c43a05cf61bd2caf65adf8"
+forgejo_runner_cem_ci_source: "{{ forgejo_runner_home }}/cem-ci-source"
+forgejo_runner_cem_ci_image: "cem-ci:latest"
 
 # Compatibility-only mounts for existing CEM and theme workflows. Keep these
 # until those external repositories use their own Forgejo-scoped Infisical

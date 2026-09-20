@@ -26,6 +26,13 @@
     name: "{{ forgejo_runner_packages }}"
     state: "{{ forgejo_runner_package_state }}"
 
+- name: Enable the rootful Podman socket
+  ansible.builtin.systemd_service:
+    name: podman.socket
+    enabled: true
+    state: started
+    daemon_reload: true
+
 - name: Create runner group
   ansible.builtin.group:
     name: "{{ item.group }}"
@@ -61,6 +68,22 @@
     mode: "0750"
   loop:
     - "{{ forgejo_runner_home }}"
+
+- name: Check out the pinned CEM runner image source
+  ansible.builtin.git:
+    repo: "{{ forgejo_runner_cem_ci_repository }}"
+    dest: "{{ forgejo_runner_cem_ci_source }}"
+    version: "{{ forgejo_runner_cem_ci_version }}"
+    depth: 1
+    force: true
+  when: forgejo_runner_build_cem_ci | bool
+
+- name: Build the deterministic CEM runner image
+  ansible.builtin.command:
+    cmd: "podman build --pull=missing --tag {{ forgejo_runner_cem_ci_image }} -f ci/cem-ci/Dockerfile ."
+    chdir: "{{ forgejo_runner_cem_ci_source }}"
+  when: forgejo_runner_build_cem_ci | bool
+  changed_when: true
 
 - name: Download Forgejo Runner
   ansible.builtin.get_url:

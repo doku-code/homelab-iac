@@ -11,7 +11,7 @@ container:
   valid_volumes: {{ runner_instance.valid_volumes | to_json }}
   docker_host: {{ runner_instance.podman_socket | to_json }}
 server:
-  connections:
+  connections:{% if runner_instance.connections | length == 0 %} {}{% endif %}
 {% for connection in runner_instance.connections | dict2items %}
     {{ connection.key }}:
       url: {{ connection.value.url | to_json }}

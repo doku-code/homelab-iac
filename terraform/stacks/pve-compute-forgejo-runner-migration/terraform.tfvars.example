@@ -1,0 +1,5 @@
+proxmox_endpoint = "https://PROXMOX_NODE_IP:8006/"
+proxmox_insecure = false
+
+# Populate this from the controller key used for Ansible access.
+management_ssh_public_key = "ssh-ed25519 AAAA..."

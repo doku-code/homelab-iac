@@ -44,6 +44,10 @@ endef
 	runner-configure \
 	runner-configure-main \
 	runner-configure-custom-theme \
+	runner-migration-plan \
+	runner-migration-apply \
+	runner-migration-bootstrap \
+	runner-migration-configure \
 	deploy-monitoring
 
 setup-controller:
@@ -92,8 +96,10 @@ guests-apply:
 # ─────────────────────────────────────────────
 
 RUNNER_DIR := terraform/stacks/pve-compute-forgejo-runner
+MIGRATION_RUNNER_DIR := terraform/stacks/pve-compute-forgejo-runner-migration
 RUNNER_PLAYBOOK := ansible/playbooks/configure-forgejo-runner.yml
 RUNNER_INVENTORY := ansible/inventories/runner.yml
+MIGRATION_RUNNER_INVENTORY := ansible/inventories/runner-migration.yml
 RUNNER_SSH_PRIVATE_KEY_FILE ?= $(HOME)/.ssh/id_ed25519
 RUNNER_SSH_PUBLIC_KEY_FILE ?= $(RUNNER_SSH_PRIVATE_KEY_FILE).pub
 
@@ -138,6 +144,17 @@ runner-live-plan:
 	@test -f "$(RUNNER_DIR)/terraform.tfvars" || (echo "Create private $(RUNNER_DIR)/terraform.tfvars first"; exit 1)
 	$(call INFISICAL_RUN,terraform -chdir=$(RUNNER_DIR) plan -input=false -var-file=terraform.tfvars)
 
+runner-migration-plan:
+	@test -f "$(MIGRATION_RUNNER_DIR)/terraform.tfvars" || (echo "Create private $(MIGRATION_RUNNER_DIR)/terraform.tfvars first"; exit 1)
+	terraform -chdir=$(MIGRATION_RUNNER_DIR) fmt -check
+	$(call INFISICAL_RUN,terraform -chdir=$(MIGRATION_RUNNER_DIR) init -input=false)
+	$(call INFISICAL_RUN,terraform -chdir=$(MIGRATION_RUNNER_DIR) validate)
+	$(call INFISICAL_RUN,terraform -chdir=$(MIGRATION_RUNNER_DIR) plan -input=false -var-file=terraform.tfvars)
+
+runner-migration-apply:
+	@test -f "$(MIGRATION_RUNNER_DIR)/terraform.tfvars" || (echo "Create private $(MIGRATION_RUNNER_DIR)/terraform.tfvars first"; exit 1)
+	$(call INFISICAL_RUN,terraform -chdir=$(MIGRATION_RUNNER_DIR) apply -input=false -auto-approve -var-file=terraform.tfvars)
+
 runner-configure:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner --diff
@@ -149,6 +166,16 @@ runner-configure-main:
 runner-configure-custom-theme:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner --diff -e 'forgejo_runner_instance_names=["custom_theme"]'
+
+runner-migration-bootstrap:
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) ansible/playbooks/bootstrap-forgejo-runner-migration.yml -i $(MIGRATION_RUNNER_INVENTORY) --limit forgejo-runner-migration --diff
+
+runner-migration-configure:
+	@test -n "$${INFISICAL_CLIENT_ID:-}" || (echo "Set INFISICAL_CLIENT_ID in the runtime environment"; exit 1)
+	@test -n "$${INFISICAL_CLIENT_SECRET:-}" || (echo "Set INFISICAL_CLIENT_SECRET in the runtime environment"; exit 1)
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) ansible/playbooks/configure-forgejo-runner-migration.yml -i $(MIGRATION_RUNNER_INVENTORY) --limit forgejo-runner-migration --diff
 
 workstations-bootstrap:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
