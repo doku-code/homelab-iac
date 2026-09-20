@@ -1,0 +1,60 @@
+name: Publish CI base image
+
+on:
+  workflow_dispatch:
+
+env:
+  CI_BASE_IMAGE: git.doku-lab.net/doku-code/ci-base:1.0.0
+  PODMAN_VERSION: "5.4.2"
+  PODMAN_REMOTE_SHA256: 74982bdab99befa705bea477cb997b7203ac6b7d4bcc1b4dba7dcab6c359f5f7
+
+jobs:
+  publish:
+    if: forgejo.ref == 'refs/heads/main'
+    runs-on: homelab-iac
+    # Public bootstrap image avoids depending on ci-base before its first publish.
+    container:
+      image: node:22-bookworm
+      volumes:
+        - /run/podman/podman.sock:/var/run/docker.sock
+    steps:
+      - name: Require publication credentials
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_PUBLISH_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_PUBLISH_TOKEN }}
+        run: |
+          set -eu
+          test -n "$REGISTRY_USERNAME" && test -n "$REGISTRY_TOKEN" || {
+            echo 'Configure both REGISTRY_PUBLISH_USERNAME and REGISTRY_PUBLISH_TOKEN before dispatch.' >&2
+            exit 1
+          }
+      - name: Check out source
+        uses: https://code.forgejo.org/actions/checkout@v6.0.0
+        with:
+          persist-credentials: false
+      - name: Install verified Podman remote client
+        run: |
+          set -eu
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSL "https://github.com/containers/podman/releases/download/v${PODMAN_VERSION}/podman-remote-static-linux_amd64.tar.gz" -o "$work/podman.tar.gz"
+          printf '%s  %s\n' "$PODMAN_REMOTE_SHA256" "$work/podman.tar.gz" | sha256sum --check --status
+          tar -xzf "$work/podman.tar.gz" -C "$work"
+          install -m 0755 "$work/bin/podman-remote-static-linux_amd64" /usr/local/bin/podman
+          podman --version
+      - name: Build and publish versioned image
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_PUBLISH_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_PUBLISH_TOKEN }}
+          CONTAINER_HOST: unix:///var/run/docker.sock
+        run: |
+          set -eu
+          auth_dir="$(mktemp -d)"
+          trap 'rm -rf "$auth_dir"' EXIT
+          printf '%s' "$REGISTRY_TOKEN" | podman login --authfile "$auth_dir/auth.json" \
+            --username "$REGISTRY_USERNAME" --password-stdin git.doku-lab.net
+          podman build --platform linux/amd64 --network host \
+            --label "org.opencontainers.image.source=${FORGEJO_SERVER_URL}/${FORGEJO_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${FORGEJO_SHA}" \
+            --tag "$CI_BASE_IMAGE" services/ci-images/base
+          podman push --authfile "$auth_dir/auth.json" "$CI_BASE_IMAGE"
