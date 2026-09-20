@@ -7,9 +7,10 @@
     infisical_url: "https://secrets.doku-lab.net"
     infisical_environment: "dev"
     infisical_secret_path: "/forgejo-runner/connections"
+    infisical_registry_secret_path: "/forgejo-runner/registry"
     infisical_project_id: "{{ (lookup('ansible.builtin.file', playbook_dir + '/../../.infisical.json') | from_json).workspaceId }}"
     forgejo_runner_home: /var/lib/forgejo-runner
-    forgejo_runner_build_cem_ci: true
+    forgejo_runner_registry_auth_required: true
     forgejo_runner_connection_uuids: {}
     forgejo_runner_connection_tokens: {}
     forgejo_runner_instances:
@@ -34,7 +35,7 @@
           CEM:
             url: https://git.doku-lab.net/CEM/cem-obsidian-importer/
             labels:
-              - cem:docker://localhost/cem-ci:latest
+              - cem:docker://git.doku-lab.net/cem/cem-ci:1.0.0
           forgejo-custom-theme:
             url: https://git.doku-lab.net/doku-code/forgejo-custom-theme/
             labels:
@@ -82,6 +83,35 @@
       become: false
       no_log: true
 
+    - name: Read Forgejo registry credentials from Infisical
+      infisical.vault.read_secrets:
+        login_data: "{{ infisical_login.login_data }}"
+        project_id: "{{ infisical_project_id }}"
+        env_slug: "{{ infisical_environment }}"
+        path: "{{ infisical_registry_secret_path }}"
+        as_dict: true
+      register: infisical_registry_secrets
+      check_mode: false
+      delegate_to: localhost
+      become: false
+      no_log: true
+
+    - name: Require Forgejo registry credentials
+      ansible.builtin.assert:
+        that:
+          - "'REGISTRY_USERNAME' in (infisical_registry_secrets.secrets | default({}))"
+          - "'REGISTRY_READ_TOKEN' in (infisical_registry_secrets.secrets | default({}))"
+        fail_msg: "Forgejo registry read credentials are missing from Infisical."
+      delegate_to: localhost
+      become: false
+      no_log: true
+
+    - name: Map Forgejo registry credentials in memory
+      ansible.builtin.set_fact:
+        forgejo_runner_registry_username: "{{ infisical_registry_secrets.secrets['REGISTRY_USERNAME'] }}"
+        forgejo_runner_registry_token: "{{ infisical_registry_secrets.secrets['REGISTRY_READ_TOKEN'] }}"
+      no_log: true
+
     - name: Require clean runner connection secrets
       ansible.builtin.assert:
         that:
@@ -108,7 +138,7 @@
           {{ forgejo_runner_instances | map('combine', {
             'connections': {
               'homelab-iac': {'url': 'https://git.doku-lab.net/Homelab/homelab-iac/', 'uuid': forgejo_runner_connection_uuids['homelab-iac'], 'labels': ['homelab-iac:docker://node:22-bookworm']},
-              'CEM': {'url': 'https://git.doku-lab.net/CEM/cem-obsidian-importer/', 'uuid': forgejo_runner_connection_uuids['CEM'], 'labels': ['cem:docker://localhost/cem-ci:latest']},
+              'CEM': {'url': 'https://git.doku-lab.net/CEM/cem-obsidian-importer/', 'uuid': forgejo_runner_connection_uuids['CEM'], 'labels': ['cem:docker://git.doku-lab.net/cem/cem-ci:1.0.0']},
               'forgejo-custom-theme': {'url': 'https://git.doku-lab.net/doku-code/forgejo-custom-theme/', 'uuid': forgejo_runner_connection_uuids['forgejo-custom-theme'], 'labels': ['forgejo-theme:docker://node:22-bookworm']}
             }
           }) | list }}

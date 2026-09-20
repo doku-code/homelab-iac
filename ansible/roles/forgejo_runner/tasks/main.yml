@@ -126,135 +126,22 @@
   loop_control:
     loop_var: instance
 
-- name: Build the pinned CEM runner image from the controller checkout
-  block:
-    - name: Create a temporary controller build directory
-      ansible.builtin.tempfile:
-        state: directory
-        prefix: forgejo-runner-cem-
-      delegate_to: localhost
-      become: false
-      register: forgejo_runner_cem_ci_temp
+- name: Require Forgejo registry credentials
+  ansible.builtin.assert:
+    that:
+      - forgejo_runner_registry_username | length > 0
+      - forgejo_runner_registry_token | length > 0
+    fail_msg: "Forgejo registry read credentials are required for the configured runner image."
+  when: forgejo_runner_registry_auth_required | bool
+  no_log: true
 
-    - name: Verify the configured local CEM repository
-      ansible.builtin.stat:
-        path: "{{ forgejo_runner_cem_ci_controller_repository }}/.git"
-      delegate_to: localhost
-      become: false
-      register: forgejo_runner_cem_ci_git
-
-    - name: Require the local CEM repository checkout
-      ansible.builtin.assert:
-        that:
-          - forgejo_runner_cem_ci_git.stat.exists
-          - forgejo_runner_cem_ci_git.stat.isdir
-        fail_msg: >-
-          CEM_REPOSITORY_PATH must point to a local CEM checkout containing .git;
-          refusing to clone or fall back to an unpinned source.
-      delegate_to: localhost
-      become: false
-
-    - name: Resolve the pinned CEM commit
-      ansible.builtin.command:
-        argv:
-          - git
-          - -C
-          - "{{ forgejo_runner_cem_ci_controller_repository }}"
-          - rev-parse
-          - --verify
-          - "{{ forgejo_runner_cem_ci_version }}^{commit}"
-      delegate_to: localhost
-      become: false
-      register: forgejo_runner_cem_ci_commit
-      changed_when: false
-
-    - name: Verify the pinned CEM build definition
-      ansible.builtin.command:
-        argv:
-          - git
-          - -C
-          - "{{ forgejo_runner_cem_ci_controller_repository }}"
-          - cat-file
-          - -e
-          - "{{ forgejo_runner_cem_ci_commit.stdout }}:ci/cem-ci/Dockerfile"
-      delegate_to: localhost
-      become: false
-      changed_when: false
-
-    - name: Archive only the pinned CEM build context
-      ansible.builtin.command:
-        argv:
-          - git
-          - -C
-          - "{{ forgejo_runner_cem_ci_controller_repository }}"
-          - archive
-          - --format=tar
-          - "--output={{ forgejo_runner_cem_ci_temp.path }}/cem-ci.tar"
-          - "{{ forgejo_runner_cem_ci_commit.stdout }}"
-          - ci/cem-ci
-      delegate_to: localhost
-      become: false
-      changed_when: true
-
-    - name: Extract the pinned CEM build context on the controller
-      ansible.builtin.command:
-        argv:
-          - tar
-          - -xf
-          - "{{ forgejo_runner_cem_ci_temp.path }}/cem-ci.tar"
-          - -C
-          - "{{ forgejo_runner_cem_ci_temp.path }}"
-      delegate_to: localhost
-      become: false
-      changed_when: true
-
-    - name: Create the temporary remote CEM build context
-      ansible.builtin.file:
-        path: "{{ forgejo_runner_cem_ci_remote_context }}"
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Copy the pinned CEM build context to the runner
-      ansible.builtin.copy:
-        src: "{{ forgejo_runner_cem_ci_temp.path }}/ci/cem-ci/"
-        dest: "{{ forgejo_runner_cem_ci_remote_context }}/"
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Build cem-ci from the pinned context
-      ansible.builtin.command:
-        cmd: >-
-          podman build --network host --pull=missing
-          --tag {{ forgejo_runner_cem_ci_image }} -f Dockerfile .
-        chdir: "{{ forgejo_runner_cem_ci_remote_context }}"
-      register: forgejo_runner_cem_ci_build
-      changed_when: true
-
-    - name: Verify the cem-ci image exists
-      ansible.builtin.command:
-        cmd: "podman image exists {{ forgejo_runner_cem_ci_image }}"
-      register: forgejo_runner_cem_ci_image_check
-      changed_when: false
-
-    - name: Remove the temporary remote CEM build context
-      ansible.builtin.file:
-        path: "{{ forgejo_runner_cem_ci_remote_context }}"
-        state: absent
-      when:
-        - forgejo_runner_cem_ci_build.rc == 0
-        - forgejo_runner_cem_ci_image_check.rc == 0
-  always:
-    - name: Remove the temporary controller CEM build context
-      ansible.builtin.file:
-        path: "{{ forgejo_runner_cem_ci_temp.path }}"
-        state: absent
-      delegate_to: localhost
-      become: false
-      when: forgejo_runner_cem_ci_temp is defined
-  when: forgejo_runner_build_cem_ci | bool
+- name: Authenticate rootful Podman to the Forgejo registry
+  containers.podman.podman_login:
+    registry: "{{ forgejo_runner_registry_url }}"
+    username: "{{ forgejo_runner_registry_username }}"
+    password: "{{ forgejo_runner_registry_token }}"
+  when: forgejo_runner_registry_auth_required | bool
+  no_log: true
 
 - name: Download Forgejo Runner
   ansible.builtin.get_url:

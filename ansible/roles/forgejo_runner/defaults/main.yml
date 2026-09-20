@@ -27,13 +27,10 @@ forgejo_runner_container_privileged: false
 # Empty selects every runner instance. Set to a list of names for staged
 # convergence, for example [main].
 forgejo_runner_instance_names: []
-forgejo_runner_build_cem_ci: false
-forgejo_runner_cem_ci_controller_repository: >-
-  {{ lookup('ansible.builtin.env', 'CEM_REPOSITORY_PATH')
-     | default(playbook_dir + '/../../../../CEM/cem-obsidian-importer', true) }}
-forgejo_runner_cem_ci_version: "e5f4416"
-forgejo_runner_cem_ci_remote_context: "{{ forgejo_runner_home }}/cem-ci-build"
-forgejo_runner_cem_ci_image: "cem-ci:latest"
+forgejo_runner_registry_auth_required: false
+forgejo_runner_registry_url: git.doku-lab.net
+forgejo_runner_registry_username: ""
+forgejo_runner_registry_token: ""
 
 # Compatibility-only mounts for existing CEM and theme workflows. Keep these
 # until those external repositories use their own Forgejo-scoped Infisical
