@@ -17,6 +17,13 @@ Normal job containers are unprivileged.
 | cem | CEM organization | cem | git.doku-lab.net/cem/cem-ci:1.0.1 |
 | forgejo-custom-theme | doku-code/forgejo-custom-theme repository | forgejo-theme | git.doku-lab.net/doku-code/ci-base:1.0.0 |
 
+All three `server.connections.*.url` values must be the Forgejo instance root:
+`https://git.doku-lab.net/`. Runner v13 uses this as its API base, not a repository
+or organization URL. Repository/organization scope comes from each existing
+registration's UUID/token pair. Scoped URL paths cause task-fetch 404 errors;
+correcting the URL does not require changing registrations, credentials, labels,
+or images.
+
 CEM is an organization. Its image is owned by CEM/ci-template, outside this
 repository's authorization boundary. No local checkout is needed to rebuild CT301.
 ci-base supplies common tools; specialized tools such as Terraform and Ansible

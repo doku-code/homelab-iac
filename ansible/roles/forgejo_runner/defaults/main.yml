@@ -54,18 +54,19 @@ forgejo_runner_instances:
     supplementary_groups:
       - podman
     connections:
+      # The instance URL is shared; UUID/token identities determine scope.
       homelab-iac:
-        url: https://git.doku-lab.net/Homelab/homelab-iac/
+        url: https://git.doku-lab.net/
         uuid: "{{ forgejo_runner_connection_uuids['homelab-iac'] }}"
         labels:
           - homelab-iac:docker://git.doku-lab.net/doku-code/ci-base:1.0.0
       cem:
-        url: https://git.doku-lab.net/CEM/
+        url: https://git.doku-lab.net/
         uuid: "{{ forgejo_runner_connection_uuids['cem'] }}"
         labels:
           - cem:docker://git.doku-lab.net/cem/cem-ci:1.0.1
       forgejo-custom-theme:
-        url: https://git.doku-lab.net/doku-code/forgejo-custom-theme/
+        url: https://git.doku-lab.net/
         uuid: "{{ forgejo_runner_connection_uuids['forgejo-custom-theme'] }}"
         labels:
           - forgejo-theme:docker://git.doku-lab.net/doku-code/ci-base:1.0.0
