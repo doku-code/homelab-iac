@@ -17,10 +17,23 @@ jobs:
           set -euo pipefail
           apt-get update
           apt-get install -y --no-install-recommends \
-            docker-compose-v2 \
             python3 \
             python3-venv \
             unzip
+
+      - name: Install standalone Compose v2 for static validation
+        env:
+          COMPOSE_VERSION: "2.39.4"
+          COMPOSE_SHA256: 7af95166a730b87e172d4fc9aefea8725d3c6c7327d59149267b452114ddb7d4
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSLo "$work/docker-compose" \
+            "https://github.com/docker/compose/releases/download/v${COMPOSE_VERSION}/docker-compose-linux-x86_64"
+          printf '%s  %s\n' "$COMPOSE_SHA256" "$work/docker-compose" | sha256sum --check --status
+          install -m 0755 "$work/docker-compose" /usr/local/bin/docker-compose
+          docker-compose version
 
       - name: Install Terraform
         run: |
@@ -56,4 +69,4 @@ jobs:
           done
 
       - name: Validate monitoring Compose configuration
-        run: docker compose -f services/monitoring/compose.yml config --quiet
+        run: docker-compose -f services/monitoring/compose.yml config --quiet
