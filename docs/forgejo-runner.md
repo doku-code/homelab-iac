@@ -65,6 +65,13 @@ runner-configure` only when deliberately configuring the existing guest.
 Docker Compose is not used because the runner's lifecycle is not containerized
 by this repository.
 
+The role selects all instances by default. For controlled adoption, converge
+the common prerequisites and main daemon with `make runner-configure-main`,
+validate CEM and the Node 22 theme path, then converge the custom daemon with
+`make runner-configure-custom-theme` and validate its Node 20 workflow. The
+unqualified `runner-configure` target remains available for deliberate full
+convergence.
+
 Do not recreate or re-register the existing runner as part of repository
 changes. The adopted configuration carries the existing non-secret Forgejo
 connection UUIDs alongside the connection tokens from Infisical. The explicit

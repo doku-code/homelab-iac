@@ -42,6 +42,8 @@ endef
 	runner-import \
 	runner-live-plan \
 	runner-configure \
+	runner-configure-main \
+	runner-configure-custom-theme \
 	deploy-monitoring
 
 setup-controller:
@@ -139,6 +141,14 @@ runner-live-plan:
 runner-configure:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner --diff
+
+runner-configure-main:
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner --diff -e 'forgejo_runner_instance_names=["main"]'
+
+runner-configure-custom-theme:
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	$(ANSIBLE) $(RUNNER_PLAYBOOK) -i $(RUNNER_INVENTORY) --limit forgejo-runner --diff -e 'forgejo_runner_instance_names=["custom_theme"]'
 
 workstations-bootstrap:
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
