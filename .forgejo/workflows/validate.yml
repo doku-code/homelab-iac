@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: https://code.forgejo.org/actions/checkout@v6.0.0
+        with:
+          persist-credentials: false
 
       - name: Install validation tools
         run: |
@@ -66,6 +68,7 @@ jobs:
           .venv/bin/python -m pip check
           .venv/bin/ansible --version
 
+      # Production state is operator-local. Do not add plan/apply here.
       - name: Validate Terraform formatting and configuration
         run: |
           set -euo pipefail
@@ -74,7 +77,7 @@ jobs:
             terraform/stacks/pve-lab-workstations \
             terraform/stacks/deb13-monitoring \
             terraform/stacks/pve-compute-forgejo-runner-migration; do
-            terraform -chdir="$root" init -backend=false -input=false
+            terraform -chdir="$root" init -backend=false -input=false -lockfile=readonly
             terraform -chdir="$root" validate
           done
 
@@ -90,3 +93,6 @@ jobs:
 
       - name: Validate monitoring Compose configuration
         run: docker-compose -f services/monitoring/compose.yml config --quiet
+
+      - name: Test runner configuration offline
+        run: .venv/bin/python tests/runner-connections.py

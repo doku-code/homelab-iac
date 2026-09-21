@@ -1,8 +1,11 @@
 # Forgejo Runner Target
 
 CT301 remains VMID 301, 192.168.0.31, hostname forgejo-runner-migration.
-This repository prepares its configuration; live configuration is not yet
-approved. CT300 and both Terraform states remain unchanged.
+The operator reports successful convergence and green homelab-iac, CEM, and
+theme smoke tests on CT301; CT300 is powered off, not yet retired from state.
+Bootstrap/registration procedures below are retained for reference, not steps
+to rerun on this working runner. See the [CI/CD state audit and later cleanup
+plan](infrastructure-cicd.md) before enabling infrastructure automation.
 
 ## Images and connections
 
@@ -166,9 +169,11 @@ a killed session verify cleanup of its /tmp/ci-base-build.* and
    | cem | CEM_CONNECTION_UUID | CEM_CONNECTION_TOKEN |
    | forgejo-custom-theme | CUSTOM_THEME_CONNECTION_UUID | CUSTOM_THEME_CONNECTION_TOKEN |
 
-   The existing CEM/custom-theme tokens are CT300 legacy values, NOT CT301
-   credentials. Their UUIDs and both homelab fields are currently empty. Replace
-   both legacy tokens and populate every field from three fresh registrations.
+   Before the completed migration, CEM/custom-theme tokens were CT300 legacy
+   values and their UUIDs and both homelab fields were empty. Reconstruction
+   uses the working CT301 pairs now stored in Infisical; do not replace these
+   identities merely to enable CI/CD. For a separately approved fresh replacement,
+   populate every field from its three fresh registrations.
    Do not confuse registration bootstrap tokens with persistent connection tokens.
    No controller-local UUID file is required: Git + Infisical + Forgejo are the
    reconstruction sources. Ansible rejects missing/blank tokens, missing/invalid

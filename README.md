@@ -238,6 +238,10 @@ driver source, and passthrough validation procedure are confirmed.
 
 ## Forgejo Validation
 
+CI currently performs state-independent validation only. Production Terraform
+state is operator-local; plan/apply CI is blocked pending the reviewed
+[state migration and CI/CD safety gates](docs/infrastructure-cicd.md).
+
 The repository includes a validation-only Forgejo Actions workflow at
 `.forgejo/workflows/validate.yml`. It runs on a runner with the `homelab-iac` label
 and performs controller bootstrap, Terraform formatting and backend-free
