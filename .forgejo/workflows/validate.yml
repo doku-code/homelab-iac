@@ -72,13 +72,17 @@ jobs:
       - name: Validate Terraform formatting and configuration
         run: |
           set -euo pipefail
+          terraform_data_root="$(mktemp -d)"
+          trap 'rm -rf "$terraform_data_root"' EXIT
           terraform fmt -check -recursive terraform
           for root in \
             terraform/stacks/pve-lab-workstations \
             terraform/stacks/deb13-monitoring \
             terraform/stacks/pve-compute-forgejo-runner-migration; do
-            terraform -chdir="$root" init -backend=false -input=false -lockfile=readonly
-            terraform -chdir="$root" validate
+            root_data_dir="$terraform_data_root/$(basename "$root")"
+            mkdir -p "$root_data_dir"
+            TF_DATA_DIR="$root_data_dir" terraform -chdir="$root" init -backend=false -input=false -lockfile=readonly
+            TF_DATA_DIR="$root_data_dir" terraform -chdir="$root" validate
           done
 
       - name: Validate Ansible playbooks
