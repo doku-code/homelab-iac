@@ -64,7 +64,7 @@ forgejo_runner_instances:
         url: https://git.doku-lab.net/
         uuid: "{{ forgejo_runner_connection_uuids['cem'] }}"
         labels:
-          - cem:docker://git.doku-lab.net/cem/cem-ci:1.0.1
+          - cem:docker://git.doku-lab.net/cem/cem-ci:1.0.3
       forgejo-custom-theme:
         url: https://git.doku-lab.net/
         uuid: "{{ forgejo_runner_connection_uuids['forgejo-custom-theme'] }}"

@@ -61,7 +61,7 @@ render_checks = {
         "forgejo_runner_instances | length == 1",
         "rendered.server.connections.keys() | list | sort == ['cem', 'forgejo-custom-theme', 'homelab-iac']",
         "rendered.server.connections.values() | map(attribute='url') | list == ['https://git.doku-lab.net/'] * 3",
-        "rendered.server.connections.cem.labels == ['cem:docker://git.doku-lab.net/cem/cem-ci:1.0.1']",
+        "rendered.server.connections.cem.labels == ['cem:docker://git.doku-lab.net/cem/cem-ci:1.0.3']",
         "rendered.server.connections['homelab-iac'].labels == ['homelab-iac:docker://git.doku-lab.net/doku-code/ci-base:1.0.0']",
         "rendered.server.connections['forgejo-custom-theme'].labels == ['forgejo-theme:docker://git.doku-lab.net/doku-code/ci-base:1.0.0']",
         "rendered.server.connections.cem.uuid == infisical_runner_secrets.secrets.CEM_CONNECTION_UUID",

@@ -17,7 +17,7 @@ Normal job containers are unprivileged.
 | Connection | Forgejo scope | Label | Image |
 | --- | --- | --- | --- |
 | homelab-iac | Homelab/homelab-iac repository | homelab-iac | git.doku-lab.net/doku-code/ci-base:1.0.0 |
-| cem | CEM organization | cem | git.doku-lab.net/cem/cem-ci:1.0.1 |
+| cem | CEM organization | cem | git.doku-lab.net/cem/cem-ci:1.0.3 |
 | forgejo-custom-theme | doku-code/forgejo-custom-theme repository | forgejo-theme | git.doku-lab.net/doku-code/ci-base:1.0.0 |
 
 All three `server.connections.*.url` values must be the Forgejo instance root:
