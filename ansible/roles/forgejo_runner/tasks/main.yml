@@ -37,6 +37,24 @@
     name: "{{ forgejo_runner_podman_socket_group }}"
     system: true
 
+- name: Configure Podman runtime directory permissions
+  ansible.builtin.copy:
+    dest: "{{ forgejo_runner_podman_tmpfiles_config }}"
+    content: |
+      # Keep the rootful Podman API traversable by the dedicated runner group.
+      z {{ forgejo_runner_podman_runtime_dir }} {{ forgejo_runner_podman_runtime_mode }} root {{ forgejo_runner_podman_socket_group }} -
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Apply Podman runtime directory permissions
+  ansible.builtin.command:
+    argv:
+      - systemd-tmpfiles
+      - --create
+      - "{{ forgejo_runner_podman_tmpfiles_config }}"
+  changed_when: false
+
 - name: Create Podman socket override directory
   ansible.builtin.file:
     path: /etc/systemd/system/podman.socket.d
@@ -52,6 +70,7 @@
       [Socket]
       SocketGroup={{ forgejo_runner_podman_socket_group }}
       SocketMode={{ forgejo_runner_podman_socket_mode }}
+      ExecStartPre=/usr/bin/install -d -o root -g {{ forgejo_runner_podman_socket_group }} -m {{ forgejo_runner_podman_runtime_mode }} {{ forgejo_runner_podman_runtime_dir }}
     owner: root
     group: root
     mode: "0644"

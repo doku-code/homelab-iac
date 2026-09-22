@@ -11,6 +11,9 @@ forgejo_runner_group: runner
 forgejo_runner_podman_socket: unix:///run/podman/podman.sock
 forgejo_runner_podman_socket_group: podman
 forgejo_runner_podman_socket_mode: "0660"
+forgejo_runner_podman_runtime_dir: /run/podman
+forgejo_runner_podman_runtime_mode: "0710"
+forgejo_runner_podman_tmpfiles_config: /etc/tmpfiles.d/zz-forgejo-runner-podman.conf
 forgejo_runner_packages:
   - ca-certificates
   - curl
