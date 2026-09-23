@@ -1,0 +1,105 @@
+- name: Require the authorized Debian amd64 Garage guest
+  ansible.builtin.assert:
+    that:
+      - ansible_host == '192.168.0.29'
+      - ansible_facts['distribution'] == 'Debian'
+      - ansible_facts['architecture'] == 'x86_64'
+
+- name: Refresh fresh-template APT metadata
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 0
+
+- name: Install download trust certificates
+  ansible.builtin.apt:
+    name: ca-certificates
+    state: present
+
+- name: Create the Garage service account
+  ansible.builtin.user:
+    name: garage
+    system: true
+    create_home: false
+    home: /var/lib/garage
+    shell: /usr/sbin/nologin
+
+- name: Create private configuration and persistent storage directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: garage
+    group: garage
+    mode: '0700'
+  loop:
+    - /etc/garage
+    - /var/lib/garage
+    - /var/lib/garage/meta
+    - /var/lib/garage/data
+
+- name: Generate the local RPC secret once without returning its value
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/python3
+      - -c
+      - "import os,secrets; os.umask(0o077); open('/etc/garage/rpc-secret', 'x').write(secrets.token_hex(32) + chr(10))"
+    creates: /etc/garage/rpc-secret
+  no_log: true
+
+- name: Restrict the RPC secret to the service account
+  ansible.builtin.file:
+    path: /etc/garage/rpc-secret
+    owner: garage
+    group: garage
+    mode: '0600'
+
+- name: Install the pinned upstream Garage binary
+  ansible.builtin.get_url:
+    url: "https://garagehq.deuxfleurs.fr/_releases/v{{ garage_version }}/x86_64-unknown-linux-musl/garage"
+    dest: /usr/local/bin/garage
+    checksum: "sha256:{{ garage_binary_sha256 }}"
+    owner: root
+    group: root
+    mode: '0755'
+  notify: Restart Garage
+
+- name: Configure single-node Garage without public administration endpoints
+  ansible.builtin.template:
+    src: garage.toml.j2
+    dest: /etc/garage.toml
+    owner: root
+    group: garage
+    mode: '0640'
+  notify: Restart Garage
+
+- name: Install the Garage service
+  ansible.builtin.copy:
+    src: garage.service
+    dest: /etc/systemd/system/garage.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Garage
+
+- name: Apply Garage service changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start Garage
+  ansible.builtin.systemd_service:
+    name: garage
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Verify Garage RPC health
+  ansible.builtin.command: /usr/local/bin/garage status
+  changed_when: false
+  register: garage_status
+  until: garage_status.rc == 0
+  retries: 10
+  delay: 2
+
+- name: Verify S3 is listening on the private LAN address
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 3900
+    timeout: 30

@@ -1,0 +1,17 @@
+[Unit]
+Description=Garage single-node evaluation store
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=garage
+Group=garage
+ExecStart=/usr/local/bin/garage server --single-node
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+UMask=0077
+LimitNOFILE=42000
+
+[Install]
+WantedBy=multi-user.target

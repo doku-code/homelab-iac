@@ -54,6 +54,28 @@ setup-controller:
 	$(VENV)/bin/python -m pip install -r requirements-controller.txt
 	$(VENV)/bin/ansible-galaxy collection install -r collections/requirements.yml
 
+# Garage has an isolated local bootstrap state, never a backend hosted by itself.
+GARAGE_DIR := terraform/stacks/pve-core-garage
+GARAGE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub
+
+.PHONY: garage-plan garage-apply garage-check garage-configure
+garage-plan:
+	@test -r "$(GARAGE_SSH_PUBLIC_KEY_FILE)" || (echo "Missing controller public SSH key"; exit 1)
+	terraform -chdir=$(GARAGE_DIR) fmt -check
+	terraform -chdir=$(GARAGE_DIR) init -input=false
+	terraform -chdir=$(GARAGE_DIR) validate
+	$(call INFISICAL_RUN,env TF_VAR_management_ssh_public_key="$$(cat "$(GARAGE_SSH_PUBLIC_KEY_FILE)")" terraform -chdir=$(GARAGE_DIR) plan -input=false -out=garage.tfplan)
+
+garage-apply:
+	@test -f "$(GARAGE_DIR)/garage.tfplan" || (echo "Missing saved Garage plan; run make garage-plan and review it first"; exit 1)
+	$(call INFISICAL_RUN,terraform -chdir=$(GARAGE_DIR) apply -input=false garage.tfplan)
+
+garage-check:
+	$(ANSIBLE) ansible/playbooks/configure-garage.yml -i ansible/inventories/garage.yml --syntax-check
+
+garage-configure:
+	$(ANSIBLE) ansible/playbooks/configure-garage.yml -i ansible/inventories/garage.yml --limit garage
+
 
 # ─────────────────────────────────────────────
 # Workstations

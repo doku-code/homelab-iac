@@ -1,0 +1,10 @@
+all:
+  children:
+    garage_nodes:
+      hosts:
+        garage:
+          ansible_host: 192.168.0.29
+          ansible_user: root
+          ansible_become: false
+          ansible_ssh_private_key_file: "{{ lookup('ansible.builtin.env', 'GUEST_SSH_PRIVATE_KEY_FILE') | default('~/.ssh/id_ed25519', true) }}"
+          ansible_python_interpreter: /usr/bin/python3

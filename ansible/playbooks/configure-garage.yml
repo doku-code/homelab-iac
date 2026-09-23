@@ -1,0 +1,5 @@
+- name: Configure the isolated Garage evaluation container
+  hosts: garage_nodes
+  gather_facts: true
+  roles:
+    - garage
