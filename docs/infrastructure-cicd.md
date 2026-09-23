@@ -1,5 +1,11 @@
 # Infrastructure CI/CD Safety Gates
 
+Current decision (2026-09-23): Garage is rejected for authoritative Terraform
+state. The S3 proposal/migration examples below are historical, not an active
+runbook. See [the PostgreSQL design proposal](terraform-pg-backend-design.md);
+no replacement deployment or state migration is authorized. The audit below
+predates Garage's explicit LOCAL bootstrap root.
+
 ## State audit: 2026-09-21
 
 Repository-only audit; no provider refresh, plan, state migration, or live action.
