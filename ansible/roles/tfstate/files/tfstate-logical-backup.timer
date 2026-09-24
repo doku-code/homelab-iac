@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily logical PostgreSQL dump before the 03:00 PBS job
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 America/Toronto
+Persistent=true
+Unit=tfstate-logical-backup.service
+
+[Install]
+WantedBy=timers.target

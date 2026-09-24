@@ -1,0 +1,17 @@
+[Unit]
+Description=Private PostgreSQL logical backup for PBS protection
+After=postgresql@17-main.service
+Requires=postgresql@17-main.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/tfstate-logical-backup
+UMask=0077
+TimeoutStartSec=45min
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/tfstate

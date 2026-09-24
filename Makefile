@@ -83,6 +83,10 @@ tfstate-configure:
 tfstate-qualify:
 	$(VENV)/bin/python scripts/qualify-pg-backend.py --known-hosts "$(TFSTATE_KNOWN_HOSTS)"
 
+.PHONY: tfstate-backup-qualify
+tfstate-backup-qualify:
+	$(VENV)/bin/python scripts/qualify-pg-backend.py --known-hosts "$(TFSTATE_KNOWN_HOSTS)" --scheduled-backup
+
 # Garage has an isolated local bootstrap state, never a backend hosted by itself.
 GARAGE_DIR := terraform/stacks/pve-core-garage
 GARAGE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub

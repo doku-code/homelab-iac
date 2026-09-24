@@ -45,6 +45,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--known-hosts", required=True,
                         help="File containing CT300's independently verified SSH host key")
+    parser.add_argument("--scheduled-backup", action="store_true",
+                        help="Restore from the real systemd logical backup service instead of an ad hoc dump")
     args = parser.parse_args()
     os.umask(0o077)
     repo = Path(__file__).resolve().parents[1]
@@ -252,7 +254,13 @@ def main():
                                         "waiting_client_applied": True, "final_plan_exit": 0}
 
             # Stream a custom-format logical dump directly to isolated restore; no dump file or secrets in Git.
-            dump = subprocess.run(ssh + [host, f"runuser -u postgres -- pg_dump -Fc {db1}"],
+            dump_command = f"runuser -u postgres -- pg_dump -Fc {db1}"
+            if args.scheduled_backup:
+                run(ssh + [host, "systemctl start tfstate-logical-backup.service"])
+                oid = sql(f"SELECT oid FROM pg_database WHERE datname='{db1}';")
+                assert oid.isdigit()
+                dump_command = f"cat /var/backups/tfstate/latest/{oid}.dump"
+            dump = subprocess.run(ssh + [host, dump_command],
                                   capture_output=True, timeout=60)
             if dump.returncode:
                 raise RuntimeError("Logical dump failed")
@@ -267,6 +275,7 @@ def main():
             assert json.loads(tf("restore", ["output", "-json"], env(restored, user_b)))["value"]["value"] == "recovered"
             tf("restore", ["plan", "-detailed-exitcode", "-input=false", "-no-color"], env(restored, user_b, "recovered"))
             report["logical_restore"] = "PASS: complete state identical; Terraform read and no-change plan passed"
+            report["logical_backup_source"] = "systemd scheduled service" if args.scheduled_backup else "ad hoc pg_dump stream"
             report["final_state"] = {"serial": final["serial"], "resources": len(final["resources"]), "value": "recovered"}
             for file in base.rglob("*"):
                 if file.is_file():

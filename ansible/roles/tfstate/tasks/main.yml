@@ -80,3 +80,40 @@
   register: tfstate_hba_errors
   changed_when: false
   failed_when: tfstate_hba_errors.rc != 0 or tfstate_hba_errors.stdout != '0'
+
+- name: Create private logical backup storage on the PBS-covered root disk
+  ansible.builtin.file:
+    path: /var/backups/tfstate
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Install atomic logical backup command
+  ansible.builtin.copy:
+    src: tfstate-logical-backup.py
+    dest: /usr/local/sbin/tfstate-logical-backup
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Install scheduled logical backup units
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - tfstate-logical-backup.service
+    - tfstate-logical-backup.timer
+  notify: Reload tfstate systemd units
+
+- name: Load backup unit changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable daily PostgreSQL logical backups
+  ansible.builtin.systemd_service:
+    name: tfstate-logical-backup.timer
+    state: started
+    enabled: true
