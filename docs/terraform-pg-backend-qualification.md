@@ -2,6 +2,10 @@
 
 ## Status: disposable qualification passed, not production migration approval
 
+The later [production-candidate checkpoint](terraform-pg-production-gates.md)
+records live DNS/TLS blockers and measured idle usage. It does not extend the
+SSH-forwarded results below to the final native TLS endpoint.
+
 On 2026-09-24 the operator reported the isolated host apply completed with
 1 added, 0 changed, 0 destroyed. Read-only checks confirmed CT300 on pve-core,
 hostname `tfstate`, `192.168.0.30/24`, gateway `192.168.0.1`, DNS `192.168.0.20`,
