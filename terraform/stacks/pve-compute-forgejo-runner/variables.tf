@@ -12,6 +12,11 @@ variable "proxmox_insecure" {
 variable "vm_id" {
   description = "Existing Forgejo runner container VMID"
   type        = number
+
+  validation {
+    condition     = var.vm_id != 300
+    error_message = "Legacy runner CT300 is permanently retired. CT300 is now allocated to pve-core-tfstate; never plan/apply/import it through this historical root."
+  }
 }
 
 variable "unprivileged" {

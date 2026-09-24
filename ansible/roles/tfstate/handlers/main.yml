@@ -1,0 +1,4 @@
+- name: Restart PostgreSQL tfstate cluster
+  ansible.builtin.systemd_service:
+    name: postgresql@17-main
+    state: restarted

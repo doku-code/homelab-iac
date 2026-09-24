@@ -1,0 +1,5 @@
+- name: Configure the dedicated PostgreSQL Terraform backend host
+  hosts: tfstate_nodes
+  gather_facts: true
+  roles:
+    - tfstate

@@ -1,0 +1,82 @@
+- name: Require the allocated Debian 13 PostgreSQL guest
+  ansible.builtin.assert:
+    that:
+      - ansible_host == '192.168.0.30'
+      - ansible_facts['hostname'] == 'tfstate'
+      - ansible_facts['distribution'] == 'Debian'
+      - ansible_facts['distribution_major_version'] == '13'
+
+- name: Refresh fresh-template APT metadata
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 0
+
+- name: Install Debian PostgreSQL 17 server and recovery tools
+  ansible.builtin.apt:
+    name:
+      - postgresql-17
+      - postgresql-client-17
+      - ca-certificates
+    state: present
+
+- name: Configure conservative PostgreSQL settings
+  ansible.builtin.copy:
+    src: tfstate.conf
+    dest: /etc/postgresql/17/main/conf.d/tfstate.conf
+    owner: postgres
+    group: postgres
+    mode: '0640'
+  notify: Restart PostgreSQL tfstate cluster
+
+- name: Restrict authentication to local administration and SSH-forwarded qualification
+  ansible.builtin.copy:
+    src: pg_hba.conf
+    dest: /etc/postgresql/17/main/pg_hba.conf
+    owner: postgres
+    group: postgres
+    mode: '0640'
+  notify: Restart PostgreSQL tfstate cluster
+
+- name: Enable automatic cluster startup
+  ansible.builtin.copy:
+    content: "auto\n"
+    dest: /etc/postgresql/17/main/start.conf
+    owner: postgres
+    group: postgres
+    mode: '0644'
+  notify: Restart PostgreSQL tfstate cluster
+
+- name: Apply PostgreSQL configuration
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start PostgreSQL
+  ansible.builtin.systemd_service:
+    name: postgresql
+    enabled: true
+    state: started
+
+- name: Ensure the PostgreSQL 17 cluster is running
+  ansible.builtin.systemd_service:
+    name: postgresql@17-main
+    state: started
+
+- name: Verify PostgreSQL readiness
+  ansible.builtin.command: /usr/bin/pg_isready -h 127.0.0.1 -p 5432
+  changed_when: false
+
+- name: Verify authentication configuration parses cleanly
+  ansible.builtin.command:
+    argv:
+      - runuser
+      - -u
+      - postgres
+      - --
+      - psql
+      - -XAt
+      - -v
+      - ON_ERROR_STOP=1
+      - -c
+      - SELECT count(*) FROM pg_hba_file_rules WHERE error IS NOT NULL;
+  register: tfstate_hba_errors
+  changed_when: false
+  failed_when: tfstate_hba_errors.rc != 0 or tfstate_hba_errors.stdout != '0'

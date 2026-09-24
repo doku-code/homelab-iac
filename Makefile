@@ -54,6 +54,35 @@ setup-controller:
 	$(VENV)/bin/python -m pip install -r requirements-controller.txt
 	$(VENV)/bin/ansible-galaxy collection install -r collections/requirements.yml
 
+# PostgreSQL host bootstrap state stays local; apply only the reviewed saved plan.
+TFSTATE_DIR := terraform/stacks/pve-core-tfstate
+TFSTATE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub
+
+.PHONY: tfstate-plan tfstate-apply
+tfstate-plan:
+	@test -r "$(TFSTATE_SSH_PUBLIC_KEY_FILE)" || (echo "Missing controller public SSH key"; exit 1)
+	rm -f "$(TFSTATE_DIR)/tfstate.tfplan"
+	terraform -chdir=$(TFSTATE_DIR) fmt -check
+	terraform -chdir=$(TFSTATE_DIR) init -input=false
+	terraform -chdir=$(TFSTATE_DIR) validate
+	$(call INFISICAL_RUN,env TF_VAR_management_ssh_public_key="$$(cat "$(TFSTATE_SSH_PUBLIC_KEY_FILE)")" terraform -chdir=$(TFSTATE_DIR) plan -input=false -out=tfstate.tfplan)
+
+tfstate-apply:
+	@test -f "$(TFSTATE_DIR)/tfstate.tfplan" || (echo "Missing reviewed tfstate plan; run make tfstate-plan first"; exit 1)
+	$(call INFISICAL_RUN,terraform -chdir=$(TFSTATE_DIR) apply -input=false tfstate.tfplan)
+
+TFSTATE_KNOWN_HOSTS ?= $(HOME)/.ssh/known_hosts
+
+.PHONY: tfstate-check tfstate-configure tfstate-qualify
+tfstate-check:
+	$(ANSIBLE) ansible/playbooks/configure-tfstate.yml -i ansible/inventories/tfstate.yml --syntax-check
+
+tfstate-configure:
+	$(ANSIBLE) ansible/playbooks/configure-tfstate.yml -i ansible/inventories/tfstate.yml --limit tfstate
+
+tfstate-qualify:
+	$(VENV)/bin/python scripts/qualify-pg-backend.py --known-hosts "$(TFSTATE_KNOWN_HOSTS)"
+
 # Garage has an isolated local bootstrap state, never a backend hosted by itself.
 GARAGE_DIR := terraform/stacks/pve-core-garage
 GARAGE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub
