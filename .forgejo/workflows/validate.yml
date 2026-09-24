@@ -2,10 +2,16 @@ name: Validate
 
 on:
   push:
-  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   validate:
+    # Activation gate, not isolation: see docs/ci-quality.md before enabling.
+    if: forgejo.ref == 'refs/heads/main' && vars.CI_QUALITY_APPROVED == 'true'
     runs-on: homelab-iac
 
     steps:
@@ -13,6 +19,33 @@ jobs:
         uses: https://code.forgejo.org/actions/checkout@v6.0.0
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install verified secret scanner
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSLo "$work/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          printf '%s  %s\n' "$GITLEAKS_SHA256" "$work/gitleaks.tar.gz" | sha256sum --check --status
+          tar -xzf "$work/gitleaks.tar.gz" -C "$work" gitleaks
+          install -m 0755 "$work/gitleaks" /usr/local/bin/gitleaks
+          test "$(gitleaks version)" = "$GITLEAKS_VERSION"
+
+      - name: Scan checked-out history without publishing findings
+        run: |
+          set -euo pipefail
+          if ! gitleaks git --log-opts=HEAD --redact=100 --no-banner --log-level error . >/dev/null 2>&1; then
+            echo 'Secret scan failed. Review locally with redaction; do not upload findings or bypass the gate.' >&2
+            exit 1
+          fi
+
+      - name: Check committed whitespace
+        run: git show --format= --check HEAD
 
       - name: Install validation tools
         run: |
@@ -37,11 +70,16 @@ jobs:
           docker-compose version
 
       - name: Install Terraform
+        env:
+          TERRAFORM_SHA256: 745d33b4b02b7980c62a38ec1beea24ee084ea8caf3f503c200554bd9a0cbe49
         run: |
           set -euo pipefail
-          curl -fsSLo /tmp/terraform.zip \
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSLo "$work/terraform.zip" \
             https://releases.hashicorp.com/terraform/1.16.1/terraform_1.16.1_linux_amd64.zip
-          unzip -qo /tmp/terraform.zip -d /usr/local/bin
+          printf '%s  %s\n' "$TERRAFORM_SHA256" "$work/terraform.zip" | sha256sum --check --status
+          unzip -qo "$work/terraform.zip" -d /usr/local/bin
           terraform version
 
       - name: Install pinned controller Python
@@ -78,7 +116,11 @@ jobs:
           for root in \
             terraform/stacks/pve-lab-workstations \
             terraform/stacks/deb13-monitoring \
-            terraform/stacks/pve-compute-forgejo-runner-migration; do
+            terraform/stacks/pve-compute-forgejo-runner-migration \
+            terraform/stacks/pve-compute-forgejo-runner \
+            terraform/stacks/pve-core-garage \
+            terraform/stacks/pve-core-tfstate \
+            terraform/examples/cloud-image-vm; do
             root_data_dir="$terraform_data_root/$(basename "$root")"
             mkdir -p "$root_data_dir"
             TF_DATA_DIR="$root_data_dir" terraform -chdir="$root" init -backend=false -input=false -lockfile=readonly
@@ -100,3 +142,12 @@ jobs:
 
       - name: Test runner configuration offline
         run: .venv/bin/python tests/runner-connections.py
+
+      - name: Test logical backup tooling offline
+        run: .venv/bin/python tests/tfstate-backups.py
+
+      - name: Parse configuration and check script syntax
+        run: .venv/bin/python scripts/check-quality.py
+
+      - name: Check workspace whitespace
+        run: git diff --check

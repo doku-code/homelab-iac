@@ -1,6 +1,6 @@
 # 010 — Gate de sécurité CT301 avant CI de qualité élargie
 
-- **Statut proposé :** READY après 000
+- **Statut :** BLOCKED — revue des permissions et de l'isolation live requise
 - **Permission initiale :** READ_ONLY + OFFLINE_CODE
 - **Dépendances :** baseline intégrée; accès de vérification existants autorisés
 
@@ -28,3 +28,13 @@ Aucun job non fiable sur le runner partagé, aucun montage du socket dans la CI 
 - La chaîne « événement Git → job → runtime → socket/réseau/secrets » est documentée à partir de preuves.
 - La CI de qualité dispose d'un périmètre de confiance approuvé ou reste `BLOCKED` avec une alternative sûre.
 - Les vérifications du service runner distinguent « actif » de « capable d'exécuter un job »; pas de faux PASS.
+
+## Résultat hors ligne — 2026-09-24
+
+[Frontière CI et preuves](../docs/ci-quality.md) : plus de trigger PR; main
+uniquement avec gate d'activation. Aucun changement live runner ou Forgejo.
+Le socket global et l'accès LAN restent des risques; droits de contribution,
+protections de branche, token et paramètres Actions sont UNKNOWN.
+Prochaine action : revue opérateur et vérifications read-only ciblées autorisées,
+ou choix d'un runner isolé. Ne pas activer ni pousser avant cette revue.
+La tâche 020 avance seulement sur l'alternative hors ligne autorisée.

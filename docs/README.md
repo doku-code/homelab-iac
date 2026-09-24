@@ -11,6 +11,7 @@
 | --- | --- | --- |
 | Comprendre la structure, les frontières et le bootstrap | [Architecture](architecture.md) | Direction cible et état connu à la date indiquée |
 | Savoir quel milestone vient ensuite | [Roadmap](roadmap.md) et [tâches](../tasks/README.md) | Plan de travail, pas autorisation d'exécuter |
+| CI qualité et frontière runner | [CI qualité](ci-quality.md) | Validation locale; live bloqué par revue de confiance |
 | Retrouver les faits établis lors de l'audit | [Audit du 2026-09-24](audits/2026-09-24/executive-summary.md) | Photographie historique, jamais statut live garanti |
 | Déploiement et limites du runner CT301 | [Forgejo runner](forgejo-runner.md) | Runbook/état cible; vérifier le service avant intervention |
 | Comprendre la sécurité et la migration CI/CD | [Infrastructure CI/CD](infrastructure-cicd.md) | **Contient une proposition S3 historique**; ne pas la suivre comme runbook actif |

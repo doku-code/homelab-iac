@@ -250,12 +250,16 @@ state is operator-local; plan/apply CI is blocked pending the reviewed
 [state migration and CI/CD safety gates](docs/infrastructure-cicd.md).
 
 The repository includes a validation-only Forgejo Actions workflow at
-`.forgejo/workflows/validate.yml`. It runs on a runner with the `homelab-iac` label
-and performs controller bootstrap, Terraform formatting and backend-free
-validation, Ansible syntax checks, and monitoring Compose validation.
+`.forgejo/workflows/validate.yml`. It targets main only and is gated by
+`CI_QUALITY_APPROVED`; live execution remains blocked pending trust review.
+Label `homelab-iac` selects the existing image for controller setup, seven-root
+backend-disabled validation, Ansible/Compose checks, tests and secret scanning.
+See [CI quality boundaries and local validation](docs/ci-quality.md).
 
-The workflow does not receive Proxmox or Infisical credentials and cannot apply,
-destroy, or deploy infrastructure. The CT301 runner model uses one daemon and three connections.
+The workflow does not request Proxmox or Infisical credentials or invoke plans,
+apply, destroy or convergence. That does not make the shared runner safe for
+untrusted code: CT301 uses one daemon and three connections with a global socket
+allowlist. No pull-request job is authorized on that runner.
 The manual `publish-ci-base.yml` workflow handles later image releases;
 first publication uses a one-time controller-driven SSH procedure. The workflow
 requires package-write Actions secrets and explicit socket access. See [`docs/forgejo-runner.md`](docs/forgejo-runner.md) for

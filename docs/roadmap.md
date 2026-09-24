@@ -62,6 +62,11 @@ opérateur et les gates live restent distincts des commits locaux.
 
 ## D0 → Q3 : mettre le runner au travail rapidement
 
+Checkpoint d'intégration : D0 préparé dans `f2a1b8d`; acceptation finale en
+attente. Q1 BLOCKED sur revue trust; Q2–Q3 validés localement seulement, gate
+d'activation fermé par défaut. Voir [preuves et limites CI](ci-quality.md).
+Les statuts « au départ » du tableau restent la baseline, pas un résultat live.
+
 **D0.** Vérifier puis intégrer les documents publics, préserver `AGENTS.md` existant, confirmer le plan de validation et les frontières des prochaines tâches. Les six documents d'audit demeurent des snapshots historiques non réécrits.
 
 **Q1.** Lire la configuration runner active et ses workflows; vérifier réellement permissions rootful Podman, socket et jobs admis, nature des refs déclenchantes, capacités du réseau et secrets accessibles. Ne pas considérer « aucun secret injecté » comme une isolation suffisante. Les tests doivent être hors production et les modifications de sécurité ciblées.
