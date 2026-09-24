@@ -1,8 +1,15 @@
 # Dedicated PostgreSQL Terraform backend proposal
 
-Status: DESIGN ONLY, 2026-09-23. No PostgreSQL service, identity, secret,
-backend block or state migration has been created. Deployment needs separate
-approval after workstation recovery and design review.
+Status: host deployed and disposable qualification passed on 2026-09-24.
+The operator allocated CT300 / 192.168.0.30/24, hostname `tfstate`, on pve-core;
+the former runner is permanently retired and CT301 remains the active runner.
+The new `terraform/stacks/pve-core-tfstate` root keeps its bootstrap state LOCAL.
+Operator-reviewed isolated apply and disposable qualification are authorized;
+no existing state migration is authorized or performed. PostgreSQL 17 is now
+running, but no production databases or credentials exist. See the
+[verified qualification and remaining production gates](terraform-pg-backend-qualification.md).
+The original design below is historical where superseded by that report and
+the root's implementation README, including its draft sequence permissions.
 
 ## Decision and scope
 

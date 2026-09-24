@@ -1,5 +1,12 @@
 # Forgejo Runner Container
 
+RETIRED: the operator permanently retired the old CT300 runner and reassigned
+CT300 / 192.168.0.30 to PostgreSQL on pve-core. The authoritative new allocation
+is in `../pve-core-tfstate`. CT301 is the active Forgejo runner. Instructions
+below are historical, not an operational runbook. Do not apply/import this
+root or transfer its state to the new PostgreSQL root. Its private historical
+state is preserved, not migrated or edited by this allocation change.
+
 This root is the Terraform representation of the existing `forgejo-runner`
 container on `pve-compute`. `terraform.tfvars.example` records the observed
 CT values and uses the available Debian 13 template as the canonical

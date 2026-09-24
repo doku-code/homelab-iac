@@ -2,7 +2,9 @@
 
 CT301 remains VMID 301, 192.168.0.31, hostname forgejo-runner-migration.
 The operator reports successful convergence and green homelab-iac, CEM, and
-theme smoke tests on CT301; CT300 is powered off, not yet retired from state.
+theme smoke tests on CT301. The legacy CT300 runner is permanently retired;
+CTID 300 and 192.168.0.30 are now allocated to the separate
+[PostgreSQL Terraform backend](../terraform/stacks/pve-core-tfstate/README.md).
 Bootstrap/registration procedures below are retained for reference, not steps
 to rerun on this working runner. See the [CI/CD state audit and later cleanup
 plan](infrastructure-cicd.md) before enabling infrastructure automation.
