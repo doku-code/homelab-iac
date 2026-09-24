@@ -236,6 +236,13 @@ The NVIDIA tag currently records declarative intent only. Guest driver
 installation is deferred until the supported Linux repositories, Windows
 driver source, and passthrough validation procedure are confirmed.
 
+## Project Navigation
+
+Read [agent instructions](AGENTS.md), the [documentation index](docs/README.md),
+[architecture](docs/architecture.md), [roadmap](docs/roadmap.md), and the assigned
+[task](tasks/README.md) before implementation. Dated audits are historical evidence,
+not current execution permission. AGENTS.md is now public, tracked project guidance.
+
 ## Forgejo Validation
 
 CI currently performs state-independent validation only. Production Terraform
