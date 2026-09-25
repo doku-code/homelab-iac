@@ -1,7 +1,9 @@
 # Initial CI quality gate
 
-Status: **LOCALLY VALIDATED; LIVE EXECUTION BLOCKED pending task 010 approval**.
-No Forgejo job triggered, live variable/permission changed or push performed.
+Status: **FIRST LIVE RUN FAILED; provider-lock correction pending live rerun**.
+Operator-run19 at `f341450` executed and failed; earlier local checks passed.
+No Forgejo job triggered, live variable/permission changed or push performed by
+the agent during this correction. Task010's unresolved trust findings remain.
 This is the bounded repository side of tasks 010/020, not production CD.
 
 Read-only follow-up: [task 010 live evidence](../tasks/010-runner-trust-preflight.md)
@@ -69,8 +71,66 @@ Homelab/homelab-iac Settings -> Actions -> Variables, set the repository variabl
 Actions -> Validate -> Run workflow, select `main` at the approved commit.
 Changing the variable alone does not request a run. Verify the selected HEAD
 before dispatch; subsequent main pushes will also run while the gate is true.
-Record run URL, SHA and results before LIVE VERIFIED. No push, variable change
-or dispatch was performed. No extra infrastructure credentials are needed.
+Record run URL, SHA and results before LIVE VERIFIED. The operator has since
+executed run19; do not infer that its execution resolves the trust findings.
+No extra infrastructure credentials are needed.
+
+## Provider lock portability
+
+Run19 failed in validate of pve-compute-forgejo-runner, after the workstation,
+monitoring and migration roots. All seven roots pin bpg/proxmox0.112.0. Those
+first three locks already had both platform h1 hashes; the historical runner,
+Garage, tfstate and example locks had only darwin_arm64 h1, despite containing
+all 14 signed ZIP hashes, including Linux AMD64. This was not a missing Linux
+ZIP checksum or evidence of a modified official download.
+
+The existing workflow creates fresh per-root TF_DATA_DIR directories and has
+no provider mirror/shared plugin-cache configuration. Repository search found
+no overrides; the local controller has no .terraformrc or TF cache/config env
+overrides. The failed job's ambient CLI config was not independently captured.
+The error's word "cached" also covers freshly installed unpacked providers;
+it does not by itself establish a stale shared cache.
+
+Terraform1.16.1 init can verify the ZIP using zh, but readonly prevents saving
+the newly calculated platform h1. Subsequent validate verifies the unpacked
+package against the lock; zh cannot verify an unpacked directory. See the
+[exact provider check](https://github.com/hashicorp/terraform/blob/v1.16.1/internal/command/meta_providers.go)
+and [hash implementation](https://github.com/hashicorp/terraform/blob/v1.16.1/internal/getproviders/hash.go).
+
+Correction used the supported [providers lock command](https://developer.hashicorp.com/terraform/cli/commands/providers/lock)
+for every root, preserving existing locks and versions:
+
+```sh
+terraform -chdir=terraform/stacks/pve-compute-forgejo-runner providers lock \
+  -platform=darwin_arm64 -platform=linux_amd64
+```
+
+Apply that command per affected root after intentional provider changes, review
+the diff, and retain init -lockfile=readonly in CI. Do not update locks in CI
+to conceal an unexpected checksum mismatch. Terraform verified both packages
+with provider signing key F0582AD6AE97C188 (registry-published, self-signed).
+Only four missing Linux h1 entries changed; no hashes were removed or replaced.
+
+Verified bpg/proxmox0.112.0 package hashes:
+
+| Platform | Unpacked h1 | Archive SHA256 (already recorded) |
+| --- | --- | --- |
+| darwin_arm64 | njvcRZP07VIZLn4sUzVumOrquFuEot+Bv19OBo0iymQ= | 2f43edd19ea3454ed0dfa3c9bfbe7bfd4b97b2756ff37220c087ec95a6e7d21a |
+| linux_amd64 | K8NuSgN6Yz3bm72phs75M4x46pQru2L+gSUs8mncCxM= | 1fa5fb40d2506db678b5f989d4929005680a187f6c91378ca5433fa490d9029b |
+
+Both platform downloads were verified, not both platforms executed. No local
+Linux engine is available (Docker Desktop socket absent); no CT301 container
+was started for testing. Linux execution of the correction awaits Forgejo.
+
+Correction validation: the unchanged workflow Terraform step passed on
+darwin_arm64 with Terraform1.16.1: recursive fmt, seven fresh per-root init
+(-backend=false -input=false -lockfile=readonly) and seven validate calls.
+All seven locks retain the original version/constraints and 14 zh hashes.
+check-quality.py passed (51 YAML, 6 Python, 18 shell checks), as did relative
+documentation links and git diff --check. No plan/backend access was performed.
+After operator review, push this fix to approved main with the existing gate;
+inspect the new run, or manually dispatch Validate on that new main SHA. Do not
+rerun the old f341450 job and expect it to contain the corrected locks.
 
 ## Commands and dependencies
 

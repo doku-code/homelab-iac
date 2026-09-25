@@ -78,6 +78,13 @@ l'acceptation explicite des risques partagés. Preuves et action opérateur dans
 [010](../tasks/010-runner-trust-preflight.md). Aucune activation ni exécution
 live réussie de Q2–Q3; dépendances inchangées.
 
+Checkpoint suivant : l'opérateur a exécuté run19 sur `f341450`; Q2–Q3 ont
+démarré mais échoué sur validate du provider Linux du root runner historique.
+Quatre locks manquaient du h1 Linux, pas du checksum ZIP. Correction officielle
+multi-plateforme en 020, versions et readonly conservés; succès Forgejo encore
+NOT VERIFIED. Ce run ne clôture pas les questions de confiance de 010. Voir
+[preuve et statut 020](../tasks/020-ci-quality.md).
+
 **D0.** Vérifier puis intégrer les documents publics, préserver `AGENTS.md` existant, confirmer le plan de validation et les frontières des prochaines tâches. Les six documents d'audit demeurent des snapshots historiques non réécrits.
 
 **Q1.** Lire la configuration runner active et ses workflows; vérifier réellement permissions rootful Podman, socket et jobs admis, nature des refs déclenchantes, capacités du réseau et secrets accessibles. Ne pas considérer « aucun secret injecté » comme une isolation suffisante. Les tests doivent être hors production et les modifications de sécurité ciblées.
