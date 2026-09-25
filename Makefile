@@ -54,6 +54,24 @@ setup-controller:
 	$(VENV)/bin/python -m pip install -r requirements-controller.txt
 	$(VENV)/bin/ansible-galaxy collection install -r collections/requirements.yml
 
+# New isolated ownership; never invokes workstation host configuration.
+CONTROLLER_DIR := terraform/stacks/pve-lab-controller
+.PHONY: controller-check controller-plan controller-apply
+controller-check:
+	$(VENV)/bin/python tests/vm-profiles.py
+	$(ANSIBLE) ansible/playbooks/configure-recovery-controller.yml --syntax-check -i ansible/inventories/homelab.yml
+
+controller-plan:
+	@test "$(CONTROLLER_ALLOCATION_REVIEWED)" = yes || (echo "Review live VMID/IP, image, storage and network allocation first"; exit 1)
+	@test -f "$(CONTROLLER_DIR)/terraform.tfvars" || (echo "Missing private reviewed profile"; exit 1)
+	terraform -chdir=$(CONTROLLER_DIR) init -input=false -lockfile=readonly
+	$(call INFISICAL_RUN,terraform -chdir=$(CONTROLLER_DIR) plan -input=false -out=controller.tfplan)
+
+controller-apply:
+	@test "$(CONTROLLER_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required"; exit 1)
+	@test -f "$(CONTROLLER_DIR)/controller.tfplan" || (echo "Missing reviewed saved plan"; exit 1)
+	$(call INFISICAL_RUN,terraform -chdir=$(CONTROLLER_DIR) apply -input=false controller.tfplan)
+
 # PostgreSQL host bootstrap state stays local; apply only the reviewed saved plan.
 TFSTATE_DIR := terraform/stacks/pve-core-tfstate
 TFSTATE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub

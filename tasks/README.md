@@ -57,6 +57,7 @@ Les permissions live demeurent séparées de ces statuts.
 | 01 | [Frontière de sécurité du runner](010-runner-trust-preflight.md) | READY après 00 | READ_ONLY + OFFLINE_CODE |
 | 02 | [CI qualité sans secrets](020-ci-quality.md) | PLANNED après 01 | OFFLINE_CODE |
 | 03 | [Contrat d'autorité des states](030-state-recovery-contract.md) | READY après 00; parallèle à 01–02 | READ_ONLY + OFFLINE_CODE |
+| 03b | [Contrôleur Linux headless](035-headless-controller.md) | Prérequis ajouté pour 040 | OFFLINE_CODE; déploiement séparément approuvé |
 | 04 | [Recovery Kit v1](040-recovery-kit-v1.md) | BLOCKED par 03 et décisions de garde | Préparation hors ligne; export/upload séparément autorisés |
 | 05 | [Contrôleur bootstrap](050-independent-controller.md) | PLANNED après 04 | OFFLINE_CODE; drill séparé |
 | 06 | [Compléter PostgreSQL](060-postgresql-candidate.md) | BLOCKED par sécurité/récupération et identités | Autorisations live ciblées |

@@ -38,34 +38,23 @@ resource "proxmox_virtual_environment_vm" "workstation" {
     floating  = local.workstation_profile.balloon
   }
 
-  # GPU Passthrough section
-  hostpci {
-    device  = "hostpci0"
-    mapping = "pve-lab-workstation-gpu"
-    pcie    = true
-    rombar  = true
-    xvga    = true
+  dynamic "hostpci" {
+    for_each = lookup(var.hardware_profiles, each.key, local.default_hardware).gpu ? [1] : []
+    content {
+      device  = "hostpci0"
+      mapping = "pve-lab-workstation-gpu"
+      pcie    = true
+      rombar  = true
+      xvga    = true
+    }
   }
 
-  # KVM section
-  usb {
-    mapping = "pve-lab-workstation-logitech"
-    usb3    = true
-  }
-
-  usb {
-    mapping = "pve-lab-workstation-keyboard"
-    usb3    = true
-  }
-
-  usb {
-    mapping = "pve-lab-workstation-brio"
-    usb3    = true
-  }
-
-  usb {
-    mapping = "pve-lab-workstation-scarlett"
-    usb3    = true
+  dynamic "usb" {
+    for_each = lookup(var.hardware_profiles, each.key, local.default_hardware).usb_mappings
+    content {
+      mapping = usb.value
+      usb3    = true
+    }
   }
 
   efi_disk {

@@ -139,6 +139,11 @@ rerunning old f341450 would not exercise the fixes.
 
 ## Commands and dependencies
 
+Task035 extends the current allowlist to eight roots and fourteen playbooks.
+`tests/vm-profiles.py` uses mocked providers and disposable code-only directories;
+it never reads production states/tfvars or calls a live provider. Run139 remains
+the historical seven-root baseline, not evidence for these new checks.
+
 The cloud-image VM example authorizes its `terraform` user with the tracked
 `keys/doku-lab-admin.pub`, using
 `file("${path.module}/../../../keys/doku-lab-admin.pub")`. This follows the

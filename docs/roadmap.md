@@ -106,6 +106,11 @@ NOT VERIFIED. Ce run ne clôture pas les questions de confiance de 010. Voir
 
 ## R1 → B1 : sauver la source de vérité
 
+2026-09-25 : priorité opérateur ajoutée, [035 headless](../tasks/035-headless-controller.md)
+avant le test VM de 040. Root local indépendant, pas d'extraction des adresses
+workstation ni module LXC090. Capability statique uniquement; allocation/plan
+live puis création/start/convergence soumis à approbations distinctes.
+
 Checkpoint 030 : [contrat et manifeste](recovery-contract.md) spécifiés après
 inspection du dépôt; six states locaux recontrôlés sans secrets affichés.
 R1 en revue opérateur, pas récupération vérifiée. R2/040 est le prochain lot :

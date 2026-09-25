@@ -13,6 +13,7 @@
 | Savoir quel milestone vient ensuite | [Roadmap](roadmap.md) et [tâches](../tasks/README.md) | Plan de travail, pas autorisation d'exécuter |
 | CI qualité et frontière runner | [CI qualité](ci-quality.md) | Run139 LIVE VERIFIED; clôture sécurité 010/020 distincte |
 | Préparer une récupération indépendante | [Contrat et Recovery Kit v1](recovery-contract.md) | Spécification 030; kit, garde et récupération non qualifiés |
+| Préparer la VM de test sans GPU | [Contrôleur headless](headless-controller.md) | Capability 035; aucune VM déployée |
 | Retrouver les faits établis lors de l'audit | [Audit du 2026-09-24](audits/2026-09-24/executive-summary.md) | Photographie historique, jamais statut live garanti |
 | Déploiement et limites du runner CT301 | [Forgejo runner](forgejo-runner.md) | Runbook/état cible; vérifier le service avant intervention |
 | Comprendre la sécurité et la migration CI/CD | [Infrastructure CI/CD](infrastructure-cicd.md) | **Contient une proposition S3 historique**; ne pas la suivre comme runbook actif |

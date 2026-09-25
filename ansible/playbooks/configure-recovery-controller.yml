@@ -1,0 +1,55 @@
+---
+- name: Prepare an approved disposable Debian controller
+  hosts: recovery_controller
+  become: true
+  gather_facts: true
+  vars:
+    recovery_checkout: /home/debian/homelab-iac
+  pre_tasks:
+    - name: Require a reviewed source and compatible OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution == 'Debian'
+          - ansible_facts.distribution_major_version == '13'
+          - ansible_facts.architecture == 'x86_64'
+          - ansible_user == 'debian'
+          - recovery_source_commit is defined
+          - recovery_source_commit is match('^[a-f0-9]{40}$')
+        fail_msg: Use an approved Debian 13 AMD64 guest and full reviewed Git commit.
+  tasks:
+    - name: Install controller OS prerequisites with fresh metadata
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 0
+        name: [ca-certificates, curl, git, make, unzip, python3, python3-venv]
+        state: present
+    - name: Fetch verified Terraform archive
+      ansible.builtin.get_url:
+        url: https://releases.hashicorp.com/terraform/1.16.1/terraform_1.16.1_linux_amd64.zip
+        dest: /var/tmp/terraform-1.16.1.zip
+        checksum: sha256:745d33b4b02b7980c62a38ec1beea24ee084ea8caf3f503c200554bd9a0cbe49
+        mode: "0600"
+    - name: Install the pinned Terraform binary
+      ansible.builtin.unarchive:
+        src: /var/tmp/terraform-1.16.1.zip
+        dest: /usr/local/bin
+        remote_src: true
+        include: [terraform]
+    - name: Retrieve reviewed public code independently of Forgejo
+      become: false
+      ansible.builtin.git:
+        repo: https://github.com/doku-code/homelab-iac.git
+        dest: "{{ recovery_checkout }}"
+        version: "{{ recovery_source_commit }}"
+        force: false
+    - name: Rebuild disposable controller dependencies using the existing interface
+      become: false
+      ansible.builtin.command:
+        argv: [make, setup-controller, CONTROLLER_PYTHON=/usr/bin/python3]
+        chdir: "{{ recovery_checkout }}"
+      changed_when: true
+    - name: Check Python dependency compatibility
+      become: false
+      ansible.builtin.command:
+        argv: ["{{ recovery_checkout }}/.venv/bin/python", -m, pip, check]
+      changed_when: false

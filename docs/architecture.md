@@ -79,6 +79,12 @@ Le terme « blueprint » est un **contrat documentaire et une composition**, pas
 
 ### Abstraction du matériel
 
+Le prérequis 035 ajoute un petit root Linux headless à state local séparé,
+sans tag/hook workstation ni passthrough. Le root workstation conserve ses
+adresses et propriétés, avec GPU/USB désormais optionnels et anciens defaults
+préservés. Aucun déplacement d'état ou déploiement live : voir
+[procédure et limites](headless-controller.md).
+
 Séparer **besoin logique** et **capacité de l'environnement** : hôte compatible, storage ID, datastore de template, bridge/VLAN pris en charge, capacité CPU/RAM, adresse attribuée, accès SSH. Les mappings PCI/USB, IOMMU et CPU pinning restent des profils physiques spécifiques, avec contrôle explicite avant l'apply. Une machine de remplacement peut exiger une adaptation approuvée, pas une réécriture des rôles génériques.
 
 ## 5. Trois modes, un même code

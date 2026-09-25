@@ -668,3 +668,11 @@ Keep sensitive operator-only guidance in separately ignored local files.
 
 Do not edit unrelated repositories or push to any remote without explicit
 operator authorization. A task's READY status does not authorize a live change.
+
+When the operator explicitly authorizes a repository-only commit/push/CI loop,
+verify the remote, branch and every push-triggered workflow before pushing.
+Run local checks, inspect the staged diff, commit narrowly, then verify CI for
+the exact pushed SHA. Diagnose failures before further pushes; report blocked
+status/log access. Verify the independent mirror separately. This permission
+never extends to deployment, state operations, secret exports, key generation,
+archive uploads or other repositories, and expires with the assigned task.
