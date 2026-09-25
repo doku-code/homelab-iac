@@ -9,6 +9,11 @@ DevOps, infrastructure automation and systems administration.
 It uses **Terraform** for infrastructure provisioning and **Ansible** for
 host and guest configuration, with **Infisical** providing secrets at runtime.
 
+Start with the [documentation index](docs/README.md), [architecture](docs/architecture.md)
+and [roadmap](docs/roadmap.md). Read [AGENTS.md](AGENTS.md) and the assigned
+[task](tasks/README.md) before implementation. Follow the
+[documentation maintenance contract](tasks/README.md#contrat-de-maintenance).
+
 ## Goals
 
 - Treat infrastructure configuration as code
@@ -75,14 +80,17 @@ Terraform manages infrastructure resources such as:
 - Virtual disks
 - Network interfaces
 - VM tags
-- PCI resource mappings
-- USB resource mappings
-- VM cloning from base templates
+- References to PCI/USB mappings owned by Ansible
+
+Current workstation roots adopt existing VM hardware; they do not reconstruct
+installed operating systems (clone sources are currently null). Base-image
+creation and complete recovery remain separate work.
 
 Infrastructure-specific secrets are injected at runtime through Infisical
 rather than stored in Terraform configuration.
 
-Example workflow:
+Operator workflow (plan queries live infrastructure; apply changes it and
+requires explicit approval of the reviewed plan):
 
 ```bash
 make workstations-plan
@@ -107,8 +115,8 @@ Examples include:
 - Node Exporter deployment
 - Host auditing
 
-The roles are designed to be idempotent, allowing the same playbooks to be
-rerun without unnecessarily changing already-correct infrastructure.
+The roles aim for idempotence; syntax checks alone do not prove repeatable
+convergence on a fresh host. Consult the relevant qualification/runbook first.
 
 ## Shared Workstation Pool
 
@@ -172,11 +180,22 @@ than a hardcoded list of VM IDs.
 │   ├── examples/
 │   └── stacks/
 │       ├── deb13-monitoring/
-│       └── pve-lab-workstations/
+│       ├── pve-lab-workstations/
+│       ├── pve-compute-forgejo-runner/           # historical
+│       ├── pve-compute-forgejo-runner-migration/ # active CT301
+│       ├── pve-core-garage/
+│       └── pve-core-tfstate/
 │
 ├── services/
-│   └── monitoring/
+│   ├── monitoring/
+│   └── ci-images/
 │
+├── docs/                  # architecture, roadmap, runbooks, dated audits
+├── tasks/                 # bounded work and acceptance evidence
+├── scripts/
+├── tests/
+├── .forgejo/workflows/
+├── AGENTS.md
 ├── keys/
 ├── Makefile
 └── ansible.cfg
@@ -219,7 +238,8 @@ existing SSH-based controller conventions. A live prerequisite remains: each
 Windows guest must have OpenSSH Server, PowerShell remoting over SSH, and the
 chosen key-based account configured before Ansible can connect.
 
-Safe local workflows are:
+Workflows (only guests-check is offline; inventory queries Proxmox and
+guests-apply performs live changes requiring approval):
 
 ```bash
 make guests-check
@@ -236,12 +256,15 @@ The NVIDIA tag currently records declarative intent only. Guest driver
 installation is deferred until the supported Linux repositories, Windows
 driver source, and passthrough validation procedure are confirmed.
 
-## Project Navigation
+## Controller Prerequisites
 
-Read [agent instructions](AGENTS.md), the [documentation index](docs/README.md),
-[architecture](docs/architecture.md), [roadmap](docs/roadmap.md), and the assigned
-[task](tasks/README.md) before implementation. Dated audits are historical evidence,
-not current execution permission. AGENTS.md is now public, tracked project guidance.
+Use Git, Make, Terraform matching the controlled workflow version, and Python
+compatible with requirements-controller.txt (Ansible 14 requires Python >=3.12).
+`make setup-controller CONTROLLER_PYTHON=/path/to/python3` recreates disposable
+`.venv` from the Python and collection dependency files. CI pins its own Python;
+local setup otherwise uses system python3. Downloads require network access.
+Live workflows additionally need authorized SSH/API trust and runtime credentials;
+see the relevant runbook rather than copying private inputs into Git.
 
 ## Forgejo Validation
 
@@ -267,7 +290,7 @@ the intended runner separation and one-time bootstrap checks.
 
 ## Secrets
 
-No credentials are committed to this repository.
+Never commit credentials to this public repository.
 
 Runtime secrets are provided through **Infisical**.
 
@@ -290,19 +313,15 @@ runtime-only.
 This repository is actively evolving as I expand the homelab and learn more
 about infrastructure automation.
 
-Current areas include:
+| Capability | Evidence level and limits |
+| --- | --- |
+| Selected Proxmox resources, guest/host roles and monitoring | Implemented; dated deployment evidence in the [documentation index](docs/README.md), not complete homelab reconstruction |
+| Quality CI | Implemented and locally validated; live activation blocked on [runner trust preflight](tasks/010-runner-trust-preflight.md) |
+| Terraform state | Stack states remain local; no migration; PostgreSQL and Consul are candidates, not a selected production backend |
+| Independent recovery, reusable modules and protected CD | Planned; see [roadmap](docs/roadmap.md) for dependencies and acceptance |
 
-- [x] Terraform-managed Proxmox VMs
-- [x] Ansible-managed Proxmox configuration
-- [x] Shared GPU/USB workstation pool
-- [x] Automatic workstation discovery using Proxmox tags
-- [x] Prometheus / Grafana monitoring
-- [x] Runtime secret injection
-- [x] Reusable Make workflows
-- [ ] Automated guest configuration
-- [ ] Automated base-image creation
-- [ ] CI/CD validation and deployment
-- [ ] Container orchestration experimentation
+Task files own current progress. Dated audits remain historical evidence and
+must not be rewritten to imply later implementation or live verification.
 
 ## Why This Repository Exists
 

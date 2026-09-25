@@ -428,6 +428,13 @@ Prioritize:
 
 Avoid documentation that merely repeats obvious code.
 
+Follow the documentation maintenance contract in
+[tasks/README.md](tasks/README.md#contrat-de-maintenance). Maintain the active
+task's acceptance evidence, status, dependencies and blockers during work.
+Before completion, update affected documentation and milestone/architecture
+records; include related documentation in implementation commits when practical.
+Never mark tasks or milestones complete while acceptance criteria are unverified.
+
 
 ## Dependency Policy
 

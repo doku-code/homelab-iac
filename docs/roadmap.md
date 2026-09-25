@@ -62,8 +62,9 @@ opérateur et les gates live restent distincts des commits locaux.
 
 ## D0 → Q3 : mettre le runner au travail rapidement
 
-Checkpoint d'intégration : D0 préparé dans `f2a1b8d`; acceptation finale en
-attente. Q1 BLOCKED sur revue trust; Q2–Q3 validés localement seulement, gate
+Checkpoint : D0 intégré dans `f2a1b8d` et accepté par l'opérateur lors de la
+demande de contrat de maintenance. Q1 reste le gate de confiance; Q2–Q3
+implémentés dans `aea08e2`, validés localement seulement, gate
 d'activation fermé par défaut. Voir [preuves et limites CI](ci-quality.md).
 Les statuts « au départ » du tableau restent la baseline, pas un résultat live.
 
@@ -98,6 +99,11 @@ Les statuts « au départ » du tableau restent la baseline, pas un résultat li
 Extraire **un seul** module LXC du monorepo après vérification des adresses Terraform et utilisation sur deux profils. Ne pas commencer par les workstations GPU. Le deuxième environnement prouvera qu'un autre node/storage/bridge/capacité fonctionne sans modifier le module. Les services fondamentaux sont adoptés un par un; les bases, clés et réglages techniques non déclarés disposent d'un contrat de récupération.
 
 ## Principes de gestion
+
+Mettre à jour cette roadmap dès qu'un statut, une dépendance ou un périmètre de
+milestone change; lier la tâche pour les preuves détaillées. Le
+[contrat de maintenance](../tasks/README.md#contrat-de-maintenance) définit la
+clôture et interdit de confondre implémentation locale et validation live.
 
 - Une tâche active par périmètre; ne pas mêler refactoring, backend migration, récupération live et déploiement d'application.
 - Documenter `PASS`, `FAIL`, `BLOCKED`, `NOT TESTED` à partir de preuves datées; une réponse HTTP ne vaut pas un test de reprise.

@@ -39,6 +39,10 @@ vérifier le code et le live avant de modifier le plan.
 
 ## Règle de mise à jour
 
+Le [contrat de maintenance](../tasks/README.md#contrat-de-maintenance) définit
+quand mettre à jour chaque document, les preuves attendues et les règles de
+clôture. Il fait autorité; cet index ne duplique pas les statuts des tâches.
+
 La documentation d'architecture et la roadmap décrivent la situation connue
 et la direction cible. Les runbooks conservent les procédures détaillées
 vérifiées. Les audits ne sont pas réécrits pour refléter les travaux ultérieurs :

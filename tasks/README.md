@@ -13,7 +13,43 @@
 
 **Permissions :** `READ_ONLY`, `OFFLINE_CODE`, `LIVE_READ`, `LIVE_CHANGE`, `DESTRUCTIVE_DRILL`. Un statut `READY` n'autorise jamais une catégorie `LIVE_CHANGE` ou `DESTRUCTIVE_DRILL` sans accord explicite sur les ressources et l'opération.
 
-## File d'exécution recommandée
+## Contrat de maintenance
+
+Chaque tâche d'implémentation doit avoir un statut courant, des critères
+d'acceptation explicites et des preuves datées. Le fichier de tâche fait autorité
+pour son avancement; les tableaux de statuts initiaux restent historiques.
+
+1. Avant de commencer, inspecter Git, le code pertinent, la tâche active,
+   l'architecture, la roadmap et les runbooks concernés.
+2. Pendant le travail, maintenir la tâche : progrès, critères vérifiés ou non,
+   dépendances découvertes, blocages et prochaine action/autorisation nécessaire.
+3. Avant clôture, mettre à jour les documents affectés selon le tableau ci-dessous.
+   Si aucun document supplémentaire n'est affecté, l'indiquer dans la tâche.
+4. Ne marquer une tâche ou un milestone DONE qu'après vérification de tous ses
+   critères et acceptation opérateur. Un critère live non testé reste non vérifié;
+   du code committé ou un blocage documenté ne constitue pas un PASS implicite.
+5. Inclure les mises à jour documentaires directement liées dans le commit
+   d'implémentation lorsque possible; expliquer tout suivi séparé dans la tâche.
+   Vérifier liens et diff avant commit. Ne jamais dupliquer un runbook complet
+   dans plusieurs fichiers : résumer et lier la référence faisant autorité.
+
+| Changement | Document à maintenir |
+| --- | --- |
+| Avancement, preuves, critères, blocages | Tâche active dans tasks/ |
+| Statut, dépendances ou périmètre d'un milestone | docs/roadmap.md, avec lien vers la tâche |
+| Architecture réelle ou décision architecturale approuvée | docs/architecture.md, en distinguant cible et implémentation |
+| Entrées du projet, prérequis, workflows supportés ou capacités majeures | README.md racine |
+| Nouvelle référence ou déplacement documentaire | docs/README.md et liens concernés |
+| Procédure ou comportement opérationnel | Runbook concerné |
+| Évolution après un audit daté | Nouvelle preuve ou document vivant; ne pas réécrire l'audit |
+
+Le niveau de preuve est distinct du statut de tâche : **PLANNED** = intention;
+**IMPLEMENTED** = code présent; **LOCALLY VALIDATED** = commandes locales et
+résultats datés; **LIVE VERIFIED** = exécution réelle identifiée, environnement
+et limites enregistrés. Aucun niveau n'implique automatiquement le suivant.
+Les permissions live demeurent séparées de ces statuts.
+
+## File initiale de référence
 
 | Ordre | Tâche | Statut initial | Permissions au départ |
 | --- | --- | --- | --- |

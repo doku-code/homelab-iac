@@ -105,6 +105,11 @@ Le Recovery Kit v1 vise uniquement les matériaux d'infrastructure indispensable
 
 ## 8. Sources de vérité et changement
 
+Maintenir ce document lorsqu'une architecture réelle ou une décision approuvée
+change, conformément au [contrat de maintenance](../tasks/README.md#contrat-de-maintenance).
+Une conception approuvée reste cible tant que son implémentation et sa validation
+ne sont pas établies; les preuves détaillées résident dans la tâche ou le runbook.
+
 1. **État réel + state faisant autorité** : preuve d'exploitation, à lire uniquement via des opérations autorisées.
 2. **Code du dépôt** : comportement implémenté au commit examiné.
 3. **Ce document** : architecture et décisions projetées, révisées lorsque validées.
