@@ -68,6 +68,16 @@ implémentés dans `aea08e2`, validés localement seulement, gate
 d'activation fermé par défaut. Voir [preuves et limites CI](ci-quality.md).
 Les statuts « au départ » du tableau restent la baseline, pas un résultat live.
 
+Préflight Q1 read-only : socket rootful global confirmé, main non protégé;
+l'opérateur atteste être le seul auteur autorisé à pousser ici. Le workflow
+publié à `510d8f1` est désormais main-only avec gate; run17 est skipped car
+CI_QUALITY_APPROVED n'a pas satisfait la condition. La déclaration permissions
+ignorée par Forgejo est retirée, sans prétendre restreindre le token.
+Q1 reste BLOCKED sur la vérification des sources des autres connexions et
+l'acceptation explicite des risques partagés. Preuves et action opérateur dans
+[010](../tasks/010-runner-trust-preflight.md). Aucune activation ni exécution
+live réussie de Q2–Q3; dépendances inchangées.
+
 **D0.** Vérifier puis intégrer les documents publics, préserver `AGENTS.md` existant, confirmer le plan de validation et les frontières des prochaines tâches. Les six documents d'audit demeurent des snapshots historiques non réécrits.
 
 **Q1.** Lire la configuration runner active et ses workflows; vérifier réellement permissions rootful Podman, socket et jobs admis, nature des refs déclenchantes, capacités du réseau et secrets accessibles. Ne pas considérer « aucun secret injecté » comme une isolation suffisante. Les tests doivent être hors production et les modifications de sécurité ciblées.

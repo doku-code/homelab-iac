@@ -4,20 +4,28 @@ Status: **LOCALLY VALIDATED; LIVE EXECUTION BLOCKED pending task 010 approval**.
 No Forgejo job triggered, live variable/permission changed or push performed.
 This is the bounded repository side of tasks 010/020, not production CD.
 
+Read-only follow-up: [task 010 live evidence](../tasks/010-runner-trust-preflight.md)
+confirms the effective rootful socket allowlist and unprotected main. The
+published workflow at `510d8f1` now has the main-only activation gate. Run17
+was skipped by that gate before runner assignment, not by a runner failure.
+The operator confirms exclusive push access here; authenticated review of the
+other admitted sources remains blocked401. No activation is approved.
+
 ## Trust and activation
 
 validate.yml accepts pushes to main and manual dispatch only. Its job requires
 `forgejo.ref == 'refs/heads/main'` AND `vars.CI_QUALITY_APPROVED == 'true'`.
 Leave that repository variable unset/false until explicit operator approval.
-Its live value was not inspected. There is no PR, pull_request_target, tag or
+Its stored value is inaccessible (HTTP401); run17 proves the equality was false,
+not whether the variable was absent or had another value. There is no PR, pull_request_target, tag or
 arbitrary branch trigger. Do not execute untrusted PR code on this shared runner.
 
 The variable is an activation gate, NOT isolation. A writer can edit the workflow
 to remove it or add another workflow on another branch. Main-only triggers alone
 cannot protect a runner from repository writers. Before first push/execution,
 verify contributor/admin permissions, branch/workflow protections, Actions
-settings and all connections admitted to the shared daemon. These remain UNKNOWN
-in this repository-only task; no production authentication was requested.
+settings and all connections admitted to the shared daemon. Current evidence and
+remaining UNKNOWN fields are maintained in task 010. No credential was requested.
 
 Source evidence: forgejo_runner defaults grant the daemon Podman group access
 and globally permit `/run/podman/podman.sock` as a volume. The template uses
@@ -25,12 +33,14 @@ privileged=false, empty container options and docker_host="-"; ordinary jobs do
 not automatically mount the socket. The separate publisher explicitly requests
 it. One daemon serves homelab-iac, CEM and theme. Labels are not isolation.
 
-The September24 audit observed an active service and three root URLs, not safe
-execution of this new job. Effective live mounts, network egress, Forgejo token
-capabilities and contributor restrictions were not newly qualified. Even without
+The September24 audit and read-only preflight observed an active service and
+three root URLs, not safe execution of this new job. Actual job mounts/egress,
+Forgejo token capabilities and contributor restrictions remain unqualified. Even without
 credentials, jobs may reach the LAN. Secretless does not mean harmless.
 
-The validation job declares contents:read and non-persistent checkout auth;
+The unsupported GitHub-style permissions declaration has been removed; Forgejo
+reported it ignored. Removal does NOT impose an equivalent token restriction.
+The validation job uses non-persistent checkout auth;
 no container/services override, host volumes, socket, privileged option, secret
 expression or infrastructure auth wrapper. Forgejo checkout authentication and
 host-side registry pull auth still exist. Effective token restriction on the
@@ -44,16 +54,23 @@ These references support the design, not proof of the installed server's policy.
 
 ## Next security action
 
-Complete [task 010](../tasks/010-runner-trust-preflight.md) through explicitly
-authorized read-only Forgejo/runner checks. Approve trusted reviewed main-only
-code on this shared runner, or separately authorize a dedicated validation runner
-with no host/socket allowlist, privileged mode or infrastructure secrets and
-enforced network isolation. Untrusted PR validation needs the stronger isolated
-environment. No change to CT301, publisher or other repositories was made here.
+The smallest remaining step is an operator-side authenticated review of CT301's
+three registration scopes and who can schedule through each, including forks/PR
+policy, plus effective job-token permissions. Do not retrieve secret values.
+Confirm only trusted authors/workflows can use this daemon, then explicitly
+accept the global rootful socket allowlist and potential LAN access for this
+reviewed main-only validation. Exclusive push access here alone is insufficient.
+If untrusted sources are admitted, keep the gate closed and separately authorize
+restricting those sources; a second runner is not automatically required.
 
-Only after approval: review the exact commit and existing activation variable,
-authorize a push, enable the gate, then run reviewed main. Record run URL, commit
-and results before LIVE VERIFIED. Neither push nor activation is authorized now.
+After that approval, publish the reviewed fix with the gate still closed. In
+Homelab/homelab-iac Settings -> Actions -> Variables, set the repository variable
+`CI_QUALITY_APPROVED` to the exact string `true` (not an Actions Secret). In
+Actions -> Validate -> Run workflow, select `main` at the approved commit.
+Changing the variable alone does not request a run. Verify the selected HEAD
+before dispatch; subsequent main pushes will also run while the gate is true.
+Record run URL, SHA and results before LIVE VERIFIED. No push, variable change
+or dispatch was performed. No extra infrastructure credentials are needed.
 
 ## Commands and dependencies
 

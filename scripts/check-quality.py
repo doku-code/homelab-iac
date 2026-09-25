@@ -39,8 +39,10 @@ def main():
     workflow = yaml.load(source, Loader=yaml.BaseLoader)
     assert set(workflow["on"]) == {"push", "workflow_dispatch"}
     assert workflow["on"]["push"]["branches"] == ["main"]
-    assert workflow["permissions"] == {"contents": "read"}
+    # Installed Forgejo ignores GitHub-style permissions; do not imply isolation.
+    assert "permissions" not in workflow
     job = workflow["jobs"]["validate"]
+    assert "permissions" not in job
     assert job["if"] == "forgejo.ref == 'refs/heads/main' && vars.CI_QUALITY_APPROVED == 'true'"
     assert job["runs-on"] == "homelab-iac"
     assert "container" not in job and "services" not in job
