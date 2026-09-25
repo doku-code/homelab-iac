@@ -1,6 +1,6 @@
 # 035 - Headless Linux controller prerequisite
 
-- Status: IN_PROGRESS; repository-only capability, no deployment authorized.
+- Status: IN_PROGRESS; capability validated locally and in CI; operator procedure review pending, no deployment authorized.
 - Dependencies: accepted 030; precedes the disposable VM test in 040.
 - Scope: optional workstation hardware, isolated controller root, Ansible tool
   setup, mocked regression tests and validation-only CI. Not the LXC module 090.
@@ -33,4 +33,9 @@ Local evidence: eight roots passed backend-disabled readonly init/validate and
 format; five mocked plan cases passed, including immutable baseline guards for
 ordinary workstation configuration. New Ansible syntax passed (no host in the
 static inventory, intentionally no live allocation). Live no-op/deployment and
-guest tool installation remain NOT TESTED. CI must be checked after push.
+guest tool installation remain NOT TESTED. Forgejo API run135 (UI run24)
+passed for exact commit 8c12871aa0d5e31c55162a4a84e5c4fcd86837aa on 2026-09-25:
+https://git.doku-lab.net/Homelab/homelab-iac/actions/runs/24.
+This is Linux AMD64 repository validation, not guest provisioning evidence.
+Operator review of the deployment procedure remains required; no live plan is
+claimed and no acceptance criterion is weakened by the CI result.

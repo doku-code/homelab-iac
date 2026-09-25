@@ -1,8 +1,8 @@
 # 040 — Recovery Kit v1 chiffré et restauration sans écriture
 
-- **Statut :** BLOCKED — acceptation 030, décisions 040-A à 040-D et autorisation d'export/test
+- **Statut :** IN_PROGRESS — préparation repository-only; production/export/drill BLOCKED par inventaire, garde et autorisations
 - **Permission initiale :** OFFLINE_CODE; export sensible et transfert demandent une autorisation explicite
-- **Dépendances :** contrat validé, emplacement privé ignoré, compte cloud et voie de récupération indépendants, gel des writers
+- **Dépendances :** 030 accepté; capability 035 avant essai VM; staging non synchronisé, garde indépendante, inventaire complet et gel des writers avant capture
 
 ## Objectif
 
@@ -32,10 +32,21 @@ quoi que ce soit avant approbation. Ces sous-tâches sont le prochain travail
 
 | ID | Décision / preuve à fournir par l'opérateur | Gate |
 | --- | --- | --- |
-| 040-A Code et writers | URL exacte de la copie GitHub, ref/SHA approuvé; vérifier disponibilité/fraîcheur sans Forgejo, compléter par bundle; inventorier et geler tous les writers lors de capture | UNKNOWN : URL indépendante absente de la configuration locale |
-| 040-B Garde | Destination chiffrée hors site, compte/MFA récupérables hors homelab, staging privé, format d'encryption authentifiée/recipients, custodian, iCloud + méthode offline séparée, support de copie offline; aucun secret dans la réponse publique | DECISION : rien choisi ou testé ici |
-| 040-C Exhaustivité | Autoriser l'inventaire sensible ciblé, préciser sources/versions et copies indépendantes Infisical/Forgejo/TrueNAS/PBS/DNS/OCI; dispositions pour données non régénérables; distinguer copie disponible et test restore manquant | BLOCKED : exports, clés, payloads et layouts non qualifiés; pas d'accès à un dépôt externe sans autorisation |
-| 040-D Fraîcheur et essai | Politique de générations/rétention, âge maximal par composant, événements de recapture; contrôleur neuf, réseau isolé, internet ou cache offline, fenêtre et périmètre d'export/transfert/déchiffrement/nettoyage | DECISION : aucun délai/RPO/RTO ou stockage inventé |
+| 040-A Code et writers | GitHub doku-code/homelab-iac approuvé, SHA indépendant initial 0ccbccb vérifié; six authorities structurellement recontrôlées | Bundle et gel non exécutés; autres writers à attester avant capture |
+| 040-B Garde | iCloud Drive ciphertext approuvé; récupération Apple existante + iPhone de secours confirmés; age proposé, staging hors checkout/sync | Recipient, custodian/support offline et récupération non testés; aucune clé manipulée |
+| 040-C Exhaustivité | Inventaire read-only autorisé; PBS/DNS/OCI vérifiés par métadonnées ciblées | Accès Infisical/TrueNAS indisponible; layouts Forgejo/DB et copies indépendantes non qualifiés; aucun export |
+| 040-D Fraîcheur et essai | Politique proposée dans préparation; VM headless 035 validée par CI | Âges/rétention à approuver après mesure; allocation/plan/apply/start/drill non autorisés |
+
+Preuves, schéma privé v1, plan d'export ciblé et limites du validateur :
+[préparation du kit](../docs/recovery-kit-preparation.md). `make recovery-check`
+valide des fixtures synthétiques uniquement. Aucun kit produit ni récupéré;
+un PASS structurel ne satisfait pas les gates de qualification ci-dessous.
+
+Validation locale 2026-09-25 : dix tests synthétiques PASS; parsing/guards
+52 YAML, 9 Python et 20 scripts/blocs shell PASS; 82 liens/ancres Markdown
+et blocs vérifiés; diff/staged whitespace PASS. Ignores privés vérifiés.
+Le verdict Forgejo du commit de préparation doit être observé après push,
+indépendamment du succès 035; aucun succès de récupération n'est revendiqué.
 
 ## Gates de qualification de 040
 
@@ -57,7 +68,7 @@ quoi que ce soit avant approbation. Ces sous-tâches sont le prochain travail
    lineage/serial privés et chemins; tester rejet d'un fichier absent/corrompu
    et d'un mauvais root. Aucun log sensible, upload public ou deuxième state actif.
 6. **Contrôleur neuf :** reconstruire .venv et collections depuis les dépendances,
-   vérifier versions/checksums, sept init backend-disabled/readonly + validate
+   vérifier versions/checksums, huit init backend-disabled/readonly + validate
    dans une copie de CODE séparée des states récupérés, syntaxe Ansible avec
    inventaire statique et tests offline. Aucun wrapper Infisical, provider auth,
    plan, apply, import ou convergence. Consigner accès internes bloqués pendant

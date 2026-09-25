@@ -1,6 +1,6 @@
 # 030 — Autorité des states et contrat Recovery Kit v1
 
-- **Statut :** IN_PROGRESS — contrat spécifié et vérifié localement; acceptation opérateur requise
+- **Statut :** DONE — contrat accepté explicitement par l'opérateur le 2026-09-25; récupération non testée
 - **Permission :** READ_ONLY + OFFLINE_CODE
 - **Dépendances :** six états locaux audités; revue de garde opérateur
 
@@ -40,9 +40,10 @@ sans attributs de state ou secret affichés; aucun export ni accès live.
 | Export et qualification | Gates de 040 définis; choix de garde et autorisation encore requis, aucun kit produit |
 
 Les livrables documentaires sont implémentés; récupération NOT TESTED. Ne pas
-confondre acceptation du contrat et résolution de chaque UNKNOWN. Prochaine
-action : revue/acceptation opérateur de 030 et décisions 040-A à 040-D avant
-production du kit. Tasks010/020 restent inchangées; backend non choisi.
+confondre acceptation du contrat et résolution de chaque UNKNOWN. L'opérateur
+a accepté 030; GitHub indépendant vérifié à 0ccbccb, iCloud Drive chiffré approuvé.
+Les décisions et inconnues restantes sont suivies en 040, sans bloquer la
+clôture du contrat documentaire. Tasks010/020 inchangées; backend non choisi.
 
 Validation documentaire : sept fichiers Markdown, 64 liens relatifs/ancres et
 blocs de code vérifiés; check-quality.py PASS (51 YAML, 6 Python, 18 shell);

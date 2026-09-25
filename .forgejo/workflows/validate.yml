@@ -147,6 +147,9 @@ jobs:
       - name: Test VM profiles with mocked providers
         run: .venv/bin/python tests/vm-profiles.py
 
+      - name: Test Recovery Kit verifier with synthetic fixtures
+        run: make recovery-check
+
       - name: Parse configuration and check script syntax
         run: .venv/bin/python scripts/check-quality.py
 

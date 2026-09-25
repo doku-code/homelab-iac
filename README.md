@@ -15,7 +15,11 @@ and [roadmap](docs/roadmap.md). Read [AGENTS.md](AGENTS.md) and the assigned
 [documentation maintenance contract](tasks/README.md#contrat-de-maintenance).
 For loss of the controller or control plane, start with the
 [recovery contract and minimum kit specification](docs/recovery-contract.md).
-It records prerequisites and missing evidence, not an implemented recovery tool.
+It records prerequisites and missing evidence, not a completed recovery process.
+The [Recovery Kit preparation](docs/recovery-kit-preparation.md) provides the
+capture plan and synthetic structural checks (`make recovery-check`); no kit
+has been exported or recovered. The [headless controller profile](docs/headless-controller.md)
+is validated in CI but has not been deployed.
 
 ## Goals
 
@@ -322,7 +326,7 @@ about infrastructure automation.
 | Selected Proxmox resources, guest/host roles and monitoring | Implemented; dated deployment evidence in the [documentation index](docs/README.md), not complete homelab reconstruction |
 | Quality CI | LIVE VERIFIED in run139; [runner trust preflight](tasks/010-runner-trust-preflight.md) remains separate and unresolved |
 | Terraform state | Stack states remain local; no migration; PostgreSQL and Consul are candidates, not a selected production backend |
-| Independent recovery | [Contract and kit specified](docs/recovery-contract.md); custody decisions, kit production and recovery tests pending |
+| Independent recovery | [Contract accepted](docs/recovery-contract.md); [preparation/tests](docs/recovery-kit-preparation.md) implemented; private payloads, custody qualification and recovery tests pending |
 | Reusable modules and protected CD | Planned; see [roadmap](docs/roadmap.md) for dependencies and acceptance |
 
 Task files own current progress. Dated audits remain historical evidence and

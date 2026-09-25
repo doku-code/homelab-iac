@@ -101,7 +101,11 @@ Un futur `doctor` pourra **observer** versions, trust, connectivité et présenc
 
 Le [contrat Recovery Kit v1](recovery-contract.md) précise désormais l'autorité
 par root, le manifeste privé minimal et l'ordre de reprise indépendant.
-C'est une spécification, pas un kit produit ou un restore vérifié. Les petits
+Contrat accepté par l'opérateur le 2026-09-25, pas un kit produit ou un restore
+vérifié. GitHub doku-code/homelab-iac et iCloud Drive (ciphertext uniquement)
+sont les destinations approuvées; staging hors sync, garde offline indépendante
+et inventaire ciblé sont détaillés dans la [préparation 040](recovery-kit-preparation.md).
+Le validateur synthétique ne prouve ni exhaustivité ni récupération. Les petits
 matériaux bootstrap et les références vers des payloads indépendants doivent
 tous être récupérables; une référence à un PBS perdu n'est pas une sauvegarde
 indépendante. 040 qualifie récupération/déchiffrement et contrôleur statique;

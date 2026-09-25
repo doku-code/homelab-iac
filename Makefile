@@ -266,3 +266,7 @@ deploy-monitoring:
 	INFISICAL_UNIVERSAL_AUTH_CLIENT_ID="$$cid" \
 	INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET="$$secret" \
 	$(ANSIBLE) ansible/playbooks/deploy-monitoring.yml
+
+.PHONY: recovery-check
+recovery-check:
+	$(VENV)/bin/python tests/recovery-kit.py

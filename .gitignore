@@ -92,3 +92,7 @@ temp/
 *.log
 
 .venv/
+
+# Defense in depth only: sensitive staging belongs outside synced directories.
+recovery-private/
+*.age

@@ -111,11 +111,12 @@ avant le test VM de 040. Root local indépendant, pas d'extraction des adresses
 workstation ni module LXC090. Capability statique uniquement; allocation/plan
 live puis création/start/convergence soumis à approbations distinctes.
 
-Checkpoint 030 : [contrat et manifeste](recovery-contract.md) spécifiés après
-inspection du dépôt; six states locaux recontrôlés sans secrets affichés.
-R1 en revue opérateur, pas récupération vérifiée. R2/040 est le prochain lot :
-résoudre les décisions 040-A à 040-D (code externe, garde, payloads, fraîcheur/
-essai), puis produire et récupérer une génération autorisée. Aucune fermeture
+Checkpoint 2026-09-25 : [contrat et manifeste](recovery-contract.md) accepté,
+030 DONE; six states locaux recontrôlés sans secrets affichés. Capability035
+validée localement et CI run24 à 8c12871; procédure/allocation live à revoir.
+R2/040 IN_PROGRESS : [préparation](recovery-kit-preparation.md) et tests
+synthétiques, GitHub/iCloud approuvés; payloads/garde/export/drill encore bloqués.
+Aucun kit produit ni récupéré. Aucune fermeture
 implicite de Q1/020, aucun backend choisi. Les inconnues F1 indispensables au
 kit bloquent son exhaustivité; ne pas attendre un drill pour les signaler.
 

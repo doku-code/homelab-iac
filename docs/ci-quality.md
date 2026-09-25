@@ -210,3 +210,16 @@ checks and synthetic/mocked tests, not live Terraform deployment, Ansible
 convergence or disaster recovery qualification. Runner isolation remains
 unproven under task010. Never run live Garage/PG qualification scripts here.
 No state migrated.
+
+## Recovery preparation checks (2026-09-25)
+
+Headless capability commit `8c12871aa0d5e31c55162a4a84e5c4fcd86837aa`
+passed [Forgejo run24](https://git.doku-lab.net/Homelab/homelab-iac/actions/runs/24)
+(API id135), independently observed status=success. Eight roots and five mock
+VM-profile cases are now covered. This is not live provisioning or isolation
+proof. GitHub main independently matched this SHA after push.
+
+The Recovery Kit preparation adds `make recovery-check`: ten synthetic tests
+for the read-only manifest verifier, without any private state, credentials,
+network access, exports or decryption. Local PASS; its own pushed CI verdict
+must be observed separately. Full recovery gates remain in Task040.

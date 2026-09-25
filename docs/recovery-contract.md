@@ -1,6 +1,6 @@
 # Recovery contract and Recovery Kit v1
 
-Status: **SPECIFICATION; operator custody decisions and recovery tests pending**.
+Status: **ACCEPTED CONTRACT (2026-09-25); kit production/recovery not tested**.
 Owner: operator. Task [030](../tasks/030-state-recovery-contract.md) owns this
 contract; [040](../tasks/040-recovery-kit-v1.md) produces/tests a kit and
 [050](../tasks/050-independent-controller.md) implements independent controller
@@ -14,6 +14,12 @@ controller dependencies, runner defaults and monitoring volumes. The only
 configured remote is Forgejo origin. No external repository, private credential
 store or live infrastructure was inspected. Exact private identities belong in
 the encrypted manifest, never this document.
+
+The paragraph above records the original contract inspection. Current approved
+GitHub/iCloud decisions and 2026-09-25 read-only inventory supersede its unknowns
+where evidenced in [Recovery Kit preparation](recovery-kit-preparation.md).
+The table below retains unqualified recovery gaps; it is not a claim that
+configured backups or code copies have been restored.
 
 **Verified/source** means code or local file structure, not recoverability.
 **Verified/reported** means dated qualification evidence or operator confirmation,
@@ -33,7 +39,7 @@ PostgreSQL and Consul remain candidates, Garage is rejected for Terraform state.
 
 | Component / authority | Current backup or independent copy | Recovery prerequisites | Status / next proof |
 | --- | --- | --- | --- |
-| Public IaC: reviewed Git commit, HCL, Ansible, Compose, locks and non-secret metadata | Operator-reported GitHub copy; only Forgejo origin configured locally | Exact approved SHA available without Forgejo; verified tools and dependencies | Source verified; GitHub URL, refs, freshness and independent clone unverified. Record them privately/publicly as appropriate in 040-A |
+| Public IaC: reviewed Git commit, HCL, Ansible, Compose, locks and non-secret metadata | Approved https://github.com/doku-code/homelab-iac; only Forgejo origin configured locally | Exact approved SHA available without Forgejo; verified tools and dependencies | Independent main checked at 0ccbccb before preparation; recheck final SHA at capture. Bundle/independent clone drill not tested |
 | Terraform: per-root local state plus reviewed inputs; table below | Adjacent .backup on four roots only; not off-controller backups | Freeze writers, select exact root/lineage/serial, independent provider authorization and trust | Local structure verified; encrypted offsite capture and restore missing |
 | Infisical: service DB plus matching application encryption material, config, projects, policies, identities and secret versions | Audit reports VM207 included in PBS; no compatible service export/restore proof | Recover DB/application versions and decryption material without Infisical; independent administrator access | Service recovery missing; backup completeness, ACLs and key custody unverified. Universal Auth credentials alone cannot reconstruct the secret service |
 | Forgejo: DB, repositories, app config/keys, permissions, Actions secrets, registrations and package metadata/blobs | Audit locates upstream on TrueNAS; dataset/app layout and independent backups unknown | Restore a consistent set with its keys and storage access; independent Forgejo administrator recovery | Unverified; no server root/role or full restore evidence here |
@@ -134,7 +140,7 @@ currently missing; a manifest alone cannot remove that implementation blocker.
 
 Generation name: recovery-kit-v1-<UTC timestamp>-<Git short SHA>, never overwrite
 an earlier generation. This is a specification, not a directory created here.
-Use an approved private staging location outside the checkout, restrictive
+Use an approved private staging location outside the checkout and synced directories, restrictive
 permissions, encryption before transfer and no sensitive logs. If a future
 implementation stages inside this repository, verify ignores first: arbitrary
 JSON/dumps/archives are NOT covered merely by state ignore patterns.
@@ -157,7 +163,8 @@ this specification need no secrecy; any outer receipt must be minimal (opaque
 generation ID, ciphertext size/hash, encryption format/version, no private
 inventory). SHA256 detects corruption, not trusted provenance by itself: retain
 the expected receipt via independently trusted custody and use authenticated
-encryption. Select format/recipient verification in 040, not a new product here.
+encryption. The age-based custody proposal and remaining recipient approval
+are in [040 preparation](recovery-kit-preparation.md).
 
 Keep OUT: sole decryption key/recovery factors, plaintext exports in cloud/Git,
 live state synchronization, plans, process caches, .venv, transient access tokens,
