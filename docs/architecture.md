@@ -93,6 +93,14 @@ Un futur `doctor` pourra **observer** versions, trust, connectivité et présenc
 
 ## 6. Autorité des states et reprise
 
+Le [contrat Recovery Kit v1](recovery-contract.md) précise désormais l'autorité
+par root, le manifeste privé minimal et l'ordre de reprise indépendant.
+C'est une spécification, pas un kit produit ou un restore vérifié. Les petits
+matériaux bootstrap et les références vers des payloads indépendants doivent
+tous être récupérables; une référence à un PBS perdu n'est pas une sauvegarde
+indépendante. 040 qualifie récupération/déchiffrement et contrôleur statique;
+050 fournit l'interface de secours, avant un drill live séparément autorisé.
+
 Les six roots de stack sont locaux à la date de l'audit. Les roots nécessaires à la reconstruction du backend ou des fondations ne devront pas dépendre de ce même backend. La migration vers PostgreSQL ou Consul est ultérieure, root par root, avec vérification lineage/serial, sauvegarde scellée, absence de destination déjà active et preuve de locking.
 
 Le Recovery Kit v1 vise uniquement les matériaux d'infrastructure indispensables à une reprise indépendante; il ne duplique pas les données personnelles. Les bases/identités techniques d'Infisical et Forgejo, le trust DNS/PKI et les prérequis PBS/TrueNAS restent à inventorier et à tester. La restauration d'un invité et la reproduction de sa configuration ne sont pas équivalentes.

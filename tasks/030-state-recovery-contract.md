@@ -1,6 +1,6 @@
 # 030 — Autorité des states et contrat Recovery Kit v1
 
-- **Statut proposé :** READY après 000; indépendant de la CI qualité
+- **Statut :** IN_PROGRESS — contrat spécifié et vérifié localement; acceptation opérateur requise
 - **Permission :** READ_ONLY + OFFLINE_CODE
 - **Dépendances :** six états locaux audités; revue de garde opérateur
 
@@ -23,3 +23,28 @@ Ne pas afficher le contenu des states/inputs, exporter des secrets, publier le k
 ## Acceptation
 
 Chaque root a une autorité identifiée ou `UNKNOWN` explicite; l'état historique runner ne peut pas être confondu avec PostgreSQL CT300; le manifeste décrit la récupération du code, des states et des entrées privées depuis un contrôleur neuf. L'export/upload réel est réservé à la tâche 040 et à l'accord de l'opérateur.
+
+## Livraison du contrat — 2026-09-24
+
+Référence faisant autorité : [contrat et manifeste Recovery Kit](../docs/recovery-contract.md).
+Inspection du code, des audits et des métadonnées structurelles uniquement,
+sans attributs de state ou secret affichés; aucun export ni accès live.
+
+| Critère | Preuve / limite |
+| --- | --- |
+| Autorité par root | Six fichiers locaux ignorés avec lineage/serial présents; quatre .backup adjacents. Tableau du contrat; autres writers/copies UNKNOWN |
+| CT300 historique distinct | Root runner classé historique/recovery-only; CT301 dans migration; PostgreSQL CT300 dans tfstate. Aucun déplacement/suppression de state |
+| Code indépendant | Seul remote configuré : Forgejo. URL et fraîcheur GitHub UNKNOWN; décision 040-A, aucune URL inventée |
+| Inventaire et manifeste | Sources, sauvegardes, dépendances, statuts et frontière données personnelles définis; format privé sans valeurs sensibles |
+| Cycle bootstrap | Ordre hors control plane défini; interface indépendante manquante explicitement réservée à 050 |
+| Export et qualification | Gates de 040 définis; choix de garde et autorisation encore requis, aucun kit produit |
+
+Les livrables documentaires sont implémentés; récupération NOT TESTED. Ne pas
+confondre acceptation du contrat et résolution de chaque UNKNOWN. Prochaine
+action : revue/acceptation opérateur de 030 et décisions 040-A à 040-D avant
+production du kit. Tasks010/020 restent inchangées; backend non choisi.
+
+Validation documentaire : sept fichiers Markdown, 64 liens relatifs/ancres et
+blocs de code vérifiés; check-quality.py PASS (51 YAML, 6 Python, 18 shell);
+git diff --check PASS. Audits historiques inchangés. Aucun test de récupération,
+export, migration, restore ou commande live exécuté.

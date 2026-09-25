@@ -13,6 +13,9 @@ Start with the [documentation index](docs/README.md), [architecture](docs/archit
 and [roadmap](docs/roadmap.md). Read [AGENTS.md](AGENTS.md) and the assigned
 [task](tasks/README.md) before implementation. Follow the
 [documentation maintenance contract](tasks/README.md#contrat-de-maintenance).
+For loss of the controller or control plane, start with the
+[recovery contract and minimum kit specification](docs/recovery-contract.md).
+It records prerequisites and missing evidence, not an implemented recovery tool.
 
 ## Goals
 
@@ -274,7 +277,8 @@ state is operator-local; plan/apply CI is blocked pending the reviewed
 
 The repository includes a validation-only Forgejo Actions workflow at
 `.forgejo/workflows/validate.yml`. It targets main only and is gated by
-`CI_QUALITY_APPROVED`; live execution remains blocked pending trust review.
+`CI_QUALITY_APPROVED`; run139 passed on CT301/Linux AMD64 at `01ccefb`.
+Outstanding runner trust findings still block formal security closure.
 Label `homelab-iac` selects the existing image for controller setup, seven-root
 backend-disabled validation, Ansible/Compose checks, tests and secret scanning.
 See [CI quality boundaries and local validation](docs/ci-quality.md).
@@ -316,9 +320,10 @@ about infrastructure automation.
 | Capability | Evidence level and limits |
 | --- | --- |
 | Selected Proxmox resources, guest/host roles and monitoring | Implemented; dated deployment evidence in the [documentation index](docs/README.md), not complete homelab reconstruction |
-| Quality CI | Implemented and locally validated; live activation blocked on [runner trust preflight](tasks/010-runner-trust-preflight.md) |
+| Quality CI | LIVE VERIFIED in run139; [runner trust preflight](tasks/010-runner-trust-preflight.md) remains separate and unresolved |
 | Terraform state | Stack states remain local; no migration; PostgreSQL and Consul are candidates, not a selected production backend |
-| Independent recovery, reusable modules and protected CD | Planned; see [roadmap](docs/roadmap.md) for dependencies and acceptance |
+| Independent recovery | [Contract and kit specified](docs/recovery-contract.md); custody decisions, kit production and recovery tests pending |
+| Reusable modules and protected CD | Planned; see [roadmap](docs/roadmap.md) for dependencies and acceptance |
 
 Task files own current progress. Dated audits remain historical evidence and
 must not be rewritten to imply later implementation or live verification.

@@ -106,6 +106,14 @@ NOT VERIFIED. Ce run ne clôture pas les questions de confiance de 010. Voir
 
 ## R1 → B1 : sauver la source de vérité
 
+Checkpoint 030 : [contrat et manifeste](recovery-contract.md) spécifiés après
+inspection du dépôt; six states locaux recontrôlés sans secrets affichés.
+R1 en revue opérateur, pas récupération vérifiée. R2/040 est le prochain lot :
+résoudre les décisions 040-A à 040-D (code externe, garde, payloads, fraîcheur/
+essai), puis produire et récupérer une génération autorisée. Aucune fermeture
+implicite de Q1/020, aucun backend choisi. Les inconnues F1 indispensables au
+kit bloquent son exhaustivité; ne pas attendre un drill pour les signaler.
+
 **R1** établit un propriétaire et une source de récupération pour chacun des six states locaux, avec traitement particulier de l'ancien root runner/CT300. Vérifier quelle révision est effectivement sur GitHub avant d'en dépendre. Décider du chiffrement, des copies, de la rétention et de la récupération de compte et de clé, sans exporter ni migrer dans ce milestone.
 
 **R2** produit une génération privée chiffrée du Recovery Kit après gel des writers, puis la restaure sans écriture fournisseur sur un autre contrôleur de confiance. Le cloud transporte l'archive; le trousseau iCloud aide à récupérer la clé, mais une voie hors ligne et les moyens de récupération du compte doivent être indépendants. Une archive non déchiffrée n'est pas une récupération vérifiée.
