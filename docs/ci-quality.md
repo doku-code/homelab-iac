@@ -134,6 +134,19 @@ rerun the old f341450 job and expect it to contain the corrected locks.
 
 ## Commands and dependencies
 
+The cloud-image VM example authorizes its `terraform` user with the tracked
+`keys/doku-lab-admin.pub`, using
+`file("${path.module}/../../../keys/doku-lab-admin.pub")`. This follows the
+monitoring VM's existing admin-key convention and the operator's intended key.
+Validation no longer needs an operator's `~/.ssh/id_ed25519.pub`; no private
+key, CI variable or key generation is required. VM settings and username are
+unchanged. Earlier validation on a personal controller did not demonstrate
+independence from that controller's SSH files.
+The corrected configuration passed the existing Terraform workflow step for
+all seven roots with an empty temporary HOME on macOS ARM64 (Terraform1.16.1),
+fresh per-root data directories, backend disabled and readonly lockfiles.
+This is local validation, not a successful Forgejo run.
+
 Job image stays ci-base:1.0.0 via homelab-iac label. Existing checksummed
 Compose2.39.4 and CPython3.14.0 installers remain. Terraform1.16.1 now has a
 pinned official SHA256. Gitleaks8.30.1 is reinstalled with pinned release SHA256

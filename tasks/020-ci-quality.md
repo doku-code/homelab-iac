@@ -1,6 +1,6 @@
 # 020 — Première CI de qualité sans secrets
 
-- **Statut :** IN_PROGRESS — première exécution live en échec; correction des locks à revérifier dans Forgejo
+- **Statut :** IN_PROGRESS — corrections locks/clé publique à revérifier dans Forgejo
 - **Permission initiale :** OFFLINE_CODE; exécution de jobs uniquement sur refs approuvées
 - **Dépendances :** frontière de confiance CT301 documentée et approuvée
 
@@ -59,3 +59,18 @@ Validation correction : les sept init readonly/backend-disabled puis validate
 et fmt du workflow passent sur macOS ARM64; les deux packages plateforme sont
 vérifiés par providers lock. Linux non exécuté localement (Docker indisponible).
 Parsing/syntaxe et guards qualité, liens relatifs et diff --check PASS.
+
+## Clé publique de l'exemple — 2026-09-24
+
+La clé Ed25519 `keys/doku-lab-admin.pub` est suivie par Git et déjà utilisée
+pour l'accès admin de la VM monitoring. Conformément à l'intention opérateur,
+l'exemple cloud-image-vm l'utilise désormais pour son utilisateur `terraform`,
+via `${path.module}/../../../keys/doku-lab-admin.pub`, au lieu du fichier
+personnel `~/.ssh/id_ed25519.pub`. Aucun autre paramètre VM n'est modifié;
+aucune clé créée/copiée, aucun accès privé ou mécanisme CI ajouté.
+Le prochain résultat Forgejo reste nécessaire avant toute conclusion live.
+Validation : sept roots PASS avec Terraform1.16.1 sur macOS ARM64, HOME
+temporaire vide et TF_DATA_DIR distincts; fmt, init backend-disabled/readonly
+puis validate selon le workflow inchangé. Clé publique valide via ssh-keygen,
+chemin relatif vérifié; check-quality.py (51 YAML, 6 Python, 18 shell), liens
+documentaires et diff --check PASS. Aucun plan ou changement live.

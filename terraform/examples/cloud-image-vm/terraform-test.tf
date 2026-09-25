@@ -65,7 +65,7 @@ resource "proxmox_virtual_environment_vm" "terraform_test" {
       username = "terraform"
 
       keys = [
-        trimspace(file(pathexpand("~/.ssh/id_ed25519.pub")))
+        trimspace(file("${path.module}/../../../keys/doku-lab-admin.pub"))
       ]
     }
   }
