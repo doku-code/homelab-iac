@@ -1,9 +1,13 @@
 # Initial CI quality gate
 
-Status: **FIRST LIVE RUN FAILED; provider-lock correction pending live rerun**.
-Operator-run19 at `f341450` executed and failed; earlier local checks passed.
-No Forgejo job triggered, live variable/permission changed or push performed by
-the agent during this correction. Task010's unresolved trust findings remain.
+Status: **LIVE VERIFIED quality pipeline; security closure remains with task010**.
+The operator confirms the first successful Forgejo quality run: **139**, push
+to **main**, commit **01ccefb**, **CT301 / Linux AMD64**. All seven Terraform
+roots and the remaining quality checks passed. Acceptance evidence and the
+outstanding security criterion are recorded in [task020](../tasks/020-ci-quality.md#premier-succès-live--2026-09-24).
+This documentation update relies on that operator confirmation, not a new run
+or independent log review. Earlier run19 failed and remains historical evidence.
+No job, variable/permission change or push was performed by the agent here.
 This is the bounded repository side of tasks 010/020, not production CD.
 
 Read-only follow-up: [task 010 live evidence](../tasks/010-runner-trust-preflight.md)
@@ -11,7 +15,8 @@ confirms the effective rootful socket allowlist and unprotected main. The
 published workflow at `510d8f1` now has the main-only activation gate. Run17
 was skipped by that gate before runner assignment, not by a runner failure.
 The operator confirms exclusive push access here; authenticated review of the
-other admitted sources remains blocked401. No activation is approved.
+other admitted sources remains blocked401 in that preflight. Subsequent
+operator execution does not close those security findings.
 
 ## Trust and activation
 
@@ -72,7 +77,7 @@ Actions -> Validate -> Run workflow, select `main` at the approved commit.
 Changing the variable alone does not request a run. Verify the selected HEAD
 before dispatch; subsequent main pushes will also run while the gate is true.
 Record run URL, SHA and results before LIVE VERIFIED. The operator has since
-executed run19; do not infer that its execution resolves the trust findings.
+executed run19 and successful run139; neither resolves the trust findings.
 No extra infrastructure credentials are needed.
 
 ## Provider lock portability
@@ -118,9 +123,9 @@ Verified bpg/proxmox0.112.0 package hashes:
 | darwin_arm64 | njvcRZP07VIZLn4sUzVumOrquFuEot+Bv19OBo0iymQ= | 2f43edd19ea3454ed0dfa3c9bfbe7bfd4b97b2756ff37220c087ec95a6e7d21a |
 | linux_amd64 | K8NuSgN6Yz3bm72phs75M4x46pQru2L+gSUs8mncCxM= | 1fa5fb40d2506db678b5f989d4929005680a187f6c91378ca5433fa490d9029b |
 
-Both platform downloads were verified, not both platforms executed. No local
-Linux engine is available (Docker Desktop socket absent); no CT301 container
-was started for testing. Linux execution of the correction awaits Forgejo.
+Both platform downloads were verified during the local correction; Linux was
+not executed locally (Docker Desktop socket absent). The operator subsequently
+confirmed Linux AMD64 execution of all seven roots in successful run139.
 
 Correction validation: the unchanged workflow Terraform step passed on
 darwin_arm64 with Terraform1.16.1: recursive fmt, seven fresh per-root init
@@ -128,9 +133,9 @@ darwin_arm64 with Terraform1.16.1: recursive fmt, seven fresh per-root init
 All seven locks retain the original version/constraints and 14 zh hashes.
 check-quality.py passed (51 YAML, 6 Python, 18 shell checks), as did relative
 documentation links and git diff --check. No plan/backend access was performed.
-After operator review, push this fix to approved main with the existing gate;
-inspect the new run, or manually dispatch Validate on that new main SHA. Do not
-rerun the old f341450 job and expect it to contain the corrected locks.
+The corrected locks and public-key path were exercised at 01ccefb in run139.
+For future runs, use the reviewed main SHA and the existing activation gate;
+rerunning old f341450 would not exercise the fixes.
 
 ## Commands and dependencies
 
@@ -145,7 +150,7 @@ independence from that controller's SSH files.
 The corrected configuration passed the existing Terraform workflow step for
 all seven roots with an empty temporary HOME on macOS ARM64 (Terraform1.16.1),
 fresh per-root data directories, backend disabled and readonly lockfiles.
-This is local validation, not a successful Forgejo run.
+That was local validation; subsequent run139 separately confirms Linux CI success.
 
 Job image stays ci-base:1.0.0 via homelab-iac label. Existing checksummed
 Compose2.39.4 and CPython3.14.0 installers remain. Terraform1.16.1 now has a
@@ -194,5 +199,9 @@ work. Do not print findings into chat or public logs.
 Local results: seven init/validate pairs, format, thirteen syntax checks, twenty
 runner cases, two backup tests, YAML/Python/inline-shell guards, document links,
 Gitleaks8.30.1 history scan and whitespace PASS. Existing Compose static check
-retained but not rerun locally. Linux tool bootstrap and full Forgejo execution
-NOT TESTED. Never run live Garage/PG qualification scripts here. No state migrated.
+retained but not rerun locally. Linux tool bootstrap and full Forgejo quality
+execution subsequently passed in operator-confirmed run139. These are static
+checks and synthetic/mocked tests, not live Terraform deployment, Ansible
+convergence or disaster recovery qualification. Runner isolation remains
+unproven under task010. Never run live Garage/PG qualification scripts here.
+No state migrated.

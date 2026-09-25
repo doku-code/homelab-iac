@@ -1,6 +1,6 @@
 # 020 — Première CI de qualité sans secrets
 
-- **Statut :** IN_PROGRESS — corrections locks/clé publique à revérifier dans Forgejo
+- **Statut :** BLOCKED pour clôture sécurité (010); pipeline qualité LIVE VERIFIED — run139
 - **Permission initiale :** OFFLINE_CODE; exécution de jobs uniquement sur refs approuvées
 - **Dépendances :** frontière de confiance CT301 documentée et approuvée
 
@@ -74,3 +74,29 @@ temporaire vide et TF_DATA_DIR distincts; fmt, init backend-disabled/readonly
 puis validate selon le workflow inchangé. Clé publique valide via ssh-keygen,
 chemin relatif vérifié; check-quality.py (51 YAML, 6 Python, 18 shell), liens
 documentaires et diff --check PASS. Aucun plan ou changement live.
+
+## Premier succès live — 2026-09-24
+
+Preuve confirmée par l'opérateur : Forgejo run **139**, push sur **main**,
+commit **01ccefb**, runner **CT301**, plateforme **Linux AMD64**, résultat
+**SUCCESS**. Les sept roots Terraform ont passé; tous les autres checks qualité
+ont terminé avec succès. Cette attestation opérateur est la source de ce
+checkpoint; aucune nouvelle exécution ni consultation de logs n'a été effectuée
+pour cette mise à jour documentaire. Les échecs et validations locales ci-dessus
+restent des étapes historiques, désormais suivies d'un succès réel.
+
+| Critère | Verdict et preuve |
+| --- | --- |
+| Déclenchement sur référence autorisée et statut clair | PASS : push main, run139, 01ccefb, SUCCESS |
+| Checks répétables avec versions connues | PASS : validations locales précédentes puis pipeline Linux réussi; sept roots, treize syntaxes Ansible, Compose, tests runner/backup et parsing/syntaxe |
+| Scanner réellement exécuté sans publication de secrets | PASS : pipeline complet confirmé; Gitleaks configuré en redaction avec findings supprimés |
+| Aucun credential/state de production ni permission destructive disponible | PARTIEL : workflow sans injection de credentials/state ni demande de socket; indisponibilité effective des privilèges non démontrée, dépend de 010 |
+| CD distincte et soumise à autorisation ultérieure | PASS : pipeline qualité uniquement; aucun plan/apply ni convergence |
+
+Le résultat fonctionnel est **LIVE VERIFIED**. La tâche n'est pas marquée DONE
+car le quatrième critère et la dépendance de confiance restent ouverts. Leur
+preuve/acceptation doit être traitée dans **010**, sans étendre cette tâche en
+audit ou modification du runner. Le succès ne prouve ni isolation CT301, ni
+restriction du LAN/socket/token, ni sécurité des autres connexions partagées.
+Il ne qualifie aucun déploiement Terraform live, convergence Ansible, backend
+de production ou scénario de disaster recovery. Aucune migration de state.

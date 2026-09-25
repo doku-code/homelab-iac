@@ -62,6 +62,15 @@ opérateur et les gates live restent distincts des commits locaux.
 
 ## D0 → Q3 : mettre le runner au travail rapidement
 
+**Statut courant :** première CI qualité Q2–Q3 **LIVE VERIFIED**, run139 sur
+CT301/Linux AMD64 après push main de `01ccefb`, succès confirmé par l'opérateur.
+Sept roots et tous les autres checks passent. La clôture formelle de 020 reste
+BLOCKED sur son critère de privilèges lié à Q1/010; aucun succès CI ne résout
+l'isolation/socket/LAN ou les autres findings de confiance. Voir la
+[matrice d'acceptation 020](../tasks/020-ci-quality.md#premier-succès-live--2026-09-24).
+Ni déploiement live, ni convergence Ansible, ni disaster recovery n'est qualifié
+par ce run. Les checkpoints suivants conservent la chronologie antérieure.
+
 Checkpoint : D0 intégré dans `f2a1b8d` et accepté par l'opérateur lors de la
 demande de contrat de maintenance. Q1 reste le gate de confiance; Q2–Q3
 implémentés dans `aea08e2`, validés localement seulement, gate
