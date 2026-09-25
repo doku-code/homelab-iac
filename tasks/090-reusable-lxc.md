@@ -1,10 +1,15 @@
 # 090 — Premier module LXC réutilisable et deuxième profil
 
-- **Statut proposé :** PLANNED
+- **Statut :** SUPERSEDED as roadmap prerequisite by100; no active extraction task
 - **Permission initiale :** OFFLINE_CODE; déploiement jetable séparément autorisé
 - **Dépendances :** CI qualité fonctionnelle, contrat states validé et roots actuels inventoriés
 
 ## Objectif
+
+Reconstruction review 2026-09-25: reusable headless VM provisioning has an actual
+immediate three-node use case; generic LXC extraction does not. Retain current
+CT implementations and states. Reopen the historical proposal below only when
+two real LXC consumers justify it; this is not permission to retire running CTs.
 
 Extraire une seule responsabilité répétée des roots CT propres au monorepo et prouver qu'elle fonctionne sur un deuxième profil Proxmox compatible. Ne pas commencer par les workstations GPU.
 

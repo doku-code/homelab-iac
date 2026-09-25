@@ -9,12 +9,12 @@
 
 | Besoin | Référence | Statut |
 | --- | --- | --- |
-| Comprendre la structure, les frontières et le bootstrap | [Architecture](architecture.md) | Direction cible et état connu à la date indiquée |
+| Comprendre la cible, services, données et bootstrap | [Architecture canonique](architecture.md) | Reconstruction K3s/TrueNAS; exigences approuvées séparées des recommandations |
 | Savoir quel milestone vient ensuite | [Roadmap](roadmap.md) et [tâches](../tasks/README.md) | Plan de travail, pas autorisation d'exécuter |
 | CI qualité et frontière runner | [CI qualité](ci-quality.md) | Run139 LIVE VERIFIED; clôture sécurité 010/020 distincte |
 | Préparer une récupération indépendante | [Contrat et Recovery Kit v1](recovery-contract.md) | Contrat 030 accepté; kit et récupération non qualifiés |
 | Préparer capture, garde et validation du kit | [Préparation Recovery Kit](recovery-kit-preparation.md) | Schéma/tests synthétiques; export et drill non exécutés |
-| Préparer la VM de test sans GPU | [Contrôleur headless](headless-controller.md) | Capability 035; aucune VM déployée |
+| Préparer la VM de test sans GPU | [Contrôleur headless](headless-controller.md) | Adaptateur optionnel035 pour portable050; aucune VM déployée |
 | Retrouver les faits établis lors de l'audit | [Audit du 2026-09-24](audits/2026-09-24/executive-summary.md) | Photographie historique, jamais statut live garanti |
 | Déploiement et limites du runner CT301 | [Forgejo runner](forgejo-runner.md) | Runbook/état cible; vérifier le service avant intervention |
 | Comprendre la sécurité et la migration CI/CD | [Infrastructure CI/CD](infrastructure-cicd.md) | **Contient une proposition S3 historique**; ne pas la suivre comme runbook actif |
@@ -35,10 +35,12 @@ photographie du 2026-09-24** : [état actuel](audits/2026-09-24/current-state.md
 [états et récupération](audits/2026-09-24/state-and-recovery.md) et
 [roadmap de l'audit](audits/2026-09-24/milestone-roadmap.md).
 
-La [roadmap opérationnelle](roadmap.md) réordonne certains travaux pour
-obtenir une CI qualité sans secrets plus tôt, **après** validation de la
-frontière de confiance CT301. En cas de désaccord avec une preuve historique,
-vérifier le code et le live avant de modifier le plan.
+La [roadmap canonique](roadmap.md) remplace l'ordre backend/LXC-first par
+reconstruction progressive : trois VM headless, K3s, Flux/stateless, stockage
+qualifié puis placement et cutovers. Portable recovery avance en parallèle;
+le kit complet ne bloque pas l'apprentissage jetable. Les gates CT301 restent
+ouverts. Les audits/runbooks conservent leur preuve historique, pas un deuxième
+plan actif; vérifier toute divergence avant une opération live.
 
 ## Règle de mise à jour
 

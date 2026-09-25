@@ -1,10 +1,16 @@
 # 060 — Fermer les gates PostgreSQL sans migrer de state
 
-- **Statut proposé :** BLOCKED sur décisions TLS/identités/réseau et prérequis de récupération
+- **Statut :** DEFERRED; conditionnel à la décision de besoins080
 - **Permission :** OFFLINE_CODE au départ; LIVE_CHANGE par approbation ciblée
 - **Dépendances :** Recovery Kit + contrôleur indépendant pour la reprise, autorisations scoped Cloudflare/Infisical et plan d'accès stable
 
 ## Baseline historique
+
+Current roadmap supersedes mandatory completion of this candidate. Task080
+requires a shared-backend need and explicit selection before resuming these
+gates. Local single-writer learning does not depend on it. Existing CT300,
+local bootstrap state and factual qualifications are preserved. Remaining
+sections describe conditional work, NOT an active deployment assignment.
 
 CT300 PG17 a passé CRUD, contention réelle, libération après crash, isolation et restore **via SSH forwarding**. DNS interne, backup logique programmé et restauration de sortie ont été rapportés PASS. Le serveur demeure sur loopback avec un certificat ne correspondant pas au hostname final; production identities, TLS final, egress runner et full PBS restore sont incomplets. Voir les rapports du dossier docs et vérifier le live avant toute action.
 

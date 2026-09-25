@@ -1,10 +1,15 @@
 # 070 — Qualification Consul dans un laboratoire isolé
 
-- **Statut proposé :** PLANNED
+- **Statut :** DEFERRED; optional only if080 establishes a concrete requirement
 - **Permission initiale :** OFFLINE_CODE; allocation/test live explicitement autorisés
 - **Dépendances :** récupération bootstrap et profil de test indépendant; critères PostgreSQL définis
 
 ## Objectif
+
+The mandatory PostgreSQL-versus-Consul sequence is superseded by080. No need
+for an additional quorum service has been demonstrated. Preserve this experiment
+as an optional future qualification, not a prerequisite to K3s learning, recovery
+or PostgreSQL selection. The scope below requires a new explicit assignment.
 
 Comprendre KV, sessions, health checks, service discovery et Raft; évaluer le backend Terraform `consul` sur des preuves équivalentes à PostgreSQL, sans toucher aux states actifs.
 

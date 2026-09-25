@@ -1,137 +1,290 @@
 ---
-title: "Homelab IaC — Architecture"
-status: "Cible approuvée en principe; implémentation partielle"
-updated: 2026-09-24
-source_audit: "docs/audits/2026-09-24/"
+title: "Homelab IaC - Reconstruction architecture"
+status: "Approved requirements; technical recommendations pending operator review"
+updated: 2026-09-25
 ---
 
-# Architecture de `homelab-iac`
+# Canonical Reconstruction Architecture
 
-> **Contrat du projet :** reproduire une infrastructure Proxmox compatible sur du matériel remplaçable, réconcilier un cluster déjà géré et reconstruire le *control plane* depuis un contrôleur indépendant. Les services et leur configuration technique sont dans le périmètre; les données personnelles et les sauvegardes générales des utilisateurs ne le sont pas.
+Reconstruct desired functionality and irreplaceable technical state, not the
+old arrangement of guests and workarounds. This is the single current design.
+[Roadmap](roadmap.md) owns sequencing; [tasks](../tasks/README.md) own acceptance.
+Nothing here authorizes implementation, allocation, deployment or migration.
 
-Ce document décrit **l'architecture visée** et distingue explicitement les éléments existants des évolutions proposées. L'audit du 24 septembre 2026 décrit la situation observée au commit `fd4435e`; il ne certifie pas les évolutions ultérieures. Pour la preuve historique, consulter [l'état courant audité](audits/2026-09-24/current-state.md), [les dépendances](audits/2026-09-24/dependency-and-bootstrap.md), [la modularité](audits/2026-09-24/modularity-and-portability.md) et [les states et la récupération](audits/2026-09-24/state-and-recovery.md).
+## Decisions and evidence
 
-## 1. Décisions et frontières
+| Classification | Direction |
+| --- | --- |
+| APPROVED OPERATOR REQUIREMENTS | Proxmox virtualization; K3s preferred for suitable workloads; Flux initial GitOps candidate; Terraform infrastructure, Ansible OS/cluster bootstrap, GitOps Kubernetes applications, Infisical runtime secrets; TrueNAS centralized application storage |
+| APPROVED OPERATOR REQUIREMENTS | A: three separate server VMs with embedded etcd on pve-lab, NOT physical HA. B: one server VM each on core/compute/lab. C: mini-PC A, mini-PC B, core; initially 8 GB per mini-PC, upgrade to 16 GB |
+| APPROVED OPERATOR REQUIREMENTS | Local system/etcd disks; no Longhorn/Ceph; accept TrueNAS-dependent application outage. Preserve workstations. GitHub code, iCloud ciphertext, independent offline decryption; no synced active state |
+| TECHNICAL RECOMMENDATIONS | Single operator/local Terraform authority initially; 3 x 2-vCPU/3-GiB Stage A; modest baseline networking, explicit ingress ownership; foundational DNS/Infisical/Forgejo outside Kubernetes initially; workload-specific DB/storage |
+| UNRESOLVED DECISIONS | Recommendation acceptance, live allocations/capacity, API endpoint/VIP, CIDRs, mini-PC hypervisor choice, TrueNAS version/CSI compatibility, independent service backups, custody, ingress/TLS, service DB choices and eventual shared backend |
+| IMPLEMENTED AND VERIFIED | Only existing code and dated evidence below. No K3s, Flux, CSI or target-service migration implemented or qualified |
 
-- **Self-hosted en exploitation :** Proxmox pour les ressources, Terraform pour le provisionnement, Ansible pour la configuration, Forgejo et ses runners pour la CI/CD, Infisical pour les secrets courants. Le backend de state sera choisi entre PostgreSQL et Consul après qualification; Garage n'est pas un backend Terraform autorisé.
-- **Dépendance externe minimale :** GitHub fournit une copie récupérable du code *après vérification de sa fraîcheur*; un cloud externe transporte les générations chiffrées du Recovery Kit. Ce cloud n'est jamais un backend actif.
-- **Périmètre de réutilisation :** composants portables entre environnements Proxmox compatibles; pas de promesse de fonctionnement universel sur tous les hyperviseurs ni de migration automatique de GPU/USB.
-- **Monorepo d'abord :** extraire un module interne lorsqu'une deuxième utilisation et ses tests le justifient. Ne pas créer un framework, un ordonnanceur ou plusieurs dépôts avant d'avoir des interfaces éprouvées.
-- **État technique des services :** configuration, comptes techniques, politiques, clefs et identité sont déclarés ou identifiés comme éléments à restaurer. L'IaC ne reconstitue pas les données mutables qu'il ne possède pas.
-- **Séparation de propriété :** une ressource réelle n'a qu'un propriétaire IaC. Terraform gère l'objet Proxmox; Ansible gère l'OS et le service; Compose gère les processus monitoring prévus. Documenter toute exception, notamment l'affinité et les hooks des workstations.
+### Actual baseline
 
-## 2. Situation vérifiée au dernier audit
+Repository at c636d1f: eight Terraform roots, zero child modules, six local
+state files; controller/example have no state. Fourteen Ansible playbooks,
+nine roles, monitoring Compose and CI image source. No Kubernetes app definitions.
+State presence/structure rechecked without printing attributes or private inputs.
 
-| Domaine | État au 2026-09-24 | Limite à ne pas masquer |
+| Evidence | Known result | Limit |
 | --- | --- | --- |
-| Terraform | Sept roots dont six stacks; **zéro module enfant**; six states locaux | Aucun state de stack n'est distant; les copies adjacentes ne constituent pas une récupération hors contrôleur. |
-| Ansible | Neuf rôles, treize playbooks | Les rôles ne sont pas tous génériques ni démontrés idempotents sur un hôte vierge. |
-| CI | Deux workflows, dont validation sans credentials de production | La validation ne couvre que trois roots; tests backup et scan Gitleaks absents du workflow actuel. |
-| Runner | CT301 active et service observé; registre et identité requis pour les jobs | Le socket Podman rootful est une frontière de privilège; reconstruction complète non démontrée. |
-| PostgreSQL | CT300, opérations et locking qualifiés via SSH; backup logique restauré | Écoute loopback, certificat définitif, identités, sortie réseau CI et récupération complète en attente. |
-| Consul | Non déployé | Pas de backend sélectionné. |
-| Services fondamentaux | Plusieurs endpoints observés actifs | Infisical, Forgejo, AdGuard, Caddy, hôtes et stockage ne sont pas entièrement décrits/restaurables par ce dépôt. |
-| Portabilité | Roots spécifiques à `doku-lab`; matériels passthrough explicités | Aucun second profil déployé; l'adoption des VM workstations ne reconstruit pas leurs disques OS. |
+| Audit fd4435e, 2026-09-24 | Four Proxmox hosts; CT301 runner, CT300 PG candidate, CT209 Garage, VM207 Infisical, VM208 monitoring, DNS/proxy guests; Forgejo endpoint on TrueNAS | Historical, not complete current service/recovery proof |
+| Code and previous qualifications | CT/runner/PG/Garage automation; PG disposable locking/crash/isolation/logical restore; Garage native Terraform locking rejected | No production backend or full host recovery qualified |
+| Live quality CI | Operator-reported run139/01ccefb; directly observed run24/8c12871 and run25/c636d1f success; eight roots in latest workflow | Not deployment, recovery or runner isolation; Tasks010/020 security criteria unchanged |
+| Earlier Task035 preflight, 2026-09-25 | pve-lab 32 threads/~30 GiB usable RAM, ~27.5 GiB available; workstations already stopped; local import/lab-vms capacity | Not concurrent peak capacity or permission to stop a workstation |
+| Recovery preparation | GitHub independently matched c636d1f; synthetic manifest checks; PBS metadata and OCI digests inspected | No produced/decrypted kit, independently restored technical payloads or completed DR |
+| Operator statements in this request | TrueNAS dedicated application SSD and 10 GbE uplink; mini-PC 8-to-16 GB intent | No measured latency/endurance, client bandwidth or future hardware deployment |
 
-**Cas particulier :** l'ancien root du runner possède un state historique associé à l'ancien CT300, maintenant réutilisé par PostgreSQL. Ne jamais confondre ces deux états, supprimer le state ancien ou importer des ressources pour « nettoyer » sans contrat de propriété approuvé.
+Task035 preflight remains intact: VMID603/.32 are unapproved proposals, DHCP
+exclusion unknown; no plan/apply/start/convergence. It becomes an optional test
+host for portable recovery, not a mandatory first guest. No new live inspection
+was needed in this architecture review. Nextcloud/Plex/torrent actual layouts
+and versions remain UNKNOWN. See immutable [audit](audits/2026-09-24/current-state.md)
+and [recovery inventory](recovery-kit-preparation.md).
 
-## 3. Couches d'architecture
+## Topology and sizing
 
 ```mermaid
-flowchart TB
-    E["Tier 0 — GitHub + Recovery Kit chiffré + contrôleur de confiance"]
-    F["Tier 1 — réseau, hôtes Proxmox, stockage et accès initiaux"]
-    C["Tier 2 — backend de state, Infisical, Forgejo, registre et CT301"]
-    S["Tier 3 — services partagés : DNS, proxy, monitoring, Garage…"]
-    W["Tier 4 — workstations, services applicatifs et laboratoires"]
-    E --> F --> C --> S --> W
+flowchart TD
+  X[Independent Mac or Linux + GitHub + encrypted recovery material] --> P[Proxmox / local disks]
+  P --> A[Stage A: three server VMs on pve-lab]
+  A -. separate qualification .-> B[Stage B: core + compute + lab]
+  B -. controlled member transition .-> C[Stage C: mini A + mini B + core]
+  N[TrueNAS centralized application data] --> W[Kubernetes stateful workloads]
+  C --> W
+  E[External DNS / Infisical / Forgejo / registry] --> W
+  X --> E
+  X --> N
 ```
 
-Ce diagramme exprime les **niveaux de responsabilité**, pas un ordre de démarrage universel. Le graphe réel place par exemple le DNS/PKI, TrueNAS et le registre en amont de certaines étapes du control plane; voir [l'audit des dépendances](audits/2026-09-24/dependency-and-bootstrap.md). Un chemin de secours adressé directement doit rester possible lorsque le DNS normal est indisponible.
-
-### Tier 0 — indépendant du homelab
-
-Contrôleur remplaçable, version du dépôt externe vérifiée, states de bootstrap récupérables, inputs privés nécessaires, accès de secours et clés de déchiffrement. Le Recovery Kit comporte des **copies scellées et datées**, jamais une deuxième copie active du state. Clé de déchiffrement utilisable via le trousseau iCloud, avec une voie indépendante hors ligne et récupération du compte cloud prévue.
-
-### Tier 1 — fondations physiques
-
-Un hôte Proxmox, son réseau, ses bridges, son stockage et les templates ou artefacts nécessaires doivent exister avant le déploiement des invités. Ces prérequis physiques ont aujourd'hui des procédures principalement manuelles : ne pas les présenter comme Terraform-managed.
-
-### Tier 2 — control plane
-
-Le bootstrap doit être lançable depuis le Tier 0. Il restaure ou configure progressivement les dépendances indispensables : DNS/trust minimaux, secret recovery d'Infisical, backend de state, Forgejo/registre et runner. L'ordre précis vient du graphe audité et du matériau de récupération disponible; le runner et Infisical ne sont pas des prérequis du *premier* Terraform bootstrap.
-
-### Tiers 3 et 4 — services et workloads
-
-Chaque service doit fournir son contrat de reproductibilité : provisions, configuration déclarative, identité technique, éventuel état applicatif à restaurer et validation d'une seconde convergence. Les workloads matériels (gaming/GPU/USB) doivent disposer d'un profil hôte et de prérequis explicites.
-
-## 4. Contrat des composants réutilisables
-
-| Couche | Responsabilité | Ne doit pas contenir |
+| Stage | Proposal / budget | Failure domain and approval |
 | --- | --- | --- |
-| Module Terraform | Créer un objet de ressource; entrées claires et outputs utiles | IP, node, storage et identité propre à un seul homelab codés en dur |
-| Rôle Ansible | Installer et configurer une capacité/service | Hypothèses non déclarées sur l'inventaire ou orchestration d'un autre service |
-| Blueprint/composition | Associer des modules et rôles avec prérequis, vérifications et limites | Moteur d'exécution maison ou état Terraform concurrent |
-| Environnement | Sélectionner placement, ressources, réseau, domaines, secrets *par référence* | Credentials en clair et duplication de logique commune |
-| Workflow | Ordonner bootstrap, reconcile ou recover en réutilisant les mêmes composants | Import/destroy/adoption automatiques fondés seulement sur la découverte |
+| Current | infra: DNS/proxy; core: critical infrastructure; compute: runner/bots; lab: workstation pool; TrueNAS/PBS services | Existing ownership unchanged; full physical backup independence unknown |
+| A development | Three distinct headless Debian VMs, each 2 vCPU, 3 GiB RAM, 32 GiB local SSD-backed system/etcd disk; workloads on servers initially | Same physical host/power/storage. 9 GiB cluster + 16 GiB workstation + ~3 GiB host = ~28 GiB: narrow margin on ~30 GiB usable. No guaranteed concurrent 4-GiB recovery VM |
+| B distributed | One server VM per core/compute/lab, using measured A sizing | Verify critical core and bot-heavy compute headroom. Two survivors must support quorum AND required workloads; separate live approval |
+| C permanent | Prefer Proxmox + one VM per mini if measurements fit: 8 GB physical, reserve ~2 GB host overhead, 3-4 GiB VM, remaining safety margin; at 16 GB consider 6-8 GiB VM after measurement | Bare metal gives more RAM/fewer layers but loses uniform VM lifecycle/isolation/console and needs separate host install/recovery ownership. Decision before purchase/deployment, no 32-GB requirement |
 
-Le terme « blueprint » est un **contrat documentaire et une composition**, pas un nouveau format obligatoire. Les interfaces initiales doivent être minimales et vérifiées par deux profils avant extraction externe.
+Budgets are proposals, not allocations or performance guarantees. Before A apply,
+measure ordinary running workstation + host use; retain at least 2 GiB headroom.
+Do not stop/shrink workstations to pass. If 3 GiB/node is insufficient, negotiate
+capacity or placement first. Proposed scaling triggers: sustained host headroom
+below 2 GiB, OOM, node MemoryPressure/DiskPressure, etcd fsync warnings or service
+latency beyond its agreed budget => stop adding workloads and measure. Establish
+24-hour representative workload baseline and one-node-loss capacity before B.
+Review storage below 20% free or inadequate restore/snapshot space. These are
+not configured alerts or approved RPO/RTO/SLOs.
 
-### Abstraction du matériel
+Upstream minimums do not include our application fleet. Three embedded-etcd
+servers tolerate one member failure, not their shared host's failure.
+[K3s requirements](https://docs.k3s.io/installation/requirements),
+[etcd quorum](https://docs.k3s.io/datastore/ha-embedded).
 
-Le prérequis 035 ajoute un petit root Linux headless à state local séparé,
-sans tag/hook workstation ni passthrough. Le root workstation conserve ses
-adresses et propriétés, avec GPU/USB désormais optionnels et anciens defaults
-préservés. Aucun déplacement d'état ou déploiement live : voir
-[procédure et limites](headless-controller.md).
+## Ownership and interfaces
 
-Séparer **besoin logique** et **capacité de l'environnement** : hôte compatible, storage ID, datastore de template, bridge/VLAN pris en charge, capacité CPU/RAM, adresse attribuée, accès SSH. Les mappings PCI/USB, IOMMU et CPU pinning restent des profils physiques spécifiques, avec contrôle explicite avant l'apply. Une machine de remplacement peut exiger une adaptation approuvée, pas une réécriture des rôles génériques.
-
-## 5. Trois modes, un même code
-
-| Mode | Point de départ | Garde essentielle |
+| Sole writer | Responsibility | Explicit boundary |
 | --- | --- | --- |
-| **Bootstrap** | Contrôleur indépendant et fondations joignables | Autorisation et state de bootstrap récupérés sans backend distant ni runner |
-| **Reconcile** | Services de contrôle et state faisant autorité disponibles | Plan revu, locks du backend, idempotence, opérations non destructives par défaut |
-| **Recover** | État partiellement perdu ou divergent | Geler les writers, identifier la génération faisant autorité, restaurer/importer seulement après revue |
+| Terraform | Proxmox VM/disk/NIC lifecycle in per-environment roots | No app manifests, guest packages or etcd membership surgery; existing addresses/states unchanged |
+| Ansible | OS/users/trust/time, pinned K3s config/binaries, controlled joins/upgrades/removals; initial Flux bootstrap | Hand off app objects to Flux; never continuously manage the same Helm release or app resource |
+| Flux | Reviewed Kubernetes platform/application manifests and Helm releases from protected ref | No Proxmox state/credentials; one bootstrap root and explicit management hand-off |
+| Infisical | Runtime secrets/scoped identities | Select one Kubernetes secret-sync mechanism after review; its own DB/keys/first access recover outside itself |
+| TrueNAS administration | Pools/datasets/shares/quotas/encryption and storage guardrails | Later CSI owns delegated child volumes only, not objects simultaneously managed by Terraform/Ansible |
+| Make/operator | Narrow operator commands and approval sequencing | No new orchestration framework or automatic adoption |
 
-Un futur `doctor` pourra **observer** versions, trust, connectivité et présence des states. Il ne décidera pas seul d'adopter, de détruire ou de déplacer des ressources.
+Adapt the tested headless primitive into a small reusable component for new
+controller/cluster use. Task100 must not move workstation addresses. Environment
+maps select node/identity/storage/network/sizing without copying a whole stack.
+Use separate state for each environment. A node-variable change is NOT safe
+etcd migration: it may replace the VM. Join/remove one member at a time with
+quorum, fencing and snapshot checks, or explicitly rebuild a disposable cluster.
+Never clone live etcd disks or start two copies of one member identity.
 
-## 6. Autorité des states et reprise
+## Networking, ingress and trust
 
-Le [contrat Recovery Kit v1](recovery-contract.md) précise désormais l'autorité
-par root, le manifeste privé minimal et l'ordre de reprise indépendant.
-Contrat accepté par l'opérateur le 2026-09-25, pas un kit produit ou un restore
-vérifié. GitHub doku-code/homelab-iac et iCloud Drive (ciphertext uniquement)
-sont les destinations approuvées; staging hors sync, garde offline indépendante
-et inventaire ciblé sont détaillés dans la [préparation 040](recovery-kit-preparation.md).
-Le validateur synthétique ne prouve ni exhaustivité ni récupération. Les petits
-matériaux bootstrap et les références vers des payloads indépendants doivent
-tous être récupérables; une référence à un PBS perdu n'est pas une sauvegarde
-indépendante. 040 qualifie récupération/déchiffrement et contrôleur statique;
-050 fournit l'interface de secours, avant un drill live séparément autorisé.
+Recommend existing bridges initially only after approved IPs and pod/service
+CIDR overlap checks against LAN/VPN/future sites. Flannel/CoreDNS/network-policy
+baseline first, not a new CNI project. Private API; management sources restricted,
+etcd only between servers, required CNI/node ports scoped to peers. Deny workload
+access to management networks with tested policies and host/network controls;
+namespaces alone are not isolation. No public API, etcd or DB endpoint.
 
-Les six roots de stack sont locaux à la date de l'audit. Les roots nécessaires à la reconstruction du backend ou des fondations ne devront pas dépendre de ce même backend. La migration vers PostgreSQL ou Consul est ultérieure, root par root, avec vérification lineage/serial, sauvegarde scellée, absence de destination déjà active et preuve de locking.
+A can use a documented server API address with a tested manual alternate. B
+requires a stable independently reachable registration/API endpoint, TLS SANs
+and failover test. VIP/LB mechanism remains a task110 decision, not an allocation.
+Keep AdGuard and existing edge Caddy outside the cluster initially. The first
+app uses port-forward/internal test access, not production DNS/ingress changes.
 
-Le Recovery Kit v1 vise uniquement les matériaux d'infrastructure indispensables à une reprise indépendante; il ne duplique pas les données personnelles. Les bases/identités techniques d'Infisical et Forgejo, le trust DNS/PKI et les prérequis PBS/TrueNAS restent à inventorier et à tester. La restauration d'un invité et la reproduction de sa configuration ne sont pas équivalentes.
+Recommend one pinned Flux-owned Traefik release when ingress is needed, after
+disabling bundled Traefik on all servers. Explicitly decide ServiceLB ports and
+ownership; avoid competing ingress writers/listeners. Caddy remains an edge
+where justified, not a mandatory extra hop for every app. Review renewal,
+certificate ownership and public routes separately. K3s includes ingress/LB
+defaults: [networking services](https://docs.k3s.io/networking/networking-services).
 
-## 7. Sécurité et exécution CI
+Emergency access uses console/SSH and a protected address/fingerprint/CA map,
+not disabled host/TLS verification. Public DNS/time/downloads or verified cache
+must work without AdGuard. Reissue leaf certificates only after proving external
+DNS/CA/account recovery; preserving every old leaf certificate is unnecessary.
 
-**CI de qualité d'abord :** tests hors ligne, sans credentials de production, sans state réel, sans `apply` et uniquement dans une frontière runner explicitement approuvée. L'exécution de code non fiable sur le runner partagé est interdite tant que la frontière Podman rootful et l'accès réseau ne sont pas isolés et vérifiés.
+## Storage and databases
 
-**CD ensuite :** branche et revue protégées, identités minimales, state distant sélectionné et restaurable, plan exact approuvé, autorisation distincte d'apply, vérifications Ansible et de service. Le CI ne doit jamais utiliser un checkout vide comme source d'autorité pour des ressources existantes.
+TrueNAS is an accepted single data-availability dependency. Its uplink does not
+prove end-to-end latency, fsync safety or independent backups. K3s system disks
+and etcd remain on local host storage. No Longhorn/Ceph in this target.
 
-## 8. Sources de vérité et changement
+| Workload | Recommendation | Hard gate |
+| --- | --- | --- |
+| NFS-compatible/shared files | TrueNAS datasets, explicit UID/GID/ACL, quotas/export clients | Multi-client permissions, disconnect/reconnect and restore; retain production data on claim deletion |
+| SQLite | Single writer on filesystem over dedicated block volume, or native TrueNAS app; supported server DB alternative where useful | No shared NFS SQLite/WAL; prove old-writer fencing before remount on another node. RWO is not complete fencing proof |
+| PostgreSQL/other client-server DB | Per-app DB native on TrueNAS where simplest; K8s DB only after qualified block storage/backup | Roles/version/transaction consistency and isolated restore; no automatic DB-on-NFS recommendation |
+| Kubernetes block storage | Qualify maintained, installed-version-compatible TrueNAS CSI/iSCSI; static disposable volume first if compatibility unclear | Single attachment, stale attachment recovery, power loss, expansion, reclaim and backup. No production default StorageClass yet |
+| Monitoring data | Bounded retention/resources; outside observer remains | Decide expendable metrics vs retained Grafana identity/config; cluster loss must remain observable |
 
-Maintenir ce document lorsqu'une architecture réelle ou une décision approuvée
-change, conformément au [contrat de maintenance](../tasks/README.md#contrat-de-maintenance).
-Une conception approuvée reste cible tant que son implémentation et sa validation
-ne sont pas établies; les preuves détaillées résident dans la tâche ou le runbook.
+[SQLite WAL](https://www.sqlite.org/wal.html) excludes network filesystems.
+[TrueNAS CSI guidance](https://www.truenas.com/docs/solutions/integrations/csidriver/csidriver/)
+covers NFS/block choices; installed version and compatibility remain unknown here.
+No driver or storage credentials are provisioned. ZFS redundancy/snapshots are
+not independent backups. DB and file/blob snapshots need a consistent boundary.
 
-1. **État réel + state faisant autorité** : preuve d'exploitation, à lire uniquement via des opérations autorisées.
-2. **Code du dépôt** : comportement implémenté au commit examiné.
-3. **Ce document** : architecture et décisions projetées, révisées lorsque validées.
-4. **[Roadmap](roadmap.md) et [`tasks/`](../tasks/README.md)** : priorités et travail approuvé.
-5. **[Audit 2026-09-24](audits/2026-09-24/executive-summary.md)** : instantané historique, pas un statut live permanent.
+## Service reconstruction matrix
 
-Tout changement de propriétaire IaC, de backend, de root, de state, d'identité ou d'environnement critique nécessite une tâche séparée, des tests et une autorisation explicite. Aucun refactoring « esthétique » ne doit modifier des adresses de ressources ou la politique de cycle de vie sans plan vérifié.
+All placements are RECOMMENDATIONS, not migration authorization. The following
+two tables together form each service's twelve-part reconstruction contract.
+Current locations are dated evidence; versions/layouts not inspected stay unknown.
+Every stateful migration requires a service-specific compatibility, recovery,
+cutover and rollback task before any production writer changes.
+
+| Service / desired functionality | Bootstrap role; proposed placement/declaration | Secrets, identity and irreplaceable data; storage/DB |
+| --- | --- | --- |
+| AdGuard: LAN DNS/filtering | Normal bootstrap aid, emergency bypass required. REBUILD OUTSIDE KUBERNETES; Ansible config/service, Terraform guest after ownership review | Admin access, rewrites/filter policy/exceptions; local config; query history retention optional |
+| Caddy: TLS edge/routes/remote access | Normal control-plane routes, not sole recovery path. REBUILD OUTSIDE KUBERNETES; Ansible routes, simplify redundant proxies | DNS/tunnel credentials, account/CA material where irreplaceable, route policy; leaf certs reissuable with authority |
+| Infisical: scoped runtime secrets | Normal operations, never own recovery prerequisite. REBUILD OUTSIDE KUBERNETES initially; pinned supported deployment/dedicated DB | Consistent DB + matching encryption keys; projects/policies/identities/secret versions; independent backup |
+| Forgejo: Git/permissions/Actions/OCI | Not first recovery dependency. KEEP ON TRUENAS initially; declarative supported app/config rather than ad hoc runtime copy | DB/repos/app keys/Actions secrets/users/ACLs/registrations/package metadata+blobs; actual datasets unknown |
+| Runner and OCI: trusted execution/artifacts | Not needed for first cluster. REBUILD OUTSIDE KUBERNETES runner; existing Ansible role; digest-pinned artifacts | Matching registrations/tokens and pull access; independently preserve OCI blobs/manifests or qualify external rebuild; no host workload secrets |
+| Vaultwarden: vaults/accounts | Not sole break-glass store. DEFER UNTIL DEPENDENCIES QUALIFIED, then REBUILD IN KUBERNETES if storage safe | DB, attachments/sends, identities/encryption-related state; safe single-writer block or supported server DB, never replace vault with empty DB |
+| Homepage: service navigation | No bootstrap requirement. REBUILD IN KUBERNETES after disposable demo; versioned config/manifests | Scoped widget secrets; config/customizations; normally no DB |
+| Wiki.js: knowledge/documents | Not recovery source of record. REBUILD IN KUBERNETES after synthetic DB restore | DB/accounts/content/uploads/auth identities; dedicated logical DB + file dataset |
+| Nextcloud: files/shares/collaboration | No bootstrap requirement. KEEP ON TRUENAS initially; supported app configuration | Consistent DB/config/user-files, instance identity/salts/keys, ACLs and app compatibility; actual layout unknown |
+| Plex: media/transcoding | No bootstrap requirement. KEEP ON TRUENAS if hardware fits, otherwise dedicated media host | Library DB/metadata/account identity; media separate; GPU access/capacity to verify |
+| qBittorrent/Gluetun: VPN-confined transfers | No bootstrap requirement. KEEP ON TRUENAS initially as scoped app/Compose workload | VPN credentials, session/resume/config and download files/permissions; confinement mandatory |
+| Garage: internal object API if demanded | No bootstrap role. RETIRE IF NO LONGER REQUIRED, otherwise dedicated service pending consumer contract | Objects + metadata/layout/RPC identity; never Terraform state backend under rejected qualification |
+| Monitoring: metrics/alerts/diagnostics | Outside observer supports recovery. ADAPT external observer + GitOps cluster collectors | Grafana identities/config, alerts/silences and selected history; bounded storage, no blind volume copy |
+| Databases / CT300 tfstate | Per-service logical isolation; KEEP outside initially where simpler, conditional K8s DB later | Roles/grants/data/backup keys; CT300 remains candidate, zero production state; not Infisical DB or K3s etcd |
+| D2 bots/workstations/compute | KEEP ON DEDICATED COMPUTE/HARDWARE; Terraform guest shape, Ansible capabilities | OS/license/auth/session/app/user state; CPU/GPU/USB/latency constraints; not automatic Kubernetes candidates |
+| Print/peripherals | KEEP ON DEDICATED COMPUTE/HARDWARE until device contract established | Device/queue/config/access; no blanket retirement of unmodeled guests |
+
+| Service | DNS/access; backup/restore and health acceptance | Cutover/rollback; discardable implementation |
+| --- | --- | --- |
+| AdGuard | LAN DNS; encrypted config recovery; forward/reverse/filter and internal-DNS-loss tests | Parallel resolver then reviewed client change, restore prior config; CT200/path incidental |
+| Caddy | Approved edge routes only; protected config/accounts; TLS renewal + direct emergency tests | Test hostname then route switch/rollback; manual edits and needless proxy layers disposable |
+| Infisical | Restricted TLS/admin access; DB+key restore; allowed/denied identity-scope tests | Freeze writes, restore isolated, switch/fence old writer; old VM shape/path incidental |
+| Forgejo | HTTPS/SSH/Git/registry; coherent DB/repos/blobs backup; clone/push/ACL/package-pull tests | Freeze pushes/jobs/packages for final sync; one writer; rollback must include new writes/schema compatibility, not stale DB; current app mechanism changeable |
+| Runner/OCI | Polling/scoped registry; encrypted identity and artifact catalogue; harmless job/pull/isolation tests | Stop original before matching identity starts; exactly one registration writer; legacy labels/CT300/caches not requirements |
+| Vaultwarden | TLS/restricted admin; protected full data set; synthetic login/sync/attachment restore | Maintenance/final sync, one writer; rollback reconciles new vault writes; CT206/runtime incidental |
+| Homepage | Internal HTTPS; config + secret recovery; widget/least-privilege tests | Parallel URL, route switch/config rollback; CT201 incidental |
+| Wiki.js | TLS/auth; DB+files backup; edit/search/upload/restore tests | Read-only old source, final sync, one writer; schema-compatible reverse path; CT202/path incidental |
+| Nextcloud | TLS/WebDAV/trusted proxies; DB/config/files consistent backup; file hashes/shares/permissions/jobs tests | Maintenance/final sync; retain immutable recovery point, reconcile writes before rollback; current version/runtime not automatically fixed |
+| Plex | Restricted access; DB/config backup + independent media policy; playback/transcode/library tests | Isolated metadata test then one writer; prior version only with compatible DB; container details incidental |
+| Torrent/VPN | Private UI, VPN-only egress; config/session backup; kill-switch/leak/restart tests | Pause transfer, coherent session handover, one instance; wrapper replaceable, confinement not |
+| Garage | Private endpoints; object+metadata restore/API tests if kept | Inventory consumers before retirement; protect bytes/keys until accepted; CT209/backend experiment not reason to keep it |
+| Monitoring | Internal UI/constrained scrape+alert egress; config/selected data backup; scrape/alert/cluster-loss tests | Parallel collection then deduplicated alert switch; old observer retained until acceptance; Compose topology not sacred |
+| Databases | Private native TLS, no HTTP proxy; engine-native backup/isolated restore, role/transaction/lock tests | Fence old writer, require schema rollback compatibility; shared DB server/candidate sunk cost not a requirement |
+| D2/compute/workstations | Restricted management; OS/app recovery sets; actual workload/peripheral acceptance | Own approved window, never stopped by cluster tasks; VM numbering incidental but current state identity protected |
+| Print/peripherals | LAN-only access; queue/device recovery and real print test | Retain original until qualified replacement; Kubernetes rewrite not presumed beneficial |
+
+First workload: public pinned stateless demo, zero production data/credentials.
+Prefer maintained upstream charts when they meet a service contract; verify
+support/version then, not an invented universal chart migration.
+
+## Availability and recovery
+
+| Failure | Automatic behavior / accepted outage | Manual recovery and required proof |
+| --- | --- | --- |
+| One server VM | Two members retain quorum; stateless replicas can reschedule only with capacity/placement | Test API/endpoint and rescheduling; local data/block fencing may prevent automatic recovery |
+| One physical host | A loses all cluster nodes; B/C can retain quorum with one server lost | Approved member rebuild and fencing; surviving workload/storage/network capacity separately proven |
+| TrueNAS unavailable | Dependent apps/DBs unavailable by accepted design; local etcd/API may remain | Restore storage and consistency before app writes; no forced duplicate DB writer; Forgejo on NAS also affected |
+| DB outage/corruption | App outage; restarting a pod is not data repair | Freeze, isolated compatible restore, verify roles/data, approve promotion; RPO/RTO measured later |
+| Forgejo/registry down | Existing workloads may run; reconcile/new pulls/builds may fail | External source and artifacts; explicit reviewed source recovery, no automatic untrusted upstream failover |
+| Infisical down | Cached/materialized secrets may survive; expiry/new startup/rotation may fail | External DB+key recovery, narrow independent bootstrap access; no guaranteed availability from cache |
+| Complete K3s loss | No automatic recovery claimed | Independent controller: reconstruct nodes; snapshot+matching token OR fresh GitOps rebuild plus service restores, with identity requirements decided |
+| Controller/whole homelab lost | Complete recovery NOT VERIFIED | Independent Mac/Linux, source, ciphertext, offline decryption and console access; restore foundations before dependent services |
+
+Recommend native reproducible tools on Mac ARM64/Linux AMD64, optional disposable
+VM adapter. A Forgejo-only recovery container image would recreate the bootstrap
+cycle, so it cannot be mandatory. Reuse pins/requirements and small Make interfaces,
+not a new recovery OS or orchestration product.
+
+Order: independent machine/code/decryption -> physical console/network/time/trust
+-> Proxmox/local storage and TrueNAS/PBS prerequisites -> DNS/PKI and external
+Infisical/Forgejo recovery as required -> authoritative states/cluster bootstrap
+or restore -> Flux from reviewed external code -> app DB/files -> verify and
+explicitly return one writer to operation. Disposable K3s can use public artifacts
+and isolated test tokens without production secrets or a full production kit.
+
+Separate: small encrypted kit (authority map/private inputs/break-glass/trust/
+key custody/technical-backup receipts); service backup sets; bulk personal/media
+backups; public rebuild code/artifacts. Required independent bytes must actually
+exist, not only a PBS pointer. A preserved K3s snapshot also needs its matching
+server token; protect both as sensitive material, outside failed cluster custody.
+[K3s backup/restore](https://docs.k3s.io/datastore/backup-restore).
+The archive's sole decryption method must remain outside that archive.
+
+[Recovery contract](recovery-contract.md) authority/custody rules remain valid.
+Adapt the hardcoded six-root verifier before capturing new states; its structural
+PASS does not prove complete catalogue or Git bundle validity. Synthetic tooling
+first; real export/decryption/drill separately approved. No plaintext synced
+staging, no production kit on test VMs by default.
+
+## Backend and ownership transitions
+
+Recommend local state and one designated operator writer initially, with protected
+independent captures. It does not coordinate separate controllers/copies; no CI
+applies or automatic stale fallback. [Terraform local locking](https://developer.hashicorp.com/terraform/language/backend/local).
+Before multi-writer/protected infrastructure CD, Task080 evaluates requirements.
+External PostgreSQL is a leading conditional option due to existing evidence,
+not sunk cost: verify-full/identities/network/full recovery remain gaps. Consul
+adds another quorum service without established need; defer unless a concrete
+requirement justifies it. Garage remains rejected. Never host bootstrap state
+inside the cluster it must recover. No backend selection/migration occurs here.
+
+Ownership transition: privately inventory address/lineage, freeze all writers,
+verify recovery set, review mapping/import/state move only if necessary, approve
+no-unexpected-replacement plan, transfer once and fence previous writer. No root
+refactor combined with backend migration. New nodes use new state without adopting
+old guests. App transitions use isolated target/coherent restore/single-writer
+cutover; keep old resource and rollback point until acceptance. Never blindly
+destroy existing resources or run duplicate DB/runner identities.
+
+## Existing work disposition
+
+| Workstream | Classification | Reason / successor |
+| --- | --- | --- |
+| Existing roots and local authorities | KEEP | Real ownership protected; no cleanup of addresses/states in planning |
+| Headless VM primitive | ADAPT | Tested base for three new nodes; Task100, no workstation moves |
+| Dedicated controller035 | ADAPT, optional/deferred | Portable050 primary; proposed VM603/.32 remains unapproved |
+| Controller deps/guest Ansible | KEEP / ADAPT | Reuse tools/OS ownership, add K3s lifecycle; no workstation host role on cluster nodes |
+| Mandatory LXC-first090 | RETIRE as roadmap prerequisite | No demonstrated second LXC use case; active CT code stays |
+| Recovery contract030 | KEEP | Independent custody and single authority still required |
+| Kit040 tooling | ADAPT | Separate portable synthetic checks from production completeness, evolve inventory deliberately |
+| Independent controller050 | ADAPT | Mac/Linux first; full kit and VM not prerequisite for synthetic implementation |
+| Mandatory PG/Consul060/070 sequence | REPLACE | Requirements-led080; no forced Consul deployment |
+| Forgejo quality CI | KEEP | Working checks; expand only for new code, never grant deployment privileges |
+| Shared runner trust | ADAPT | 010 unresolved; no production cluster-admin or state credentials on shared quality path |
+| Infisical authority | KEEP / ADAPT | Preserve runtime authority; explicit bootstrap and Kubernetes sync scope |
+| Monitoring Compose | ADAPT | Keep external observation; cluster collectors by need; exporter/Compose coupling deferred |
+| Existing services | UNDECIDED per service until qualification | Preserve required function/data, not every legacy deployment |
+| Garage backend direction | RETIRE | Failed locking; object service continuation needs a real consumer |
+
+## Operator decisions before implementation
+
+Approve recommendations and first code-only Task100. Review actual A capacity/
+allocations before plan; pinned K3s/API/CIDRs before bootstrap; storage/fencing
+before stateful tests; payload/custody before migrations; B/C capacity/member
+transition before live relocation; backend and runner security before privileged CD.
+
+Flux reads reviewed code; generic bootstrap writes manifests to Git and needs
+an explicit ownership/credential hand-off, not silent invocation.
+[Flux installation](https://fluxcd.io/flux/installation/).
+Quality CI must never receive production kubeconfig, state or Infisical credentials.

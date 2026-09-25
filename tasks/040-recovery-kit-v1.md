@@ -1,10 +1,20 @@
 # 040 — Recovery Kit v1 chiffré et restauration sans écriture
 
-- **Statut :** IN_PROGRESS — préparation repository-only; production/export/drill BLOCKED par inventaire, garde et autorisations
+- **Statut :** ADAPTED / BLOCKED pour production; préparation synthétique implémentée
 - **Permission initiale :** OFFLINE_CODE; export sensible et transfert demandent une autorisation explicite
-- **Dépendances :** 030 accepté; capability 035 avant essai VM; staging non synchronisé, garde indépendante, inventaire complet et gel des writers avant capture
+- **Dépendances :** 030 accepté; portable050 pour essai indépendant (035 facultatif); staging non synchronisé, garde indépendante, inventaire complet et gel des writers avant capture
 
 ## Objectif
+
+Reconstruction target revision 2026-09-25: this production recovery track is
+NOT a prerequisite for disposable100/110/120. Separate synthetic portable tests
+from sensitive capture. Extend required inventory deliberately when new states
+exist; preserve the existing six-root verifier/evidence until that code task.
+K3s technical recovery must include snapshot plus matching server token if
+cluster identity is preserved, or an explicit clean-rebuild/service-restore
+contract. Bulk user bytes remain in separate backup policy. Architecture and
+roadmap supersede the earlier backend-first ordering; 140 owns production DR.
+Observed preparation CI run25/c636d1f passed, not a kit recovery test.
 
 Créer une génération datée **chiffrée avant envoi** contenant le minimum nécessaire au bootstrap, puis prouver qu'elle est récupérable sur un autre contrôleur de confiance. Le cloud est un transport de copies scellées, jamais un backend Terraform.
 
@@ -82,4 +92,4 @@ indépendamment du succès 035; aucun succès de récupération n'est revendiqu�
 Ce test qualifie la disponibilité du kit et le bootstrap statique du contrôleur,
 pas la récupération applicative. L'interface de secours et la vérification
 read-only de Proxmox restent 050; restaurations isolées de fondations/services
-en 080-B, après inventaire F1. Aucun backend PostgreSQL/Consul choisi ici.
+en 140-C, après inventaire ciblé et sauvegardes indépendantes. Aucun backend choisi ici.

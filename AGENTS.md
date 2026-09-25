@@ -48,6 +48,10 @@ Use the existing ownership model:
   - container configuration;
   - local service dependencies.
 
+- GitOps (target, not yet deployed):
+  - reviewed Kubernetes application/platform desired state;
+  - explicit hand-off from Ansible bootstrap, never competing object writers.
+
 - Infisical:
   - secrets;
   - credentials;
@@ -492,6 +496,23 @@ If the requested work reveals unrelated technical debt, mention it separately in
 
 ## Architecture Quality
 
+The canonical target in docs/architecture.md reconstructs desired functionality
+and irreplaceable state, not incidental historical deployments. For each service
+separate functionality, declarative configuration, mutable data/identity and
+discardable implementation detail. Kubernetes placement is not automatic.
+Approved direction: Proxmox, K3s and initial Flux candidate, TrueNAS centralized
+application storage; no Longhorn/Ceph. Local K3s system/etcd disks are required.
+Three server VMs on pve-lab are a development topology, not physical HA.
+Distributed/permanent placement requires new capacity/failure-domain approvals.
+Never equate pod rescheduling, ZFS snapshots or CI success with data recovery.
+
+Portable Mac/Linux recovery is independent of the homelab; a pve-lab controller
+VM is an optional test adapter, not a dependency for recovering pve-lab. Full
+production kit qualification is not required for disposable stateless learning,
+but service recovery/cutover proof is mandatory before irreplaceable data moves.
+Existing resource/state ownership and historical evidence remain protected even
+when their implementation is marked REPLACE or RETIRE. No automatic deletion.
+
 Prefer architecture that is:
 
 - easy to understand;
@@ -591,8 +612,8 @@ runner identity.
 
 Forgejo's OCI registry should store real repository-owned build artifacts,
 preferably under immutable commit-SHA tags. Do not create placeholder images or
-populate the registry merely for appearance. The local `cem-ci:latest` image
-is a future migration candidate, not an artifact to publish automatically.
+populate the registry merely for appearance. Historical local image names are
+evidence, not the target; inspect actual digest/label before artifact transitions.
 
 ## Project Navigation and Milestone Discipline
 
@@ -641,8 +662,9 @@ contract or a verified recovery artifact.
 
 ## Near-Term CI Quality Gate
 
-The immediate implementation sequence is the CT301 runner trust/health
-preflight followed by validation-only CI on authorized refs. CT301 uses a
+Quality CI is functional; unresolved CT301 trust findings remain an independent
+security gate, not a claim that no CI has run. Follow the current reconstruction
+roadmap for implementation ordering. CT301 uses a
 rootful Podman socket: do not treat a job as safe merely because it receives
 no secrets. Do not allow untrusted pull-request code to access that socket,
 host resources, privileged connections, or production state.

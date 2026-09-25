@@ -1,6 +1,17 @@
 # Recovery contract and Recovery Kit v1
 
 Status: **ACCEPTED CONTRACT (2026-09-25); kit production/recovery not tested**.
+
+Reconstruction amendment: [architecture](architecture.md) and [roadmap](roadmap.md)
+now govern placement/order. Single state authority, independent custody and
+consistent payload recovery remain accepted. Portable050 synthetic work need
+not wait for production040; controller035 VM is optional. K3s learning may
+precede a full kit, but production data migration may not bypass recovery gates.
+The inventory below describes current six authorities, not all future states.
+New cluster roots require a reviewed inventory/schema update. K3s preserved
+cluster recovery includes etcd snapshot and matching server token in protected
+independent custody; clean rebuild must separately restore service data/identity.
+Bulk personal backups, service technical backups and small kit remain distinct.
 Owner: operator. Task [030](../tasks/030-state-recovery-contract.md) owns this
 contract; [040](../tasks/040-recovery-kit-v1.md) produces/tests a kit and
 [050](../tasks/050-independent-controller.md) implements independent controller
@@ -192,8 +203,9 @@ Task040 proves one independently retrieved/decrypted generation, exact state/
 input inventory and fresh-controller tool/static checks while internal services
 are unreachable. A test-only export is not full-control-plane recoverability:
 every required referenced payload must also be retrievable or remain BLOCKED.
-Task050 then implements/proves the emergency interface and authorized read-only
-trust checks. Full isolated service/data restore follows under 080-B. The
+Task050 implements/proves the portable interface and authorized read-only
+trust checks; its synthetic phase can run before040. Full isolated service/data
+restore follows under140-C. The
 specific decisions and pass/fail gates are maintained in [040](../tasks/040-recovery-kit-v1.md),
 not duplicated across runbooks. No restore time or recovery-point guarantee
 exists until measured in the relevant drill.

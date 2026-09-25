@@ -1,5 +1,11 @@
 # Headless recovery-controller capability
 
+Current direction: [portable050](../tasks/050-independent-controller.md) is the
+primary recovery environment; this VM is an optional test adapter. Its tested
+headless primitive is adapted for new cluster nodes in100, not deployed by this
+architecture review. The procedure below remains gated, not the next mandatory
+action. Previous VM603/.32 proposal is unapproved and unchanged.
+
 Task035: repository implementation only, no VM allocation/deployment or guest
 convergence. A green mocked test is not a live no-op or a working cloud image.
 

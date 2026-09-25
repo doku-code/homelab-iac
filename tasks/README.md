@@ -49,23 +49,35 @@ résultats datés; **LIVE VERIFIED** = exécution réelle identifiée, environne
 et limites enregistrés. Aucun niveau n'implique automatiquement le suivant.
 Les permissions live demeurent séparées de ces statuts.
 
-## File initiale de référence
+## Current reconstruction queue
 
-| Ordre | Tâche | Statut initial | Permissions au départ |
-| --- | --- | --- | --- |
-| 00 | [Intégrer la baseline](000-project-baseline.md) | READY | OFFLINE_CODE |
-| 01 | [Frontière de sécurité du runner](010-runner-trust-preflight.md) | READY après 00 | READ_ONLY + OFFLINE_CODE |
-| 02 | [CI qualité sans secrets](020-ci-quality.md) | PLANNED après 01 | OFFLINE_CODE |
-| 03 | [Contrat d'autorité des states](030-state-recovery-contract.md) | READY après 00; parallèle à 01–02 | READ_ONLY + OFFLINE_CODE |
-| 03b | [Contrôleur Linux headless](035-headless-controller.md) | Prérequis ajouté pour 040 | OFFLINE_CODE; déploiement séparément approuvé |
-| 04 | [Recovery Kit v1](040-recovery-kit-v1.md) | BLOCKED par 03 et décisions de garde | Préparation hors ligne; export/upload séparément autorisés |
-| 05 | [Contrôleur bootstrap](050-independent-controller.md) | PLANNED après 04 | OFFLINE_CODE; drill séparé |
-| 06 | [Compléter PostgreSQL](060-postgresql-candidate.md) | BLOCKED par sécurité/récupération et identités | Autorisations live ciblées |
-| 07 | [Laboratoire Consul](070-consul-candidate.md) | PLANNED, allocation à autoriser | Test isolé uniquement |
-| 08 | [Backend → récupération → canari → CD](080-control-plane-and-cd.md) | PLANNED | Jalons/approbations séparés |
-| 09 | [Premier composant réutilisable](090-reusable-lxc.md) | PLANNED après CI + contrat state | OFFLINE_CODE puis environnement jetable |
+The [canonical roadmap](../docs/roadmap.md) supersedes the old backend-first and
+LXC-first order. Existing task history is retained; SUPERSEDED/DEFERRED never
+authorizes deletion of infrastructure or state. ADAPTED means scope changed,
+not acceptance achieved. PLANNED tasks need assignment and any live approval.
 
-**Chemin critique :** 00 → 01 → 02 donne la CI de qualité rapidement. 00 → 03 → 04 → 05 protège le bootstrap. Le backend final, la récupération du control plane et la CD ne peuvent pas être promus par une validation syntaxique seule.
+| Task | Current responsibility | Status / gate |
+| --- | --- | --- |
+| [000](000-project-baseline.md) | Historical governance integration | DONE; original next-task order is historical |
+| [010](010-runner-trust-preflight.md) / [020](020-ci-quality.md) | Runner security / working quality CI | Security closure BLOCKED, functional CI live verified |
+| [030](030-state-recovery-contract.md) | Single state authority / independent custody | DONE accepted contract, not recovery proof |
+| [035](035-headless-controller.md) | Optional recovery VM test adapter | DEFERRED; previous preflight intact, no allocation/plan approved |
+| [040](040-recovery-kit-v1.md) | Production kit capture/retrieval | ADAPTED; synthetic preparation exists, production gates blocked |
+| [050](050-independent-controller.md) | Portable Mac/Linux synthetic controller | PLANNED; parallel to100 after assignment, no full-kit prerequisite |
+| [060](060-postgresql-candidate.md) / [070](070-consul-candidate.md) | Conditional backend experiments | DEFERRED to requirements-led080, not compulsory comparison |
+| [080](080-control-plane-and-cd.md) | Backend need/qualification, separate canary and protected CD | PLANNED after security/recovery gates |
+| [090](090-reusable-lxc.md) | Historical generic LXC-first proposal | SUPERSEDED as prerequisite by100; live CTs untouched |
+| [100](100-stage-a-headless-vms.md) | Three new headless server VM profiles | First code-only task after architecture approval |
+| [110](110-k3s-lifecycle.md) | K3s bootstrap/lifecycle/synthetic recovery | After100 guests and separately approved live actions |
+| [120](120-gitops-stateless.md) | Flux/stateless demo/measurements | After110 and source/RBAC review |
+| [130](130-storage-recovery.md) | TrueNAS protocols/fencing/synthetic DB restore | After120 and storage approvals |
+| [140](140-placement-and-cutover.md) | Distributed/permanent placement and individual service DR/cutover | Epic split into bounded tasks before execution |
+
+Critical path: architecture review ->100 ->110 ->120 ->130 ->140.
+Parallel recovery path:050 synthetic ->040 real kit ->140 production DR.
+Production data never moves before its own independently qualified recovery.
+080 gates shared backend/privileged infrastructure automation; not disposable
+stateless learning. No task starts automatically after this planning session.
 
 ## Template minimal pour une future tâche
 

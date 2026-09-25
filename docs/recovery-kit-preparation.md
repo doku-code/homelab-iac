@@ -1,5 +1,12 @@
 # Recovery Kit v1 preparation
 
+Current sequencing is in the [reconstruction roadmap](roadmap.md): portable050
+synthetic preparation can precede real040 capture;035 VM is optional, and no
+full production kit is required for disposable K3s learning. The capture gates
+and prior observations below remain valid; the earlier mandatory VM-first order
+does not. Future K3s states/snapshot/token inventory needs an explicit schema
+update before capture, not silently accepting an incomplete six-root kit.
+
 2026-09-25: repository preparation, NOT a produced or recovered kit.
 The [accepted contract](recovery-contract.md) remains authoritative for scope;
 [040](../tasks/040-recovery-kit-v1.md) owns approval and qualification gates.
@@ -152,10 +159,11 @@ policy is not the kit retention policy.
 
 Next operator actions are deliberately separate:
 
-- Review [035 procedure](headless-controller.md), choose conflict-checked VMID,
-  IP, versioned Debian image+checksum, storage and resource profile on pve-lab;
-  approve a new-resource-only plan before creation/start/Ansible setup. No live
-  allocation, image download, VM start or guest convergence occurred here.
+- Assign [050 portable synthetic testing](../tasks/050-independent-controller.md)
+  on independent Mac/Linux first; no production kit is needed for that phase.
+  The [035 VM procedure](headless-controller.md) is an optional adapter only.
+  Its allocation, plan, creation/start and convergence require separate approval;
+  the preserved preflight does not authorize deployment.
 - Complete blocked metadata inventory, approve recipient/offline custody and
   unsynced staging realpath. Then approve an exact per-component capture list,
   writer freeze and local encryption; production payload export is not yet
@@ -166,4 +174,5 @@ retrieve/decrypt independently, verify the manifest and rebuild the controller
 for eight backend-disabled readonly root validations and static checks. No
 provider plans or restored states become active. A VM hosted on pve-lab proves
 controller replacement, **not recovery from loss of pve-lab**. Full control-plane
-restore, backend selection and Task050 emergency entry points remain later work.
+restore and backend selection remain later work. Task050's portable emergency
+entry points are a parallel implementation track, not dependent on this VM.

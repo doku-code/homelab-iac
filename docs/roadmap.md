@@ -1,152 +1,113 @@
 ---
-title: "Homelab IaC — Roadmap opérationnelle"
-status: "Direction approuvée; exécution soumise aux gates et autorisations"
-updated: 2026-09-24
+title: "Homelab IaC - Reconstruction roadmap"
+status: "Proposed execution sequence; architecture review and separate live gates required"
+updated: 2026-09-25
 ---
 
-# Roadmap de `homelab-iac`
+# Canonical Reconstruction Roadmap
 
-> **Priorité d'exécution :** rendre la CI **qualité** utile le plus tôt possible, protéger l'autorité des states en parallèle, puis qualifier un backend self-hosted et reconstruire le control plane avant d'autoriser le déploiement automatisé de production.
+This replaces the previous backend-first/LXC-first sequence. It is not an
+appendix to that sequence. [Architecture](architecture.md) is the target;
+[tasks](../tasks/README.md) own acceptance. The dated
+[audit roadmap](audits/2026-09-24/milestone-roadmap.md) is historical evidence,
+not a competing active plan. No implementation begins in this review session.
 
-Ce document réordonne à dessein les milestones de [l'audit](audits/2026-09-24/milestone-roadmap.md) : le pipeline de validation sans secrets peut démarrer avant le Recovery Kit et le choix du backend **si** la frontière de sécurité du runner est vérifiée. La CD qui écrit en production attendra les preuves de récupération et les autorisations nécessaires. Toutes les dates/statuts correspondent au dernier audit, pas à une observation permanente.
+## Starting evidence and boundaries
 
-## Décisions fixes
+- Quality CI is functional: run139/01ccefb reported, run24/8c12871 and
+  run25/c636d1f observed successful. Task010 and formal020 security gates remain
+  open; no untrusted PR or production deployment credentials on shared CT301.
+- Task030 contract accepted; Task040 preparation/synthetic checks exist, no kit
+  produced/recovered. Six current local states retain their authorities.
+- Task035 headless capability passed CI, but VM603/.32 not allocated, no plan/
+  creation/start/convergence. Preserve its preflight; make VM an optional050 test.
+- No Kubernetes/Flux/storage integration is implemented. Current running services
+  and personal/technical data remain untouched.
 
-- Exploitation self-hosted; GitHub est une copie externe du code, le cloud conserve seulement des générations chiffrées du Recovery Kit.
-- Terraform + Ansible + Proxmox + Forgejo/CT301 + Infisical; monorepo incrémental. Pas de migration générale, de SaaS backend, de refactoring massif ni de « détection intelligente » destructrice.
-- PostgreSQL et Consul sont **candidats**. Garage est explicitement rejeté comme backend Terraform. Aucun state existant n'a été migré au 2026-09-24.
-- Contrats de récupération et preuves d'état prévalent sur la présentation ou le nombre de modules.
-
-## Chemin court vers la première CI utile
+## Critical path and parallel work
 
 ```mermaid
 flowchart LR
-  A["D0 — Docs et tâches"] --> B["Q1 — Trust et frontière CT301"]
-  B --> C["Q2 — CI secretless sur refs de confiance"]
-  C --> D["Q3 — Étendre validations et tests"]
-  A --> R["R1 — Contrat states / Recovery Kit"]
-  R --> R2["R2 — Kit récupérable"]
+  R[Review architecture] --> V[100: reusable three-node VM profile]
+  V --> K[110: K3s lifecycle + synthetic snapshot recovery]
+  K --> G[120: Flux + stateless demo + measurements]
+  G --> S[130: TrueNAS + synthetic stateful restore]
+  G --> B[140-A: distributed current hardware]
+  S --> B
+  B --> C[140-B: mini-PC transition]
+  R --> P[050: portable synthetic controller]
+  P --> Q[040: approved kit capture/retrieval]
+  Q --> D[140-C: service contracts + isolated production recovery]
+  S --> D
+  B --> D
+  D --> F[080: backend if needed + protected infrastructure CD]
+  T[010 security gate / 020 closure] --> F
 ```
 
-Q1 est un **gate de sécurité** : un runner doté d'un socket Podman rootful ne doit pas exécuter de PR non fiables avant isolation. Q2 n'a pas besoin d'Infisical, des credentials Proxmox ou des states de production. En l'absence de frontière jugée sûre, faire tourner les validations depuis le contrôleur en attendant un runner correctement isolé; ne pas désactiver les contrôles.
+100/110/120 do NOT wait for a full production kit or a Consul comparison.
+050 synthetic tooling and040 metadata/custody decisions can proceed independently
+in separately assigned tasks. No simultaneous writes to shared Terraform roots.
+A remains disposable and contains no irreplaceable production data. Production
+migration cannot bypass service-specific independently verified recovery.
+C hardware procurement is not a prerequisite for development, B or qualification
+of a service that fits B; production placement still needs explicit approval.
 
-## Vue des milestones
+## Milestone contracts
 
-| ID | Milestone | Dépendance immédiate | Statut au départ | Acceptation essentielle |
+Each row includes deliverable, dependency, scope/exclusions, tests, approval and
+recovery boundary. PLANNED/READY is never a live authorization.
+
+| Task / deliverable | Depends on | Scope and exclusions | Observable acceptance/tests | Approval, rollback and exact next action |
 | --- | --- | --- | --- | --- |
-| D0 | Documentation et contrat de travail agent | Audit reçu | À intégrer | Architecture, roadmap, tasks et AGENTS fusionné cohérents |
-| Q1 | Vérifier la sécurité et la santé du runner | D0 | À faire | Frontière trust/Podman et provenance des workflows établies |
-| Q2 | CI qualité minimal sans secrets | Q1 | Partiellement présent | Chaque changement de référence autorisée exécute des checks hors ligne sans privilège de production |
-| Q3 | Couverture CI et corrections ciblées | Q2 | À faire | Six stacks, 13 playbooks, tests runner/backup, secret scan et diagnostics fiables |
-| R1 | Autorité des states et contrat Recovery Kit | D0 | À faire | Six roots classés, ancien runner isolé, GitHub vérifié, génération/key recovery définies |
-| R2 | Recovery Kit chiffré et restauré | R1, autorisation | À faire | Récupération sur autre contrôleur, sans deuxième state écrivain |
-| B1 | Contrôleur bootstrap indépendant | R1–R2 | À faire | Outils/trust/inputs vérifiés sans Forgejo, Infisical ou backend disponible |
-| F1 | Inventaire de récupération des fondations | R1, B1, accès | À faire | Prérequis Proxmox/TrueNAS/PBS/Infisical/Forgejo/DNS explicités |
-| P1 | PostgreSQL candidat production | R2, B1, autorisations | En cours | TLS verify-full, identities, réseau, locks finaux, recovery testés |
-| C1 | Consul candidat isolé | R2, B1, allocation | À faire | Tests équivalents de TLS/ACL, lock, panne, isolation et restore |
-| S1 | Choix du backend et contrat de migration | P1, C1, F1 | À faire | Choix explicite et chemin de récupération indépendant |
-| DR1 | Reconstitution isolée du control plane/CT301 | R2, B1, F1, S1 | À faire | Nouveau contrôleur -> runner fonctionnel sans dépendance au runner original |
-| T1 | Canary de state non-bootstrap | S1, DR1, autorisation | À faire | Un seul state faisant autorité, aucune recréation inattendue |
-| CD1 | CI/CD à privilèges protégés | Q3, T1, DR1 | À faire | Plan approuvé, exact, identité minimale, apply opt-in, fail closed |
-| M1 | Premier module LXC réutilisable | Q3, R1 | À faire | Deux profils, extraction address-safe, no-op reconcile |
-| M2 | Deuxième environnement jetable | M1, R2/B1 | À faire | Autre profil node/storage/network sans modification interne du module |
-| A1 | Adoption des services existants | DR1, propriétaire établi | Progressif | Service par service, contrat d'état et récupération vérifiés |
-| H1 | Essai de remplacement matériel | M2, DR1, capacité | À faire | Déploiement sur hôte compatible différent, limites observées |
+| 010/020 security foundation | Existing evidence | Finish effective source/socket/LAN/token trust; preserve useful quality checks. No privileged CD or weakening acceptance | Authenticated source inventory, denied untrusted execution and accepted/remediated residual risks; exact SHA quality result | Any runner/ACL change separately approved; rollback reviewed runner config. Next: retain secretless CI while new checks are added |
+| 100 reusable A VM profile | Architecture/code-scope approval | Small reusable headless component; three new server VMs in independent root, environment map. No existing root/state move, GPU/USB/host changes or K3s | Mock three unique identities/local disks/no hooks; invalid duplicate inputs; workstation baseline unchanged; all-root readonly/backend-disabled validation | First code-only, then allocation+plan, exact saved apply, start/OS separate gates. No automatic cleanup. Next: assign110 after guest baseline accepted |
+| 110 K3s bootstrap/lifecycle | 100 code and separately approved guests | Pinned server role, embedded etcd, explicit networking/API endpoint, synthetic snapshot/token recovery. No production secrets, Flux apps or unapproved drain | Three Ready servers/healthy members; second convergence no unintended changes; one-member failure, rejoin/upgrade, isolated snapshot restore; two failures lose quorum as expected | Approve install/network/test-token handling and each failure drill. Snapshot before change, never blind etcd downgrade/clone. Next:120 |
+| 120 Flux/stateless/measurement | 110 accepted cluster; source boundary approved | Self-hosted GitOps; pinned public disposable app; bounded observability, outside probe strategy. No production DB or host socket | Reviewed source reconciles; negative RBAC; revert app; source outage/recovery; replica rescheduling; 24-hour resource and workstation coexistence evidence | Approve Flux write/read identity hand-off and test ingress only. Suspend source/revert reviewed commit; no data to lose. Next:130 and140 capacity preflight |
+| 050 portable controller | Accepted authority rules; independent code | Mac ARM64/Linux AMD64 verified tools, synthetic inputs and read-only doctor. No complete kit/VM prerequisite; no live provider operation | Fresh HOME/cache, blocked internal endpoints, exact SHA/tools, static checks and absent/wrong authority rejection | Clean-machine execution separately authorized; no real keys required for synthetic tests. Next:040 custody/capture gates |
+| 040 production kit | 050 synthetic path; complete targeted inventory/custody;030 | Evolve manifest inventory; approved technical capture and independent encrypted retrieval. No bulk personal bytes or service promotion | Known required bytes independently available; writer freeze; correct/wrong key, corruption/missing/root mismatch; external/offline retrieval; no second writer | Exact exports/unsynced staging/key use/upload/decryption approvals separate. Keep previous verified generation. Next:140 service DR contracts |
+| 130 TrueNAS and synthetic state | 110/120; verified TrueNAS version/access | NFS files, block/CSI/fencing and DB restore with throwaway data. No production default class/data/backup schedule edits | File/ACL and DB consistency; disconnect/reconnect; single-writer reattach; Retain behavior; restore on isolated target with hashes/transactions | Approve dedicated dataset/volumes/scoped credential and outage test, never whole NAS shutdown. Delete only reviewed disposable objects. Next:140-A or per-service contract |
+| 140-A Stage B distributed | 120 measurements +130 failure behavior | One server each core/compute/lab, capacity/maintenance plan; no critical-service disruption | One physical-domain loss, API endpoint failover, quorum and workload headroom; approved node-by-node replacement/rebuild | New allocations, host impact, member transition individually approved. Preserve snapshots/token, stop if quorum unsafe. Next:140-B when hardware exists;140-C when service-ready |
+| 140-B Stage C permanent | A/B evidence; actual mini-PCs | Choose Proxmox/VM vs bare metal from measured 8-GB budget; environment profile, later16-GB upgrade. No 32-GB requirement | Under measured load, host reserve, service performance, one-member loss/maintenance and independent restore | Hardware install and member migration approvals; no automatic node variable apply. Roll back by healthy-member procedure, not simultaneous clones. Next:continue service-specific cutovers |
+| 140-C service reconstruction/DR | Per-service placement/storage+backup qualified;040/050 for production | One service at a time per architecture matrix; no wholesale translation or destructive legacy cleanup | Isolated restore, health/auth/permissions/data checks, single-writer switch, measured recovery, tested rollback/new-write handling; independent whole-cluster rebuild before production dependency | Each export/restore/cutover separately approved; retain old resources/read-only backup until acceptance. Next:next scoped service or080 |
+| 080 state/CD decision | Need for multiple infrastructure writers;010/020 closure;040/050 and production DR | Requirements-led backend choice then isolated final-endpoint qualification; no mandatory Consul. Separate canary and protected CD tasks | TLS negatives, true two-client lock/crash/isolation/restore; freeze+single authority; exact-plan approval; denied ordinary-CI access | Backend security, state migration and apply each explicit. Bootstrap authority remains outside backend. Next:review first narrow privileged workflow, never blanket automation |
 
-Les IDs ci-dessus désignent ce document, **pas** les M1–M15 historiques de l'audit. Les tâches opérationnelles sont dans [`tasks/`](../tasks/README.md). Ne pas changer l'ordre sur simple préférence lorsqu'une dépendance de récupération ou une autorisation manque.
+RPO/RTO, retention and acceptable service latency remain decisions until measured.
+Stage B/C node relocation is not a Terraform profile-only migration. App rollback
+must account for post-cutover writes and schema compatibility.
 
-Dans la demande d'intégration, « premier milestone M1 CI qualité » correspond
-aux tâches **010 puis 020**, soit Q1–Q3 ici, et non au module LXC M1 ni au M1
-historique de l'audit. L'intégration documentaire est préparée; l'acceptation
-opérateur et les gates live restent distincts des commits locaux.
+## Reconciled previous work
 
-## D0 → Q3 : mettre le runner au travail rapidement
+| Existing task | Current disposition / successor |
+| --- | --- |
+| 000 | DONE historical governance integration; its initial execution order no longer current |
+| 010 / 020 | Keep unresolved security criteria and successful functional CI evidence |
+| 030 | DONE accepted authority/custody contract; target recovery annex updates scope, not past proof |
+| 035 | DEFERRED optional portable-controller VM adapter; tested code retained, uncommitted preflight preserved; no allocation approved |
+| 040 | ADAPTED production kit track; not a blocker to disposable cluster learning |
+| 050 | ADAPTED portable synthetic controller first, parallel with100; no full040 dependency cycle |
+| 060 | DEFERRED conditional PG qualification under080; existing service and evidence retained |
+| 070 | DEFERRED optional Consul only if requirements justify; no mandatory deployment/comparison |
+| 080 | REPLACED sequence with requirements-led backend and protected-CD gates after recovery/security |
+| 090 | SUPERSEDED as prerequisite by100; no generic LXC extraction without real need; active CT code/state untouched |
 
-**Statut courant :** première CI qualité Q2–Q3 **LIVE VERIFIED**, run139 sur
-CT301/Linux AMD64 après push main de `01ccefb`, succès confirmé par l'opérateur.
-Sept roots et tous les autres checks passent. La clôture formelle de 020 reste
-BLOCKED sur son critère de privilèges lié à Q1/010; aucun succès CI ne résout
-l'isolation/socket/LAN ou les autres findings de confiance. Voir la
-[matrice d'acceptation 020](../tasks/020-ci-quality.md#premier-succès-live--2026-09-24).
-Ni déploiement live, ni convergence Ansible, ni disaster recovery n'est qualifié
-par ce run. Les checkpoints suivants conservent la chronologie antérieure.
+## Exact first implementation after approval
 
-Checkpoint : D0 intégré dans `f2a1b8d` et accepté par l'opérateur lors de la
-demande de contrat de maintenance. Q1 reste le gate de confiance; Q2–Q3
-implémentés dans `aea08e2`, validés localement seulement, gate
-d'activation fermé par défaut. Voir [preuves et limites CI](ci-quality.md).
-Les statuts « au départ » du tableau restent la baseline, pas un résultat live.
+Assign [Task100](../tasks/100-stage-a-headless-vms.md), **repository-only phase**:
+adapt the existing headless component for three distinct server profiles and
+add mocked safety tests, without selecting live allocations or changing existing
+resource addresses. Portable [050](../tasks/050-independent-controller.md) may
+be assigned separately in parallel; it is not implemented automatically.
 
-Préflight Q1 read-only : socket rootful global confirmé, main non protégé;
-l'opérateur atteste être le seul auteur autorisé à pousser ici. Le workflow
-publié à `510d8f1` est désormais main-only avec gate; run17 est skipped car
-CI_QUALITY_APPROVED n'a pas satisfait la condition. La déclaration permissions
-ignorée par Forgejo est retirée, sans prétendre restreindre le token.
-Q1 reste BLOCKED sur la vérification des sources des autres connexions et
-l'acceptation explicite des risques partagés. Preuves et action opérateur dans
-[010](../tasks/010-runner-trust-preflight.md). Aucune activation ni exécution
-live réussie de Q2–Q3; dépendances inchangées.
+After100 code/CI review, perform targeted live allocation/capacity preflight,
+then request a new-resource-only plan approval. Apply, start and OS convergence
+remain subsequent approvals. Task035's previous candidate is not approval for
+any server VM or for a standalone recovery VM.
 
-Checkpoint suivant : l'opérateur a exécuté run19 sur `f341450`; Q2–Q3 ont
-démarré mais échoué sur validate du provider Linux du root runner historique.
-Quatre locks manquaient du h1 Linux, pas du checksum ZIP. Correction officielle
-multi-plateforme en 020, versions et readonly conservés; succès Forgejo encore
-NOT VERIFIED. Ce run ne clôture pas les questions de confiance de 010. Voir
-[preuve et statut 020](../tasks/020-ci-quality.md).
+## Evidence and delivery discipline
 
-**D0.** Vérifier puis intégrer les documents publics, préserver `AGENTS.md` existant, confirmer le plan de validation et les frontières des prochaines tâches. Les six documents d'audit demeurent des snapshots historiques non réécrits.
-
-**Q1.** Lire la configuration runner active et ses workflows; vérifier réellement permissions rootful Podman, socket et jobs admis, nature des refs déclenchantes, capacités du réseau et secrets accessibles. Ne pas considérer « aucun secret injecté » comme une isolation suffisante. Les tests doivent être hors production et les modifications de sécurité ciblées.
-
-**Q2.** Établir un pipeline sans state réel ni credentials d'infrastructure pour les refs approuvées : Terraform fmt/validate avec backend désactivé et providers vérifiés, syntaxe Ansible, YAML, tests synthétiques et `git diff --check`. Ne jamais invoquer par défaut les wrappers Make qui injectent Infisical. Ne pas lancer `terraform plan` sur les roots actifs dans la CI qualité. Un échec de validation bloque la suite.
-
-**Q3.** Étendre le pipeline à toutes les six stacks (l'exemple reste séparé tant que son provider n'est pas préparé), aux treize playbooks, aux vingt cas synthétiques runner, aux deux tests de sauvegarde et à un scanner de secrets vérifié/pinné. Traiter dans des changements indépendants le couplage exporter→Compose, les différences de sémantique Make et les artefacts non vérifiés. L'anomalie de trust SSH monitoring nécessite enquête, pas contournement.
-
-**Acceptation Q3 :** exécution répétable dans Forgejo, logs non sensibles, statut visible, limites des validations documentées. **La CI qualité ne doit jamais faire d'apply** et n'exécute pas de PR non fiables sur le runner privilégié partagé.
-
-## R1 → B1 : sauver la source de vérité
-
-2026-09-25 : priorité opérateur ajoutée, [035 headless](../tasks/035-headless-controller.md)
-avant le test VM de 040. Root local indépendant, pas d'extraction des adresses
-workstation ni module LXC090. Capability statique uniquement; allocation/plan
-live puis création/start/convergence soumis à approbations distinctes.
-
-Checkpoint 2026-09-25 : [contrat et manifeste](recovery-contract.md) accepté,
-030 DONE; six states locaux recontrôlés sans secrets affichés. Capability035
-validée localement et CI run24 à 8c12871; procédure/allocation live à revoir.
-R2/040 IN_PROGRESS : [préparation](recovery-kit-preparation.md) et tests
-synthétiques, GitHub/iCloud approuvés; payloads/garde/export/drill encore bloqués.
-Aucun kit produit ni récupéré. Aucune fermeture
-implicite de Q1/020, aucun backend choisi. Les inconnues F1 indispensables au
-kit bloquent son exhaustivité; ne pas attendre un drill pour les signaler.
-
-**R1** établit un propriétaire et une source de récupération pour chacun des six states locaux, avec traitement particulier de l'ancien root runner/CT300. Vérifier quelle révision est effectivement sur GitHub avant d'en dépendre. Décider du chiffrement, des copies, de la rétention et de la récupération de compte et de clé, sans exporter ni migrer dans ce milestone.
-
-**R2** produit une génération privée chiffrée du Recovery Kit après gel des writers, puis la restaure sans écriture fournisseur sur un autre contrôleur de confiance. Le cloud transporte l'archive; le trousseau iCloud aide à récupérer la clé, mais une voie hors ligne et les moyens de récupération du compte doivent être indépendants. Une archive non déchiffrée n'est pas une récupération vérifiée.
-
-**B1** rend les prérequis bootstrap exécutables sans Infisical/Forgejo/runner. Un `doctor` sera purement en lecture seule, sans importation/adoption/destruction automatique. Les opérations dangereuses restent des commandes explicites après préflight.
-
-## F1 → CD1 : backend et chaîne normale récupérables
-
-**F1** documente les vrais prérequis de restauration du control plane : stockage physique PBS/TrueNAS, trust réseau/DNS/PKI, état technique et clés Infisical, données et registre Forgejo. Ne pas transformer ceci en politique générale des données utilisateurs.
-
-**P1** achève PostgreSQL en conservant CT300 loopback tant que TLS/ACL/network ne sont pas approuvés; l'accès final devra prouver `sslmode=verify-full`, les permissions minimales, la contention de deux vrais clients et la récupération. **C1** évalue Consul séparément, sans toucher aux states actifs. Le choix **S1** n'est pris qu'après une comparaison de preuves et un contrat de reprise.
-
-**DR1** prouve, dans un environnement isolé et approuvé, la séquence depuis le contrôleur neuf vers backend/secret recovery/Forgejo/runner sans copie d'identité concurrente. **T1** migre exactement un state non-bootstrap après protection et gel explicite; aucun refactoring de module dans la même migration. **CD1** ouvre d'abord `plan` sur références fiables, puis un `apply` distinct lié au plan approuvé, avec état faisant autorité obligatoire et permissions minimales.
-
-## M1 → H1 : modularité et adoption en continu
-
-Extraire **un seul** module LXC du monorepo après vérification des adresses Terraform et utilisation sur deux profils. Ne pas commencer par les workstations GPU. Le deuxième environnement prouvera qu'un autre node/storage/bridge/capacité fonctionne sans modifier le module. Les services fondamentaux sont adoptés un par un; les bases, clés et réglages techniques non déclarés disposent d'un contrat de récupération.
-
-## Principes de gestion
-
-Mettre à jour cette roadmap dès qu'un statut, une dépendance ou un périmètre de
-milestone change; lier la tâche pour les preuves détaillées. Le
-[contrat de maintenance](../tasks/README.md#contrat-de-maintenance) définit la
-clôture et interdit de confondre implémentation locale et validation live.
-
-- Une tâche active par périmètre; ne pas mêler refactoring, backend migration, récupération live et déploiement d'application.
-- Documenter `PASS`, `FAIL`, `BLOCKED`, `NOT TESTED` à partir de preuves datées; une réponse HTTP ne vaut pas un test de reprise.
-- Si un prérequis ou une autorisation manque, arrêter **à cette frontière** et rendre la prochaine action exacte; avancer sur les validations indépendantes seulement.
-- Commits courts et validés; pas de `push`, `apply`, `destroy`, `import`, rotation de secret ou restauration live sans demande et autorisation explicites.
-- Revoir cette roadmap à la clôture d'un milestone; ne pas convertir une proposition d'audit en travail déjà accompli.
+Read task/code/current state; implement one coherent deliverable; update tests
+with code and affected docs; run checks; inspect staged diff; commit Conventionally;
+push only with explicit authorization after checking workflow side effects;
+observe exact SHA CI and independent GitHub copy; record limits and stop at
+the next live gate. A green CI result is neither deployment nor recovery proof.
+Historical audits remain immutable. Task statuses do not confer permissions.

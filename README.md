@@ -9,6 +9,14 @@ DevOps, infrastructure automation and systems administration.
 It uses **Terraform** for infrastructure provisioning and **Ansible** for
 host and guest configuration, with **Infisical** providing secrets at runtime.
 
+The approved reconstruction direction adds **K3s** for suitable workloads,
+**Flux** as the initial GitOps candidate and **TrueNAS** centralized application
+storage. These are target requirements, not deployed capabilities. Rebuild useful
+functionality and preserve technical data; do not clone every historical guest.
+The proposed path is three disposable server VMs on pve-lab, then separately
+qualified distributed hosts and eventual mini-PC placement. A single-host lab
+is not physical HA. Review the canonical architecture before implementation.
+
 Start with the [documentation index](docs/README.md), [architecture](docs/architecture.md)
 and [roadmap](docs/roadmap.md). Read [AGENTS.md](AGENTS.md) and the assigned
 [task](tasks/README.md) before implementation. Follow the
@@ -19,7 +27,8 @@ It records prerequisites and missing evidence, not a completed recovery process.
 The [Recovery Kit preparation](docs/recovery-kit-preparation.md) provides the
 capture plan and synthetic structural checks (`make recovery-check`); no kit
 has been exported or recovered. The [headless controller profile](docs/headless-controller.md)
-is validated in CI but has not been deployed.
+is validated in CI but has not been deployed; it is now an optional test adapter
+for portable Mac/Linux recovery, not a required bootstrap dependency.
 
 ## Goals
 
@@ -44,6 +53,12 @@ is validated in CI but has not been deployed.
 - **Make** — repeatable local workflows
 
 ## Architecture
+
+The following diagram describes the existing operator workflow, not the new
+Kubernetes target. The single authoritative target and service reconstruction
+matrix are in [architecture](docs/architecture.md); implementation order is in
+[roadmap](docs/roadmap.md). No Kubernetes installation or service migration has
+been performed by the redesign.
 
 ```mermaid
 flowchart TD
@@ -191,7 +206,8 @@ than a hardcoded list of VM IDs.
 │       ├── pve-compute-forgejo-runner/           # historical
 │       ├── pve-compute-forgejo-runner-migration/ # active CT301
 │       ├── pve-core-garage/
-│       └── pve-core-tfstate/
+│       ├── pve-core-tfstate/
+│       └── pve-lab-controller/                 # undeployed, optional test host
 │
 ├── services/
 │   ├── monitoring/
@@ -277,13 +293,13 @@ see the relevant runbook rather than copying private inputs into Git.
 
 CI currently performs state-independent validation only. Production Terraform
 state is operator-local; plan/apply CI is blocked pending the reviewed
-[state migration and CI/CD safety gates](docs/infrastructure-cicd.md).
+[state migration and CI/CD safety gates](tasks/080-control-plane-and-cd.md).
 
 The repository includes a validation-only Forgejo Actions workflow at
 `.forgejo/workflows/validate.yml`. It targets main only and is gated by
 `CI_QUALITY_APPROVED`; run139 passed on CT301/Linux AMD64 at `01ccefb`.
 Outstanding runner trust findings still block formal security closure.
-Label `homelab-iac` selects the existing image for controller setup, seven-root
+Label `homelab-iac` selects the existing image for controller setup, eight-root
 backend-disabled validation, Ansible/Compose checks, tests and secret scanning.
 See [CI quality boundaries and local validation](docs/ci-quality.md).
 
@@ -325,9 +341,10 @@ about infrastructure automation.
 | --- | --- |
 | Selected Proxmox resources, guest/host roles and monitoring | Implemented; dated deployment evidence in the [documentation index](docs/README.md), not complete homelab reconstruction |
 | Quality CI | LIVE VERIFIED in run139; [runner trust preflight](tasks/010-runner-trust-preflight.md) remains separate and unresolved |
-| Terraform state | Stack states remain local; no migration; PostgreSQL and Consul are candidates, not a selected production backend |
+| Terraform state | Six stack states remain local; no migration; single-writer local model recommended initially; future shared backend decided by requirements, not mandatory PG/Consul deployment |
 | Independent recovery | [Contract accepted](docs/recovery-contract.md); [preparation/tests](docs/recovery-kit-preparation.md) implemented; private payloads, custody qualification and recovery tests pending |
-| Reusable modules and protected CD | Planned; see [roadmap](docs/roadmap.md) for dependencies and acceptance |
+| K3s / Flux / TrueNAS integration | Target only; no deployed cluster, no production data migration; first implementation after approval is [Task100](tasks/100-stage-a-headless-vms.md) |
+| Reusable headless module / protected CD | Planned; existing workstation state protected; see [roadmap](docs/roadmap.md) for distinct gates |
 
 Task files own current progress. Dated audits remain historical evidence and
 must not be rewritten to imply later implementation or live verification.
