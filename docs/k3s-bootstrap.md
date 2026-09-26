@@ -37,15 +37,18 @@ and advisories before delayed installation or upgrade.
 Read-only guest checks: only LAN192.168.0.0/24 and default routes, cgroupv2, no
 existing K3s directory on all three; no swap listed on server-1. Installation
 checks all three. Proposed CIDRs do not overlap the observed LAN or each other.
-Unknown VPN/site ranges are not proven absent: operator must confirm/add known
-ranges before approval. No guest route/network changes made in this phase.
+Read-only Mac route check on 2026-09-26: no active non-default IPv4 route
+overlaps either CIDR. Both 10.42.0.1 and 10.43.0.1 resolve through the normal
+default gateway 192.168.0.1 on en0. Tailscale and ProtonVPN report disconnected;
+their inactive routes were NOT checked. Unknown VPN/site ranges still require
+confirmation before connecting those networks. No routes/network settings changed.
 
 ## Network boundary and API fallback
 
 Role installs iptables/nftables/conntrack/socat, enables overlay/br_netfilter and
 IPv4 bridge forwarding. Own nftables INPUT table permits:
 
-- TCP6443: peers, pods and observed controller `192.168.0.119/32`.
+- TCP6443: peers, pods and operator's reserved wired Mac address `192.168.0.90/32`.
 - TCP2379-2380 and UDP8472: peer IPs only.
 - TCP10250: peers and pod CIDR for metrics-server.
 - Loopback allowed; other sources (including IPv6) dropped on these ports.
@@ -55,8 +58,15 @@ firewall service. This is not general LAN isolation or default-deny pod egress:
 Task120 must prove workload-to-management denials before untrusted workloads.
 No NodePort/ingress/public routes created. Proxmox ACLs must allow peer traffic;
 guest rules cannot override upstream denial. Actual nftables syntax/behavior and
-denied-source tests remain live gates. Controller-IP changes require review,
-not opening the API to the LAN. Do not blindly reload the additive firewall.
+denied-source tests remain live gates. The earlier observed .119 was not the
+administration reservation. Mac Wi-Fi may use another IP: SSH remains unaffected
+by this API allowlist, and bootstrap health checks run on each guest against its
+own API address. The Mac need not currently have .90 to run Ansible. Direct Mac
+API access requires the approved .90 source; do not widen access to the LAN.
+The shared Forgejo quality runner is not an administrator and receives no
+cluster-admin credentials. Dedicated administration/protected deployment are
+separate future work, not bootstrap prerequisites. Do not blindly reload the
+additive firewall.
 
 Manual fallback: use `.34:6443` or `.35:6443` with the same cluster CA/admin
 credentials; all addresses are SANs. On a healthy peer:

@@ -39,6 +39,7 @@ def rejected(inv, config):
 
 
 def main():
+    assert PROFILE["k3s_admin_cidrs"] == ["192.168.0.90/32"]
     result = lab.prepare(fixture(), profile())["all"]["children"]["k3s_lab"]
     hosts = result["hosts"]
     configs = [hosts[h]["k3s_config"] for h in sorted(hosts)]
@@ -77,6 +78,15 @@ def main():
     firewall = env.from_string((templates / "firewall.nft.j2").read_text()).render(**result["vars"])
     assert "flush ruleset" not in firewall and "tcp dport { 2379, 2380 } drop" in firewall
     assert "udp dport 8472 drop" in firewall and "tcp dport 6443 drop" in firewall
+    # The reserved API source is independent of the controller's current SSH IP.
+    reserved = lab.prepare(fixture(), {**profile(), "k3s_admin_cidrs": PROFILE["k3s_admin_cidrs"]})
+    reserved_vars = reserved["all"]["children"]["k3s_lab"]["vars"]
+    reserved_firewall = env.from_string((templates / "firewall.nft.j2").read_text()).render(**reserved_vars)
+    api_rule = next(line for line in reserved_firewall.splitlines() if "tcp dport 6443 accept" in line)
+    sources = {s.strip() for s in api_rule.split("{", 1)[1].split("}", 1)[0].split(",")}
+    assert sources == {"192.0.2.1", "192.0.2.2", "192.0.2.3", "192.168.0.90/32", "10.42.0.0/16"}
+    assert "192.168.0.119" not in reserved_firewall and "192.168.0.0/24" not in reserved_firewall
+    assert "policy accept;" in reserved_firewall and "dport 22" not in reserved_firewall
     unit = (templates / "k3s.service.j2").read_text()
     assert "Requires=k3s-lab-firewall.service" in unit and "Restart=always" in unit
     assert "token" not in unit and "cluster-reset" not in unit
@@ -88,7 +98,13 @@ def main():
     assert "k3s_install_approved" in str(plays[0]["tasks"])
     assert "not k3s_data.stat.exists or k3s_member.stat.exists" in str(plays[0])
     assert "ansible_play_hosts_all | sort == groups.k3s_lab | sort" in str(plays[0])
+    assert "k3s_admin_cidrs" not in str(plays[0]["tasks"])
     tasks = yaml.safe_load((ROOT / "ansible/roles/k3s_server/tasks/main.yml").read_text())
+    health_checks = [t for t in tasks if "ansible.builtin.command" in t
+                     and "kubectl" in t["ansible.builtin.command"]["argv"]]
+    assert len(health_checks) == 2
+    assert all("delegate_to" not in t and "--server=https://{{ ansible_host }}:6443"
+               in t["ansible.builtin.command"]["argv"] for t in health_checks)
     for task in tasks:
         if any(k in str(task) for k in ("k3s_bootstrap_token", "k3s_join_token", "k3s_existing_token")):
             assert task.get("no_log") is True, task["name"]

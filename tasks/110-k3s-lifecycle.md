@@ -76,3 +76,22 @@ Stage A regression, 15 mocked VM cases (including unchanged workstation tests),
 20 runner fixtures, two mocked logical-backup tests and ten synthetic kit tests
 PASS. Configuration parser validates 59 YAML, 12 Python and 22 shell blocks.
 These synthetic tests created no real cluster token, snapshot or live resources.
+
+## Operator administration source correction - 2026-09-26
+
+Operator confirms wired DHCP reservation 192.168.0.90; k3s_admin_cidrs now contains
+only 192.168.0.90/32, replacing the incidental earlier .119 observation. No current
+Mac address prerequisite added: Ansible uses SSH, unchanged by the API firewall,
+and Kubernetes health checks execute on guests. Tests cover the exact rendered
+allowlist, no LAN-wide grant, untouched SSH and guest-local health checks.
+No shared Forgejo runner allowlisting or cluster-admin credential delivery;
+dedicated administration/protected deployment remain separate future work.
+
+Read-only Mac netstat/route checks: active LAN 192.168.0.0/24, no overlapping
+non-default IPv4 routes for 10.42.0.0/16 or 10.43.0.0/16. Both use gateway .1
+on en0. scutil reports Tailscale and ProtonVPN disconnected; inactive VPN/site
+routes remain unverified. No VPN activation, guest changes or real token creation.
+Correction checks PASS: k3s-check, Stage A regression, configuration/script
+parsing and git diff --check. No live firewall behavior claimed by rendering.
+Previous implementation passed Forgejo run32/API143 at 0f89723; correction's exact
+CI/GitHub result is reported at delivery. Task110 remains open for live acceptance.
