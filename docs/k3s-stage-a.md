@@ -1,7 +1,8 @@
 # Stage A headless VM profile
 
-Task [100](../tasks/100-stage-a-headless-vms.md), repository-only implementation.
-No live allocation, provider plan, guest creation/start or OS convergence yet.
+Task [100](../tasks/100-stage-a-headless-vms.md): operator approved the allocation
+and plan on 2026-09-26; ignored local inputs are ready. Provider plan awaits the
+authenticated operator shell. No guest creation/start or OS convergence yet.
 K3s belongs to Task 110; these guests do not install it automatically.
 
 ## Ownership and inputs
@@ -45,7 +46,8 @@ Safe local check: `make stage-a-check`. Mocked Terraform tests use disposable
 code-only copies, synthetic documentation IPs and mocked providers, not live
 state, private inputs or a provider-backed plan.
 
-The following commands are implemented for later review, NOT authorized now:
+The plan is now authorized for Task100's approved allocation. Apply, start and
+configure still require separate explicit approval:
 
 1. `make stage-a-plan STAGE_A_ALLOCATION_REVIEWED=yes` after fresh allocation,
    host/storage/network/trust checks. Deletes the previous saved plan before
@@ -57,7 +59,9 @@ The following commands are implemented for later review, NOT authorized now:
 3. `make stage-a-start STAGE_A_START_APPROVED=yes` after separate start approval.
    Reads inventory from this root's applied local state, uses existing trusted
    SSH access as root to each Proxmox node, verifies VM name/ID and starts only
-   those stopped VMs. Node names must resolve through reviewed DNS/SSH configuration.
+   those stopped VMs. Make also loads the existing homelab inventory, resolving
+   the delegate pve-lab to its management IP 192.168.0.14 without relying on DNS.
+   Missing delegate mappings fail closed; host-key checking remains enabled.
    No host package/configuration changes or host-wide commands.
 4. `make stage-a-configure STAGE_A_CONFIGURE_APPROVED=yes` after guest SSH trust
    verification. Uses Debian user/sudo and generated inventory, serially.

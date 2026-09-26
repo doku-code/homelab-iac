@@ -1,7 +1,7 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
 status: "Architecture approved; Task 100 repository-only phase, separate live gates required"
-updated: 2026-09-25
+updated: 2026-09-26
 ---
 
 # Canonical Reconstruction Roadmap
@@ -98,15 +98,16 @@ the new root/module, baseline and mocked safety tests are implemented, without
 selecting live allocations or changing existing resource addresses. Initial
 sizing is three 4-GiB VMs; pve-lab is dedicated and workstations remain off.
 Repository-only phase passed Forgejo run 27 at `ce61e86`; GitHub matched the
-full implementation SHA. Task 100 records the subsequently authorized read-only
-preflight: capacity/storage/VMIDs checked, but authoritative DHCP/static-IP
-evidence is missing. Candidate 701-703/.33-.35 remains unapproved; no state,
-plan or guests created. Host-name mapping also needs review before later start.
+full implementation SHA. Task 100 records the completed read-only preflight and
+operator approval of VMIDs303-305, k3s-server-1/2/3, .33-.35 outside Fizz DHCP.
+The discarded701-703 proposal remains historical only. Ignored approved inputs
+and inventory-based management mapping are ready; plan is explicitly authorized
+but awaits the authenticated operator shell. No real plan/state/guests created.
 Portable [050](../tasks/050-independent-controller.md) may
 be assigned separately in parallel; it is not implemented automatically.
 
-After100 code/CI review, perform targeted live allocation/capacity preflight,
-then request a new-resource-only plan approval. Apply, start and OS convergence
+Execute the already-authorized new-resource-only plan through the existing
+Infisical interface, then review the saved plan. Apply, start and OS convergence
 remain subsequent approvals. Task035's previous candidate is not approval for
 any server VM or for a standalone recovery VM.
 

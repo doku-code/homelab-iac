@@ -26,6 +26,13 @@ def main():
     assert "stage_a_configure_approved" in str(play["pre_tasks"])
     start = yaml.safe_load((ROOT / "ansible/playbooks/start-k3s-lab.yml").read_text())[0]
     assert start["hosts"] == "k3s_lab" and start["serial"] == 1
+    assert start["vars"]["ansible_host_key_checking"] is True
+    assert "groups.get('proxmox', [])" in str(start["tasks"][0])
+    assert "hostvars[proxmox_node].ansible_host is defined" in str(start["tasks"][0])
+    for task in start["tasks"]:
+        if "ansible.builtin.command" in task:
+            assert task["delegate_to"] == "{{ proxmox_node }}"
+            assert "ansible_host" not in task.get("vars", {})
     commands = [t["ansible.builtin.command"]["argv"] for t in start["tasks"] if "ansible.builtin.command" in t]
     assert [c[:2] for c in commands] == [["qm", "config"], ["qm", "status"], ["qm", "start"]]
     assert all(c[2] == "{{ stage_a_vm_id | string }}" for c in commands)
@@ -43,22 +50,26 @@ def main():
     assert "STAGE_A_PLAN_SHA256" in make and "shasum -a 256 -c" in make
     assert 'output -json ansible_inventory > "$$inventory"' in make
     assert make.count('inventory="$$work/inventory.json"') == 2
+    assert 'start-k3s-lab.yml -i ansible/inventories/homelab.yml -i "$$inventory"' in make
     with tempfile.TemporaryDirectory(prefix="stage-a-inventory-") as directory:
         inventory = Path(directory) / "inventory.json"
         inventory.write_text(json.dumps({"all": {"children": {"k3s_lab": {"hosts": {
             f"server-{i}": {"ansible_host": f"192.0.2.{10+i}", "ansible_user": "debian",
                              "stage_a_hostname": f"lab-server-{i}", "stage_a_vm_id": 900+i,
-                             "proxmox_node": "mock-node"}
+                             "proxmox_node": "pve-lab"}
             for i in range(1, 4)
         }}}}}))
         env = {"PATH": os.environ["PATH"], "HOME": directory, "ANSIBLE_LOCAL_TEMP": directory}
         parsed = json.loads(subprocess.check_output(
-            [str(ROOT / ".venv/bin/ansible-inventory"), "-i", str(inventory), "--list"],
+            [str(ROOT / ".venv/bin/ansible-inventory"), "-i", "ansible/inventories/homelab.yml", "-i", str(inventory), "--list"],
             cwd=ROOT, env=env, text=True
         ))
         assert parsed["k3s_lab"]["hosts"] == ["server-1", "server-2", "server-3"]
         assert parsed["_meta"]["hostvars"]["server-2"]["stage_a_vm_id"] == 902
         assert parsed["_meta"]["hostvars"]["server-2"]["ansible_host"] == "192.0.2.12"
+        node = parsed["_meta"]["hostvars"]["server-2"]["proxmox_node"]
+        assert node in parsed["proxmox"]["hosts"]
+        assert parsed["_meta"]["hostvars"][node]["ansible_host"] == "192.168.0.14"
     with tempfile.TemporaryDirectory(prefix="stage-a-guards-") as home:
         # Drop all runtime credentials and Make overrides; denial happens before any command.
         env = {"PATH": os.environ["PATH"], "HOME": home}

@@ -1,11 +1,11 @@
 # 100 - Reusable headless VMs for Stage A
 
-- Status: repository-only phase COMPLETE and CI VERIFIED; read-only preflight
-  performed, BLOCKED on authoritative DHCP/static-IP evidence and allocation approval.
+- Status: allocation/preflight APPROVED by operator; plan authorized, execution
+  BLOCKED here only by missing Universal Auth environment. Apply not authorized.
 - Depends on: reviewed target architecture and explicit task assignment; existing
   035 capability, provider locks and workstation-preservation tests.
-- Permission: targeted READ_ONLY live preflight and documentation authorized;
-  no allocation commitment, provider plan, import, apply, start or convergence authorized.
+- Permission: approved local inputs, SSH mapping fix, Terraform PLAN, safe checks,
+  commit/push/CI authorized. No apply, image import, start or convergence authorized.
 - Deliverable: three-node environment profile and reusable headless VM primitive,
   not an operational Kubernetes cluster. Full production kit is not a dependency.
 
@@ -114,7 +114,10 @@ passed Forgejo run29 (API140). This preflight did not execute Terraform or Ansib
 Only targeted SSH reads, DNS/three ICMP probes, router entry-point GET and official
 image streaming were performed. No workstation or host configuration changed.
 
-### Concrete candidate, NOT an approved or fully conflict-checked allocation
+### Historical candidate, superseded and discarded on 2026-09-26
+
+The following 701-703 proposal is retained only as preflight history. Do not use
+it in inputs or commands. The approved allocation below replaces it.
 
 | Key | VMID | Hostname | Proposed IPv4 |
 | --- | --- | --- | --- |
@@ -193,3 +196,53 @@ confirmation for .33-.35 (or revise the candidate). Then request explicit approv
 of the exact allocation and new-resource-only plan. Do not execute stage-a-plan
 until that approval; apply/image import/start/convergence remain separate gates.
 The host-name mapping issue blocks later start, not the proposed API plan.
+
+## Approved allocation and plan handoff - 2026-09-26
+
+Operator personally confirmed VMIDs 303-305 free cluster-wide and .33-.35 free
+and outside the Fizz DHCP pool. This is authoritative operator evidence, not an
+agent claim to have read router settings. No repeat audit or confirmation needed.
+Previous capacity, storage, image and trust observations remain dated evidence.
+
+| Key | Approved VMID | Approved hostname | Approved IPv4 |
+| --- | --- | --- | --- |
+| server-1 | 303 | k3s-server-1 | 192.168.0.33/24 |
+| server-2 | 304 | k3s-server-2 | 192.168.0.34/24 |
+| server-3 | 305 | k3s-server-3 | 192.168.0.35/24 |
+
+All on pve-lab (management 192.168.0.14), 2 vCPU / 4096 MiB / 32 GiB each;
+vmbr0, gateway .1, DNS .20, local image import and lab-vms local disks.
+Created mode-0600 ignored terraform/stacks/pve-lab-k3s/terraform.tfvars with
+those inputs, the previously verified Debian image/hash, API endpoint .10 and
+explicit proxmox_insecure=true consistent with existing roots. No credentials
+in inputs. No reuse of Task035's VM603/.32; no existing Terraform root changed.
+
+Start mapping fix: Make loads the existing homelab host inventory plus generated
+guest inventory. Delegation uses hostvars for pve-lab -> 192.168.0.14; removed
+the task-level override that forced the unresolved short name. Missing Proxmox
+host mapping fails closed, SSH host-key checking explicitly remains enabled.
+Offline merged-inventory regression checks the management IP separately from
+the guest IP. No SSH configuration or live DNS change; no start executed.
+
+Both INFISICAL_CLIENT_ID and INFISICAL_CLIENT_SECRET are absent in the agent's
+runtime. No alternate auth, secret lookup or provider plan was attempted.
+Run the already-approved plan from the repository root in the authenticated operator shell:
+
+```sh
+make stage-a-plan STAGE_A_ALLOCATION_REVIEWED=yes
+```
+
+Expected scope remains one image download resource and three new VM resources,
+4 add / 0 change / 0 destroy. **No actual plan result or plan hash exists yet.**
+After execution, inspect the complete saved plan and its printed SHA256 before
+requesting separate approval to apply that exact plan. Stop on any existing
+resource change, replacement, workstation mapping or state-ownership change.
+Do not run stage-a-apply/start/configure or install K3s in this milestone.
+
+Local validation: make stage-a-check PASS (15 mocked VM cases, merged inventory
+management-IP and approval guards, Ansible syntax); configuration/script parser,
+Terraform fmt, documentation links and git diff --check PASS. Private input file
+is ignored and mode0600. Existing state-file checksums unchanged before/after;
+tracked Terraform roots, inventory and workstation host role have no diff.
+These are local checks, not verification of an actual provider plan. Publication
+CI for the mapping fix is reported against its exact SHA at delivery.

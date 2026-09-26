@@ -3,6 +3,8 @@
   hosts: k3s_lab
   gather_facts: false
   serial: 1
+  vars:
+    ansible_host_key_checking: true
   tasks:
     - name: Require a separately approved start and generated allocation
       ansible.builtin.assert:
@@ -10,6 +12,8 @@
           - stage_a_start_approved | default(false) | bool
           - stage_a_vm_id | int >= 100
           - proxmox_node is match('^[a-zA-Z0-9][a-zA-Z0-9_-]*$')
+          - proxmox_node in groups.get('proxmox', [])
+          - hostvars[proxmox_node].ansible_host is defined
           - stage_a_hostname is match('^[a-z][a-z0-9-]{0,61}[a-z0-9]$')
       delegate_to: localhost
 
@@ -19,7 +23,6 @@
       delegate_to: "{{ proxmox_node }}"
       vars:
         ansible_user: root
-        ansible_host: "{{ proxmox_node }}"
       register: stage_a_config
       changed_when: false
 
@@ -35,7 +38,6 @@
       delegate_to: "{{ proxmox_node }}"
       vars:
         ansible_user: root
-        ansible_host: "{{ proxmox_node }}"
       register: stage_a_power
       changed_when: false
 
@@ -45,6 +47,5 @@
       delegate_to: "{{ proxmox_node }}"
       vars:
         ansible_user: root
-        ansible_host: "{{ proxmox_node }}"
       when: "stage_a_power.stdout == 'status: stopped'"
       changed_when: true

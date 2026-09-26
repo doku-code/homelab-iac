@@ -67,7 +67,7 @@ not acceptance achieved. PLANNED tasks need assignment and any live approval.
 | [060](060-postgresql-candidate.md) / [070](070-consul-candidate.md) | Conditional backend experiments | DEFERRED to requirements-led080, not compulsory comparison |
 | [080](080-control-plane-and-cd.md) | Backend need/qualification, separate canary and protected CD | PLANNED after security/recovery gates |
 | [090](090-reusable-lxc.md) | Historical generic LXC-first proposal | SUPERSEDED as prerequisite by100; live CTs untouched |
-| [100](100-stage-a-headless-vms.md) | Three new headless server VM profiles | Code CI VERIFIED; read-only preflight blocked on DHCP/static-IP evidence and allocation approval |
+| [100](100-stage-a-headless-vms.md) | Three new headless server VM profiles | Allocation303-305 approved; plan authorized, awaiting authenticated operator shell; apply not approved |
 | [110](110-k3s-lifecycle.md) | K3s bootstrap/lifecycle/synthetic recovery | After100 guests and separately approved live actions |
 | [120](120-gitops-stateless.md) | Flux/stateless demo/measurements | After110 and source/RBAC review |
 | [130](130-storage-recovery.md) | TrueNAS protocols/fencing/synthetic DB restore | After120 and storage approvals |

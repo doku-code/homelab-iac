@@ -101,7 +101,7 @@ stage-a-start:
 	@set -eu; umask 077; work="$$(mktemp -d)"; inventory="$$work/inventory.json"; trap 'rm -f "$$inventory"; rmdir "$$work"' EXIT; \
 	  test -f "$(STAGE_A_DIR)/terraform.tfstate"; \
 	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory > "$$inventory"; \
-	  $(ANSIBLE) ansible/playbooks/start-k3s-lab.yml -i "$$inventory" -e stage_a_start_approved=true
+	  $(ANSIBLE) ansible/playbooks/start-k3s-lab.yml -i ansible/inventories/homelab.yml -i "$$inventory" -e stage_a_start_approved=true
 
 stage-a-configure:
 	@test "$(STAGE_A_CONFIGURE_APPROVED)" = yes || (echo "Separate guest OS convergence and SSH trust approval required"; exit 1)
