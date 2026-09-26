@@ -146,6 +146,13 @@ headless VM module. CI runs synthetic three-node provider mocks and baseline/
 approval-guard tests; it never runs the live Stage A Make targets. The added
 checks are repository validation, not allocation, deployment or K3s evidence.
 See [Stage A](k3s-stage-a.md) for the separately approved operational boundaries.
+
+Task 100 implementation `ce61e8689867855489322aeac76d12d5844ad9f4` passed
+[Forgejo run 27](https://git.doku-lab.net/Homelab/homelab-iac/actions/runs/27)
+(API ID138) on CT301/Linux AMD64, 2026-09-25. All nine roots and quality checks
+passed; GitHub main matched the implementation SHA. No live Stage A deployment
+or Task 010 security closure is implied.
+
 `tests/vm-profiles.py` uses mocked providers and disposable code-only directories;
 it never reads production states/tfvars or calls a live provider. Run139 remains
 the historical seven-root baseline, not evidence for these new checks.

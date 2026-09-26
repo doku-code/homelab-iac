@@ -97,6 +97,9 @@ Assigned [Task100](../tasks/100-stage-a-headless-vms.md), **repository-only phas
 the new root/module, baseline and mocked safety tests are implemented, without
 selecting live allocations or changing existing resource addresses. Initial
 sizing is three 4-GiB VMs; pve-lab is dedicated and workstations remain off.
+Repository-only phase passed Forgejo run 27 at `ce61e86`; GitHub matched the
+full implementation SHA. Task 100 records evidence; live preflight remains
+unapproved, with no allocations, state or guests created.
 Portable [050](../tasks/050-independent-controller.md) may
 be assigned separately in parallel; it is not implemented automatically.
 

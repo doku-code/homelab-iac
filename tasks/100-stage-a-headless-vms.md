@@ -1,7 +1,7 @@
 # 100 - Reusable headless VMs for Stage A
 
-- Status: IN_PROGRESS; repository-only implementation authorized and implemented;
-  local validation and exact-SHA CI acceptance being recorded. Live gates blocked.
+- Status: repository-only phase COMPLETE and CI VERIFIED; full task BLOCKED
+  at separately authorized live preflight/acceptance. No live gate is satisfied.
 - Depends on: reviewed target architecture and explicit task assignment; existing
   035 capability, provider locks and workstation-preservation tests.
 - Permission: OFFLINE_CODE, commit/push and quality CI explicitly authorized;
@@ -90,9 +90,13 @@ static/live results. Next: assign110; do not install K3s automatically.
 - All 16 playbooks syntax PASS; absent `k3s_lab` hosts are expected until apply.
   Terraform fmt and git diff whitespace PASS. Existing workstation/controller
   roots and workstation roles are byte-for-byte unchanged against dcbc83a.
-- Exact pushed SHA CI/GitHub evidence pending publication; local mocked tests
-  are not live provider plans. No private inputs, new state or live allocation
-  created. Six existing authorities remain unchanged.
+- Forgejo [run 27](https://git.doku-lab.net/Homelab/homelab-iac/actions/runs/27)
+  (API ID138) PASS on CT301/Linux AMD64 for implementation commit
+  `ce61e8689867855489322aeac76d12d5844ad9f4`; all nine roots and remaining quality
+  checks passed. GitHub main independently matched that full SHA. This is
+  repository CI, not provider planning, recovery or runner isolation proof.
+- No private inputs, new state or live allocation created. Six existing
+  authorities remain unchanged; no live infrastructure action performed.
 
 Next gate is separately authorized read-only allocation/capacity/trust preflight,
 not Task 110 installation. Full Task 100 remains open until live criteria and
