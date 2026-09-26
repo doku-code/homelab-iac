@@ -1,11 +1,11 @@
 # 100 - Reusable headless VMs for Stage A
 
-- Status: repository-only phase COMPLETE and CI VERIFIED; full task BLOCKED
-  at separately authorized live preflight/acceptance. No live gate is satisfied.
+- Status: repository-only phase COMPLETE and CI VERIFIED; read-only preflight
+  performed, BLOCKED on authoritative DHCP/static-IP evidence and allocation approval.
 - Depends on: reviewed target architecture and explicit task assignment; existing
   035 capability, provider locks and workstation-preservation tests.
-- Permission: OFFLINE_CODE, commit/push and quality CI explicitly authorized;
-  no live allocation, provider plan, apply, start or convergence authorized.
+- Permission: targeted READ_ONLY live preflight and documentation authorized;
+  no allocation commitment, provider plan, import, apply, start or convergence authorized.
 - Deliverable: three-node environment profile and reusable headless VM primitive,
   not an operational Kubernetes cluster. Full production kit is not a dependency.
 
@@ -106,3 +106,90 @@ static/live results. Next: assign110; do not install K3s automatically.
 Next gate is separately authorized read-only allocation/capacity/trust preflight,
 not Task 110 installation. Full Task 100 remains open until live criteria and
 operator acceptance; the repository-only phase does not authorize those actions.
+
+## Read-only live preflight - 2026-09-25
+
+Repository at `684611971940595c50d5a1ad56eb4a272367ddff`; its final loader fix
+passed Forgejo run29 (API140). This preflight did not execute Terraform or Ansible.
+Only targeted SSH reads, DNS/three ICMP probes, router entry-point GET and official
+image streaming were performed. No workstation or host configuration changed.
+
+### Concrete candidate, NOT an approved or fully conflict-checked allocation
+
+| Key | VMID | Hostname | Proposed IPv4 |
+| --- | --- | --- | --- |
+| server-1 | 701 | k3s-lab-1 | 192.168.0.33/24 |
+| server-2 | 702 | k3s-lab-2 | 192.168.0.34/24 |
+| server-3 | 703 | k3s-lab-3 | 192.168.0.35/24 |
+
+All on pve-lab: 2 vCPU, 4096 MiB RAM, 32 GiB disk each; vmbr0,
+gateway 192.168.0.1, DNS 192.168.0.20, image datastore local, disk/cloud-init
+datastore lab-vms. Task035's VM603/.32 remain separately unapproved and unused.
+No private Stage A inputs, state or saved plan have been created.
+
+### Observed evidence
+
+- Cluster inventory: 701/702/703 and proposed hostnames absent. No pve-lab guest
+  running; workstations 501/502/503/601/602 already stopped. Read only; no power
+  or mapping changes. Absence does not reserve the VMIDs; recheck before plan.
+- pve-lab: 16 physical cores/32 threads, 29.98 GiB OS-visible RAM from the
+  operator's 32-GB host, 27.54 GiB available, about 2.45 GiB used; load averages
+  0.00 and no swap used. Proposed 12 GiB leaves about 15.54 GiB of observed
+  available memory before additional VM overhead: adequate for a 2-GiB safety
+  reserve. Snapshot, not a performance/peak-capacity qualification.
+- vmbr0 UP, host 192.168.0.14/24, default route 192.168.0.1, resolver
+  192.168.0.20, search home.arpa. No bridge/network edits.
+- lab-vms: node-local LVM-thin, vg_lab_vms on nonrotational NVMe; supports images
+  and rootdir, approximately 1.27 TiB free; data 29.18%, metadata 19.51% used.
+  Proposed disks total 96 GiB plus cloud-init/overhead. local is a directory on
+  the other local NVMe, supports import, about 16.57 GiB free. Neither is NFS.
+- No candidate IP references in declared cluster VM cloud-init/CT network fields;
+  no candidate AdGuard configuration references; AdGuard DHCP disabled.
+  Proposed forward names and reverse IP lookups return NXDOMAIN; targeted ICMP
+  probes receive no reply. None proves absence of an offline/static LAN device.
+- Router 192.168.0.1 HTTP entry point reachable, but no authenticated DHCP range,
+  active leases or reservations available to this environment. Operator evidence
+  requested. **Authoritative IP availability remains UNVERIFIED.** Do not infer
+  availability from failed ping, DNS absence or the Proxmox inventory.
+- Strict host-key-verified SSH succeeds to root@192.168.0.14. Accepted controller
+  public-key fingerprint matches tracked keys/doku-lab-admin.pub. No private key
+  read/copied. Future guest keys cannot be verified until creation; bootstrap
+  trust must be established independently before convergence.
+- Host naming blocker: short pve-lab does not resolve from this controller;
+  pve-lab.home.arpa also returned NXDOMAIN at AdGuard. Current start playbook
+  delegates to the node name, explicitly using that as ansible_host. Before
+  start, separately review use of the existing inventory's IP mapping or an
+  approved SSH/DNS mapping. Do not disable host-key checks; no fix applied here.
+- Existing workstation provider uses insecure=true at https://192.168.0.10:8006/;
+  the private controller proposal uses that same endpoint and explicit true.
+  Normal TLS verification fails there (also at pve-lab's API). Proposed Stage A
+  inputs should explicitly reuse proxmox_insecure=true under that convention,
+  not inherit its false default or redesign PKI in this milestone.
+- Infisical CLI available; INFISICAL_CLIENT_ID and INFISICAL_CLIENT_SECRET absent
+  in this process. No login, secret lookup or provider-auth test performed.
+  Later authorized plan must use the existing authenticated operator shell and
+  INFISICAL_RUN; effective API permissions for VM/image/storage remain untested.
+
+### Image provenance
+
+Proposed pinned source:
+https://cloud.debian.org/images/cloud/trixie/20260914-2601/debian-13-generic-amd64-20260914-2601.qcow2
+
+433651712 bytes streamed on controller only, not retained/imported. SHA512
+matches Debian's SHA512SUMS fetched over verified HTTPS; no detached signature
+verification claimed. Derived SHA256:
+`b6e3a4dac69b38d55a763b1752e8fd7bb12e3948672a79fee4ef13fa53839d2f`.
+Image bootability on these guests remains untested.
+
+### Gate and expected changes
+
+Expected source-level scope: one proxmox_download_file.linux["pve-lab/local"]
+and three module.servers VM resources, **4 add / 0 change / 0 destroy expected**.
+This is NOT a plan result. Guests remain stopped, on_boot false, with no GPU/USB/
+hook and destruction protection retained. All existing roots/states stay separate.
+
+First obtain router DHCP range/reservations/lease and independent static-address
+confirmation for .33-.35 (or revise the candidate). Then request explicit approval
+of the exact allocation and new-resource-only plan. Do not execute stage-a-plan
+until that approval; apply/image import/start/convergence remain separate gates.
+The host-name mapping issue blocks later start, not the proposed API plan.

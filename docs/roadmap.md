@@ -98,8 +98,10 @@ the new root/module, baseline and mocked safety tests are implemented, without
 selecting live allocations or changing existing resource addresses. Initial
 sizing is three 4-GiB VMs; pve-lab is dedicated and workstations remain off.
 Repository-only phase passed Forgejo run 27 at `ce61e86`; GitHub matched the
-full implementation SHA. Task 100 records evidence; live preflight remains
-unapproved, with no allocations, state or guests created.
+full implementation SHA. Task 100 records the subsequently authorized read-only
+preflight: capacity/storage/VMIDs checked, but authoritative DHCP/static-IP
+evidence is missing. Candidate 701-703/.33-.35 remains unapproved; no state,
+plan or guests created. Host-name mapping also needs review before later start.
 Portable [050](../tasks/050-independent-controller.md) may
 be assigned separately in parallel; it is not implemented automatically.
 
