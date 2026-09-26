@@ -16,6 +16,22 @@ contract. Bulk user bytes remain in separate backup policy. Architecture and
 roadmap supersede the earlier backend-first ordering; 140 owns production DR.
 Observed preparation CI run25/c636d1f passed, not a kit recovery test.
 
+### Follow-up recorded by Task100 - 2026-09-26
+
+Stage A now has a seventh real local authority, pve-lab-k3s (image + VMs303-305).
+Before any real capture, explicitly reconcile the manifest contract and extend
+the six-root schema/verifier/fixtures; reject omission of this root. See
+[current inventory](../docs/recovery-kit-preparation.md#stage-a-authority-update---2026-09-26).
+No state capture or recovery implementation change occurred in Task100.
+
+Operator clarifies that homelab-iac produces a complete usable kit and restore
+instructions; operator-owned iCloud storage protection is outside its delivery
+scope. A separately assigned recovery-architecture follow-up must reconcile
+the existing accepted custody/encryption contracts below with this clarification.
+Do not mandate age, new keys, offline key custody or Apple account recovery as
+Task100 prerequisites. Existing contracts are preserved pending that explicit
+revision, not silently changed or newly imposed by this guest milestone.
+
 Créer une génération datée **chiffrée avant envoi** contenant le minimum nécessaire au bootstrap, puis prouver qu'elle est récupérable sur un autre contrôleur de confiance. Le cloud est un transport de copies scellées, jamais un backend Terraform.
 
 ## Travail autorisé après approbation

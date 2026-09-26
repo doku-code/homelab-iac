@@ -14,6 +14,10 @@ No backend choice, state migration, production export or key handling occurred.
 
 ## Approved custody and independent code
 
+The 2026-09-25 custody proposal below is preserved, not newly mandated by
+Task100. See the operator's scope clarification and required contract follow-up
+in the [Stage A update](#stage-a-authority-update---2026-09-26).
+
 Public source: <https://github.com/doku-code/homelab-iac>, main. Independently
 queried before this work: `0ccbccb20d563020ddcbdbcdb7270c2cf6f4be92`.
 Recheck the exact final reviewed SHA after every push and at capture time;
@@ -85,6 +89,10 @@ STOP and specify the precise read-only capability and proposed Homelab-IaC
 Infisical path before requesting a new credential; none is provisioned here.
 
 ## Capture consistency procedure (not executed)
+
+The following six-root procedure/schema is historical preparation, incomplete
+for the current seven authorities. Do not use its synthetic PASS to authorize
+or claim a complete capture before the Task040 follow-up below.
 
 1. Review the exact source SHA and six state roots in the contract. Enumerate
    operator shells, scheduled jobs and CI writers; current Make is an operator
@@ -176,3 +184,27 @@ provider plans or restored states become active. A VM hosted on pve-lab proves
 controller replacement, **not recovery from loss of pve-lab**. Full control-plane
 restore and backend selection remain later work. Task050's portable emergency
 entry points are a parallel implementation track, not dependent on this VM.
+
+## Stage A authority update - 2026-09-26
+
+Current inventory is **seven local authoritative states**, not six. Add
+`terraform/stacks/pve-lab-k3s/terraform.tfstate`: root pve-lab-k3s owns the shared
+Debian image and VMs303/304/305 on pve-lab. Operator reported apply 4/0/0; local
+state structure contains one image plus three module server instances. Private
+inputs remain adjacent and ignored; writer remains the operator-local workflow.
+State/inputs were not captured, exported or migrated; independent backup and
+restore of this new authority are UNVERIFIED. The six historical authorities
+are unchanged; pve-lab-controller still has no deployed authority.
+
+Task040 follow-up: reconcile the inventory/manifest contract, then update schema,
+verifier and synthetic fixtures to require the seventh root and reject its
+omission before real capture. Existing six-root tests prove only their historical
+scope; no Recovery Kit implementation changes are part of Task100.
+
+Operator scope clarification: homelab-iac must produce a complete, usable kit and
+document restoration. The operator will store it in iCloud and owns protection
+of that storage. Reconcile recovery architecture/Task040's accepted contracts in
+a separately assigned follow-up; do not silently rewrite those contracts here.
+Do not introduce or mandate age, new keys, offline key custody or Apple account
+recovery procedures as prerequisites for Task100. No production secrets, private
+SSH keys, states or databases were exported during this guest qualification.

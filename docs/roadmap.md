@@ -1,6 +1,6 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
-status: "Architecture approved; Task 100 repository-only phase, separate live gates required"
+status: "Task 100 guest baseline live verified; operator acceptance then Task 110 assignment"
 updated: 2026-09-26
 ---
 
@@ -10,8 +10,8 @@ This replaces the previous backend-first/LXC-first sequence. It is not an
 appendix to that sequence. [Architecture](architecture.md) is the target;
 [tasks](../tasks/README.md) own acceptance. The dated
 [audit roadmap](audits/2026-09-24/milestone-roadmap.md) is historical evidence,
-not a competing active plan. Task 100's repository-only phase is now authorized;
-live allocation, planning, deployment and convergence remain separate gates.
+not a competing active plan. Task100's authorized guest baseline is live verified;
+Task110 and any further infrastructure actions remain separate approval gates.
 
 ## Starting evidence and boundaries
 
@@ -19,7 +19,10 @@ live allocation, planning, deployment and convergence remain separate gates.
   run25/c636d1f observed successful. Task010 and formal020 security gates remain
   open; no untrusted PR or production deployment credentials on shared CT301.
 - Task030 contract accepted; Task040 preparation/synthetic checks exist, no kit
-  produced/recovered. Six current local states retain their authorities.
+  produced/recovered. Seven current local states retain their authorities; the
+  new Stage A root requires Task040 manifest/schema follow-up before capture.
+  Operator kit/storage-protection scope clarification is recorded in040 for
+  explicit contract reconciliation, not imposed as a Task100 prerequisite.
 - Task035 headless capability passed CI, but VM603/.32 not allocated, no plan/
   creation/start/convergence. Preserve its preflight; make VM an optional050 test.
 - No Kubernetes/Flux/storage integration is implemented. Current running services
@@ -91,25 +94,21 @@ must account for post-cutover writes and schema compatibility.
 | 080 | REPLACED sequence with requirements-led backend and protected-CD gates after recovery/security |
 | 090 | SUPERSEDED as prerequisite by100; no generic LXC extraction without real need; active CT code/state untouched |
 
-## Exact first implementation after approval
+## Current handoff
 
-Assigned [Task100](../tasks/100-stage-a-headless-vms.md), **repository-only phase**:
-the new root/module, baseline and mocked safety tests are implemented, without
-selecting live allocations or changing existing resource addresses. Initial
-sizing is three 4-GiB VMs; pve-lab is dedicated and workstations remain off.
-Repository-only phase passed Forgejo run 27 at `ce61e86`; GitHub matched the
-full implementation SHA. Task 100 records the completed read-only preflight and
-operator approval of VMIDs303-305, k3s-server-1/2/3, .33-.35 outside Fizz DHCP.
-The discarded701-703 proposal remains historical only. Ignored approved inputs
-and inventory-based management mapping are ready; plan is explicitly authorized
-but awaits the authenticated operator shell. No real plan/state/guests created.
+Assigned [Task100](../tasks/100-stage-a-headless-vms.md): technical live acceptance
+satisfied on 2026-09-26, awaiting operator acceptance. Approved VMs303-305,
+k3s-server-1/2/3 at .33-.35, each 2 vCPU/4 GiB/32 GiB, are running on pve-lab.
+Operator applied four additions and started guests; explicit TOFU enrollment,
+strict subsequent SSH, baseline and second zero-change convergence succeeded.
+Task100 holds actual evidence and the cloud-init deprecation warning. Existing
+resources/states remain unchanged; the new Stage A state is authority seven.
 Portable [050](../tasks/050-independent-controller.md) may
 be assigned separately in parallel; it is not implemented automatically.
 
-Execute the already-authorized new-resource-only plan through the existing
-Infisical interface, then review the saved plan. Apply, start and OS convergence
-remain subsequent approvals. Task035's previous candidate is not approval for
-any server VM or for a standalone recovery VM.
+Next: accept Task100 evidence, then separately assign110 and decide pinned K3s,
+API/TLS SANs, pod/service CIDRs, CNI/bundled components and lab-token handling.
+No K3s/Flux installation has occurred. Task035 remains separately unallocated.
 
 ## Evidence and delivery discipline
 

@@ -1,11 +1,12 @@
 # 100 - Reusable headless VMs for Stage A
 
-- Status: allocation/preflight APPROVED by operator; plan authorized, execution
-  BLOCKED here only by missing Universal Auth environment. Apply not authorized.
+- Status: LIVE VERIFIED 2026-09-26; technical acceptance satisfied, awaiting
+  operator acceptance of the evidence below before formal closure.
 - Depends on: reviewed target architecture and explicit task assignment; existing
   035 capability, provider locks and workstation-preservation tests.
-- Permission: approved local inputs, SSH mapping fix, Terraform PLAN, safe checks,
-  commit/push/CI authorized. No apply, image import, start or convergence authorized.
+- Permission: operator completed approved apply/start; limited guest TOFU and
+  Debian baseline authorized and completed. Documentation commit/push/CI allowed.
+  No further Terraform/Proxmox changes or Task110 installation authorized.
 - Deliverable: three-node environment profile and reusable headless VM primitive,
   not an operational Kubernetes cluster. Full production kit is not a dependency.
 
@@ -53,7 +54,7 @@ inputs. K3s installation and tokens belong to110, not Terraform cloud-init.
 5. Explicit resource-owner/state and allocation-to-inventory contracts documented.
    Static PASS does not complete live acceptance below.
 
-## Subsequent live gates (not approved)
+## Live gates (completed evidence below; not standing authorization)
 
 - Preflight: fresh cluster VMIDs, DHCP/static IP proof, CIDR/bridge/storage,
   local SSD capacity, public image provenance and SSH trust. Operator dedicates
@@ -246,3 +247,61 @@ is ignored and mode0600. Existing state-file checksums unchanged before/after;
 tracked Terraform roots, inventory and workstation host role have no diff.
 These are local checks, not verification of an actual provider plan. Publication
 CI for the mapping fix is reported against its exact SHA at delivery.
+
+## Live guest qualification - 2026-09-26
+
+This supersedes the earlier plan/authentication and independent SSH-trust gates.
+Operator reports exact reviewed apply **4 added / 0 changed / 0 destroyed**,
+manual startup, then identity-checked `stage-a-start` correctly skipping all
+already-running VMs. No repeat startup, plan or apply was performed here.
+
+Initial Proxmox reads confirmed running names/IDs, 2 cores, 4096 MiB, 32-GiB
+local lab-vms disks, expected cloud-init IPs and no GPU/USB/hook settings.
+Operator confirms workstations remain off; this work did not alter any existing
+root, state, workstation configuration, disks or mappings.
+
+Operator explicitly authorized TOFU for these disposable guests only. OpenSSH
+`StrictHostKeyChecking=accept-new` enrolled three new ED25519 entries into the
+normal controller known_hosts, with no conflicts. This did NOT independently
+authenticate first contact. Every subsequent SSH/Ansible connection explicitly
+used strict checking. Login used the existing administration identity as debian;
+no private key was generated, copied or exported. `sudo -n` succeeded on all.
+
+| Guest | Verified network / OS / disk | First baseline | Second baseline |
+| --- | --- | --- | --- |
+| 303 k3s-server-1 | .33/24, Debian 13.7, 32-GiB sda, ext4 root on sda1 | ok=6 changed=2 failed=0 unreachable=0 | ok=6 changed=0 failed=0 unreachable=0 |
+| 304 k3s-server-2 | .34/24, Debian 13.7, 32-GiB sda, ext4 root on sda1 | ok=6 changed=2 failed=0 unreachable=0 | ok=6 changed=0 failed=0 unreachable=0 |
+| 305 k3s-server-3 | .35/24, Debian 13.7, 32-GiB sda, ext4 root on sda1 | ok=6 changed=2 failed=0 unreachable=0 | ok=6 changed=0 failed=0 unreachable=0 |
+
+All: gateway .1 reachable, resolver .20 observed through resolvectl, home.arpa
+search domain, deb.debian.org resolution successful, NTP synchronized. Cloud-init
+finished (`status: done`, errors empty), with `degraded done` solely from the
+deprecated string `user` field (scheduled removal in cloud-init 27.2). Record as
+a future image/Proxmox cloud-init compatibility follow-up, not a failed bootstrap;
+no generated metadata or Proxmox configuration rewritten to suppress it.
+
+Both runs used existing `make stage-a-configure STAGE_A_CONFIGURE_APPROVED=yes`,
+with ANSIBLE_HOST_KEY_CHECKING=True and SSH StrictHostKeyChecking=yes. First run
+installed qemu-guest-agent and started its service; CA/curl/Python/time packages
+and hostnames were already correct. Second convergence made zero changes.
+All five required packages present; qemu-guest-agent 1:10.0.13+ds-0+deb13u1 active
+(unit reported static), systemd-timesyncd 257.13-1~deb13u1 active/enabled;
+NTPSynchronized=yes, zero failed systemd units. Proxmox guest-agent ping succeeded
+for each VM after convergence. No reboot/failure drill was performed.
+
+`terraform/stacks/pve-lab-k3s/terraform.tfstate` is now the seventh real local
+authority: one shared image and three server resources. No state was exported,
+migrated or modified by this qualification. See the updated
+[recovery inventory and follow-up](../docs/recovery-kit-preparation.md#stage-a-authority-update---2026-09-26)
+and Task040; its six-root verifier must not be mistaken for complete current
+inventory. No recovery implementation or accepted contract changed.
+
+No baseline code fix was necessary. Local PASS: Stage A regression tests,
+baseline Ansible syntax (temporary local directory after sandbox denied the
+default Ansible temp path), configuration/script checks (55 YAML, 10 Python,
+21 shell), 65 local Markdown links/anchors and git diff --check. Static inventory
+has no k3s_lab group; its syntax-only warning is expected, while both live runs
+used applied-output inventory successfully. Exact Forgejo/GitHub SHA is reported
+at delivery. Task110 remains unstarted:
+require separate assignment/approval, pinned K3s integrity/version, API/TLS SANs,
+pod/service CIDRs, CNI/bundled-component ownership and lab-token handling decisions.

@@ -1,17 +1,17 @@
 # Stage A headless VM profile
 
-Task [100](../tasks/100-stage-a-headless-vms.md): operator approved the allocation
-and plan on 2026-09-26; ignored local inputs are ready. Provider plan awaits the
-authenticated operator shell. No guest creation/start or OS convergence yet.
+Task [100](../tasks/100-stage-a-headless-vms.md): live guest baseline verified on
+2026-09-26, awaiting operator acceptance. Operator applied four additions and
+started VMs303-305; guest qualification and two baseline runs now succeeded.
 K3s belongs to Task 110; these guests do not install it automatically.
 
 ## Ownership and inputs
 
 `terraform/stacks/pve-lab-k3s` is a separate local backend/authority. Its new
 `module.servers["server-1"..."server-3"].proxmox_virtual_environment_vm.this`
-addresses own only future lab VMs. `proxmox_download_file.linux` keys are
+addresses own only these lab VMs. `proxmox_download_file.linux` keys are
 `node/image_datastore`; three VMs on one datastore/node share one checksummed
-cloud image. Expected initial scope is four resources, not a verified live plan.
+cloud image. Operator-reported apply: four additions, no changes or destroys.
 No imports, moves or address changes to any existing root, including the
 undeployed controller. The reusable module lives in `terraform/modules/headless-vm`.
 The existing workstation Terraform, state, GPU/USB and host arbitration remain
@@ -46,8 +46,8 @@ Safe local check: `make stage-a-check`. Mocked Terraform tests use disposable
 code-only copies, synthetic documentation IPs and mocked providers, not live
 state, private inputs or a provider-backed plan.
 
-The plan is now authorized for Task100's approved allocation. Apply, start and
-configure still require separate explicit approval:
+The initial apply/start/baseline approvals are completed, not standing permission
+for further changes. Operational interfaces retain separate explicit gates:
 
 1. `make stage-a-plan STAGE_A_ALLOCATION_REVIEWED=yes` after fresh allocation,
    host/storage/network/trust checks. Deletes the previous saved plan before
@@ -70,7 +70,11 @@ Start/converge use a mode-0600 `inventory.json` in a private temporary directory
 and delete both on exit. The JSON extension is required for reliable Ansible
 inventory plugin selection and is tested with the actual inventory parser. No
 parallel hand-maintained host list. Host key verification is never disabled.
-Confirm node/guest keys independently before these operations. Losing local
+Prefer independent node/guest identity verification. For initial enrollment of
+VMs303-305 only, the operator explicitly approved `StrictHostKeyChecking=accept-new`
+in normal known_hosts; this TOFU exception did not independently authenticate
+first contact. Subsequent SSH and Ansible used `StrictHostKeyChecking=yes`;
+conflicts must stop work, never overwrite keys. Losing local
 state is a recovery incident, not permission to synthesize another inventory.
 
 OS baseline refreshes APT metadata, installs CA/curl/Python/QEMU guest agent/time
@@ -87,10 +91,16 @@ inventory output and stopped/no-passthrough lifecycle. Existing workstation
 snapshot assertions remain unchanged. Static Ansible/render and Make denial
 tests do not prove guest idempotence or host capacity.
 
-Live acceptance later: expected new resources only; three separate identities,
-trusted SSH/local disks; second OS convergence with no unintended changes;
-workstations remain off and unchanged. `prevent_destroy` stays enabled. Stop
+Live evidence: all three Debian13.7 guests have expected names/.33-.35 addresses,
+32-GiB local disks, working debian SSH/sudo, gateway .1, resolver .20 and NTP sync.
+Cloud-init completed with no errors but a deprecated string-user warning; this
+does not prove compatibility with a future cloud-init release. QEMU agent is
+active and answers Proxmox; time service active/enabled; no failed systemd units.
+First baseline: two changes per guest (agent install/start); second: zero changes,
+zero failures/unreachable. Full recaps are in Task100, not merely syntax evidence.
+Workstations remain off per operator and unchanged. `prevent_destroy` stays enabled. Stop
 on any existing-resource drift; do not delete guests or discard state to retry.
 Changing host placement is not an etcd migration. No K3s bootstrap before Task
-110 is assigned and approved. Six current state authorities and Recovery Kit
-inventory remain unchanged; review the kit schema when a new state actually exists.
+110 is assigned and approved. Stage A is the seventh real local state authority;
+see [current recovery inventory](recovery-kit-preparation.md#stage-a-authority-update---2026-09-26).
+No state export or backend change is authorized by this runbook.

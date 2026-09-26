@@ -31,8 +31,9 @@ is validated in CI but has not been deployed; it is now an optional test adapter
 for portable Mac/Linux recovery, not a required bootstrap dependency.
 
 The [Stage A profile](docs/k3s-stage-a.md) now provides a separate three-node
-headless root, OS baseline and gated Make interfaces. It has no live allocation
-or deployment; the proposed three 4-GiB VMs use pve-lab while workstations stay off.
+headless root, OS baseline and gated Make interfaces. VMs303-305 are deployed;
+the Debian baseline and zero-change second convergence are live verified.
+Three 4-GiB VMs use pve-lab while workstations stay off; K3s is not installed.
 
 ## Goals
 
@@ -212,7 +213,7 @@ than a hardcoded list of VM IDs.
 │       ├── pve-core-garage/
 │       ├── pve-core-tfstate/
 │       ├── pve-lab-controller/                 # undeployed, optional test host
-│       └── pve-lab-k3s/                        # undeployed Stage A lab
+│       └── pve-lab-k3s/                        # deployed Stage A VMs, local state
 │
 ├── services/
 │   ├── monitoring/
@@ -346,9 +347,9 @@ about infrastructure automation.
 | --- | --- |
 | Selected Proxmox resources, guest/host roles and monitoring | Implemented; dated deployment evidence in the [documentation index](docs/README.md), not complete homelab reconstruction |
 | Quality CI | LIVE VERIFIED in run139; [runner trust preflight](tasks/010-runner-trust-preflight.md) remains separate and unresolved |
-| Terraform state | Six stack states remain local; no migration; single-writer local model recommended initially; future shared backend decided by requirements, not mandatory PG/Consul deployment |
+| Terraform state | Seven stack states remain local, including Stage A; no migration; single-writer model; [recovery inventory follow-up](docs/recovery-kit-preparation.md#stage-a-authority-update---2026-09-26) before capture; future backend decided by requirements |
 | Independent recovery | [Contract accepted](docs/recovery-contract.md); [preparation/tests](docs/recovery-kit-preparation.md) implemented; private payloads, custody qualification and recovery tests pending |
-| K3s / Flux / TrueNAS integration | Target only; no deployed cluster or production data migration; [Task100](tasks/100-stage-a-headless-vms.md) provides repository-only VM/OS preparation |
+| K3s / Flux / TrueNAS integration | Target only; no deployed cluster or production data migration; [Task100](tasks/100-stage-a-headless-vms.md) VM/OS baseline is live verified |
 | Reusable headless module / protected CD | Stage A module implemented; protected CD remains gated; existing workstation state unchanged |
 
 Task files own current progress. Dated audits remain historical evidence and

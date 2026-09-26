@@ -31,8 +31,12 @@ nine roles, monitoring Compose and CI image source. No Kubernetes app definition
 State presence/structure rechecked without printing attributes or private inputs.
 
 Task 100 now adds a ninth root, `pve-lab-k3s`, and a shared headless VM module
-plus an OS-only baseline. This is repository implementation, not a deployed
-cluster: no Stage A state or allocation exists. Existing roots remain unchanged.
+plus an OS-only baseline. VMs303-305 are deployed and the Debian baseline is
+live-verified on 2026-09-26; K3s is not installed. Stage A adds a seventh local
+state authority. Existing roots remain unchanged. Recovery inventory/schema
+follow-up and operator storage-protection scope clarification are recorded in
+[Recovery Kit preparation](recovery-kit-preparation.md#stage-a-authority-update---2026-09-26),
+without silently changing the accepted recovery contract.
 See [Stage A workflow](k3s-stage-a.md) for inputs, tests and separate live gates.
 
 | Evidence | Known result | Limit |
@@ -285,8 +289,8 @@ destroy existing resources or run duplicate DB/runner identities.
 
 ## Operator decisions before implementation
 
-Architecture and code-only Task100 are approved; live actions are not. Review actual A capacity/
-allocations before plan; pinned K3s/API/CIDRs before bootstrap; storage/fencing
+Task100's approved apply/start and guest baseline are complete; further live
+actions are not authorized. Review pinned K3s/API/CIDRs before bootstrap; storage/fencing
 before stateful tests; payload/custody before migrations; B/C capacity/member
 transition before live relocation; backend and runner security before privileged CD.
 
