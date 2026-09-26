@@ -62,7 +62,9 @@ The following commands are implemented for later review, NOT authorized now:
 4. `make stage-a-configure STAGE_A_CONFIGURE_APPROVED=yes` after guest SSH trust
    verification. Uses Debian user/sudo and generated inventory, serially.
 
-Start/converge use a mode-0600 temporary inventory and delete it on exit; no
+Start/converge use a mode-0600 `inventory.json` in a private temporary directory
+and delete both on exit. The JSON extension is required for reliable Ansible
+inventory plugin selection and is tested with the actual inventory parser. No
 parallel hand-maintained host list. Host key verification is never disabled.
 Confirm node/guest keys independently before these operations. Losing local
 state is a recovery incident, not permission to synthesize another inventory.

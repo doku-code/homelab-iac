@@ -1,5 +1,6 @@
 """Offline Stage A baseline, inventory shape and fail-closed command guards."""
 from pathlib import Path
+import json
 import os
 import shutil
 import subprocess
@@ -41,6 +42,23 @@ def main():
     assert "|| { rm -f" in plan
     assert "STAGE_A_PLAN_SHA256" in make and "shasum -a 256 -c" in make
     assert 'output -json ansible_inventory > "$$inventory"' in make
+    assert make.count('inventory="$$work/inventory.json"') == 2
+    with tempfile.TemporaryDirectory(prefix="stage-a-inventory-") as directory:
+        inventory = Path(directory) / "inventory.json"
+        inventory.write_text(json.dumps({"all": {"children": {"k3s_lab": {"hosts": {
+            f"server-{i}": {"ansible_host": f"192.0.2.{10+i}", "ansible_user": "debian",
+                             "stage_a_hostname": f"lab-server-{i}", "stage_a_vm_id": 900+i,
+                             "proxmox_node": "mock-node"}
+            for i in range(1, 4)
+        }}}}}))
+        env = {"PATH": os.environ["PATH"], "HOME": directory, "ANSIBLE_LOCAL_TEMP": directory}
+        parsed = json.loads(subprocess.check_output(
+            [str(ROOT / ".venv/bin/ansible-inventory"), "-i", str(inventory), "--list"],
+            cwd=ROOT, env=env, text=True
+        ))
+        assert parsed["k3s_lab"]["hosts"] == ["server-1", "server-2", "server-3"]
+        assert parsed["_meta"]["hostvars"]["server-2"]["stage_a_vm_id"] == 902
+        assert parsed["_meta"]["hostvars"]["server-2"]["ansible_host"] == "192.0.2.12"
     with tempfile.TemporaryDirectory(prefix="stage-a-guards-") as home:
         # Drop all runtime credentials and Make overrides; denial happens before any command.
         env = {"PATH": os.environ["PATH"], "HOME": home}

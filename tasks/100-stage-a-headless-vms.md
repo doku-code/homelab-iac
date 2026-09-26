@@ -97,6 +97,11 @@ static/live results. Next: assign110; do not install K3s automatically.
   repository CI, not provider planning, recovery or runner isolation proof.
 - No private inputs, new state or live allocation created. Six existing
   authorities remain unchanged; no live infrastructure action performed.
+- Follow-up loader regression: temporary generated inventory must have a `.json`
+  suffix, not `mktemp`'s random extension. Added a real offline
+  `ansible-inventory --list` test for all three hosts and allocation variables.
+  The run 27 evidence above predates this narrowly scoped loader correction;
+  its exact pushed CI result is reported separately.
 
 Next gate is separately authorized read-only allocation/capacity/trust preflight,
 not Task 110 installation. Full Task 100 remains open until live criteria and
