@@ -1,6 +1,6 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
-status: "Task 100 guest baseline live verified; operator acceptance then Task 110 assignment"
+status: "Task 100 accepted and closed; Task 110 repository implementation assigned"
 updated: 2026-09-26
 ---
 
@@ -97,7 +97,7 @@ must account for post-cutover writes and schema compatibility.
 ## Current handoff
 
 Assigned [Task100](../tasks/100-stage-a-headless-vms.md): technical live acceptance
-satisfied on 2026-09-26, awaiting operator acceptance. Approved VMs303-305,
+satisfied and accepted by the operator on 2026-09-26; Task100 is DONE. Approved VMs303-305,
 k3s-server-1/2/3 at .33-.35, each 2 vCPU/4 GiB/32 GiB, are running on pve-lab.
 Operator applied four additions and started guests; explicit TOFU enrollment,
 strict subsequent SSH, baseline and second zero-change convergence succeeded.
@@ -106,7 +106,7 @@ resources/states remain unchanged; the new Stage A state is authority seven.
 Portable [050](../tasks/050-independent-controller.md) may
 be assigned separately in parallel; it is not implemented automatically.
 
-Next: accept Task100 evidence, then separately assign110 and decide pinned K3s,
+Next: assigned110 repository-only implementation must propose pinned K3s,
 API/TLS SANs, pod/service CIDRs, CNI/bundled components and lab-token handling.
 No K3s/Flux installation has occurred. Task035 remains separately unallocated.
 

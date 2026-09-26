@@ -1,7 +1,7 @@
 # Stage A headless VM profile
 
 Task [100](../tasks/100-stage-a-headless-vms.md): live guest baseline verified on
-2026-09-26, awaiting operator acceptance. Operator applied four additions and
+2026-09-26 and accepted by the operator; Task100 is DONE. Operator applied four additions and
 started VMs303-305; guest qualification and two baseline runs now succeeded.
 K3s belongs to Task 110; these guests do not install it automatically.
 

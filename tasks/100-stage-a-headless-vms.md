@@ -1,7 +1,7 @@
 # 100 - Reusable headless VMs for Stage A
 
-- Status: LIVE VERIFIED 2026-09-26; technical acceptance satisfied, awaiting
-  operator acceptance of the evidence below before formal closure.
+- Status: DONE / LIVE VERIFIED 2026-09-26; operator explicitly accepted the
+  technical evidence and authorized formal closure before assigning Task110.
 - Depends on: reviewed target architecture and explicit task assignment; existing
   035 capability, provider locks and workstation-preservation tests.
 - Permission: operator completed approved apply/start; limited guest TOFU and
@@ -305,3 +305,8 @@ used applied-output inventory successfully. Exact Forgejo/GitHub SHA is reported
 at delivery. Task110 remains unstarted:
 require separate assignment/approval, pinned K3s integrity/version, API/TLS SANs,
 pod/service CIDRs, CNI/bundled-component ownership and lab-token handling decisions.
+
+Closure: operator accepted this evidence on 2026-09-26. Documentation commit
+3320af04beb909dca075a3e1488b6fed200ea1f1 passed Forgejo run31 (API142); GitHub
+main matched exactly. Task110 repository-only implementation is now separately
+assigned; no installation or real token generation authorized by this closure.
