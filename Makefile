@@ -72,6 +72,44 @@ controller-apply:
 	@test -f "$(CONTROLLER_DIR)/controller.tfplan" || (echo "Missing reviewed saved plan"; exit 1)
 	$(call INFISICAL_RUN,terraform -chdir=$(CONTROLLER_DIR) apply -input=false controller.tfplan)
 
+# Stage A has a separate local authority and no default live allocations.
+STAGE_A_DIR := terraform/stacks/pve-lab-k3s
+.PHONY: stage-a-check stage-a-plan stage-a-apply stage-a-start stage-a-configure
+stage-a-check:
+	$(VENV)/bin/python tests/vm-profiles.py
+	$(VENV)/bin/python tests/stage-a.py
+	$(ANSIBLE) ansible/playbooks/configure-k3s-lab.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(ANSIBLE) ansible/playbooks/start-k3s-lab.yml --syntax-check -i ansible/inventories/homelab.yml
+
+stage-a-plan:
+	@test "$(STAGE_A_ALLOCATION_REVIEWED)" = yes || (echo "Review allocation, stopped workstations, local storage and host capacity first"; exit 1)
+	rm -f "$(STAGE_A_DIR)/stage-a.tfplan"
+	@test -f "$(STAGE_A_DIR)/terraform.tfvars" || (echo "Missing private reviewed Stage A inputs"; exit 1)
+	terraform -chdir=$(STAGE_A_DIR) init -input=false -lockfile=readonly
+	$(call INFISICAL_RUN,terraform -chdir=$(STAGE_A_DIR) plan -input=false -out=stage-a.tfplan) || { rm -f "$(STAGE_A_DIR)/stage-a.tfplan"; exit 1; }
+	shasum -a 256 "$(STAGE_A_DIR)/stage-a.tfplan"
+
+stage-a-apply:
+	@test "$(STAGE_A_APPLY_APPROVED)" = yes || (echo "Explicit exact-plan approval required"; exit 1)
+	@test -n "$(STAGE_A_PLAN_SHA256)" || (echo "Supply the reviewed plan SHA256"; exit 1)
+	@printf '%s  %s\n' '$(STAGE_A_PLAN_SHA256)' '$(STAGE_A_DIR)/stage-a.tfplan' | shasum -a 256 -c
+	$(call INFISICAL_RUN,terraform -chdir=$(STAGE_A_DIR) apply -input=false stage-a.tfplan)
+	rm -f "$(STAGE_A_DIR)/stage-a.tfplan"
+
+stage-a-start:
+	@test "$(STAGE_A_START_APPROVED)" = yes || (echo "Separate start and SSH trust approval required"; exit 1)
+	@set -eu; umask 077; inventory="$$(mktemp)"; trap 'rm -f "$$inventory"' EXIT; \
+	  test -f "$(STAGE_A_DIR)/terraform.tfstate"; \
+	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory > "$$inventory"; \
+	  $(ANSIBLE) ansible/playbooks/start-k3s-lab.yml -i "$$inventory" -e stage_a_start_approved=true
+
+stage-a-configure:
+	@test "$(STAGE_A_CONFIGURE_APPROVED)" = yes || (echo "Separate guest OS convergence and SSH trust approval required"; exit 1)
+	@set -eu; umask 077; inventory="$$(mktemp)"; trap 'rm -f "$$inventory"' EXIT; \
+	  test -f "$(STAGE_A_DIR)/terraform.tfstate"; \
+	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory > "$$inventory"; \
+	  $(ANSIBLE) ansible/playbooks/configure-k3s-lab.yml -i "$$inventory" -e stage_a_configure_approved=true --diff
+
 # PostgreSQL host bootstrap state stays local; apply only the reviewed saved plan.
 TFSTATE_DIR := terraform/stacks/pve-core-tfstate
 TFSTATE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub

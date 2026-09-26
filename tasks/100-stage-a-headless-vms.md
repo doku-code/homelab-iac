@@ -1,9 +1,11 @@
 # 100 - Reusable headless VMs for Stage A
 
-- Status: PLANNED; first code-only implementation after architecture approval.
+- Status: IN_PROGRESS; repository-only implementation authorized and implemented;
+  local validation and exact-SHA CI acceptance being recorded. Live gates blocked.
 - Depends on: reviewed target architecture and explicit task assignment; existing
   035 capability, provider locks and workstation-preservation tests.
-- Permission: future OFFLINE_CODE first; this task file authorizes no execution.
+- Permission: OFFLINE_CODE, commit/push and quality CI explicitly authorized;
+  no live allocation, provider plan, apply, start or convergence authorized.
 - Deliverable: three-node environment profile and reusable headless VM primitive,
   not an operational Kubernetes cluster. Full production kit is not a dependency.
 
@@ -16,6 +18,10 @@ justified by standalone-controller and three-node consumers. Determine resource
 addresses before editing. Never move workstation or other stateful-root addresses.
 The undeployed controller root may adopt the component only after confirming
 it still has no state/resources; stop if this has changed.
+
+Implementation decision: the controller root is left unchanged. No local state
+or plan exists, but this repository-only phase does not establish live absence.
+The new module is shared by three Stage A instances; no existing address moves.
 
 Propose a separate Stage A root/state with map keys server-1/server-2/server-3,
 explicit unique VMIDs/IPs/hostnames, per-node placement/storage/sizing and one
@@ -50,19 +56,44 @@ inputs. K3s installation and tokens belong to110, not Terraform cloud-init.
 ## Subsequent live gates (not approved)
 
 - Preflight: fresh cluster VMIDs, DHCP/static IP proof, CIDR/bridge/storage,
-  local SSD capacity, public image provenance and SSH trust. Measure running
-  workstation + host baseline and proposed 9-GiB cluster; retain 2-GiB host
-  margin. No workload shutdown to manufacture headroom. No reuse of603/.32
+  local SSD capacity, public image provenance and SSH trust. Operator dedicates
+  pve-lab to the lab; workstations remain powered off, all configuration/state
+  preserved. Measure host overhead and proposed 12-GiB cluster (3 x 4 GiB)
+  against 32-GB physical capacity; retain at least 2-GiB safety headroom beyond
+  host overhead. Do not alter workstation power/configuration. No reuse of603/.32
   without separate review; standalone controller remains optional/separate.
 - Approve exact allocations and new-resource-only plan; inspect no existing
   resource changes, no state moves/imports. Save reviewed plan with identity.
 - Separate exact-plan apply approval; creation stopped. Then explicit start
   and OS baseline approval, trusted SSH identity check and second convergence.
 - Live acceptance: three distinct accessible Debian nodes, expected local disks,
-  no passthrough/hook; workstation remains usable, no unintended changes.
+  no passthrough/hook; workstation configuration/state unchanged and still off.
 
 Rollback: before apply, abandon proposed code/profile without touching existing
 states. After creation, keep nodes stopped on failure; deletion requires a new
 reviewed plan and explicit destruction approval, never automatic prevent_destroy
 removal. Preserve state/evidence. Close only with operator acceptance and precise
 static/live results. Next: assign110; do not install K3s automatically.
+
+## Repository-only evidence - 2026-09-25
+
+- Shared module and separate `pve-lab-k3s` root implemented; proposal is three
+  2-vCPU/4-GiB/32-GiB nodes with no VMID/IP defaults. One image per node/datastore.
+- Applied-output inventory, minimal OS baseline, separate guarded plan/exact-hash
+  apply/start/configure interfaces. No K3s or controller toolchain on lab guests.
+- `make stage-a-check` PASS: 15 mocked VM cases (3 unchanged workstation,
+  2 unchanged controller, 10 new Stage A), baseline rendering, denied gates,
+  Make dry-runs and stale/partial-plan removal through stubbed commands.
+- All nine roots: code-only copies, isolated HOME, readonly/backend-disabled
+  init and validate PASS on macOS ARM64. Provider version/checksums unchanged;
+  new lock copied from the already-qualified identical controller dependency.
+- All 16 playbooks syntax PASS; absent `k3s_lab` hosts are expected until apply.
+  Terraform fmt and git diff whitespace PASS. Existing workstation/controller
+  roots and workstation roles are byte-for-byte unchanged against dcbc83a.
+- Exact pushed SHA CI/GitHub evidence pending publication; local mocked tests
+  are not live provider plans. No private inputs, new state or live allocation
+  created. Six existing authorities remain unchanged.
+
+Next gate is separately authorized read-only allocation/capacity/trust preflight,
+not Task 110 installation. Full Task 100 remains open until live criteria and
+operator acceptance; the repository-only phase does not authorize those actions.

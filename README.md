@@ -30,6 +30,10 @@ has been exported or recovered. The [headless controller profile](docs/headless-
 is validated in CI but has not been deployed; it is now an optional test adapter
 for portable Mac/Linux recovery, not a required bootstrap dependency.
 
+The [Stage A profile](docs/k3s-stage-a.md) now provides a separate three-node
+headless root, OS baseline and gated Make interfaces. It has no live allocation
+or deployment; the proposed three 4-GiB VMs use pve-lab while workstations stay off.
+
 ## Goals
 
 - Treat infrastructure configuration as code
@@ -207,7 +211,8 @@ than a hardcoded list of VM IDs.
 │       ├── pve-compute-forgejo-runner-migration/ # active CT301
 │       ├── pve-core-garage/
 │       ├── pve-core-tfstate/
-│       └── pve-lab-controller/                 # undeployed, optional test host
+│       ├── pve-lab-controller/                 # undeployed, optional test host
+│       └── pve-lab-k3s/                        # undeployed Stage A lab
 │
 ├── services/
 │   ├── monitoring/
@@ -299,7 +304,7 @@ The repository includes a validation-only Forgejo Actions workflow at
 `.forgejo/workflows/validate.yml`. It targets main only and is gated by
 `CI_QUALITY_APPROVED`; run139 passed on CT301/Linux AMD64 at `01ccefb`.
 Outstanding runner trust findings still block formal security closure.
-Label `homelab-iac` selects the existing image for controller setup, eight-root
+Label `homelab-iac` selects the existing image for controller setup, nine-root
 backend-disabled validation, Ansible/Compose checks, tests and secret scanning.
 See [CI quality boundaries and local validation](docs/ci-quality.md).
 
@@ -343,8 +348,8 @@ about infrastructure automation.
 | Quality CI | LIVE VERIFIED in run139; [runner trust preflight](tasks/010-runner-trust-preflight.md) remains separate and unresolved |
 | Terraform state | Six stack states remain local; no migration; single-writer local model recommended initially; future shared backend decided by requirements, not mandatory PG/Consul deployment |
 | Independent recovery | [Contract accepted](docs/recovery-contract.md); [preparation/tests](docs/recovery-kit-preparation.md) implemented; private payloads, custody qualification and recovery tests pending |
-| K3s / Flux / TrueNAS integration | Target only; no deployed cluster, no production data migration; first implementation after approval is [Task100](tasks/100-stage-a-headless-vms.md) |
-| Reusable headless module / protected CD | Planned; existing workstation state protected; see [roadmap](docs/roadmap.md) for distinct gates |
+| K3s / Flux / TrueNAS integration | Target only; no deployed cluster or production data migration; [Task100](tasks/100-stage-a-headless-vms.md) provides repository-only VM/OS preparation |
+| Reusable headless module / protected CD | Stage A module implemented; protected CD remains gated; existing workstation state unchanged |
 
 Task files own current progress. Dated audits remain historical evidence and
 must not be rewritten to imply later implementation or live verification.

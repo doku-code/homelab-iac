@@ -139,7 +139,13 @@ rerunning old f341450 would not exercise the fixes.
 
 ## Commands and dependencies
 
-Task035 extends the current allowlist to eight roots and fourteen playbooks.
+Task035 extended the allowlist to eight roots and fourteen playbooks.
+
+Task 100 adds a ninth root (`pve-lab-k3s`), two OS/start playbooks and a reusable
+headless VM module. CI runs synthetic three-node provider mocks and baseline/
+approval-guard tests; it never runs the live Stage A Make targets. The added
+checks are repository validation, not allocation, deployment or K3s evidence.
+See [Stage A](k3s-stage-a.md) for the separately approved operational boundaries.
 `tests/vm-profiles.py` uses mocked providers and disposable code-only directories;
 it never reads production states/tfvars or calls a live provider. Run139 remains
 the historical seven-root baseline, not evidence for these new checks.

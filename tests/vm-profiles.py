@@ -23,15 +23,16 @@ def main():
         base = Path(directory)
         (base / "keys").mkdir()
         shutil.copyfile(ROOT / "keys/doku-lab-admin.pub", base / "keys/doku-lab-admin.pub")
+        shutil.copytree(ROOT / "terraform/modules", base / "terraform/modules")
         env = {"PATH": os.environ["PATH"], "HOME": str(base), "TF_IN_AUTOMATION": "1"}
-        for name in ["pve-lab-workstations", "pve-lab-controller"]:
+        for name in ["pve-lab-workstations", "pve-lab-controller", "pve-lab-k3s"]:
             src = ROOT / "terraform/stacks" / name
             dst = base / "terraform/stacks" / name
             dst.mkdir(parents=True)
             for file in [*src.glob("*.tf"), src / ".terraform.lock.hcl"]:
                 shutil.copyfile(file, dst / file.name)
             shutil.copytree(src / "tests", dst / "tests")
-            for command in [["init", "-backend=false", "-input=false", "-lockfile=readonly"], ["test", "-no-color"]]:
+            for command in [["init", "-backend=false", "-input=false", "-lockfile=readonly"], ["validate"], ["test", "-no-color"]]:
                 subprocess.run(["terraform", f"-chdir={dst}", *command], env=env, check=True)
     print("PASS: isolated mocked VM profiles and lifecycle guards")
 

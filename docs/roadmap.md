@@ -1,6 +1,6 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
-status: "Proposed execution sequence; architecture review and separate live gates required"
+status: "Architecture approved; Task 100 repository-only phase, separate live gates required"
 updated: 2026-09-25
 ---
 
@@ -10,7 +10,8 @@ This replaces the previous backend-first/LXC-first sequence. It is not an
 appendix to that sequence. [Architecture](architecture.md) is the target;
 [tasks](../tasks/README.md) own acceptance. The dated
 [audit roadmap](audits/2026-09-24/milestone-roadmap.md) is historical evidence,
-not a competing active plan. No implementation begins in this review session.
+not a competing active plan. Task 100's repository-only phase is now authorized;
+live allocation, planning, deployment and convergence remain separate gates.
 
 ## Starting evidence and boundaries
 
@@ -62,7 +63,7 @@ recovery boundary. PLANNED/READY is never a live authorization.
 | 010/020 security foundation | Existing evidence | Finish effective source/socket/LAN/token trust; preserve useful quality checks. No privileged CD or weakening acceptance | Authenticated source inventory, denied untrusted execution and accepted/remediated residual risks; exact SHA quality result | Any runner/ACL change separately approved; rollback reviewed runner config. Next: retain secretless CI while new checks are added |
 | 100 reusable A VM profile | Architecture/code-scope approval | Small reusable headless component; three new server VMs in independent root, environment map. No existing root/state move, GPU/USB/host changes or K3s | Mock three unique identities/local disks/no hooks; invalid duplicate inputs; workstation baseline unchanged; all-root readonly/backend-disabled validation | First code-only, then allocation+plan, exact saved apply, start/OS separate gates. No automatic cleanup. Next: assign110 after guest baseline accepted |
 | 110 K3s bootstrap/lifecycle | 100 code and separately approved guests | Pinned server role, embedded etcd, explicit networking/API endpoint, synthetic snapshot/token recovery. No production secrets, Flux apps or unapproved drain | Three Ready servers/healthy members; second convergence no unintended changes; one-member failure, rejoin/upgrade, isolated snapshot restore; two failures lose quorum as expected | Approve install/network/test-token handling and each failure drill. Snapshot before change, never blind etcd downgrade/clone. Next:120 |
-| 120 Flux/stateless/measurement | 110 accepted cluster; source boundary approved | Self-hosted GitOps; pinned public disposable app; bounded observability, outside probe strategy. No production DB or host socket | Reviewed source reconciles; negative RBAC; revert app; source outage/recovery; replica rescheduling; 24-hour resource and workstation coexistence evidence | Approve Flux write/read identity hand-off and test ingress only. Suspend source/revert reviewed commit; no data to lose. Next:130 and140 capacity preflight |
+| 120 Flux/stateless/measurement | 110 accepted cluster; source boundary approved | Self-hosted GitOps; pinned public disposable app; bounded observability, outside probe strategy. No production DB or host socket | Reviewed source reconciles; negative RBAC; revert app; source outage/recovery; replica rescheduling; 24-hour resource/headroom evidence with workstations off | Approve Flux write/read identity hand-off and test ingress only. Suspend source/revert reviewed commit; no data to lose. Next:130 and140 capacity preflight |
 | 050 portable controller | Accepted authority rules; independent code | Mac ARM64/Linux AMD64 verified tools, synthetic inputs and read-only doctor. No complete kit/VM prerequisite; no live provider operation | Fresh HOME/cache, blocked internal endpoints, exact SHA/tools, static checks and absent/wrong authority rejection | Clean-machine execution separately authorized; no real keys required for synthetic tests. Next:040 custody/capture gates |
 | 040 production kit | 050 synthetic path; complete targeted inventory/custody;030 | Evolve manifest inventory; approved technical capture and independent encrypted retrieval. No bulk personal bytes or service promotion | Known required bytes independently available; writer freeze; correct/wrong key, corruption/missing/root mismatch; external/offline retrieval; no second writer | Exact exports/unsynced staging/key use/upload/decryption approvals separate. Keep previous verified generation. Next:140 service DR contracts |
 | 130 TrueNAS and synthetic state | 110/120; verified TrueNAS version/access | NFS files, block/CSI/fencing and DB restore with throwaway data. No production default class/data/backup schedule edits | File/ACL and DB consistency; disconnect/reconnect; single-writer reattach; Retain behavior; restore on isolated target with hashes/transactions | Approve dedicated dataset/volumes/scoped credential and outage test, never whole NAS shutdown. Delete only reviewed disposable objects. Next:140-A or per-service contract |
@@ -92,10 +93,11 @@ must account for post-cutover writes and schema compatibility.
 
 ## Exact first implementation after approval
 
-Assign [Task100](../tasks/100-stage-a-headless-vms.md), **repository-only phase**:
-adapt the existing headless component for three distinct server profiles and
-add mocked safety tests, without selecting live allocations or changing existing
-resource addresses. Portable [050](../tasks/050-independent-controller.md) may
+Assigned [Task100](../tasks/100-stage-a-headless-vms.md), **repository-only phase**:
+the new root/module, baseline and mocked safety tests are implemented, without
+selecting live allocations or changing existing resource addresses. Initial
+sizing is three 4-GiB VMs; pve-lab is dedicated and workstations remain off.
+Portable [050](../tasks/050-independent-controller.md) may
 be assigned separately in parallel; it is not implemented automatically.
 
 After100 code/CI review, perform targeted live allocation/capacity preflight,

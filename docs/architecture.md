@@ -18,7 +18,8 @@ Nothing here authorizes implementation, allocation, deployment or migration.
 | APPROVED OPERATOR REQUIREMENTS | Proxmox virtualization; K3s preferred for suitable workloads; Flux initial GitOps candidate; Terraform infrastructure, Ansible OS/cluster bootstrap, GitOps Kubernetes applications, Infisical runtime secrets; TrueNAS centralized application storage |
 | APPROVED OPERATOR REQUIREMENTS | A: three separate server VMs with embedded etcd on pve-lab, NOT physical HA. B: one server VM each on core/compute/lab. C: mini-PC A, mini-PC B, core; initially 8 GB per mini-PC, upgrade to 16 GB |
 | APPROVED OPERATOR REQUIREMENTS | Local system/etcd disks; no Longhorn/Ceph; accept TrueNAS-dependent application outage. Preserve workstations. GitHub code, iCloud ciphertext, independent offline decryption; no synced active state |
-| TECHNICAL RECOMMENDATIONS | Single operator/local Terraform authority initially; 3 x 2-vCPU/3-GiB Stage A; modest baseline networking, explicit ingress ownership; foundational DNS/Infisical/Forgejo outside Kubernetes initially; workload-specific DB/storage |
+| APPROVED OPERATOR REQUIREMENTS | pve-lab is dedicated to experimental Kubernetes during transition; workstations remain powered off with configuration/state/mappings preserved. Initial proposal: 3 x 2-vCPU/4-GiB VMs, subject to measured host capacity |
+| TECHNICAL RECOMMENDATIONS | Single operator/local Terraform authority initially; modest baseline networking, explicit ingress ownership; foundational DNS/Infisical/Forgejo outside Kubernetes initially; workload-specific DB/storage |
 | UNRESOLVED DECISIONS | Recommendation acceptance, live allocations/capacity, API endpoint/VIP, CIDRs, mini-PC hypervisor choice, TrueNAS version/CSI compatibility, independent service backups, custody, ingress/TLS, service DB choices and eventual shared backend |
 | IMPLEMENTED AND VERIFIED | Only existing code and dated evidence below. No K3s, Flux, CSI or target-service migration implemented or qualified |
 
@@ -28,6 +29,11 @@ Repository at c636d1f: eight Terraform roots, zero child modules, six local
 state files; controller/example have no state. Fourteen Ansible playbooks,
 nine roles, monitoring Compose and CI image source. No Kubernetes app definitions.
 State presence/structure rechecked without printing attributes or private inputs.
+
+Task 100 now adds a ninth root, `pve-lab-k3s`, and a shared headless VM module
+plus an OS-only baseline. This is repository implementation, not a deployed
+cluster: no Stage A state or allocation exists. Existing roots remain unchanged.
+See [Stage A workflow](k3s-stage-a.md) for inputs, tests and separate live gates.
 
 | Evidence | Known result | Limit |
 | --- | --- | --- |
@@ -63,13 +69,13 @@ flowchart TD
 | Stage | Proposal / budget | Failure domain and approval |
 | --- | --- | --- |
 | Current | infra: DNS/proxy; core: critical infrastructure; compute: runner/bots; lab: workstation pool; TrueNAS/PBS services | Existing ownership unchanged; full physical backup independence unknown |
-| A development | Three distinct headless Debian VMs, each 2 vCPU, 3 GiB RAM, 32 GiB local SSD-backed system/etcd disk; workloads on servers initially | Same physical host/power/storage. 9 GiB cluster + 16 GiB workstation + ~3 GiB host = ~28 GiB: narrow margin on ~30 GiB usable. No guaranteed concurrent 4-GiB recovery VM |
+| A development | Three distinct headless Debian VMs, each 2 vCPU, 4 GiB RAM, 32 GiB local SSD-backed system/etcd disk; workloads on servers initially | Same physical host/power/storage. 12 GiB cluster from 32 GB physical, minus measured Proxmox overhead and safety headroom. Workstations remain off; no simultaneous workstation budget required |
 | B distributed | One server VM per core/compute/lab, using measured A sizing | Verify critical core and bot-heavy compute headroom. Two survivors must support quorum AND required workloads; separate live approval |
 | C permanent | Prefer Proxmox + one VM per mini if measurements fit: 8 GB physical, reserve ~2 GB host overhead, 3-4 GiB VM, remaining safety margin; at 16 GB consider 6-8 GiB VM after measurement | Bare metal gives more RAM/fewer layers but loses uniform VM lifecycle/isolation/console and needs separate host install/recovery ownership. Decision before purchase/deployment, no 32-GB requirement |
 
 Budgets are proposals, not allocations or performance guarantees. Before A apply,
-measure ordinary running workstation + host use; retain at least 2 GiB headroom.
-Do not stop/shrink workstations to pass. If 3 GiB/node is insufficient, negotiate
+measure host use with workstations off; retain at least 2 GiB safety headroom
+beyond Proxmox overhead. Do not modify workstations. If 4 GiB/node is insufficient, negotiate
 capacity or placement first. Proposed scaling triggers: sustained host headroom
 below 2 GiB, OOM, node MemoryPressure/DiskPressure, etcd fsync warnings or service
 latency beyond its agreed budget => stop adding workloads and measure. Establish
@@ -279,7 +285,7 @@ destroy existing resources or run duplicate DB/runner identities.
 
 ## Operator decisions before implementation
 
-Approve recommendations and first code-only Task100. Review actual A capacity/
+Architecture and code-only Task100 are approved; live actions are not. Review actual A capacity/
 allocations before plan; pinned K3s/API/CIDRs before bootstrap; storage/fencing
 before stateful tests; payload/custody before migrations; B/C capacity/member
 transition before live relocation; backend and runner security before privileged CD.

@@ -23,8 +23,9 @@ identity and prove denied cross-scope access; production sync is a later gate.
 Acceptance: offline render/schema checks at pinned versions and CI; live Flux
 source/health and drift correction; Git revert restores demo; denied unauthorized
 namespace access; source outage/recovery; pod rescheduling with one member lost.
-Observe memory/CPU/etcd latency/disk plus demo latency and workstation coexistence
-over a representative 24 hours. Set measured budgets/alerts before adding apps.
+Observe memory/CPU/etcd latency/disk plus demo latency and Proxmox headroom
+over a representative 24 hours; workstations remain off during Stage A.
+Set measured budgets/alerts before adding apps.
 Retain existing outside monitoring; do not refactor live monitoring in this task.
 
 Rollback: suspend affected reconciliation, restore reviewed commit/bootstrapped

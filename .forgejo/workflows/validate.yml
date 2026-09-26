@@ -118,6 +118,7 @@ jobs:
             terraform/stacks/pve-core-garage \
             terraform/stacks/pve-core-tfstate \
             terraform/stacks/pve-lab-controller \
+            terraform/stacks/pve-lab-k3s \
             terraform/examples/cloud-image-vm; do
             root_data_dir="$terraform_data_root/$(basename "$root")"
             mkdir -p "$root_data_dir"
@@ -149,6 +150,9 @@ jobs:
 
       - name: Test Recovery Kit verifier with synthetic fixtures
         run: make recovery-check
+
+      - name: Test Stage A baseline and approval guards offline
+        run: .venv/bin/python tests/stage-a.py
 
       - name: Parse configuration and check script syntax
         run: .venv/bin/python scripts/check-quality.py

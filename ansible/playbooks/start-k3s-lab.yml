@@ -1,0 +1,50 @@
+---
+- name: Start only explicitly approved Stage A VMIDs
+  hosts: k3s_lab
+  gather_facts: false
+  serial: 1
+  tasks:
+    - name: Require a separately approved start and generated allocation
+      ansible.builtin.assert:
+        that:
+          - stage_a_start_approved | default(false) | bool
+          - stage_a_vm_id | int >= 100
+          - proxmox_node is match('^[a-zA-Z0-9][a-zA-Z0-9_-]*$')
+          - stage_a_hostname is match('^[a-z][a-z0-9-]{0,61}[a-z0-9]$')
+      delegate_to: localhost
+
+    - name: Verify the live VM name still matches the applied allocation
+      ansible.builtin.command:
+        argv: [qm, config, "{{ stage_a_vm_id | string }}"]
+      delegate_to: "{{ proxmox_node }}"
+      vars:
+        ansible_user: root
+        ansible_host: "{{ proxmox_node }}"
+      register: stage_a_config
+      changed_when: false
+
+    - name: Refuse a reused or mismatched VMID
+      ansible.builtin.assert:
+        that:
+          - "('name: ' ~ stage_a_hostname) in stage_a_config.stdout_lines"
+      delegate_to: localhost
+
+    - name: Inspect the approved VM power state
+      ansible.builtin.command:
+        argv: [qm, status, "{{ stage_a_vm_id | string }}"]
+      delegate_to: "{{ proxmox_node }}"
+      vars:
+        ansible_user: root
+        ansible_host: "{{ proxmox_node }}"
+      register: stage_a_power
+      changed_when: false
+
+    - name: Start this stopped VM only
+      ansible.builtin.command:
+        argv: [qm, start, "{{ stage_a_vm_id | string }}"]
+      delegate_to: "{{ proxmox_node }}"
+      vars:
+        ansible_user: root
+        ansible_host: "{{ proxmox_node }}"
+      when: "stage_a_power.stdout == 'status: stopped'"
+      changed_when: true

@@ -1,0 +1,21 @@
+---
+- name: Refresh Debian metadata before installing baseline packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 0
+
+- name: Install minimal headless OS prerequisites
+  ansible.builtin.apt:
+    name: [ca-certificates, curl, python3, qemu-guest-agent, systemd-timesyncd]
+    state: present
+
+- name: Set the allocated guest hostname
+  ansible.builtin.hostname:
+    name: "{{ stage_a_hostname }}"
+
+- name: Enable guest agent and time synchronization
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [qemu-guest-agent, systemd-timesyncd]

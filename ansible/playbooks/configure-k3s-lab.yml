@@ -1,0 +1,19 @@
+---
+- name: Configure only the approved Stage A guest OS baseline
+  hosts: k3s_lab
+  become: true
+  gather_facts: true
+  serial: 1
+  pre_tasks:
+    - name: Require explicit guest convergence approval and Debian 13
+      ansible.builtin.assert:
+        that:
+          - stage_a_configure_approved | default(false) | bool
+          - ansible_facts.distribution == 'Debian'
+          - ansible_facts.distribution_major_version == '13'
+          - ansible_facts.architecture == 'x86_64'
+          - ansible_user == 'debian'
+          - stage_a_hostname is match('^[a-z][a-z0-9-]{0,61}[a-z0-9]$')
+        fail_msg: Require reviewed applied inventory, trusted SSH and explicit Stage A OS approval.
+  roles:
+    - headless_baseline
