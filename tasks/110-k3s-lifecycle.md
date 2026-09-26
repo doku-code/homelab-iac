@@ -1,6 +1,7 @@
 # 110 - Three-server K3s bootstrap and controlled lifecycle
 
-- Status: PLANNED after100 guests and network/version decisions.
+- Status: IN_PROGRESS / repository implementation; live install and lifecycle
+  qualification not authorized or verified. Task100 accepted/DONE.
 - Deliverable: pinned reproducible K3s/embedded-etcd installation and lifecycle
   on three distinct server VMs, including synthetic backup/restore evidence.
 - Initial scope: design/code/tests only when assigned; live installation, token
@@ -41,3 +42,37 @@ Excludes Flux/apps, production secrets/data, TrueNAS changes, workstation host
 roles and automatic destructive cleanup. On failure stop serial changes and
 preserve healthy quorum; recover from reviewed compatible snapshot procedure.
 Close with operator-accepted evidence; next120, no automatic Flux bootstrap.
+
+## Repository implementation - 2026-09-26
+
+Pinned profile, applied-output inventory validator, serial k3s_server role,
+separate private-token/snapshot interfaces, fail-closed drift/state-loss checks,
+offline CI tests and [lifecycle runbook](../docs/k3s-bootstrap.md) implemented.
+No installation or real token generation. Official v1.35.8+k3s1 binary streamed
+and SHA256 matched manifest/asset digest; no detached-signature claim.
+
+Read-only: expected LAN routes/cgroupv2/no K3s directory on all three, no swap on
+server-1, observed controller .119 and nftables command absent. Unknown VPN/site
+ranges need operator confirmation. No baseline, enrollment, Terraform or network
+changes repeated. Runtime firewall/ACL compatibility remains a live gate.
+
+Acceptance tracking:
+
+- Repository: synthetic shared settings/templates, duplicate identities, CIDR
+  overlap, single init/order, private/missing token and snapshot/install approval
+  tests; syntax and exact-SHA CI evidence reported at delivery.
+- Live install: pending approval; three Ready servers, actual healthy etcd
+  membership, CNI/DNS/TLS/denials and second convergence remain UNVERIFIED.
+- Lifecycle: procedures prepared, not qualified. One-member failure/rejoin,
+  controlled upgrade/replacement and isolated snapshot+token restore drills need
+  separate approval and evidence before DONE. No reset/delete Make targets.
+- Recovery: future snapshot, matching token, checksum/version, topology and
+  Stage A authority recorded; no private export or kit/security redesign.
+
+Stop after repository publication and CI/GitHub evidence; do not begin120.
+
+Local checks: K3s synthetic render/guards and both playbook syntax checks PASS;
+Stage A regression, 15 mocked VM cases (including unchanged workstation tests),
+20 runner fixtures, two mocked logical-backup tests and ten synthetic kit tests
+PASS. Configuration parser validates 59 YAML, 12 Python and 22 shell blocks.
+These synthetic tests created no real cluster token, snapshot or live resources.

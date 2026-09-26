@@ -1,0 +1,117 @@
+---
+- name: Capture disposable lab snapshot and matching token only after approval
+  hosts: k3s_lab
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Require separate snapshot approval
+      ansible.builtin.assert:
+        that:
+          - k3s_snapshot_approved | default(false) | bool
+          - not ansible_check_mode
+          - ansible_play_hosts_all | sort == groups.k3s_lab | sort
+          - lookup('ansible.builtin.env', 'K3S_PRIVATE_DIR') | length > 0
+      run_once: true
+
+    - name: Capture from the initial server only
+      when: inventory_hostname == k3s_init_host
+      block:
+        - name: Create unique private recovery generation on controller
+          ansible.builtin.tempfile:
+            state: directory
+            path: "{{ lookup('ansible.builtin.env', 'K3S_PRIVATE_DIR') }}"
+            prefix: snapshot-
+          delegate_to: localhost
+          become: false
+          register: recovery_generation
+          no_log: true
+
+        - name: Verify actual binary matches snapshot version metadata
+          ansible.builtin.stat:
+            path: /usr/local/bin/k3s
+            checksum_algorithm: sha256
+          register: snapshot_binary
+
+        - name: Require reviewed snapshot version
+          ansible.builtin.assert:
+            that: snapshot_binary.stat.checksum | default('') == k3s_sha256
+
+        - name: Read matching token before snapshot
+          ansible.builtin.slurp:
+            src: /var/lib/rancher/k3s/server/token
+          register: snapshot_token_before
+          no_log: true
+
+        - name: Save etcd snapshot
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, etcd-snapshot, save, --name, "{{ recovery_generation.path | basename }}"]
+          no_log: true
+
+        - name: Find the newly saved lab snapshot
+          ansible.builtin.find:
+            paths: /var/lib/rancher/k3s/server/db/snapshots
+            patterns: "{{ recovery_generation.path | basename }}-*"
+            file_type: file
+          register: snapshots
+          no_log: true
+
+        - name: Require snapshot file
+          ansible.builtin.assert:
+            that: snapshots.matched == 1
+
+        - name: Read matching token after snapshot
+          ansible.builtin.slurp:
+            src: /var/lib/rancher/k3s/server/token
+          register: snapshot_token_after
+          no_log: true
+
+        - name: Reject token rotation during snapshot
+          ansible.builtin.assert:
+            that: snapshot_token_before.content == snapshot_token_after.content
+          no_log: true
+
+        - name: Fetch snapshot without printing private metadata
+          ansible.builtin.fetch:
+            src: "{{ (snapshots.files | sort(attribute='mtime') | last).path }}"
+            dest: "{{ recovery_generation.path }}/snapshot"
+            flat: true
+            validate_checksum: true
+          no_log: true
+
+        - name: Save matching secure token privately
+          ansible.builtin.copy:
+            content: "{{ snapshot_token_before.content | b64decode }}"
+            dest: "{{ recovery_generation.path }}/server-token"
+            mode: '0600'
+          delegate_to: localhost
+          become: false
+          no_log: true
+          diff: false
+
+        - name: Hash captured snapshot and token without logging
+          ansible.builtin.stat:
+            path: "{{ recovery_generation.path }}/{{ item }}"
+            checksum_algorithm: sha256
+          loop: [snapshot, server-token]
+          delegate_to: localhost
+          become: false
+          register: recovery_hashes
+          no_log: true
+
+        - name: Record version topology and hashes alongside private recovery generation
+          ansible.builtin.copy:
+            content: "{{ {'k3s_version': k3s_version, 'binary_sha256': k3s_sha256, 'config': k3s_config, 'nodes': k3s_node_names, 'snapshot_sha256': recovery_hashes.results[0].stat.checksum, 'token_sha256': recovery_hashes.results[1].stat.checksum} | to_nice_json }}\n"
+            dest: "{{ recovery_generation.path }}/metadata.json"
+            mode: '0600'
+          delegate_to: localhost
+          become: false
+          no_log: true
+          diff: false
+
+        - name: Restrict snapshot file permissions
+          ansible.builtin.file:
+            path: "{{ recovery_generation.path }}/snapshot"
+            mode: '0600'
+          delegate_to: localhost
+          become: false

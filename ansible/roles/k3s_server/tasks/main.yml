@@ -1,0 +1,193 @@
+---
+- name: Inspect ownership marker
+  ansible.builtin.stat:
+    path: /etc/rancher/k3s/task110-managed
+  register: k3s_owned
+
+- name: Refuse adoption of an unmanaged installation
+  ansible.builtin.assert:
+    that:
+      - not k3s_binary.stat.exists or k3s_owned.stat.exists
+    fail_msg: Existing installation is unmanaged; stop for explicit review.
+
+- name: Read private controller bootstrap token
+  ansible.builtin.set_fact:
+    k3s_bootstrap_token: "{{ lookup('ansible.builtin.file', lookup('ansible.builtin.env', 'K3S_PRIVATE_DIR') + '/bootstrap-token') | trim }}"
+  no_log: true
+
+- name: Require a valid bootstrap token
+  ansible.builtin.assert:
+    that:
+      - k3s_bootstrap_token is match('^[0-9a-f]{64}$')
+  no_log: true
+
+- name: Read existing secure token without logging
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/token
+  when: k3s_member.stat.exists
+  register: k3s_existing_token
+  no_log: true
+
+- name: Never rotate an existing token implicitly
+  ansible.builtin.assert:
+    that:
+      - (k3s_existing_token.content | b64decode | trim).endswith(':' + k3s_bootstrap_token)
+  when: k3s_member.stat.exists
+  no_log: true
+
+- name: Preview managed files before changing an existing installation
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop: &managed_files
+    - {src: config.yaml.j2, dest: /etc/rancher/k3s/config.yaml, mode: '0600'}
+    - {src: k3s.service.j2, dest: /etc/systemd/system/k3s.service, mode: '0644'}
+    - {src: firewall.nft.j2, dest: /etc/rancher/k3s/firewall.nft, mode: '0600'}
+    - {src: firewall.service.j2, dest: /etc/systemd/system/k3s-lab-firewall.service, mode: '0644'}
+  check_mode: true
+  diff: false
+  when: k3s_binary.stat.exists
+  register: k3s_preview
+
+- name: Require separate review for live configuration drift
+  ansible.builtin.assert:
+    that:
+      - not k3s_preview.changed
+    fail_msg: Existing config differs; stop for snapshot-backed serial lifecycle review.
+
+- name: Install K3s host prerequisites
+  ansible.builtin.apt:
+    name: [iptables, nftables, conntrack, socat]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Persist required kernel modules
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k3s.conf
+    content: "overlay\nbr_netfilter\n"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Read loaded modules
+  ansible.builtin.slurp:
+    src: /proc/modules
+  register: k3s_modules
+
+- name: Load missing required modules
+  ansible.builtin.command:
+    argv: [modprobe, "{{ item }}"]
+  when: not ((k3s_modules.content | b64decode) is search('(?m)^' + item + ' '))
+  loop: [overlay, br_netfilter]
+
+- name: Persist forwarding for the CNI
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/90-k3s.conf
+    content: "net.ipv4.ip_forward=1\nnet.bridge.bridge-nf-call-iptables=1\n"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Read forwarding values
+  ansible.builtin.command:
+    argv: [sysctl, -n, "{{ item }}"]
+  loop: [net.ipv4.ip_forward, net.bridge.bridge-nf-call-iptables]
+  changed_when: false
+  register: k3s_sysctls
+
+- name: Set only forwarding values which differ
+  ansible.builtin.command:
+    argv: [sysctl, -w, "{{ item.item }}=1"]
+  loop: "{{ k3s_sysctls.results }}"
+  when: item.stdout != '1'
+
+- name: Create private configuration directory
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Mark this repository's bootstrap ownership
+  ansible.builtin.copy:
+    dest: /etc/rancher/k3s/task110-managed
+    content: "Task110 Stage A\n"
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Install exact verified K3s binary without upstream installer script
+  ansible.builtin.get_url:
+    url: "https://github.com/k3s-io/k3s/releases/download/{{ k3s_version }}/k3s"
+    checksum: "sha256:{{ k3s_sha256 }}"
+    dest: /usr/local/bin/k3s
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Write non-secret managed configuration and units
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop: *managed_files
+
+- name: Read first server's CA-bearing token over verified SSH before joining
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/token
+  delegate_to: "{{ k3s_init_host }}"
+  when: inventory_hostname != k3s_init_host
+  register: k3s_join_token
+  no_log: true
+
+- name: Verify join token carries the CA hash and matching credential
+  ansible.builtin.assert:
+    that:
+      - (k3s_join_token.content | b64decode | trim) is match('^K10[0-9a-f]{64}::server:')
+      - (k3s_join_token.content | b64decode | trim).endswith(':' + k3s_bootstrap_token)
+  when: inventory_hostname != k3s_init_host
+  no_log: true
+
+- name: Deliver token only to a root-owned private file
+  ansible.builtin.copy:
+    dest: /etc/rancher/k3s/lab-token
+    content: "{{ k3s_bootstrap_token if inventory_hostname == k3s_init_host else (k3s_join_token.content | b64decode | trim) }}\n"
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+  diff: false
+
+- name: Enable scoped firewall before K3s
+  ansible.builtin.systemd_service:
+    name: k3s-lab-firewall
+    daemon_reload: true
+    enabled: true
+    state: started
+
+- name: Start this server without restarting healthy peers
+  ansible.builtin.systemd_service:
+    name: k3s
+    enabled: true
+    state: started
+
+- name: Wait for local API and datastore readiness before next server
+  ansible.builtin.command:
+    argv: [/usr/local/bin/k3s, kubectl, "--server=https://{{ ansible_host }}:6443", get, --raw=/readyz]
+  register: k3s_ready
+  changed_when: false
+  until: k3s_ready.rc == 0 and k3s_ready.stdout == 'ok'
+  retries: 60
+  delay: 5
+
+- name: Wait for this server's Ready condition
+  ansible.builtin.command:
+    argv: [/usr/local/bin/k3s, kubectl, "--server=https://{{ ansible_host }}:6443", wait, "node/{{ stage_a_hostname }}", --for=condition=Ready, --timeout=300s]
+  changed_when: false

@@ -1,0 +1,25 @@
+[Unit]
+Description=Stage A K3s server
+Wants=network-online.target
+After=network-online.target k3s-lab-firewall.service
+Requires=k3s-lab-firewall.service
+
+[Service]
+Type=notify
+User=root
+UMask=0077
+ExecStartPre=/bin/sh -c 'test ! -e /etc/rancher/k3s/initialized || test -d /var/lib/rancher/k3s/server/db/etcd/member'
+ExecStart=/usr/local/bin/k3s server --config /etc/rancher/k3s/config.yaml
+ExecStartPost=/usr/bin/touch /etc/rancher/k3s/initialized
+KillMode=process
+Delegate=yes
+LimitNOFILE=1048576
+LimitNPROC=infinity
+LimitCORE=infinity
+TasksMax=infinity
+TimeoutStartSec=300
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

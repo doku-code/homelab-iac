@@ -154,6 +154,9 @@ jobs:
       - name: Test Stage A baseline and approval guards offline
         run: .venv/bin/python tests/stage-a.py
 
+      - name: Test K3s bootstrap and lifecycle guards offline
+        run: .venv/bin/python tests/k3s-bootstrap.py
+
       - name: Parse configuration and check script syntax
         run: .venv/bin/python scripts/check-quality.py
 

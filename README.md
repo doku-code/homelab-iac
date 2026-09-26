@@ -34,6 +34,9 @@ The [Stage A profile](docs/k3s-stage-a.md) now provides a separate three-node
 headless root, OS baseline and gated Make interfaces. VMs303-305 are deployed;
 the Debian baseline and zero-change second convergence are live verified.
 Three 4-GiB VMs use pve-lab while workstations stay off; K3s is not installed.
+The [Task110 K3s bootstrap](docs/k3s-bootstrap.md) now provides pinned, serial
+installation and private lab-token/snapshot interfaces. It is repository-only:
+review the profile and approve installation before using its live Make targets.
 
 ## Goals
 

@@ -1,0 +1,15 @@
+# Own table only. Never flush the host ruleset or K3s-managed rules.
+table inet k3s_lab {
+  chain input {
+    type filter hook input priority -10; policy accept;
+    iifname "lo" accept
+    ip saddr { {{ (k3s_peer_ips + k3s_admin_cidrs + [k3s_pod_cidr]) | join(', ') }} } tcp dport 6443 accept
+    tcp dport 6443 drop
+    ip saddr { {{ k3s_peer_ips | join(', ') }} } tcp dport { 2379, 2380 } accept
+    tcp dport { 2379, 2380 } drop
+    ip saddr { {{ (k3s_peer_ips + [k3s_pod_cidr]) | join(', ') }} } tcp dport 10250 accept
+    tcp dport 10250 drop
+    ip saddr { {{ k3s_peer_ips | join(', ') }} } udp dport 8472 accept
+    udp dport 8472 drop
+  }
+}

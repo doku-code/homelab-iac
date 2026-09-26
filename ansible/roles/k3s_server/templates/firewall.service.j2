@@ -1,0 +1,12 @@
+[Unit]
+Description=Stage A K3s port restrictions
+Before=k3s.service
+After=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/nft -f /etc/rancher/k3s/firewall.nft
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

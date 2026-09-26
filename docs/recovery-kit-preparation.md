@@ -208,3 +208,11 @@ a separately assigned follow-up; do not silently rewrite those contracts here.
 Do not introduce or mandate age, new keys, offline key custody or Apple account
 recovery procedures as prerequisites for Task100. No production secrets, private
 SSH keys, states or databases were exported during this guest qualification.
+
+Task110 repository follow-up: after separately approved cluster creation, a
+usable K3s recovery generation needs an etcd snapshot and its matching server
+token, pinned K3s version/checksum, topology/shared settings, Stage A authority
+and trust/bootstrap inputs. The [snapshot interface](k3s-bootstrap.md#snapshot-and-matching-token-interface)
+creates a private generation with payload hashes only after approval; no actual
+snapshot/token was created here. Local creation is not independent retrieval or
+verified restore. No Recovery Kit implementation or custody contract changed.

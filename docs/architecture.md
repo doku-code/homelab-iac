@@ -39,6 +39,13 @@ follow-up and operator storage-protection scope clarification are recorded in
 without silently changing the accepted recovery contract.
 See [Stage A workflow](k3s-stage-a.md) for inputs, tests and separate live gates.
 
+Task100 is now operator-accepted/DONE. Task110's [K3s bootstrap](k3s-bootstrap.md)
+is implemented in the repository only: one initial embedded-etcd server, serial
+joins, private node API/manual fallback, Flannel/CoreDNS, disabled bundled
+Traefik/ServiceLB/local-storage, scoped guest firewall and private lab-token path.
+These are installation proposals, not live behavior. Real install/token creation
+and failure/restore/upgrade drills require approval; no Kubernetes cluster yet.
+
 | Evidence | Known result | Limit |
 | --- | --- | --- |
 | Audit fd4435e, 2026-09-24 | Four Proxmox hosts; CT301 runner, CT300 PG candidate, CT209 Garage, VM207 Infisical, VM208 monitoring, DNS/proxy guests; Forgejo endpoint on TrueNAS | Historical, not complete current service/recovery proof |

@@ -68,7 +68,7 @@ not acceptance achieved. PLANNED tasks need assignment and any live approval.
 | [080](080-control-plane-and-cd.md) | Backend need/qualification, separate canary and protected CD | PLANNED after security/recovery gates |
 | [090](090-reusable-lxc.md) | Historical generic LXC-first proposal | SUPERSEDED as prerequisite by100; live CTs untouched |
 | [100](100-stage-a-headless-vms.md) | Three new headless server VM profiles | DONE / operator accepted live evidence for guests303-305 and second convergence |
-| [110](110-k3s-lifecycle.md) | K3s bootstrap/lifecycle/synthetic recovery | After100 guests and separately approved live actions |
+| [110](110-k3s-lifecycle.md) | K3s bootstrap/lifecycle/synthetic recovery | IN_PROGRESS; repository implementation, install/token/drills await approval |
 | [120](120-gitops-stateless.md) | Flux/stateless demo/measurements | After110 and source/RBAC review |
 | [130](130-storage-recovery.md) | TrueNAS protocols/fencing/synthetic DB restore | After120 and storage approvals |
 | [140](140-placement-and-cutover.md) | Distributed/permanent placement and individual service DR/cutover | Epic split into bounded tasks before execution |

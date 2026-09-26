@@ -1,6 +1,6 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
-status: "Task 100 accepted and closed; Task 110 repository implementation assigned"
+status: "Task 100 DONE; Task 110 repository-implemented, live installation awaits approval"
 updated: 2026-09-26
 ---
 
@@ -106,9 +106,12 @@ resources/states remain unchanged; the new Stage A state is authority seven.
 Portable [050](../tasks/050-independent-controller.md) may
 be assigned separately in parallel; it is not implemented automatically.
 
-Next: assigned110 repository-only implementation must propose pinned K3s,
-API/TLS SANs, pod/service CIDRs, CNI/bundled components and lab-token handling.
-No K3s/Flux installation has occurred. Task035 remains separately unallocated.
+Task110 repository implementation and [bootstrap/lifecycle proposal](k3s-bootstrap.md)
+are ready for operator review: pinned K3s, API/TLS SANs, CIDRs, scoped guest
+firewall, bundled components and private lab-token handling. No K3s installed or
+real token generated. Install and lifecycle drills remain separate approvals;
+live criteria and recovery evidence are required before110 DONE or120 work.
+Task035 remains separately unallocated.
 
 ## Evidence and delivery discipline
 

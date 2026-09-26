@@ -110,6 +110,34 @@ stage-a-configure:
 	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory > "$$inventory"; \
 	  $(ANSIBLE) ansible/playbooks/configure-k3s-lab.yml -i "$$inventory" -e stage_a_configure_approved=true --diff
 
+# K3s uses applied Stage A inventory; no production credentials or Terraform writes.
+export K3S_PRIVATE_DIR
+.PHONY: k3s-check k3s-token-init k3s-install k3s-snapshot
+k3s-check:
+	$(VENV)/bin/python tests/k3s-bootstrap.py
+	$(ANSIBLE) ansible/playbooks/bootstrap-k3s.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(ANSIBLE) ansible/playbooks/snapshot-k3s.yml --syntax-check -i ansible/inventories/homelab.yml
+
+k3s-token-init:
+	@test "$(K3S_TOKEN_APPROVED)" = yes || (echo "Separate lab-token generation approval required"; exit 1)
+	@K3S_TOKEN_APPROVED=yes $(VENV)/bin/python scripts/k3s-lab.py token-init
+
+k3s-install:
+	@test "$(K3S_INSTALL_APPROVED)" = yes || (echo "Review K3s version, network/firewall and token procedure first"; exit 1)
+	@K3S_TOKEN_APPROVED=yes $(VENV)/bin/python scripts/k3s-lab.py token-check
+	@set -euo pipefail; umask 077; work="$$(mktemp -d)"; trap 'rm -f "$$work/inventory.json"; rmdir "$$work"' EXIT; \
+	  test -f "$(STAGE_A_DIR)/terraform.tfstate"; \
+	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory | $(VENV)/bin/python scripts/k3s-lab.py inventory > "$$work/inventory.json"; \
+	  ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) ansible/playbooks/bootstrap-k3s.yml -i "$$work/inventory.json" -e k3s_install_approved=true
+
+k3s-snapshot:
+	@test "$(K3S_SNAPSHOT_APPROVED)" = yes || (echo "Separate snapshot and private recovery export approval required"; exit 1)
+	@K3S_TOKEN_APPROVED=yes $(VENV)/bin/python scripts/k3s-lab.py token-check
+	@set -euo pipefail; umask 077; work="$$(mktemp -d)"; trap 'rm -f "$$work/inventory.json"; rmdir "$$work"' EXIT; \
+	  test -f "$(STAGE_A_DIR)/terraform.tfstate"; \
+	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory | $(VENV)/bin/python scripts/k3s-lab.py inventory > "$$work/inventory.json"; \
+	  ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) ansible/playbooks/snapshot-k3s.yml -i "$$work/inventory.json" -e k3s_snapshot_approved=true
+
 # PostgreSQL host bootstrap state stays local; apply only the reviewed saved plan.
 TFSTATE_DIR := terraform/stacks/pve-core-tfstate
 TFSTATE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub

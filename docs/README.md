@@ -15,7 +15,8 @@
 | Préparer une récupération indépendante | [Contrat et Recovery Kit v1](recovery-contract.md) | Contrat 030 accepté; kit et récupération non qualifiés |
 | Préparer capture, garde et validation du kit | [Préparation Recovery Kit](recovery-kit-preparation.md) | Schéma/tests synthétiques; export et drill non exécutés |
 | Préparer la VM de test sans GPU | [Contrôleur headless](headless-controller.md) | Adaptateur optionnel035 pour portable050; aucune VM déployée |
-| Préparer les trois VM du laboratoire | [Stage A](k3s-stage-a.md) | Implémentation repository-only100; aucune allocation ni VM créée |
+| Préparer les trois VM du laboratoire | [Stage A](k3s-stage-a.md) | Task100 DONE; trois invités et baseline live vérifiés/acceptés |
+| Bootstrap et cycle de vie K3s | [K3s Stage A](k3s-bootstrap.md) | Task110 repository-only; installation, token réel et drills non exécutés |
 | Retrouver les faits établis lors de l'audit | [Audit du 2026-09-24](audits/2026-09-24/executive-summary.md) | Photographie historique, jamais statut live garanti |
 | Déploiement et limites du runner CT301 | [Forgejo runner](forgejo-runner.md) | Runbook/état cible; vérifier le service avant intervention |
 | Comprendre la sécurité et la migration CI/CD | [Infrastructure CI/CD](infrastructure-cicd.md) | **Contient une proposition S3 historique**; ne pas la suivre comme runbook actif |

@@ -1,0 +1,103 @@
+---
+- name: Validate every guest before any K3s mutation
+  hosts: k3s_lab
+  become: true
+  any_errors_fatal: true
+  gather_facts: true
+  tasks:
+    - name: Require approved complete inventory and qualified hosts
+      ansible.builtin.assert:
+        that:
+          - k3s_install_approved | default(false) | bool
+          - not ansible_check_mode
+          - ansible_play_hosts_all | sort == groups.k3s_lab | sort
+          - groups.k3s_lab | length == 3
+          - k3s_init_host == (groups.k3s_lab | sort | first)
+          - k3s_config['node-name'] == stage_a_hostname
+          - ansible_facts.hostname == stage_a_hostname
+          - ansible_facts.distribution == 'Debian'
+          - ansible_facts.distribution_major_version == '13'
+          - ansible_facts.architecture == 'x86_64'
+          - ansible_facts.swaptotal_mb == 0
+          - ansible_facts.default_ipv4.address == ansible_host
+          - ansible_facts.default_ipv4.interface == 'eth0'
+        fail_msg: Require full approved inventory, Debian baseline, no swap and reviewed eth0 network.
+
+    - name: Inspect existing etcd membership storage
+      ansible.builtin.stat:
+        path: /var/lib/rancher/k3s/server/db/etcd/member
+      register: k3s_member
+
+    - name: Inspect existing K3s binary
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s
+        checksum_algorithm: sha256
+      register: k3s_binary
+
+    - name: Inspect data directory before permitting fresh bootstrap
+      ansible.builtin.stat:
+        path: /var/lib/rancher/k3s
+      register: k3s_data
+
+    - name: Require existing nodes to use the pinned binary
+      ansible.builtin.assert:
+        that:
+          - not k3s_binary.stat.exists or k3s_binary.stat.checksum == k3s_sha256
+          - not k3s_member.stat.exists or k3s_binary.stat.exists
+          - not k3s_binary.stat.exists or k3s_member.stat.exists
+          - not k3s_data.stat.exists or k3s_member.stat.exists
+        fail_msg: Stop for reviewed upgrade or recovery; never silently replace a different binary.
+
+- name: Reject loss of the initial server's state before bootstrap
+  hosts: k3s_lab
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Never initialize a replacement cluster alongside existing members
+      ansible.builtin.assert:
+        that:
+          - hostvars[k3s_init_host].k3s_member.stat.exists or not hostvars[item].k3s_member.stat.exists
+        fail_msg: Initial member state missing; use separately approved recovery, not bootstrap.
+      loop: "{{ groups.k3s_lab }}"
+      run_once: true
+
+- name: Bootstrap or reconverge servers one at a time
+  hosts: k3s_lab
+  become: true
+  gather_facts: false
+  order: sorted
+  serial: 1
+  any_errors_fatal: true
+  roles:
+    - k3s_server
+
+- name: Verify all three server identities and roles
+  hosts: k3s_lab
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Read final node membership
+      ansible.builtin.command:
+        argv: [/usr/local/bin/k3s, kubectl, "--server=https://{{ ansible_host }}:6443", get, nodes, -o, json]
+      register: k3s_nodes
+      changed_when: false
+      run_once: true
+
+    - name: Require exactly the approved Ready etcd servers
+      ansible.builtin.assert:
+        that:
+          - (k3s_nodes.stdout | from_json)['items'] | length == 3
+          - (k3s_nodes.stdout | from_json)['items'] | map(attribute='metadata.name') | sort == k3s_node_names | sort
+      run_once: true
+
+    - name: Require Ready and etcd role on every returned node
+      ansible.builtin.assert:
+        that:
+          - "'node-role.kubernetes.io/etcd' in item.metadata.labels"
+          - "'node-role.kubernetes.io/control-plane' in item.metadata.labels"
+          - item.status.conditions | selectattr('type', 'equalto', 'Ready') | map(attribute='status') | list == ['True']
+      loop: "{{ (k3s_nodes.stdout | from_json)['items'] }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+      run_once: true
