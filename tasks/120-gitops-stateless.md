@@ -6,6 +6,12 @@
 - Scope: code-only first; explicit approval for Flux bootstrap Git writes,
   identity provisioning, cluster convergence and test-only ingress.
 
+2026-09-27 sequencing: preferred live rollout follows140-B three-physical-host
+qualification; disposable development may use accepted Stage A without waiting
+for hardware/full040/backend/CD. Neither path bypasses110 health acceptance.
+Physical stages are topology, not credential sources. Follow045 input contracts;
+Infisical is optional operator delivery, not a prerequisite for the public demo.
+
 Use pinned Flux controllers/manifests. Prefer existing homelab-iac paths for
 environment-specific GitOps composition, not a new repository framework. Inspect
 generic bootstrap's Git-write effects; operator bootstraps reviewed manifests,
@@ -30,4 +36,5 @@ Retain existing outside monitoring; do not refactor live monitoring in this task
 
 Rollback: suspend affected reconciliation, restore reviewed commit/bootstrapped
 manifests; no data loss possible by scope. No host socket or production credentials
-in CI. Next130 and140 read-only capacity planning; no stateful production cutover.
+in CI. Next130 and140 workload-capacity evidence; no stateful cutover. The
+independent150 pve-infra assessment must not wait for this experiment.

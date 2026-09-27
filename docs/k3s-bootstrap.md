@@ -157,6 +157,12 @@ Interruption/rejoin/restore/upgrade behavior remains UNVERIFIED until live drill
 
 ## Umask incident: proposed maintenance, not executed
 
+The proposal below is retained as reviewed at3d8c7ae. Subsequent approved
+unit-only execution and the remaining projected-token permission failure are
+recorded in [Task110](../tasks/110-k3s-lifecycle.md#subsequent-maintenance-evidence-and-architecture-handoff---2026-09-27).
+Do not rerun it: all three units/processes were verified0022. No storage repair
+is authorized by the architecture reconciliation.
+
 2026-09-27: CoreDNS fails before exec (`stat /coredns: permission denied`,
 StartError128); metrics-server exits2 (`mkdir /tmp: permission denied`). Both
 are on server-1. K3s/containerd inherit the unit's UMask0077; observed snapshot

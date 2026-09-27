@@ -20,9 +20,10 @@ Small Make setup/check/doctor interfaces; default doctor is offline. Synthetic
 manifest/state/input fixtures only, no production payload/key access. Check
 missing/wrong authority, stale generation, invalid artifact and unavailable
 internal endpoints; fail closed, no empty-state fallback or automatic adoption.
-Normal Universal Auth workflow stays unchanged; separately reviewed emergency
-runtime credential interface must avoid command-line/log/state leakage and
-cannot become a second permanent secret store.
+Normal Universal Auth workflow stays compatible; Task045 owns the first explicit
+private/Infisical delivery interface used equally by Starter and Recovery paths,
+not an emergency-only duplicate. This task reuses that contract and proves its
+portable controller behavior without command-line/log leakage or a new store.
 
 Acceptance before production drill: clean Mac/Linux tool matrix or explicit
 remaining platform blocker; exact code/tool versions, backend-disabled readonly

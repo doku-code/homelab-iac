@@ -7,14 +7,16 @@ The project is primarily a learning and experimentation environment for
 DevOps, infrastructure automation and systems administration.
 
 It uses **Terraform** for infrastructure provisioning and **Ansible** for
-host and guest configuration, with **Infisical** providing secrets at runtime.
+host and guest configuration. **Infisical** is the current operator's normal
+secret source, not a universal prerequisite in the target design. Some current
+wrappers still require it; see [actual inputs and gaps](docs/deployment-inputs.md).
 
 The approved reconstruction direction adds **K3s** for suitable workloads,
 **Flux** as the initial GitOps candidate and **TrueNAS** centralized application
-storage. These are target requirements, not deployed capabilities. Rebuild useful
+storage. K3s is experimental and installed; Flux/CSI remain planned. Rebuild useful
 functionality and preserve technical data; do not clone every historical guest.
-The proposed path is three disposable server VMs on pve-lab, then separately
-qualified distributed hosts and eventual mini-PC placement. A single-host lab
+The physical target is one Proxmox K3s server VM each on pve-k8s-01, pve-k8s-02
+and pve-core, with mini-PC workload preference and core fallback. A single-host lab
 is not physical HA. Review the canonical architecture before implementation.
 
 Start with the [documentation index](docs/README.md), [architecture](docs/architecture.md)
@@ -33,10 +35,20 @@ for portable Mac/Linux recovery, not a required bootstrap dependency.
 The [Stage A profile](docs/k3s-stage-a.md) now provides a separate three-node
 headless root, OS baseline and gated Make interfaces. VMs303-305 are deployed;
 the Debian baseline and zero-change second convergence are live verified.
-Three 4-GiB VMs use pve-lab while workstations stay off; K3s is not installed.
+Three 4-GiB VMs use pve-lab while workstations stay off; K3s is installed.
 The [Task110 K3s bootstrap](docs/k3s-bootstrap.md) now provides pinned, serial
-installation and private lab-token/snapshot interfaces. It is repository-only:
-review the profile and approve installation before using its live Make targets.
+installation and private lab-token/snapshot interfaces. Etcd health is verified;
+the approved unit umask maintenance completed, but projected-token permission
+failures still block system pods and qualification. Task110 owns remediation;
+do not rerun installation. No Flux/CSI or application migration is complete.
+
+For a new environment, start with [Starter prerequisites and input contracts](docs/deployment-inputs.md),
+not the original operator's credentials. Proxmox/access/network and suitable
+storage must already exist. Infisical/private/Starter/Recovery paths must reuse
+one definition; the thin portable adapter is planned in045, not working today.
+Recovery is a supporting capability, not a prerequisite for disposable learning.
+Priority [pve-infra evacuation assessment](tasks/150-pve-infra-evacuation.md) is
+parallel work, including an interim core path; no live inventory/cutover yet.
 
 ## Goals
 
@@ -65,8 +77,7 @@ review the profile and approve installation before using its live Make targets.
 The following diagram describes the existing operator workflow, not the new
 Kubernetes target. The single authoritative target and service reconstruction
 matrix are in [architecture](docs/architecture.md); implementation order is in
-[roadmap](docs/roadmap.md). No Kubernetes installation or service migration has
-been performed by the redesign.
+[roadmap](docs/roadmap.md). K3s lab installation does not imply service migration.
 
 ```mermaid
 flowchart TD
@@ -325,7 +336,9 @@ the intended runner separation and one-time bootstrap checks.
 
 Never commit credentials to this public repository.
 
-Runtime secrets are provided through **Infisical**.
+Current normal workflows use **Infisical** where implemented. Explicit private
+inputs are the intended reusable alternative, with no automatic fallback;
+[input contracts](docs/deployment-inputs.md) distinguish actual support from gaps.
 
 Files containing local configuration, Terraform state and environment-specific
 values are excluded from Git.
@@ -352,7 +365,7 @@ about infrastructure automation.
 | Quality CI | LIVE VERIFIED in run139; [runner trust preflight](tasks/010-runner-trust-preflight.md) remains separate and unresolved |
 | Terraform state | Seven stack states remain local, including Stage A; no migration; single-writer model; [recovery inventory follow-up](docs/recovery-kit-preparation.md#stage-a-authority-update---2026-09-26) before capture; future backend decided by requirements |
 | Independent recovery | [Contract accepted](docs/recovery-contract.md); [preparation/tests](docs/recovery-kit-preparation.md) implemented; private payloads, custody qualification and recovery tests pending |
-| K3s / Flux / TrueNAS integration | Target only; no deployed cluster or production data migration; [Task100](tasks/100-stage-a-headless-vms.md) VM/OS baseline is live verified |
+| K3s / Flux / TrueNAS integration | Stage A installed, etcd verified, system-pod permissions still block110; Flux/CSI planned, no data migration; [Task100](tasks/100-stage-a-headless-vms.md) accepted |
 | Reusable headless module / protected CD | Stage A module implemented; protected CD remains gated; existing workstation state unchanged |
 
 Task files own current progress. Dated audits remain historical evidence and

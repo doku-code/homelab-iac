@@ -135,7 +135,10 @@ Do not assume private IP addresses are secrets, but avoid exposing unnecessary i
 
 ### Infrastructure safety
 
-Treat this homelab as production-like infrastructure.
+This is an experimental homelab, not a production platform. Protect real data,
+credentials and existing services without imposing production-scale gates on
+disposable experiments. Recovery supports the design; it does not dictate every
+placement decision. Start from documented external prerequisites, not absolute zero.
 
 Do not perform destructive or disruptive actions without explicit approval.
 
@@ -195,7 +198,8 @@ Examples:
 
 - Terraform owns infrastructure resource definitions.
 - Ansible owns host configuration.
-- Infisical owns secrets.
+- The operator chooses a credential source; Infisical is the normal local source,
+  not a universal prerequisite. Never duplicate infrastructure by input source.
 - Docker Compose owns container topology.
 - Git owns non-secret configuration.
 
@@ -223,7 +227,9 @@ After Ansible changes, run appropriate validation such as:
 
 Use `--check --diff` when it is meaningful and safe.
 
-Secrets should be retrieved from Infisical rather than committed or duplicated in configuration files.
+Use an explicitly selected, supported input source; never commit secrets or
+silently fall back to another source. Current Infisical-only wrappers remain
+implementation gaps until deliberately adapted, not a universal design rule.
 
 Use `no_log: true` for tasks that may expose secret values.
 
@@ -500,10 +506,16 @@ The canonical target in docs/architecture.md reconstructs desired functionality
 and irreplaceable state, not incidental historical deployments. For each service
 separate functionality, declarative configuration, mutable data/identity and
 discardable implementation detail. Kubernetes placement is not automatic.
-Approved direction: Proxmox, K3s and initial Flux candidate, TrueNAS centralized
-application storage; no Longhorn/Ceph. Local K3s system/etcd disks are required.
+Approved direction: Proxmox, K3s, initial Flux and centralized TrueNAS application
+storage; official CSI is a candidate pending compatibility qualification.
+No Longhorn/Ceph on the initial critical path. Local K3s system/etcd disks are required.
 Three server VMs on pve-lab are a development topology, not physical HA.
 Distributed/permanent placement requires new capacity/failure-domain approvals.
+The physical target is pve-k8s-01, pve-k8s-02 and pve-core, each with an active
+voting server VM. Prefer application placement on the two mini-PCs, with core
+fallback; no mandatory affinity that defeats fallback. Hardware, capacity and
+service placement details belong only in docs/architecture.md. pve-infra
+evacuation is an independent priority track; do not equate it with pve-compute.
 Never equate pod rescheduling, ZFS snapshots or CI success with data recovery.
 
 Portable Mac/Linux recovery is independent of the homelab; a pve-lab controller
@@ -559,6 +571,11 @@ not receive infrastructure credentials, and privileged deployment workflows
 must use trusted triggers, protected contexts, and least-privilege access.
 
 ## Repository-Scoped Infisical Bootstrap
+
+This section describes the current Infisical-backed workflow, not a prerequisite
+for every supported stack. Future explicit private inputs, Starter Kit and
+Recovery Kit must feed the same roots/roles. Follow docs/deployment-inputs.md;
+do not implement a generic secret-provider framework or automatic fallback.
 
 Each Forgejo repository owns its own `INFISICAL_CLIENT_ID` and
 `INFISICAL_CLIENT_SECRET` as Forgejo Actions repository secrets. These are only
@@ -639,11 +656,20 @@ prerequisites conflict with a task, stop and report the discrepancy.
 ## Independent Bootstrap and State Authority
 
 Normal CI/CD is NOT a bootstrap prerequisite. A trusted replacement controller
-must be able to retrieve the externally available code and encrypted recovery
-material, then restore the minimal control plane when Forgejo, Infisical, the
-runner, and the remote backend are initially unavailable. Bootstrap and normal
+must use independently accessible code and protected recovery material when
+Forgejo, Infisical, the runner and backend are unavailable. Existing hypervisor,
+network, administrative access and suitable storage are documented prerequisites,
+not infrastructure this repository must manufacture. Bootstrap and normal
 deployment should reuse infrastructure modules and Ansible roles, not duplicate
 implementations.
+
+Project responsibility is a usable Recovery Kit and restoration instructions;
+operator-managed external storage/account protection is separate. Preserve
+credential protection, integrity, independent access and single state authority.
+The dated reconciliation in docs/recovery-contract.md supersedes mandatory
+age/Apple/offline-key implementation as project acceptance gates. Fresh creation
+must be explicit; recovery missing data or identity fails closed, never creates
+an empty replacement. Existing TrueNAS apps are not migration targets.
 
 Every real resource has one declared IaC owner, and every Terraform root has
 one writable authoritative state. Encrypted cloud recovery copies are sealed,

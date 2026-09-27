@@ -12,6 +12,16 @@ The [accepted contract](recovery-contract.md) remains authoritative for scope;
 [040](../tasks/040-recovery-kit-v1.md) owns approval and qualification gates.
 No backend choice, state migration, production export or key handling occurred.
 
+## Current scope reconciliation - 2026-09-27
+
+The [accepted-contract amendment](recovery-contract.md#scope-reconciliation---2026-09-27)
+now explicitly resolves the Task100 custody follow-up. This document's dated
+age/iCloud/offline-key proposal is retained as historical preparation, not a
+mandatory storage-security implementation. Project deliverable: usable protected
+kit and restore instructions; operator supplies/protects external storage/access.
+Identity, integrity, missing-payload rejection and single-writer controls remain.
+The six-root schema is still incomplete for seven authorities; no code changed.
+
 ## Approved custody and independent code
 
 The 2026-09-25 custody proposal below is preserved, not newly mandated by

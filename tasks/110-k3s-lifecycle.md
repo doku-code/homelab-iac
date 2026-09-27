@@ -1,7 +1,7 @@
 # 110 - Three-server K3s bootstrap and controlled lifecycle
 
-- Status: IN_PROGRESS / installed; live qualification blocked by system-pod
-  permissions. Unit correction is repository-only; live repair awaits approval.
+- Status: IN_PROGRESS / installed; approved unit-only maintenance completed;
+  projected service-account token permissions still block system pods.
   Task100 accepted/DONE; lifecycle drills remain unverified.
 - Deliverable: pinned reproducible K3s/embedded-etcd installation and lifecycle
   on three distinct server VMs, including synthetic backup/restore evidence.
@@ -119,3 +119,20 @@ on each endpoint. No datastore contents or credentials exported. This verifies
 current etcd health, not interruption/restore safety. Snapshot0700 persistence
 remains a post-restart observation gate, not permission for recursive repair.
 Task110 stays open; broader architecture amendment and Task120 remain pending.
+
+## Subsequent maintenance evidence and architecture handoff - 2026-09-27
+
+The preceding explicitly approved live operation (not this documentation session)
+applied only0077->0022 in order server-2, server-3, server-1 with exact unit-diff
+guard. All-member actual etcd gates passed before/after each restart, no alarms
+or applied-index lag. All nodes/API Ready, K3s AND containerd processes0022.
+API fallback through server-2 returned ok during server-1 restart; leader then
+server-2, term3, same member identities. No storage remediation/pod deletion.
+
+Both pods advanced beyond /coredns and /tmp errors but remain CrashLoopBackOff
+on projected service-account token permission denied (165 restarts observed).
+STOPPED as required. Next incident step: separately authorized metadata-only
+volume path/mode/ownership diagnosis; no reading token bytes or implied chmod.
+Task110 qualification, lifecycle drills and operator acceptance remain open.
+Broader architecture is now reconciled in the canonical architecture/roadmap;
+that approval does not authorize incident repair, Flux or live inspection here.

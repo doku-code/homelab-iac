@@ -7,9 +7,19 @@
 
 Read-only inventory must establish actual TrueNAS release, app SSD capacity,
 datasets/ACLs, protocol support, network path and independently recoverable backups.
-Choose maintained compatible CSI only after this; static synthetic volumes are
+Reported SCALE~25.10.7 and ~100GB app-pool free space are operator estimates,
+not verified inventory. Initial60-70GB app-data budget is provisional, not a
+quota or allocation. Check ZFS headroom, retention, growth and single-disk risk;
+no assumed single-disk stripe expansion. Official TrueNAS CSI is the preferred
+candidate: verify exact live version and official feature/security compatibility
+before implementation. Static synthetic volumes are
 acceptable for initial protocol tests. No Longhorn/Ceph, production default class,
 NAS-wide reboot or backup schedule changes. Node system/etcd remain local.
+Existing Plex/Nextcloud/other TrueNAS apps are not migration targets. Define
+storage capabilities and configurable endpoints, not a universal NAS provisioner.
+Compatible alternative providers remain unimplemented until separately tested.
+Absent suitable storage blocks stateful workloads, not stateless development.
+Central NAS outage remains an accepted dependency, not end-to-end storage HA.
 
 Test NFS-compatible files: UID/GID/ACL and multi-client access, checksums,
 disconnect/reconnect, snapshot versus independent restore. Test block for DB:

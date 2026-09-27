@@ -17,6 +17,36 @@ contract; [040](../tasks/040-recovery-kit-v1.md) produces/tests a kit and
 [050](../tasks/050-independent-controller.md) implements independent controller
 entry points. This document authorizes no export, restore or infrastructure write.
 
+## Scope reconciliation - 2026-09-27
+
+Operator-approved amendment to the accepted030 contract; historical acceptance
+and dated inventory below remain evidence, not erased decisions. Current scope
+follows [architecture](architecture.md) and [input contracts](deployment-inputs.md).
+
+| Earlier provision | Current authoritative interpretation |
+| --- | --- |
+| age, iCloud Keychain, separately managed offline keys/Apple recovery as project gates | Project delivers a usable protected kit and restoration instructions; operator chooses/protects external storage and access. No mandated age/new key/Apple-account program. Independent access remains a real prerequisite supplied and attested by the operator, not assumed verified |
+| Recovery from absolute zero / fixed external service order | Start from documented hypervisor/network/trust/storage prerequisites. Recover only dependencies needed by the selected stack; explicit supplied inputs can precede Infisical/Forgejo. No temporary secret manager or permanent placement dictated by input source |
+| Emergency-only alternate credentials | Starter/private/Infisical/Recovery are explicit delivery sources for the SAME definitions. Task045 implements missing interfaces; no fallback or claim they already work |
+| Six-state manifest | Historical schema only; seven authorities including Stage A are known.040 must extend/verify inventory before capture, never silently accept omissions |
+| Full recovery program before any use | Not a gate for disposable experiments or normal code development. Each irreplaceable-data migration still needs its own consistent, independently accessible recovery set and tested restore |
+
+Preserved without weakening: credential protection, safe private staging,
+integrity/freshness/provenance checks, exact state identity, one writer, no synced
+active state, independent required backup bytes, fail-closed missing/corrupt data
+and explicit sensitive-action approvals. No plaintext secrets in Git/logs/public
+examples. If archive encryption is selected, never keep its sole decryption
+method inside that archive; test its actual retrieval/decryption. Storage custody
+is operator-owned, not evidence that a kit has been recovered. Earlier specific
+age/offline-account prescriptions below are superseded where they conflict with
+this table. No kit is produced or qualified by this documentation revision.
+
+Fresh initialization requires explicit choice and suitable storage. Recovery
+must not replace missing DB/identity with an empty instance. The kit may contain
+required payloads OR actually recoverable protected references, not merely an
+unverified backup location. Starter contains safe prerequisites/examples and
+new-environment inputs, not the original operator's state or credentials.
+
 ## Evidence and scope
 
 2026-09-24 repository inspection: Makefile, Terraform roots, structural local

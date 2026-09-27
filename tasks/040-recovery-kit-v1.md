@@ -4,6 +4,20 @@
 - **Permission initiale :** OFFLINE_CODE; export sensible et transfert demandent une autorisation explicite
 - **Dépendances :** 030 accepté; portable050 pour essai indépendant (035 facultatif); staging non synchronisé, garde indépendante, inventaire complet et gel des writers avant capture
 
+## Reconciliation approuvee - 2026-09-27
+
+Le [contrat amende](../docs/recovery-contract.md#scope-reconciliation---2026-09-27)
+fait autorite sur les prescriptions de garde datees ci-dessous : le projet
+produit un kit utilisable et sa procedure; stockage iCloud/protection/acces sont
+responsabilite operateur. Ne pas imposer age, nouvelles cles ou recuperation Apple
+comme livrables. Acces independant fourni, protection des credentials, integrite,
+writer unique et refus de donnees manquantes restent obligatoires et a prouver.
+Les anciens gates de chiffrement/dechiffrement s'appliquent au format choisi;
+la garde offline specifique est une option operateur, pas un blocage du laboratoire.
+Mettre a jour l'inventaire/schema pour sept authorities avant capture. Les sources
+Starter/Recovery reutilisent045, pas une implementation de secours distincte.
+Aucun kit produit ni qualification close par cette reconciliation documentaire.
+
 ## Objectif
 
 Reconstruction target revision 2026-09-25: this production recovery track is

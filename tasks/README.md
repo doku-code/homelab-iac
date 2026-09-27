@@ -63,19 +63,24 @@ not acceptance achieved. PLANNED tasks need assignment and any live approval.
 | [030](030-state-recovery-contract.md) | Single state authority / independent custody | DONE accepted contract, not recovery proof |
 | [035](035-headless-controller.md) | Optional recovery VM test adapter | DEFERRED; previous preflight intact, no allocation/plan approved |
 | [040](040-recovery-kit-v1.md) | Production kit capture/retrieval | ADAPTED; synthetic preparation exists, production gates blocked |
+| [045](045-deployment-inputs.md) | Explicit private/Infisical input delivery | PLANNED; metadata contract only, first Stage A adapter separately assigned |
 | [050](050-independent-controller.md) | Portable Mac/Linux synthetic controller | PLANNED; parallel to100 after assignment, no full-kit prerequisite |
 | [060](060-postgresql-candidate.md) / [070](070-consul-candidate.md) | Conditional backend experiments | DEFERRED to requirements-led080, not compulsory comparison |
 | [080](080-control-plane-and-cd.md) | Backend need/qualification, separate canary and protected CD | PLANNED after security/recovery gates |
 | [090](090-reusable-lxc.md) | Historical generic LXC-first proposal | SUPERSEDED as prerequisite by100; live CTs untouched |
 | [100](100-stage-a-headless-vms.md) | Three new headless server VM profiles | DONE / operator accepted live evidence for guests303-305 and second convergence |
-| [110](110-k3s-lifecycle.md) | K3s bootstrap/lifecycle/synthetic recovery | IN_PROGRESS; repository implementation, install/token/drills await approval |
+| [110](110-k3s-lifecycle.md) | K3s bootstrap/lifecycle/synthetic recovery | IN_PROGRESS; installed, umask corrected live, projected-token permissions block qualification |
 | [120](120-gitops-stateless.md) | Flux/stateless demo/measurements | After110 and source/RBAC review |
 | [130](130-storage-recovery.md) | TrueNAS protocols/fencing/synthetic DB restore | After120 and storage approvals |
 | [140](140-placement-and-cutover.md) | Distributed/permanent placement and individual service DR/cutover | Epic split into bounded tasks before execution |
+| [150](150-pve-infra-evacuation.md) | Priority node/service inventory and evacuation | PLANNED parallel; live inspection requires approval, not assumed compute identity |
 
-Critical path: architecture review ->100 ->110 ->120 ->130 ->140.
-Parallel recovery path:050 synthetic ->040 real kit ->140 production DR.
-Production data never moves before its own independently qualified recovery.
+Preferred path: accepted100 -> complete110 ->140-B physical target ->120 ->130
+->140-C service-specific cutovers.120 development may use accepted A without
+waiting for hardware.140-A transition is optional historical planning only.
+Parallel:045 inputs,050/040 recovery,150 pve-infra inventory/interim core moves.
+Real data never moves before its own independently qualified recovery; no blanket
+full-kit gate on experiments or unrelated safe service moves.
 080 gates shared backend/privileged infrastructure automation; not disposable
 stateless learning. No task starts automatically after this planning session.
 

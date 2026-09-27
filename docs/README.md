@@ -11,12 +11,14 @@
 | --- | --- | --- |
 | Comprendre la cible, services, données et bootstrap | [Architecture canonique](architecture.md) | Reconstruction K3s/TrueNAS; exigences approuvées séparées des recommandations |
 | Savoir quel milestone vient ensuite | [Roadmap](roadmap.md) et [tâches](../tasks/README.md) | Plan de travail, pas autorisation d'exécuter |
+| Déployer un stack, Starter ou Recovery | [Contrats d'inputs](deployment-inputs.md) | Inventaire réel; adaptateur045 non implémenté, aucune valeur privée |
+| Préparer la vente de pve-infra | [Task150](../tasks/150-pve-infra-evacuation.md) | Priorité parallèle; identité/inventaire live à autoriser, aucun cutover |
 | CI qualité et frontière runner | [CI qualité](ci-quality.md) | Run139 LIVE VERIFIED; clôture sécurité 010/020 distincte |
 | Préparer une récupération indépendante | [Contrat et Recovery Kit v1](recovery-contract.md) | Contrat 030 accepté; kit et récupération non qualifiés |
 | Préparer capture, garde et validation du kit | [Préparation Recovery Kit](recovery-kit-preparation.md) | Schéma/tests synthétiques; export et drill non exécutés |
 | Préparer la VM de test sans GPU | [Contrôleur headless](headless-controller.md) | Adaptateur optionnel035 pour portable050; aucune VM déployée |
 | Préparer les trois VM du laboratoire | [Stage A](k3s-stage-a.md) | Task100 DONE; trois invités et baseline live vérifiés/acceptés |
-| Bootstrap et cycle de vie K3s | [K3s Stage A](k3s-bootstrap.md) | Task110 repository-only; installation, token réel et drills non exécutés |
+| Bootstrap et cycle de vie K3s | [K3s Stage A](k3s-bootstrap.md) | Installé, umask corrigé live; incident des volumes projetés dans110; drills non qualifiés |
 | Retrouver les faits établis lors de l'audit | [Audit du 2026-09-24](audits/2026-09-24/executive-summary.md) | Photographie historique, jamais statut live garanti |
 | Déploiement et limites du runner CT301 | [Forgejo runner](forgejo-runner.md) | Runbook/état cible; vérifier le service avant intervention |
 | Comprendre la sécurité et la migration CI/CD | [Infrastructure CI/CD](infrastructure-cicd.md) | **Contient une proposition S3 historique**; ne pas la suivre comme runbook actif |
@@ -38,8 +40,10 @@ photographie du 2026-09-24** : [état actuel](audits/2026-09-24/current-state.md
 [roadmap de l'audit](audits/2026-09-24/milestone-roadmap.md).
 
 La [roadmap canonique](roadmap.md) remplace l'ordre backend/LXC-first par
-reconstruction progressive : trois VM headless, K3s, Flux/stateless, stockage
-qualifié puis placement et cutovers. Portable recovery avance en parallèle;
+déploiement progressif : qualification Stage A, cible trois hôtes physiques,
+Flux/stateless, CSI TrueNAS qualifié puis cutovers individuels. Le développement
+jetable sur A ne dépend pas du matériel futur. Évacuation pve-infra et inputs/
+portable recovery avancent en parallèle;
 le kit complet ne bloque pas l'apprentissage jetable. Les gates CT301 restent
 ouverts. Les audits/runbooks conservent leur preuve historique, pas un deuxième
 plan actif; vérifier toute divergence avant une opération live.

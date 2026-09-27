@@ -4,31 +4,32 @@
 - Initial permission: planning/read-only only when assigned, never implicit migration.
 - Dependencies/acceptance per substage in [roadmap](../docs/roadmap.md).
 
-## A - Distributed current hardware
+## A - Optional historical Stage B transition
 
-After120 measurements and130 storage failure qualification, measure core/compute/
-lab capacity under representative critical/bot/workstation load. Propose one
-server per host with survivor workload capacity and stable private API endpoint.
-No workloads displaced to fit. Approve allocations and exact plans separately.
-Qualify member-by-member replacement with healthy quorum/snapshot/token/fencing
-or deliberate disposable rebuild, not a blind node-variable apply. Demonstrate
-physical-domain loss and maintenance without claiming TrueNAS HA. Stop on quorum
-risk, retain old recovery points and never start duplicate members.
+The core/compute/lab proposal is retained by ID for traceability, superseded as
+a mandatory step on2026-09-27. Do not deploy it without separate justification
+and approval. It is not a dependency of B,120 or pve-infra evacuation.
 
 ## B - Permanent mini-PC placement
 
-After actual hardware and A evidence, decide Proxmox+VM versus bare metal using
-8-GB measurements and host reserve. Support16-GB upgrade through sizing profile;
-no32-GB purchase dependency. New host installation/trust/storage and member
-transition separately approved. Prove one-node maintenance/failure and capacity;
-bare metal requires its own non-Proxmox install/recovery interface. Accept the
-new placement before retiring any old member. Physical migration is not merely
+After110 acceptance and actual hardware/capacity/trust checks, qualify one Proxmox
+server VM each on pve-k8s-01, pve-k8s-02 and pve-core. All are active voting etcd
+members; core is not standby. Use the [canonical hardware contract](../docs/architecture.md#topology-and-sizing).
+No mandatory140-A,130/full040 prerequisite or RAM upgrade; measure8GB hosts and
+existing core reservations. Local system/etcd disks only. New allocations and
+member transitions require separate approval; never simultaneous replacement.
+Require API failover, healthy quorum and node maintenance;120/130 later add
+representative workload/storage evidence before real-workload acceptance.
+Preferred mini-PC affinity must allow core fallback; no automatic move-back or
+assumption one mini can run everything. Accept the placement before retiring
+old members. Physical migration is not merely
 a state edit or restoring VM snapshots into an active etcd cluster.
 
 ## C - One service per reconstruction/cutover task
 
 Use [architecture service matrix](../docs/architecture.md#service-reconstruction-matrix).
-Before production: complete040/050 for required independent material, qualify
+Before irreplaceable-data cutover: qualify required independent material (reuse
+040/050, not blanket completion of a full recovery program), qualify
 target placement/storage, service version/schema compatibility, consistent
 DB/files/identity backup and isolated restore, health/ACL/function tests and
 measured recovery. No bulk personal data stuffed into the small kit.
@@ -39,7 +40,7 @@ before rollback. Retain old guests/authority until accepted; separate approved
 decommission task, never blanket Terraform destroy. New implementation may use
 different runtime/version/path but cannot silently lose identities or data.
 
-Production DR must demonstrate fresh independent controller -> foundations ->
+Service recovery must demonstrate trusted independent controller -> documented foundations ->
 cluster restore/rebuild -> GitOps -> consistent service restores without relying
 on failed internal services. Test loss of cluster and unavailable TrueNAS/Forgejo/
 Infisical with scoped synthetic/isolated exercises before risky production drills.
@@ -48,3 +49,8 @@ host recovery from a VM hosted on that same host.
 
 Next: separately assign next service or080 backend/CD gate. This epic has no
 single blanket apply approval and cannot be DONE from one successful demo.
+
+[150](150-pve-infra-evacuation.md) is a high-priority parallel inventory/cutover
+track, including interim core placement without waiting for this entire epic.
+Existing TrueNAS apps are excluded from migration. Service placement remains
+open until accurate inventory, functional and availability review.
