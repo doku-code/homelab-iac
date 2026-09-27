@@ -7,7 +7,7 @@ Requires=k3s-lab-firewall.service
 [Service]
 Type=notify
 User=root
-UMask=0077
+UMask=0022
 ExecStartPre=/bin/sh -c 'test ! -e /etc/rancher/k3s/initialized || test -d /var/lib/rancher/k3s/server/db/etcd/member'
 ExecStart=/usr/local/bin/k3s server --config /etc/rancher/k3s/config.yaml
 ExecStartPost=/usr/bin/touch /etc/rancher/k3s/initialized

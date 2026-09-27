@@ -1,7 +1,7 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
-status: "Task 100 DONE; Task 110 repository-implemented, live installation awaits approval"
-updated: 2026-09-26
+status: "Task 100 DONE; Task 110 installed, system-pod repair awaits approval"
+updated: 2026-09-27
 ---
 
 # Canonical Reconstruction Roadmap
@@ -25,8 +25,9 @@ Task110 and any further infrastructure actions remain separate approval gates.
   explicit contract reconciliation, not imposed as a Task100 prerequisite.
 - Task035 headless capability passed CI, but VM603/.32 not allocated, no plan/
   creation/start/convergence. Preserve its preflight; make VM an optional050 test.
-- No Kubernetes/Flux/storage integration is implemented. Current running services
-  and personal/technical data remain untouched.
+- Stage A K3s is installed; system-pod permission failures block qualification.
+  Flux/storage integration is not implemented. Existing production services and
+  personal/technical data remain untouched.
 
 ## Critical path and parallel work
 
@@ -106,11 +107,12 @@ resources/states remain unchanged; the new Stage A state is authority seven.
 Portable [050](../tasks/050-independent-controller.md) may
 be assigned separately in parallel; it is not implemented automatically.
 
-Task110 repository implementation and [bootstrap/lifecycle proposal](k3s-bootstrap.md)
-are ready for operator review: pinned K3s, API/TLS SANs, CIDRs, scoped guest
-firewall, bundled components and private lab-token handling. No K3s installed or
-real token generated. Install and lifecycle drills remain separate approvals;
-live criteria and recovery evidence are required before110 DONE or120 work.
+Task110 is installed with operator-reported zero-change second convergence.
+Read-only etcd preflight found three healthy voting members; CoreDNS and
+metrics-server permission failures block qualification. The repository umask
+correction and [guarded maintenance proposal](k3s-bootstrap.md#umask-incident-proposed-maintenance-not-executed)
+do not authorize a live unit update, restart or filesystem remediation.
+Lifecycle drills still need separate approval and evidence before110 DONE or120.
 Task035 remains separately unallocated.
 
 ## Evidence and delivery discipline

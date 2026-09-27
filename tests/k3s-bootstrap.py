@@ -88,6 +88,7 @@ def main():
     assert "192.168.0.119" not in reserved_firewall and "192.168.0.0/24" not in reserved_firewall
     assert "policy accept;" in reserved_firewall and "dport 22" not in reserved_firewall
     unit = (templates / "k3s.service.j2").read_text()
+    assert [line for line in unit.splitlines() if line.startswith("UMask=")] == ["UMask=0022"]
     assert "Requires=k3s-lab-firewall.service" in unit and "Restart=always" in unit
     assert "token" not in unit and "cluster-reset" not in unit
     assert "ExecStartPre=" in unit and "etcd/member" in unit and "ExecStartPost=" in unit
@@ -100,6 +101,20 @@ def main():
     assert "ansible_play_hosts_all | sort == groups.k3s_lab | sort" in str(plays[0])
     assert "k3s_admin_cidrs" not in str(plays[0]["tasks"])
     tasks = yaml.safe_load((ROOT / "ansible/roles/k3s_server/tasks/main.yml").read_text())
+    by_name = {task["name"]: task for task in tasks}
+    private_dir = by_name["Create private configuration directory"]["ansible.builtin.file"]
+    assert private_dir["mode"] == "0700" and private_dir["owner"] == "root"
+    token_task = by_name["Deliver token only to a root-owned private file"]
+    assert token_task["ansible.builtin.copy"]["mode"] == "0600"
+    assert token_task["ansible.builtin.copy"]["owner"] == "root"
+    assert token_task["no_log"] is True and token_task["diff"] is False
+    managed = by_name["Preview managed files before changing an existing installation"]
+    assert managed["check_mode"] is True and managed["diff"] is False
+    modes = {item["dest"]: item["mode"] for item in managed["loop"]}
+    assert modes["/etc/rancher/k3s/config.yaml"] == "0600"
+    assert modes["/etc/rancher/k3s/firewall.nft"] == "0600"
+    assert configs[0]["write-kubeconfig-mode"] == "0600"
+    assert "not k3s_preview.changed" in by_name["Require separate review for live configuration drift"]["ansible.builtin.assert"]["that"]
     health_checks = [t for t in tasks if "ansible.builtin.command" in t
                      and "kubectl" in t["ansible.builtin.command"]["argv"]]
     assert len(health_checks) == 2

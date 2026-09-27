@@ -1,7 +1,8 @@
 # 110 - Three-server K3s bootstrap and controlled lifecycle
 
-- Status: IN_PROGRESS / repository implementation; live install and lifecycle
-  qualification not authorized or verified. Task100 accepted/DONE.
+- Status: IN_PROGRESS / installed; live qualification blocked by system-pod
+  permissions. Unit correction is repository-only; live repair awaits approval.
+  Task100 accepted/DONE; lifecycle drills remain unverified.
 - Deliverable: pinned reproducible K3s/embedded-etcd installation and lifecycle
   on three distinct server VMs, including synthetic backup/restore evidence.
 - Initial scope: design/code/tests only when assigned; live installation, token
@@ -95,3 +96,26 @@ Correction checks PASS: k3s-check, Stage A regression, configuration/script
 parsing and git diff --check. No live firewall behavior claimed by rendering.
 Previous implementation passed Forgejo run32/API143 at 0f89723; correction's exact
 CI/GitHub result is reported at delivery. Task110 remains open for live acceptance.
+
+## Umask correction and read-only preflight - 2026-09-27
+
+Operator reports successful install and second convergence changed=0/failed=0/
+unreachable=0 on all three. Earlier pending-install statements above are dated
+implementation evidence, superseded by this report, not proof of full health.
+Observed CoreDNS StartError128 (/coredns permission denied) and metrics-server
+exit2 (/tmp permission denied), both server-1, block qualification. All service
+units use0077; server-1 K3s/containerd inherit it and snapshot roots are0700.
+
+Template corrected to0022 with regression assertions for explicit0700/0600
+private paths, no_log/diff suppression and unchanged normal drift rejection.
+No live unit applied, process restarted or filesystem remediated. The
+[unit-only maintenance proposal](../docs/k3s-bootstrap.md#umask-incident-proposed-maintenance-not-executed)
+requires separate approval, all-member health gates and server-1 API fallback.
+
+Actual etcd inspection: all three local health endpoints true; authenticated
+member/status/alarm queries agree on three voting members, cluster ID,
+leader server-1, term2, etcd3.6.14 and no alarms. Applied index equals Raft index
+on each endpoint. No datastore contents or credentials exported. This verifies
+current etcd health, not interruption/restore safety. Snapshot0700 persistence
+remains a post-restart observation gate, not permission for recursive repair.
+Task110 stays open; broader architecture amendment and Task120 remain pending.
