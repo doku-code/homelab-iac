@@ -1,6 +1,7 @@
 # 150 - Priority pve-infra inventory and evacuation assessment
 
-- Status: PLANNED / high priority parallel track; live inspection not authorized.
+- Status: IN_PROGRESS; authorized read-only assessment recorded2026-09-28,
+  pending operator review and scoped recovery/cutover approvals. No evacuation done.
 - Dependencies: explicit node identity/access approval, not full K3s/CSI/kit work.
 - Scope: first targeted read-only inventory, then separately assigned cutovers.
 
@@ -23,3 +24,25 @@ Assessment is not evacuation completion. DONE requires separately authorized
 migrations accepted and all node-removal prerequisites verified. No stop/delete/
 migrate/decommission, cluster-membership change or live inspection in this task
 until explicitly authorized. Retain old services and recovery points until accepted.
+
+## Read-only assessment - 2026-09-28
+
+See [inventory and evacuation plan](../docs/pve-infra-evacuation.md) for evidence,
+capacities, destinations, limits and proposed150-A through150-G follow-ups.
+Strict SSH confirmed pve-infra/.10, AZW MINI S/N5095A, not pve-compute.
+CT200-204 provide DNS, Homepage/custom metrics, Wiki.js/PG17, USB printing and
+Caddy/Cloudflare. The host also supplies the observed primary Tailscale LAN route.
+Four one-vote members/quorum3; no HA resources or replication observed.
+
+Core capacity is plausible, not reserved/peak-tested. PBS includes200/202/204;
+201/203 only have older snapshots, no current inclusion. No restore proof for
+these five CTs. Cloudflare runtime source, tailnet failover, USB relocation,
+custom metrics image recovery and complete consumer/automation review remain gaps.
+
+Assessment criteria: identity/inventory/removal-impact observations gathered;
+destinations/order proposed; operator review pending. Task150 remains open until
+separately authorized migrations and node-removal prerequisites are accepted.
+Next smallest scope:150-A CT201 fresh backup/image preservation/isolated restore
+and core reservation; only then separately approved150-B relocation.
+No live changes, DB/state inspection, secret-value retrieval or backup exports.
+Task110 incident, Task050 and architecture refactoring were not started.

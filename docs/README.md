@@ -12,7 +12,7 @@
 | Comprendre la cible, services, données et bootstrap | [Architecture canonique](architecture.md) | Reconstruction K3s/TrueNAS; exigences approuvées séparées des recommandations |
 | Savoir quel milestone vient ensuite | [Roadmap](roadmap.md) et [tâches](../tasks/README.md) | Plan de travail, pas autorisation d'exécuter |
 | Déployer un stack, Starter ou Recovery | [Contrats d'inputs](deployment-inputs.md) | Inventaire réel; adaptateur045 non implémenté, aucune valeur privée |
-| Préparer la vente de pve-infra | [Task150](../tasks/150-pve-infra-evacuation.md) | Priorité parallèle; identité/inventaire live à autoriser, aucun cutover |
+| Préparer la vente de pve-infra | [Inventaire et plan](pve-infra-evacuation.md), [Task150](../tasks/150-pve-infra-evacuation.md) | Inventaire read-only du28 septembre; gates sauvegarde/USB/Tailscale ouverts, aucun cutover |
 | CI qualité et frontière runner | [CI qualité](ci-quality.md) | Run139 LIVE VERIFIED; clôture sécurité 010/020 distincte |
 | Préparer une récupération indépendante | [Contrat et Recovery Kit v1](recovery-contract.md) | Contrat 030 accepté; kit et récupération non qualifiés |
 | Préparer capture, garde et validation du kit | [Préparation Recovery Kit](recovery-kit-preparation.md) | Schéma/tests synthétiques; export et drill non exécutés |

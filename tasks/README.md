@@ -73,7 +73,7 @@ not acceptance achieved. PLANNED tasks need assignment and any live approval.
 | [120](120-gitops-stateless.md) | Flux/stateless demo/measurements | After110 and source/RBAC review |
 | [130](130-storage-recovery.md) | TrueNAS protocols/fencing/synthetic DB restore | After120 and storage approvals |
 | [140](140-placement-and-cutover.md) | Distributed/permanent placement and individual service DR/cutover | Epic split into bounded tasks before execution |
-| [150](150-pve-infra-evacuation.md) | Priority node/service inventory and evacuation | PLANNED parallel; live inspection requires approval, not assumed compute identity |
+| [150](150-pve-infra-evacuation.md) | Priority node/service inventory and evacuation | IN_PROGRESS; read-only assessment recorded, recovery/cutover gates and operator review pending |
 
 Preferred path: accepted100 -> complete110 ->140-B physical target ->120 ->130
 ->140-C service-specific cutovers.120 development may use accepted A without

@@ -129,6 +129,13 @@ publication CI is checked at delivery, not proof of live provider authentication
 Lifecycle drills still need separate approval and evidence before110 DONE or120.
 Task035 remains separately unallocated.
 
+Task150 read-only assessment on2026-09-28 confirms infra/.10, CT200-204 and
+host-level Tailscale LAN routing. See the [evacuation plan](pve-infra-evacuation.md).
+Core is a plausible interim destination, not capacity-approved. Fresh201/203
+backup coverage, isolated recovery, USB/tunnel/remote-access gates and operator
+review remain; smallest follow-up is CT201 recovery qualification before cutover.
+No migration or cluster removal authorized; Task150 remains IN_PROGRESS.
+
 ## Evidence and delivery discipline
 
 Read task/code/current state; implement one coherent deliverable; update tests
