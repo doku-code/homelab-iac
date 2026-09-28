@@ -29,9 +29,10 @@ not be used for PostgreSQL CT300. Select only the intended stack and state.
 | Actual input | Purpose / consumer | Requirement, format, sensitivity | Current source / alternative today |
 | --- | --- | --- | --- |
 | `CONTROLLER_PYTHON` | Make recreates .venv | O, executable path, N; Python compatible with pinned requirements | Shell/Make, default python3; explicit standalone Python in CI |
-| `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` | Universal Auth in Make and runner playbook | R for these workflows; identity string + secret string, protect both | Operator runtime; no non-Infisical Make selector implemented |
+| `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` | Universal Auth in Make and runner playbook | R for Infisical workflows; identity string + secret string, protect both | Operator runtime; Stage A private mode does not require them |
 | `INFISICAL_DOMAIN`, `INFISICAL_ENV`, `INFISICAL_PROJECT_ID` | Make Infisical wrapper | O defaults; HTTPS URL, slug, project ID, N | Make overrides; project derives from tracked .infisical.json workspaceId |
-| `PROXMOX_VE_API_TOKEN` | bpg provider environment auth | R when using API-token auth; `user@realm!token=VALUE`, S (format only) | Injected environment in normal Infisical workflow; provider accepts explicit environment independently, wrappers still force Infisical |
+| `PROXMOX_VE_API_TOKEN` | bpg provider environment auth | R when using API-token auth; `user@realm!token=VALUE`, S (format only) | Infisical injection or explicit Stage A private environment; other wrappers still force Infisical |
+| `STAGE_A_INPUT_SOURCE` | Stage A Make plan/apply | R, exactly `infisical` or `private`, N; no default | Explicit Make argument or exported environment; no automatic fallback |
 | `ansible_host`, `ansible_user`, `ansible_ssh_private_key_file`, SSH agent/known_hosts | Ansible SSH connection | Host/user R; key path optional to SSH defaults, N metadata; key bytes S, never copied | Static or generated inventory; standard Ansible overrides, not an alternative whole-stack adapter |
 | `GUEST_SSH_PRIVATE_KEY_FILE` | Guest/runner/Garage/tfstate inventory | O, controller path, default ~/.ssh/id_ed25519; key S | Runtime env; no Infisical call in these inventory lookups |
 | `PROXMOX_URL`, `PROXMOX_USER`, `PROXMOX_TOKEN_ID`, `PROXMOX_TOKEN_SECRET` | Dynamic guests.proxmox inventory | R; HTTPS URL / user@realm / token name N, token secret S | Runtime env directly; not bpg's combined-token name |
@@ -48,12 +49,13 @@ private-input path before it can be called supported.
 All variables below are N; private tfvars as a whole remain private. These are
 deployment configuration, NOT restored guest disks or application data. Native
 Terraform supports reviewed tfvars / TF_VAR inputs independently of Infisical;
-current plan/apply Make wrappers listed here still mandate Universal Auth.
+Stage A plan/apply supports explicit private or Infisical delivery; other current
+Make wrappers listed here still mandate Universal Auth.
 Required object fields/types/validation remain authoritative in linked HCL.
 
 | Root / interface | Actual variables, requirement and purpose | External constraints / present portability |
 | --- | --- | --- |
-| [Stage A](../terraform/stacks/pve-lab-k3s/variables.tf), stage-a-* | `proxmox_endpoint` R HTTPS URL; `proxmox_insecure` O false; `image.url`, `image.sha256` R dated Debian HTTPS/64-hex integrity; `servers` R three-key map | Same root supports node placement inputs, not safe automatic etcd migration; source wrapper Infisical. Public SSH key fixed by root to keys/doku-lab-admin.pub; not yet selectable for another user |
+| [Stage A](../terraform/stacks/pve-lab-k3s/variables.tf), stage-a-* | `proxmox_endpoint` R HTTPS URL; `proxmox_insecure` O false; `image.url`, `image.sha256` R dated Debian HTTPS/64-hex integrity; `servers` R three-key map; `ssh_public_key` O Ed25519 public string, null keeps operator key | Explicit private/Infisical selector feeds same root and local state. Own public key via native tfvars/TF_VAR_ssh_public_key; no private key copied. Placement inputs are not automatic etcd migration |
 | [Controller](../terraform/stacks/pve-lab-controller/variables.tf), controller-* | `proxmox_endpoint` R; `proxmox_insecure` O false; `profile` R object | Undeployed optional adapter; fixed public key, private reviewed profile required; Infisical wrapper |
 | [Workstations](../terraform/stacks/pve-lab-workstations/variables.tf), workstations-* | `proxmox_endpoint` R; `hardware_profiles` O {} in [hardware.tf](../terraform/stacks/pve-lab-workstations/hardware.tf): gpu bool, usb_mappings list per known workstation | Existing adopted guests and named GPU/USB mappings, not generic OS creation. Fixed topology, Infisical wrapper; apply also runs host Ansible |
 | [Monitoring](../terraform/stacks/deb13-monitoring/variables.tf) | `proxmox_endpoint` R | Fixed VM208/image/network definition; no dedicated monitoring Terraform Make interface; native Terraform input possible, not fully portable |
@@ -109,19 +111,24 @@ not portable defaults. Static tfstate/Garage/runner inventories and monitoring
 Compose endpoints similarly need scoped parameterization before external-user
 deployment can be claimed. No Kubernetes app/CSI input interface exists yet.
 
-## Smallest proposed adapter (Task045, not implemented)
+## Stage A adapter (Task045, implemented and locally validated)
 
-Start with Stage A, not every wrapper: one explicit Make input-source selector
-(name to be chosen in045) routes either existing Universal Auth or a deliberately
-supplied private provider environment into the same guarded commands. Keep native
-terraform.tfvars/image/server map; expose the existing module's `ssh_public_key`
-at the root with backwards-compatible operator default. Validate missing inputs
-before execution, no credential fallback and no changes to state authority.
-Do not make callers copy/edit a public key owned by another person. A small
-private file may name non-secret profile paths, not re-encode every Terraform
-field or hold command-line secrets. Add only if it removes demonstrated friction.
-Later runner/monitoring adapters normalize inputs into the existing facts/role
-variables, preserving no_log and least privilege; do not duplicate playbooks.
+Use [exact commands and the Starter example](k3s-stage-a.md#explicit-sources-and-starter-example).
+The selector is mandatory for plan/apply; existing operators add
+`STAGE_A_INPUT_SOURCE=infisical`, retaining the same Universal Auth identity,
+domain/environment/project and profile. Private mode requires only native ignored
+terraform.tfvars and provider-token environment, never an Infisical session/CLI.
+The helper uses the already pinned SDK for Universal Auth and env-token delivery
+to infisical run, avoiding secret arguments. No new configuration schema or store.
+Missing/invalid auth and selectors fail closed, native Terraform validates the
+profile, and existing exact-plan/hash/approval/cleanup guards remain in force.
+Reject competing provider password auth, TF_LOG*, TF_CLI_ARGS* and non-default
+TF_WORKSPACE. Never supply credentials through Make command-line assignments.
+Omitted/null ssh_public_key preserves the existing public-key value exactly;
+external users must supply their own. Changing a key is still a reviewed change.
+No live plan/apply or remote authentication was performed for this implementation.
+Runner/monitoring adapters remain separate follow-ups, not implemented here.
+Recovery/state restoration and portable fresh-controller qualification remain040/050.
 
 ## Safe kit specifications (not executable interfaces)
 
@@ -129,7 +136,8 @@ Starter: public code/locks/runbook + documented hypervisor/network/storage
 prerequisites + one selected stack's non-secret example profile + privately
 supplied credentials/public SSH key. Explicitly new identity/state/data; no
 original operator secrets, historical states or recovery payloads. Current
-operator-specific roots cannot yet fulfill this whole workflow unchanged.
+Stage A now supports this Terraform entry path; other operator-specific roots
+cannot yet fulfill this whole workflow unchanged. No complete Starter Kit builder.
 
 Recovery: exact code/tool versions + reviewed authoritative state/input generation
 + trust/access + matching snapshot/server-token when preserving K3s identity

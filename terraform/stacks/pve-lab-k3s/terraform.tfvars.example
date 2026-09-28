@@ -1,0 +1,28 @@
+# Documentation-only allocations. Replace after your own allocation/capacity review.
+# Copy to ignored terraform.tfvars in a fresh checkout, never over existing inputs.
+# Set TF_VAR_ssh_public_key from YOUR public key as shown in docs/k3s-stage-a.md.
+# Provider credentials belong only in the runtime environment, never here.
+proxmox_endpoint = "https://proxmox.example.invalid:8006/"
+proxmox_insecure = false
+image = {
+  # Replace BOTH with your reviewed dated Debian 13 AMD64 cloud image and SHA256.
+  url    = "https://example.invalid/debian-13-20260925.qcow2"
+  sha256 = "REPLACE_WITH_VERIFIED_IMAGE_SHA256"
+}
+servers = {
+  server-1 = {
+    node = "lab-node", vm_id = 901, name = "lab-server-1"
+    image_datastore = "local", disk_datastore = "local-lvm", storage_local = true
+    bridge = "vmbr0", ipv4 = "192.0.2.11/24", gateway = "192.0.2.1", dns_servers = ["192.0.2.53"]
+  }
+  server-2 = {
+    node = "lab-node", vm_id = 902, name = "lab-server-2"
+    image_datastore = "local", disk_datastore = "local-lvm", storage_local = true
+    bridge = "vmbr0", ipv4 = "192.0.2.12/24", gateway = "192.0.2.1", dns_servers = ["192.0.2.53"]
+  }
+  server-3 = {
+    node = "lab-node", vm_id = 903, name = "lab-server-3"
+    image_datastore = "local", disk_datastore = "local-lvm", storage_local = true
+    bridge = "vmbr0", ipv4 = "192.0.2.13/24", gateway = "192.0.2.1", dns_servers = ["192.0.2.53"]
+  }
+}

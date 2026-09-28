@@ -27,6 +27,6 @@ variable "ssh_public_key" {
   type = string
   validation {
     condition     = startswith(trimspace(var.ssh_public_key), "ssh-ed25519 ")
-    error_message = "Supply the repository-managed Ed25519 public key, never a private key."
+    error_message = "Supply an Ed25519 public key, never a private key."
   }
 }

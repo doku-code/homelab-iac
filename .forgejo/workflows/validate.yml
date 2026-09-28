@@ -152,7 +152,10 @@ jobs:
         run: make recovery-check
 
       - name: Test Stage A baseline and approval guards offline
-        run: .venv/bin/python tests/stage-a.py
+        run: |
+          set -euo pipefail
+          .venv/bin/python tests/stage-a.py
+          .venv/bin/python tests/stage-a-inputs.py
 
       - name: Test K3s bootstrap and lifecycle guards offline
         run: .venv/bin/python tests/k3s-bootstrap.py

@@ -74,10 +74,13 @@ controller-apply:
 
 # Stage A has a separate local authority and no default live allocations.
 STAGE_A_DIR := terraform/stacks/pve-lab-k3s
+export STAGE_A_INPUT_SOURCE
+STAGE_A_INPUTS = $(VENV)/bin/python scripts/stage-a-inputs.py $(if $(filter infisical,$(STAGE_A_INPUT_SOURCE)),--domain "$(INFISICAL_DOMAIN)" --environment "$(INFISICAL_ENV)" --project-id "$(INFISICAL_PROJECT_ID)")
 .PHONY: stage-a-check stage-a-plan stage-a-apply stage-a-start stage-a-configure
 stage-a-check:
 	$(VENV)/bin/python tests/vm-profiles.py
 	$(VENV)/bin/python tests/stage-a.py
+	$(VENV)/bin/python tests/stage-a-inputs.py
 	$(ANSIBLE) ansible/playbooks/configure-k3s-lab.yml --syntax-check -i ansible/inventories/homelab.yml
 	$(ANSIBLE) ansible/playbooks/start-k3s-lab.yml --syntax-check -i ansible/inventories/homelab.yml
 
@@ -85,15 +88,16 @@ stage-a-plan:
 	@test "$(STAGE_A_ALLOCATION_REVIEWED)" = yes || (echo "Review allocation, stopped workstations, local storage and host capacity first"; exit 1)
 	rm -f "$(STAGE_A_DIR)/stage-a.tfplan"
 	@test -f "$(STAGE_A_DIR)/terraform.tfvars" || (echo "Missing private reviewed Stage A inputs"; exit 1)
+	@$(STAGE_A_INPUTS) check
 	terraform -chdir=$(STAGE_A_DIR) init -input=false -lockfile=readonly
-	$(call INFISICAL_RUN,terraform -chdir=$(STAGE_A_DIR) plan -input=false -out=stage-a.tfplan) || { rm -f "$(STAGE_A_DIR)/stage-a.tfplan"; exit 1; }
+	@$(STAGE_A_INPUTS) plan || { rm -f "$(STAGE_A_DIR)/stage-a.tfplan"; exit 1; }
 	shasum -a 256 "$(STAGE_A_DIR)/stage-a.tfplan"
 
 stage-a-apply:
 	@test "$(STAGE_A_APPLY_APPROVED)" = yes || (echo "Explicit exact-plan approval required"; exit 1)
 	@test -n "$(STAGE_A_PLAN_SHA256)" || (echo "Supply the reviewed plan SHA256"; exit 1)
 	@printf '%s  %s\n' '$(STAGE_A_PLAN_SHA256)' '$(STAGE_A_DIR)/stage-a.tfplan' | shasum -a 256 -c
-	$(call INFISICAL_RUN,terraform -chdir=$(STAGE_A_DIR) apply -input=false stage-a.tfplan)
+	@$(STAGE_A_INPUTS) apply
 	rm -f "$(STAGE_A_DIR)/stage-a.tfplan"
 
 stage-a-start:

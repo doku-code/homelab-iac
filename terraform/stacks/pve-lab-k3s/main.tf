@@ -28,7 +28,7 @@ module "servers" {
   profile        = each.value
   tags           = ["k3s-lab"]
   image_id       = proxmox_download_file.linux["${each.value.node}/${each.value.image_datastore}"].id
-  ssh_public_key = file("${path.module}/../../../keys/doku-lab-admin.pub")
+  ssh_public_key = var.ssh_public_key == null ? file("${path.module}/../../../keys/doku-lab-admin.pub") : var.ssh_public_key
 }
 
 output "ansible_inventory" {

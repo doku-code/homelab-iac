@@ -22,7 +22,8 @@ review. Later, ignored `terraform.tfvars` must supply:
 
 | Input | Required reviewed value |
 | --- | --- |
-| `proxmox_endpoint`, `proxmox_insecure` | Existing provider/Universal Auth convention; explicit reviewed TLS choice, no new credential mechanism |
+| `proxmox_endpoint`, `proxmox_insecure` | HTTPS API; TLS verification defaults on. Trust your CA; do not bypass TLS for portability |
+| `ssh_public_key` | Optional Ed25519 public string via tfvars or TF_VAR_ssh_public_key; null/omission preserves keys/doku-lab-admin.pub |
 | `image.url`, `image.sha256` | Versioned/dated Debian 13 AMD64 HTTPS cloud image and verified SHA256; no mutable latest URL |
 | `servers` | Exactly `server-1`, `server-2`, `server-3` |
 | Each server | Unique `vm_id`, `name`, `ipv4` CIDR; `node`, `bridge`, `gateway`, nonempty `dns_servers`, `image_datastore`, `disk_datastore`, `storage_local = true` |
@@ -30,9 +31,84 @@ review. Later, ignored `terraform.tfvars` must supply:
 
 `storage_local` is an operator declaration, not discovery: prove the actual
 datastore is local SSD-backed before plan. Both system and cloud-init use it.
-The fixed repository-managed public SSH key creates the Debian cloud user;
-no private key, password or token enters configuration/state. Provider auth
-continues through `INFISICAL_RUN`/Universal Auth at execution time.
+The selected public SSH key creates the Debian cloud user; the unchanged default
+preserves current VMs. No private key, password or token enters configuration/state.
+Both input sources use this same root, local state, profile and saved plan.
+
+## Explicit sources and Starter example
+
+Task045 implements only Stage A Terraform input delivery, tested offline.
+`STAGE_A_INPUT_SOURCE` is required for plan/apply: exactly `infisical` or `private`.
+There is no default or fallback. Existing operators now explicitly select
+`infisical`; their credentials, project metadata and native tfvars stay unchanged.
+Start/configure/check do not use provider credentials and need no selector.
+
+Infisical uses existing `INFISICAL_CLIENT_ID`/`INFISICAL_CLIENT_SECRET`, the Make
+domain/environment defaults and .infisical.json project. Universal Auth uses the
+already pinned Python SDK so credentials never enter process arguments;
+`infisical run` receives its short-lived token via environment, then validates
+the exported provider token. Ambient Proxmox auth cannot mask a missing export.
+See [CLI environment-token support](https://infisical.com/docs/cli/commands/run).
+Other stacks' existing INFISICAL_RUN macro is unchanged.
+
+Private mode uses only `PROXMOX_VE_API_TOKEN` from the runtime environment
+(`user@realm!token=value`), not an Infisical identity/session/CLI. Set up the
+repository .venv, Terraform and an appropriately scoped Proxmox API identity.
+Native Terraform validates required profile variables with `-input=false`;
+missing/invalid credentials and selectors fail before provider operations.
+Conflicting username/password/OTP authentication, TF_LOG*, TF_CLI_ARGS* and
+non-default TF_WORKSPACE are rejected. Do not enable shell tracing or put tokens
+in Make arguments/tfvars. Valid syntax does not prove remote ACLs or reachability.
+
+For a NEW environment in a fresh checkout with no existing state, after reviewing
+allocations, storage, network and API trust:
+
+```bash
+make setup-controller
+# Stop if terraform.tfvars already exists; never overwrite an existing environment.
+test ! -e terraform/stacks/pve-lab-k3s/terraform.tfvars || { echo 'Existing inputs: stop'; exit 1; }
+cp terraform/stacks/pve-lab-k3s/terraform.tfvars.example terraform/stacks/pve-lab-k3s/terraform.tfvars
+chmod 600 terraform/stacks/pve-lab-k3s/terraform.tfvars
+```
+
+Edit that ignored file with your infrastructure profile, replacing ALL example
+addresses/IDs/image placeholders. No secret goes in it. Use your own public key
+either as `ssh_public_key` there or the environment below, not both (tfvars takes
+precedence). Run in Bash, with shell tracing disabled, after plan authorization:
+
+```bash
+set +x
+export TF_VAR_ssh_public_key="$(cat "$HOME/.ssh/id_ed25519.pub")"
+test -n "$TF_VAR_ssh_public_key" || exit 1
+read -r -s -p 'Proxmox API token (user@realm!token=value): ' PROXMOX_VE_API_TOKEN
+printf '\n'
+export PROXMOX_VE_API_TOKEN
+make stage-a-plan STAGE_A_INPUT_SOURCE=private STAGE_A_ALLOCATION_REVIEWED=yes
+unset PROXMOX_VE_API_TOKEN
+```
+
+The token is not a Terraform variable or CLI argument. Protect the ignored local
+state and saved plan. Review every resource and the printed plan SHA before a
+separately approved apply; reload credentials securely in the same manner:
+
+```bash
+make stage-a-apply STAGE_A_INPUT_SOURCE=private STAGE_A_APPLY_APPROVED=yes STAGE_A_PLAN_SHA256=<reviewed-hash>
+```
+
+Infisical-backed equivalent (existing identity already exported securely):
+
+```bash
+make stage-a-plan STAGE_A_INPUT_SOURCE=infisical STAGE_A_ALLOCATION_REVIEWED=yes
+make stage-a-apply STAGE_A_INPUT_SOURCE=infisical STAGE_A_APPLY_APPROVED=yes STAGE_A_PLAN_SHA256=<reviewed-hash>
+```
+
+Apply consumes ONLY the hash-reviewed saved plan, not updated tfvars; Terraform's
+stale-state check remains enabled. Failed plan/auth removes partial saved plans;
+failed apply preserves the plan for investigation. Source selection never chooses
+a new state or recovers a missing state: losing existing state remains an incident.
+This Starter example is not a Recovery Kit generator, restore command or generic
+multi-environment manager. External Proxmox SSH delegate mappings are still needed
+before start, and guest SSH trust before configure; no Ansible interface changed.
 
 Operator dedicates pve-lab's 32-GB physical memory and CPU to the experiment,
 minus measured Proxmox overhead and safety headroom. Workstations remain off;
@@ -49,11 +125,11 @@ state, private inputs or a provider-backed plan.
 The initial apply/start/baseline approvals are completed, not standing permission
 for further changes. Operational interfaces retain separate explicit gates:
 
-1. `make stage-a-plan STAGE_A_ALLOCATION_REVIEWED=yes` after fresh allocation,
+1. `make stage-a-plan STAGE_A_INPUT_SOURCE=infisical STAGE_A_ALLOCATION_REVIEWED=yes` (or private) after fresh allocation,
    host/storage/network/trust checks. Deletes the previous saved plan before
    initialization/authentication; removes partial output on failure. Review
    resource scope and the printed SHA256. No automatic apply.
-2. `make stage-a-apply STAGE_A_APPLY_APPROVED=yes STAGE_A_PLAN_SHA256=<reviewed-hash>`
+2. `make stage-a-apply STAGE_A_INPUT_SOURCE=infisical STAGE_A_APPLY_APPROVED=yes STAGE_A_PLAN_SHA256=<reviewed-hash>` (or private)
    after exact-plan approval. Applies only `stage-a.tfplan`, removes it after
    success, creates stopped VMs (`on_boot` false). Never bypass stale-state checks.
 3. `make stage-a-start STAGE_A_START_APPROVED=yes` after separate start approval.

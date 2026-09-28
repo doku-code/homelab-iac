@@ -63,7 +63,7 @@ not acceptance achieved. PLANNED tasks need assignment and any live approval.
 | [030](030-state-recovery-contract.md) | Single state authority / independent custody | DONE accepted contract, not recovery proof |
 | [035](035-headless-controller.md) | Optional recovery VM test adapter | DEFERRED; previous preflight intact, no allocation/plan approved |
 | [040](040-recovery-kit-v1.md) | Production kit capture/retrieval | ADAPTED; synthetic preparation exists, production gates blocked |
-| [045](045-deployment-inputs.md) | Explicit private/Infisical input delivery | PLANNED; metadata contract only, first Stage A adapter separately assigned |
+| [045](045-deployment-inputs.md) | Explicit private/Infisical input delivery | IMPLEMENTED/offline validated for Stage A; publication CI at delivery, no live deployment |
 | [050](050-independent-controller.md) | Portable Mac/Linux synthetic controller | PLANNED; parallel to100 after assignment, no full-kit prerequisite |
 | [060](060-postgresql-candidate.md) / [070](070-consul-candidate.md) | Conditional backend experiments | DEFERRED to requirements-led080, not compulsory comparison |
 | [080](080-control-plane-and-cd.md) | Backend need/qualification, separate canary and protected CD | PLANNED after security/recovery gates |

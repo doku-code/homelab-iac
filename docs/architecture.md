@@ -38,8 +38,9 @@ Deployment starts with supported Proxmox, network/time/SSH/API trust and admin
 access, repository/tools and suitable persistent storage when needed. Installing
 the first hypervisor or supporting arbitrary providers is outside current code.
 Select a stack without unrelated homelab services. Exact current contracts and
-portability gaps are in [deployment inputs](deployment-inputs.md); a thin adapter
-is planned, NOT implemented. Normal Infisical, private input, Starter and Recovery
+portability gaps are in [deployment inputs](deployment-inputs.md); Stage A's thin
+private/Infisical adapter is implemented and offline-tested in045, not live-qualified.
+Other adapters remain planned. Normal Infisical, private input, Starter and Recovery
 sources must feed the same Terraform roots/Ansible roles/GitOps definitions.
 Source selection is explicit and missing values fail without logging secrets.
 

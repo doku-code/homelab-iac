@@ -45,7 +45,9 @@ do not rerun installation. No Flux/CSI or application migration is complete.
 For a new environment, start with [Starter prerequisites and input contracts](docs/deployment-inputs.md),
 not the original operator's credentials. Proxmox/access/network and suitable
 storage must already exist. Infisical/private/Starter/Recovery paths must reuse
-one definition; the thin portable adapter is planned in045, not working today.
+one definition. Stage A now supports explicit private/Infisical inputs and your
+public SSH key; follow the [Starter example](docs/k3s-stage-a.md#explicit-sources-and-starter-example).
+Other adapters and full kit generation remain planned, not operational claims.
 Recovery is a supporting capability, not a prerequisite for disposable learning.
 Priority [pve-infra evacuation assessment](tasks/150-pve-infra-evacuation.md) is
 parallel work, including an interim core path; no live inventory/cutover yet.

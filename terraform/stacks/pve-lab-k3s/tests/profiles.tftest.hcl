@@ -41,9 +41,36 @@ run "headless" {
     error_message = "Headless hardware, 4-GiB/local disk sizing or stopped lifecycle contract changed."
   }
   assert {
+    condition     = alltrue([for server in values(module.servers) : one(server.vm.initialization[0].user_account[0].keys) == trimspace(file("../../../keys/doku-lab-admin.pub"))])
+    error_message = "Omitting ssh_public_key must preserve the deployed administration key."
+  }
+  assert {
     condition     = output.ansible_inventory.all.children.k3s_lab.hosts["server-2"].ansible_host == "192.0.2.12" && output.ansible_inventory.all.children.k3s_lab.hosts["server-2"].stage_a_vm_id == 902
     error_message = "Inventory must derive from the same allocation, not separate defaults."
   }
+}
+
+run "own_public_key" {
+  command = plan
+  variables {
+    ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA synthetic-starter"
+  }
+  assert {
+    condition     = alltrue([for server in values(module.servers) : one(server.vm.initialization[0].user_account[0].keys) == var.ssh_public_key])
+    error_message = "All three guests must use the explicitly supplied public key."
+  }
+}
+
+run "empty_public_key" {
+  command = plan
+  variables { ssh_public_key = "" }
+  expect_failures = [var.ssh_public_key]
+}
+
+run "invalid_endpoint" {
+  command = plan
+  variables { proxmox_endpoint = "" }
+  expect_failures = [var.proxmox_endpoint]
 }
 
 run "duplicate_id" {

@@ -1,5 +1,20 @@
 variable "proxmox_endpoint" {
-  type = string
+  type     = string
+  nullable = false
+  validation {
+    condition     = can(regex("^https://[^[:space:]]+$", var.proxmox_endpoint))
+    error_message = "Supply the reviewed HTTPS Proxmox API endpoint."
+  }
+}
+
+variable "ssh_public_key" {
+  description = "Own Ed25519 public key; null preserves the existing repository administration key. Never supply a private key."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.ssh_public_key == null ? true : can(regex("^ssh-ed25519 [A-Za-z0-9+/]+={0,2}([ \\t]+[^\\r\\n]+)?$", trimspace(var.ssh_public_key)))
+    error_message = "Supply one OpenSSH Ed25519 public key, or null for the unchanged operator default."
+  }
 }
 
 variable "proxmox_insecure" {

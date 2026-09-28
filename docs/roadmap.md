@@ -123,7 +123,9 @@ The preceding approved unit-only maintenance set all K3s/containerd umasks0022;
 actual etcd stayed healthy. CoreDNS/metrics-server now fail reading projected
 service-account tokens. Record this evidence in110; no further repair authorized
 by this architecture assignment. Broader input-source direction is now approved,
-but adapter implementation remains045, not a side effect of documentation.
+and045 now implements explicit Stage A private/Infisical delivery with offline
+tests and an unchanged default public key. Other adapters remain separate work;
+publication CI is checked at delivery, not proof of live provider authentication.
 Lifecycle drills still need separate approval and evidence before110 DONE or120.
 Task035 remains separately unallocated.
 
