@@ -1,8 +1,8 @@
 # 110 - Three-server K3s bootstrap and controlled lifecycle
 
-- Status: IN_PROGRESS / installed; approved unit-only maintenance completed;
-  projected service-account token permissions still block system pods.
-  Task100 accepted/DONE; lifecycle drills remain unverified.
+- Status: IN_PROGRESS; minimum usable baseline A live verified and operator
+  accepted2026-09-28. System pods recovered through approved targeted
+  replacement. Advanced lifecycle B remains unverified; full task is not DONE.
 - Deliverable: pinned reproducible K3s/embedded-etcd installation and lifecycle
   on three distinct server VMs, including synthetic backup/restore evidence.
 - Initial scope: design/code/tests only when assigned; live installation, token
@@ -37,7 +37,8 @@ Record explicit operator acceptance of A; Task110 remains open for B.
   stable and doesn't reset membership. Record versions and local etcd disks.
 - Healthy CoreDNS and metrics-server, functional cross-node pod networking and
   service DNS, working private API and stable repeatable Ansible configuration.
-  Current projected-token failures mean A is NOT yet accepted.
+  Projected-token failure repaired and minimum functional checks passed2026-09-28;
+  see evidence below. No advanced drill is implied by this qualification.
 
 ## Acceptance B - Advanced lifecycle qualification
 
@@ -154,3 +155,54 @@ volume path/mode/ownership diagnosis; no reading token bytes or implied chmod.
 Task110 qualification, lifecycle drills and operator acceptance remain open.
 Broader architecture is now reconciled in the canonical architecture/roadmap;
 that approval does not authorize incident repair, Flux or live inspection here.
+
+## Approved pod repair and usable baseline qualification - 2026-09-28
+
+Targeted diagnosis found surviving sandbox shims from26 September with0077,
+although K3s/containerd on all three guests used0022. Both container upper layers
+had root-owned0700 /var/run/secrets and kubernetes.io ancestors. CoreDNS UID65532
+and metrics-server UID1000 could not traverse them. Projected token metadata was
+already appropriate (0644/root and0600/UID1000 respectively); no token bytes read.
+
+Before intervention: all nodes Ready; each actual etcd endpoint healthy; identical
+three voting members/cluster identity, leader server-2, term3, no alarms and
+applied index equal to Raft index at each endpoint. Pod -> ReplicaSet -> Deployment
+ownership verified; both old pods still CrashLoopBackOff (486/487 restarts).
+
+Only normal pod deletion was performed, CoreDNS first. Its replacement became
+Ready and answered kubernetes.default.svc.cluster.local via both10.43.0.10 and
+its pod IP before metrics-server was touched. No Deployment/ReplicaSet edits.
+
+| Component | Old pod / UID | Replacement / UID | Runtime evidence |
+| --- | --- | --- | --- |
+| CoreDNS | coredns-c5fdd76cf-2vj74 / f061eee8-3719-4f9d-938b-771de7b09fc2 | coredns-c5fdd76cf-g2fhd /49e4ff8a-b621-49b0-87de-2dd201154e00 | server-2,10.42.1.2; new sandbox5d4d325dd3f0, shim127315 actual0022; Ready, zero restarts |
+| metrics-server | metrics-server-7f4b6d9bd7-dpb78 /e5ea9846-a1fa-4fb5-a49f-8b4d749c1856 | metrics-server-7f4b6d9bd7-z2bpw /b2ef1dde-fa2a-416b-ac0c-315333d37796 | server-3,10.42.2.2; new sandbox709dc95dd658, shim127313 actual0022; Ready, zero restarts |
+
+Actual running process-root metadata: both secrets ancestors0755/root, mounted
+serviceaccount1777 and ..data0755. Token modes/owners unchanged and contents never
+opened. Metrics API returned fresh measurements for all three nodes.
+
+Functional qualification used namespace task110-qualification-20260928, confirmed
+absent before creation: three node-bound non-root pods, no service-account token,
+read-only rootfs, dropped capabilities, bounded resources and300s deadline; one
+ClusterIP Service and disposable emptyDir data. BusyBox1.37.0 resolved to
+sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e.
+All six directed cross-node HTTP paths passed. Every pod resolved Kubernetes
+service DNS and the test service FQDN, then fetched the test service successfully.
+Only that test namespace/resources were deleted; absence verified afterward.
+
+Post-checks: three actual etcd endpoints still healthy, same voters/leader/term,
+no alarms, applied=Raft on each; local /readyz returned ok on all three APIs.
+Both system pods remained1/1 Ready with zero restarts. Owned nftables tables on
+all guests retained scoped API/etcd/kubelet/VXLAN rules and operator .90 allowlist.
+This is rule inspection, not a new exhaustive negative-source firewall test.
+Earlier operator-reported Ansible convergence changed=0/failed=0/unreachable=0
+is retained as dated evidence; no new convergence or installation was run.
+Existing synthetic K3s regression passed outside the controller sandbox after
+the sandboxed attempt could not start Ansible's local RPC process. No code changed.
+
+Minimum usable Stage A was accepted by the operator for the disposable Flux
+milestone on2026-09-28; Flux was not part of this qualification. Full110 stays open: member-loss,
+rejoin, controlled upgrade and isolated snapshot/token restoration are unperformed.
+No K3s restart, shim kill, forced deletion, chmod, etcd mutation, image purge,
+infrastructure change, service migration or secret export was performed.
