@@ -1,14 +1,14 @@
 # 120 - Flux, first disposable workload and measurements
 
-- Status: PLANNED after110 accepted and Git/source/RBAC decisions reviewed.
+- Status: PLANNED after110 acceptance A and Git/source/RBAC decisions reviewed.
 - Deliverable: one reviewed Flux entry point, stateless public demo, bounded
-  monitoring and 24-hour representative capacity evidence.
+  resource observations; extended measurements tracked for later placement.
 - Scope: code-only first; explicit approval for Flux bootstrap Git writes,
   identity provisioning, cluster convergence and test-only ingress.
 
-2026-09-27 sequencing: preferred live rollout follows140-B three-physical-host
-qualification; disposable development may use accepted Stage A without waiting
-for hardware/full040/backend/CD. Neither path bypasses110 health acceptance.
+2026-09-28 sequencing: develop on usable Stage A first, without waiting for
+140-B physical placement,110 advanced drills, full040, backend or protected CD.
+Neither path bypasses110 acceptance A.
 Physical stages are topology, not credential sources. Follow045 input contracts;
 Infisical is optional operator delivery, not a prerequisite for the public demo.
 
@@ -28,13 +28,15 @@ identity and prove denied cross-scope access; production sync is a later gate.
 
 Acceptance: offline render/schema checks at pinned versions and CI; live Flux
 source/health and drift correction; Git revert restores demo; denied unauthorized
-namespace access; source outage/recovery; pod rescheduling with one member lost.
-Observe memory/CPU/etcd latency/disk plus demo latency and Proxmox headroom
-over a representative 24 hours; workstations remain off during Stage A.
-Set measured budgets/alerts before adding apps.
+namespace access; source outage/recovery; bounded disposable pod rescheduling
+without a member-failure drill. Record basic resource/headroom observations
+before adding the next app; workstations remain off during Stage A.
+Representative 24-hour measurements remain a separate capacity qualification
+before real-workload physical-placement acceptance, not a fresh Homepage gate.
 Retain existing outside monitoring; do not refactor live monitoring in this task.
 
 Rollback: suspend affected reconciliation, restore reviewed commit/bootstrapped
 manifests; no data loss possible by scope. No host socket or production credentials
-in CI. Next130 and140 workload-capacity evidence; no stateful cutover. The
+in CI. Next [125 fresh Homepage](125-homepage.md);130 is demand-driven by the
+first stateful workload, not every app. No stateful cutover. The
 independent150 pve-infra assessment must not wait for this experiment.

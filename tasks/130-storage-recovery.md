@@ -1,9 +1,16 @@
 # 130 - TrueNAS storage and synthetic stateful recovery
 
-- Status: PLANNED after110/120 and verified TrueNAS version/storage access.
+- Status: PLANNED when the first stateful application requires persistence,
+  after110 acceptance A/120 and verified TrueNAS version/storage access.
 - Deliverable: evidence-based NFS/block/database patterns, not a universal DB move.
 - Scope: compatibility/inventory and code first; approve dedicated throwaway
   datasets/volumes/scoped credentials and isolated outage drills separately.
+
+Start with the smallest applicable CSI/protocol, permission, persistence and
+recovery qualification for that workload; Wiki.js is an early candidate. Unused
+protocols and broader drills remain explicitly unverified follow-ups, not gates
+for stateless apps. Real-data cutover still requires every applicable consistency,
+fencing and independent restore criterion below; synthetic success is not migration.
 
 Read-only inventory must establish actual TrueNAS release, app SSD capacity,
 datasets/ACLs, protocol support, network path and independently recoverable backups.

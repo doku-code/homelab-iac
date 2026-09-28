@@ -313,12 +313,12 @@ staging, no production kit on test VMs by default.
 ## Priority pve-infra evacuation
 
 The operator intends to sell pve-infra. [Task150](../tasks/150-pve-infra-evacuation.md)
-must first establish actual physical identity, Proxmox membership/quorum,
-guest/storage/network/service dependencies and backup/recovery coverage under
-separate read-only authorization. Never infer it is pve-compute. Assess each
-service for qualified Kubernetes, interim/permanent core, or a justified external
-placement. Core moves can proceed independently of Kubernetes when safely
-qualified/approved. No service or node is stopped, migrated or retired here.
+completed its initial authorized read-only inventory; see the dated
+[assessment](pve-infra-evacuation.md). It is not pve-compute. Ordinary CT transfers
+to core are operator-managed maintenance, independent of the concentric
+application-development sequence in the roadmap. Preserve per-service capacity,
+recovery and approval gates, plus DNS, Tailscale and quorum retirement requirements.
+No service or node is stopped, migrated or retired by this planning update.
 Check cluster quorum, shared storage/network and PBS effects before proposing
 decommission. Keep historical resources and data until accepted cutover.
 

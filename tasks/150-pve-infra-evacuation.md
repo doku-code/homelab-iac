@@ -42,7 +42,10 @@ custom metrics image recovery and complete consumer/automation review remain gap
 Assessment criteria: identity/inventory/removal-impact observations gathered;
 destinations/order proposed; operator review pending. Task150 remains open until
 separately authorized migrations and node-removal prerequisites are accepted.
-Next smallest scope:150-A CT201 fresh backup/image preservation/isolated restore
-and core reservation; only then separately approved150-B relocation.
+Within operator-managed evacuation maintenance, the smallest proposed scope is
+150-A CT201 backup/image preservation/isolated restore and core reservation before
+150-B relocation. This is not the project's next development task: follow the
+canonical roadmap through110-A,120 and fresh125. Initial inventory is complete;
+ordinary CT transfers do not replace declarative Kubernetes application work.
 No live changes, DB/state inspection, secret-value retrieval or backup exports.
 Task110 incident, Task050 and architecture refactoring were not started.

@@ -100,7 +100,8 @@ failure domain of DNS, edge and applications; retain an independent access path.
 1. **150-A: CT201 recovery/capacity qualification.** Fresh coherent backup,
    preserve/rebuild untagged metrics image, isolated restore without duplicate
    live identity/IP, dashboard/widget/metrics checks and core reservation.
-   Smallest next task; no cutover is currently ready without these gates.
+   Smallest maintenance follow-up, not the development critical path; no cutover
+   is currently ready without these gates. Ordinary CT transfers are operator-managed.
 2. **150-B: separately approve CT201 relocation.** Review offline CT transfer
    versus backup/restore, downtime and disk mapping. One running instance with
    preserved identity/IP; prove service health and future backup coverage.

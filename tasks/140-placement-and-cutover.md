@@ -12,9 +12,12 @@ and approval. It is not a dependency of B,120 or pve-infra evacuation.
 
 ## B - Permanent mini-PC placement
 
-After110 acceptance and actual hardware/capacity/trust checks, qualify one Proxmox
+After110 acceptance A and actual hardware/capacity/trust checks, qualify one Proxmox
 server VM each on pve-k8s-01, pve-k8s-02 and pve-core. All are active voting etcd
 members; core is not standby. Use the [canonical hardware contract](../docs/architecture.md#topology-and-sizing).
+This bounded physical task can proceed independently; it must not block120/125
+development on Stage A. Advanced110 drills are not its blanket entry gate;
+the membership transitions it actually performs still need their own safety proof.
 No mandatory140-A,130/full040 prerequisite or RAM upgrade; measure8GB hosts and
 existing core reservations. Local system/etcd disks only. New allocations and
 member transitions require separate approval; never simultaneous replacement.
@@ -50,7 +53,7 @@ host recovery from a VM hosted on that same host.
 Next: separately assign next service or080 backend/CD gate. This epic has no
 single blanket apply approval and cannot be DONE from one successful demo.
 
-[150](150-pve-infra-evacuation.md) is a high-priority parallel inventory/cutover
-track, including interim core placement without waiting for this entire epic.
+[150](150-pve-infra-evacuation.md) preserves retirement safety evidence; ordinary
+CT transfers to core are operator-managed maintenance, not the app development path.
 Existing TrueNAS apps are excluded from migration. Service placement remains
 open until accurate inventory, functional and availability review.

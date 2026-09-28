@@ -1,7 +1,7 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
 status: "Task 100 DONE; Task 110 installed, system-pod repair awaits approval"
-updated: 2026-09-27
+updated: 2026-09-28
 ---
 
 # Canonical Homelab Roadmap
@@ -36,35 +36,61 @@ Task110 and any further infrastructure actions remain separate approval gates.
 flowchart LR
   R[Reconciled architecture] --> V[100: accepted VM profile]
   R --> E[045: independent input contracts]
-  V --> K[110: K3s lifecycle + synthetic snapshot recovery]
-  K --> C[140-B: three physical hosts]
-  C --> G[120: Flux + stateless + measurements]
-  K -. optional disposable development on A .-> G
-  G --> S[130: TrueNAS + synthetic stateful restore]
+  V --> K[110-A: minimum usable K3s]
+  K --> G[120: Flux + disposable stateless demo]
+  G --> H[125: fresh Homepage then observed functionality]
+  H --> N[Next suitable fresh application]
+  N --> S[130: CSI when stateful storage is needed]
+  N --> W[Build selected services one by one]
+  S --> W
+  W --> P[Portfolio dependency and portability review]
+  P --> Q[040/050: evidence-led Starter and Recovery work]
+  K -. separate bounded task .-> C[140-B: three physical hosts]
+  K -. advanced lifecycle, separate approval .-> L[110-B: failure / upgrade / restore drills]
   R --> I[150: pve-infra inventory / evacuation]
-  I --> M[Approved interim core cutovers]
-  I --> D[140-C: per-service K8s cutover]
-  R --> P[050: portable synthetic controller]
-  P --> Q[040: approved kit capture/retrieval]
+  I --> M[Operator-managed maintenance / retirement gates]
   Q -. required recovery material per service .-> D
   S --> D
+  W --> D[140-C: separately approved data and endpoint cutovers]
   C --> D
   D --> F[080: backend if needed + protected infrastructure CD]
   T[010 security gate / 020 closure] --> F
 ```
 
-100/110/120 do NOT wait for a full production kit or a Consul comparison.
-050 synthetic tooling and040 metadata/custody decisions can proceed independently
-in separately assigned tasks. No simultaneous writes to shared Terraform roots.
-A remains disposable and contains no irreplaceable production data. Production
-migration cannot bypass service-specific independently verified recovery.
-C hardware is not a prerequisite for disposable120 development on accepted A.
-Preferred rollout is110 ->140-B physical qualification ->120 ->130 ->140-C.
-140-B does not require completed130 or a full app fleet;120 supplies later
-representative load measurements before real-workload acceptance. Optional140-A
-core/compute/lab transition is off the critical path. Independent150 inventory
-and approved interim pve-core moves need not wait for Kubernetes or a full kit;
-each move still requires its own backup/restore, capacity and cutover approval.
+The critical path is concentric: finish110-A, demonstrate120, build fresh125,
+observe actual needed functionality, then add one suitable application at a time.
+Introduce130 only when the first stateful workload needs storage; Wiki.js is an
+early candidate. No Longhorn, full Recovery Kit, remote Terraform backend or
+protected infrastructure CD prerequisite for fresh application development.
+
+140-B may proceed as a separately bounded task after110-A and verified host
+prerequisites; it must not block Stage A Flux/Homepage work. The approved physical
+target remains pve-k8s-01, pve-k8s-02 and pve-core. Advanced110-B drills remain
+unverified planned work, not a disposable-app gate. Real data still needs its own
+qualified recovery and cutover. No simultaneous writes to shared Terraform roots.
+
+045 is implemented; preserve its Stage A selector, without generalizing adapters.
+150's initial inventory is complete; ordinary CT transfers are operator-managed
+maintenance outside this development path. DNS, Tailscale and quorum retirement
+gates remain. Once the actual application portfolio exists, review its complete
+dependency graph and improve portability, Starter/Recovery and operations from
+observed needs.040/050, additional adapters and broader recovery remain separately
+assigned follow-ups; their existing protections and evidence are retained.
+
+## Application development pattern
+
+1. Read maintained upstream documentation for the selected service.
+2. Deploy a fresh instance through Flux with version-controlled manifests or a
+   suitable maintained chart; verify that it works before examining the old service.
+3. Inspect the corresponding existing service read-only under explicit approval.
+4. Identify used features, configuration and dependencies, then adapt the fresh
+   declarative implementation. Do not copy the old CT filesystem or live data.
+5. Validate the result before selecting the next service. Preserve historical
+   details only where required for desired functionality.
+
+Homepage is the first real app after the disposable demo. Final data migration,
+DNS cutover and retirement are separate operations after the replacement works;
+fresh development does not grant permission to change existing services.
 
 ## Milestone contracts
 
@@ -75,16 +101,17 @@ recovery boundary. PLANNED/READY is never a live authorization.
 | --- | --- | --- | --- | --- |
 | 010/020 security foundation | Existing evidence | Finish effective source/socket/LAN/token trust; preserve useful quality checks. No privileged CD or weakening acceptance | Authenticated source inventory, denied untrusted execution and accepted/remediated residual risks; exact SHA quality result | Any runner/ACL change separately approved; rollback reviewed runner config. Next: retain secretless CI while new checks are added |
 | 100 reusable A VM profile | Architecture/code-scope approval | Small reusable headless component; three new server VMs in independent root, environment map. No existing root/state move, GPU/USB/host changes or K3s | Mock three unique identities/local disks/no hooks; invalid duplicate inputs; workstation baseline unchanged; all-root readonly/backend-disabled validation | First code-only, then allocation+plan, exact saved apply, start/OS separate gates. No automatic cleanup. Next: assign110 after guest baseline accepted |
-| 110 K3s bootstrap/lifecycle | 100 code and separately approved guests | Pinned server role, embedded etcd, explicit networking/API endpoint, synthetic snapshot/token recovery. No production secrets, Flux apps or unapproved drain | Three Ready servers/healthy members; second convergence no unintended changes; one-member failure, rejoin/upgrade, isolated snapshot restore; two failures lose quorum as expected | Approve install/network/test-token handling and each failure drill. Snapshot before change, never blind etcd downgrade/clone. Next:140-B; optional disposable120 on accepted A |
-| 120 Flux/stateless/measurement | 110 accepted cluster; source boundary approved | Self-hosted GitOps; pinned public disposable app; bounded observability, outside probe strategy. No production DB or host socket | Reviewed source reconciles; negative RBAC; revert app; source outage/recovery; replica rescheduling; 24-hour resource/headroom evidence with workstations off | Approve Flux write/read identity hand-off and test ingress only. Suspend source/revert reviewed commit; no data to lose. Next:130 and140 capacity preflight |
+| 110 K3s bootstrap/lifecycle | 100 accepted guests | A: usable development foundation. B: advanced lifecycle, separate approval. No Flux/apps or unapproved repair | A: three Ready nodes, actual healthy etcd, healthy CoreDNS/metrics-server, pod networking/service DNS/API, repeatable Ansible. B: member loss/rejoin, upgrades and isolated snapshot restore remain unverified | Next single scope: incident diagnosis/repair and A qualification; A acceptance releases120. Full110 DONE still requires B; no implicit restart/reset |
+| 120 Flux/stateless demo | 110 acceptance A; source boundary approved | One reviewed Flux source and pinned disposable app on Stage A; no production data or host socket | Reconciliation, RBAC denial, Git revert, source outage/recovery, bounded pod rescheduling and basic headroom; no member-loss prerequisite | Approve bootstrap/identity and cluster writes separately. Next125; extended capacity measurements before real-workload physical acceptance |
+| 125 fresh Homepage | 120 accepted demo | Fresh declarative app, then read-only CT201 feature discovery and adaptation; no old filesystem/data copy | Healthy fresh instance, used-feature comparison, scoped inputs, tested functions/revert and unchanged CT201 | Separate deployment and inspection approvals; next suitable app,130 only when persistence needed; cutover remains separate |
 | 050 portable controller | Accepted authority rules; independent code | Mac ARM64/Linux AMD64 verified tools, synthetic inputs and read-only doctor. No complete kit/VM prerequisite; no live provider operation | Fresh HOME/cache, blocked internal endpoints, exact SHA/tools, static checks and absent/wrong authority rejection | Clean-machine execution separately authorized; no real keys required for synthetic tests. Next:040 custody/capture gates |
 | 040 Recovery Kit | 050 synthetic path;030 reconciled; targeted inputs/data catalogue | Usable protected kit + restore instructions; operator owns external storage protection. No forced age/Apple workflow or bulk-data archive | Complete selected inventory, writer freeze, integrity/missing/root rejection and independent fresh-controller retrieval; referenced backups actually recoverable | Sensitive capture/use separately approved. Existing encryption-specific tests apply when that format is chosen; no second writer. Next: service-specific restore |
-| 130 TrueNAS and synthetic state | 110/120; verified TrueNAS version/access | NFS files, block/CSI/fencing and DB restore with throwaway data. No production default class/data/backup schedule edits | File/ACL and DB consistency; disconnect/reconnect; single-writer reattach; Retain behavior; restore on isolated target with hashes/transactions | Approve dedicated dataset/volumes/scoped credential and outage test, never whole NAS shutdown. Delete only reviewed disposable objects. Next:140-C per-service contract |
+| 130 TrueNAS and synthetic state | First stateful app need;110-A/120; verified TrueNAS version/access | Minimum applicable CSI/storage qualification with throwaway data; broader unused protocols remain follow-ups | Workload-specific permissions, persistence, consistency, fencing and isolated restore; no production default class or data move | Approve dedicated volumes/credentials/tests; Wiki.js early candidate. Resume app portfolio; real cutover has140-C gates |
 | 140-A optional Stage B | Separate need/approval only | Historical core/compute/lab proposal, not mandatory | No new claim of qualification | Preserve ID/evidence; skip without blocking physical target |
-| 140-B Stage C physical target | Accepted110, actual hardware/capacity/trust; not130/full040 | Proxmox VM on k8s-01/k8s-02/core; all voting; mini-PC preferred workloads, core fallback | Three physical domains, API failover, local etcd, node maintenance;120/130 later add measured workload/storage behavior | New allocations/plans/member changes separately approved; preserve core reservations. Next120, then130; no mandatory RAM upgrade |
+| 140-B Stage C physical target | Accepted110-A, actual hardware/capacity/trust; not130/full040 | Independent bounded physical task, not a120/125 prerequisite; three active voting VMs | Three physical domains, API failover, local etcd, node maintenance; later representative workload/storage evidence | New allocations/member changes separately approved; preserve core reservations and approved hardware target |
 | 140-C per-service migration | That service's target, storage, independent data recovery and capacity qualified | Suitable Proxmox services only; TrueNAS apps stay. Reuse040/050 material as needed, not blanket full-program gate | Isolated restore, auth/data/function checks, single-writer cutover, rollback handling new writes; measured limits | Each cutover approved; retain old resources until accepted. Interim core path via150 is independent of K8s |
-| 045 independent deployment inputs | Reconciled architecture + inspected metadata | One thin explicit source selector feeding existing contracts, first one stack; no universal framework | Private and Infisical sources produce same non-secret inputs; no fallback, missing-input/secret-leak tests | Code-only first, no implied deployment or secret export; start with Stage A contract gaps |
-| 150 pve-infra evacuation | Separately authorized live identity/inventory | High-priority parallel track: real node identity/quorum/guests/storage/dependencies/backups; K8s vs interim/permanent core placement | Per-service capacity, recovery, cutover/rollback and infrastructure removal-impact review | No assumed equivalence to compute, no blanket migration/decommission; can advance before120/130 |
+| 045 independent deployment inputs | Implemented Stage A selector | Preserve current private/Infisical adapter; other stacks out of current scope | Existing offline tests/evidence retained; no claim of live private-source qualification | No broad adapter expansion on app critical path |
+| 150 pve-infra evacuation | Initial read-only inventory complete | Operator-managed maintenance; preserve DNS/Tailscale/quorum and per-service recovery gates | Existing assessment retained; transfers/retirement not performed | Separate authorization for any maintenance; not a CT-by-CT Kubernetes development roadmap |
 | 080 state/CD decision | Need for multiple infrastructure writers;010/020 closure;040/050 and production DR | Requirements-led backend choice then isolated final-endpoint qualification; no mandatory Consul. Separate canary and protected CD tasks | TLS negatives, true two-client lock/crash/isolation/restore; freeze+single authority; exact-plan approval; denied ordinary-CI access | Backend security, state migration and apply each explicit. Bootstrap authority remains outside backend. Next:review first narrow privileged workflow, never blanket automation |
 
 RPO/RTO, retention and acceptable service latency remain decisions until measured.
@@ -126,14 +153,17 @@ by this architecture assignment. Broader input-source direction is now approved,
 and045 now implements explicit Stage A private/Infisical delivery with offline
 tests and an unchanged default public key. Other adapters remain separate work;
 publication CI is checked at delivery, not proof of live provider authentication.
-Lifecycle drills still need separate approval and evidence before110 DONE or120.
+Lifecycle drills still need separate approval and evidence before110 DONE, but
+not before120: only110 acceptance A is the foundation gate. It remains blocked
+by unhealthy system pods. Next single task: diagnose and resolve projected-token
+permissions under scoped live approval, then verify all110-A health criteria.
 Task035 remains separately unallocated.
 
 Task150 read-only assessment on2026-09-28 confirms infra/.10, CT200-204 and
 host-level Tailscale LAN routing. See the [evacuation plan](pve-infra-evacuation.md).
 Core is a plausible interim destination, not capacity-approved. Fresh201/203
 backup coverage, isolated recovery, USB/tunnel/remote-access gates and operator
-review remain; smallest follow-up is CT201 recovery qualification before cutover.
+review remain for operator-managed maintenance, not the development critical path.
 No migration or cluster removal authorized; Task150 remains IN_PROGRESS.
 
 ## Evidence and delivery discipline

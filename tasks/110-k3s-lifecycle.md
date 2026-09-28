@@ -24,7 +24,10 @@ A documented single API address with alternate access is acceptable for A;
 stable independently reachable API endpoint/failover is mandatory before B.
 No Kubernetes API, etcd or SSH exposure to public ingress.
 
-## Tests and observable acceptance
+## Acceptance A - Minimum usable development foundation
+
+This gate, not completion of the advanced drills below, releases Task120.
+Record explicit operator acceptance of A; Task110 remains open for B.
 
 - Offline: role syntax and synthetic config rendering; exactly one initial
   cluster-init node, other servers join intended cluster; reject duplicate
@@ -32,6 +35,16 @@ No Kubernetes API, etcd or SSH exposure to public ingress.
 - Live, after approval: three Ready server nodes and healthy etcd membership;
   intended TLS identities/network denials; second convergence leaves cluster
   stable and doesn't reset membership. Record versions and local etcd disks.
+- Healthy CoreDNS and metrics-server, functional cross-node pod networking and
+  service DNS, working private API and stable repeatable Ansible configuration.
+  Current projected-token failures mean A is NOT yet accepted.
+
+## Acceptance B - Advanced lifecycle qualification
+
+Planned, separately approved work; not a prerequisite for disposable Flux or
+fresh applications after A. Preserve procedures and evidence; no drill is waived
+or considered passed by this sequencing change.
+
 - Approved drills: lose one member, verify quorum/API, rejoin safely; two-member
   loss is unavailable, not falsely HA; restore a synthetic snapshot with matching
   token into isolated allocation and verify objects. Never run cluster-reset
@@ -43,6 +56,11 @@ Excludes Flux/apps, production secrets/data, TrueNAS changes, workstation host
 roles and automatic destructive cleanup. On failure stop serial changes and
 preserve healthy quorum; recover from reviewed compatible snapshot procedure.
 Close with operator-accepted evidence; next120, no automatic Flux bootstrap.
+
+Sequencing clarification 2026-09-28: full DONE requires A and B; Task120 may
+start after A acceptance without waiting for B. The next single implementation
+scope is the projected-token incident and A qualification, beginning with
+separately approved metadata-only diagnosis; no repair is authorized here.
 
 ## Repository implementation - 2026-09-26
 

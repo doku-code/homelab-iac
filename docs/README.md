@@ -11,7 +11,8 @@
 | --- | --- | --- |
 | Comprendre la cible, services, données et bootstrap | [Architecture canonique](architecture.md) | Reconstruction K3s/TrueNAS; exigences approuvées séparées des recommandations |
 | Savoir quel milestone vient ensuite | [Roadmap](roadmap.md) et [tâches](../tasks/README.md) | Plan de travail, pas autorisation d'exécuter |
-| Déployer un stack, Starter ou Recovery | [Contrats d'inputs](deployment-inputs.md) | Inventaire réel; adaptateur045 non implémenté, aucune valeur privée |
+| Déployer un stack, Starter ou Recovery | [Contrats d'inputs](deployment-inputs.md) | Adaptateur045 Stage A implémenté; autres adaptateurs et kits distincts |
+| Construire la première application réelle | [Task125 Homepage](../tasks/125-homepage.md) | PLANNED après Flux/demo; instance neuve avant adaptation, aucun cutover |
 | Préparer la vente de pve-infra | [Inventaire et plan](pve-infra-evacuation.md), [Task150](../tasks/150-pve-infra-evacuation.md) | Inventaire read-only du28 septembre; gates sauvegarde/USB/Tailscale ouverts, aucun cutover |
 | CI qualité et frontière runner | [CI qualité](ci-quality.md) | Run139 LIVE VERIFIED; clôture sécurité 010/020 distincte |
 | Préparer une récupération indépendante | [Contrat et Recovery Kit v1](recovery-contract.md) | Contrat 030 accepté; kit et récupération non qualifiés |
@@ -40,10 +41,11 @@ photographie du 2026-09-24** : [état actuel](audits/2026-09-24/current-state.md
 [roadmap de l'audit](audits/2026-09-24/milestone-roadmap.md).
 
 La [roadmap canonique](roadmap.md) remplace l'ordre backend/LXC-first par
-déploiement progressif : qualification Stage A, cible trois hôtes physiques,
-Flux/stateless, CSI TrueNAS qualifié puis cutovers individuels. Le développement
-jetable sur A ne dépend pas du matériel futur. Évacuation pve-infra et inputs/
-portable recovery avancent en parallèle;
+développement concentrique : socle Stage A utilisable, Flux/demo, Homepage neuf,
+puis une application à la fois. CSI arrive au premier besoin de persistance.
+Le matériel physique et les drills avancés ne bloquent pas ces applications.
+Les transferts CT sont une maintenance opérateur distincte; les travaux de
+portabilité/récupération seront guidés par les dépendances réellement observées;
 le kit complet ne bloque pas l'apprentissage jetable. Les gates CT301 restent
 ouverts. Les audits/runbooks conservent leur preuve historique, pas un deuxième
 plan actif; vérifier toute divergence avant une opération live.

@@ -634,6 +634,15 @@ evidence, not the target; inspect actual digest/label before artifact transition
 
 ## Project Navigation and Milestone Discipline
 
+Follow the concentric execution strategy in docs/roadmap.md: usable Stage A,
+Flux disposable demo, fresh Homepage, then one real capability at a time.
+Verify a fresh app before inspecting its legacy counterpart read-only and adapting
+needed functionality. Advanced lifecycle drills, physical placement, full kits,
+remote state and protected CD do not block disposable app development. Introduce
+CSI at the first actual persistence need; later improve portability/recovery from
+the observed portfolio. Keep real-data recovery/cutover gates and all live approvals.
+Ordinary CT transfers are operator-managed maintenance, not the development path.
+
 `docs/README.md` is the documentation index. `docs/architecture.md` describes
 the current architectural direction and explicitly distinguishes verified
 implementation from target design. `docs/roadmap.md` records milestone
