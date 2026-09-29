@@ -37,10 +37,12 @@ headless root, OS baseline and gated Make interfaces. VMs303-305 are deployed;
 the Debian baseline and zero-change second convergence are live verified.
 Three 4-GiB VMs use pve-lab while workstations stay off; K3s is installed.
 The [Task110 K3s bootstrap](docs/k3s-bootstrap.md) now provides pinned, serial
-installation and private lab-token/snapshot interfaces. Etcd health is verified;
-the approved unit umask maintenance completed, but projected-token permission
-failures still block system pods and qualification. Task110 owns remediation;
-do not rerun installation. No Flux/CSI or application migration is complete.
+installation and private lab-token/snapshot interfaces. The minimum development
+baseline is live verified and operator accepted after targeted system-pod repair;
+advanced lifecycle drills remain open. [Flux/demo](docs/flux-stage-a.md) now has
+reviewed manifests, scoped RBAC and `make flux-check` / `make flux-install`
+interfaces. Code/CI pass; live bootstrap is blocked on controller SSH reachability.
+No Flux installation, CSI or application migration is claimed yet.
 
 For a new environment, start with [Starter prerequisites and input contracts](docs/deployment-inputs.md),
 not the original operator's credentials. Proxmox/access/network and suitable

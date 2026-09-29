@@ -1,7 +1,8 @@
 # 120 - Flux, first disposable workload and measurements
 
-- Status: IN_PROGRESS;110-A accepted, Flux and one disposable demo installation
-  authorized. Repository implementation under validation; live results pending.
+- Status: BLOCKED on SSH reachability to Stage A;110-A accepted and the bounded
+  Flux/demo installation authorized. Repository implementation/CI passed; no live
+  Flux installation or application reconciliation performed yet.
 - Deliverable: one reviewed Flux entry point, stateless public demo, bounded
   resource observations; extended measurements tracked for later placement.
 - Scope: code-only first; explicit approval for Flux bootstrap Git writes,
@@ -52,3 +53,27 @@ Initial implementation and CI are not live reconciliation evidence. Latest
 approval covers installation, app health and one Git-driven configuration change;
 source-outage/drift/revert/rescheduling exercises remain unverified unless
 separately authorized. No synthetic Infisical identity is needed or created.
+
+## Delivery and access boundary - 2026-09-29
+
+Task110 evidence commit3c2d583f42e3489bbec3bfc2f915f2944a21c6f7 passed Forgejo
+run39/API150 and matched GitHub before Task120 implementation began. Advanced
+Task110 drills remain open; successful cluster qualification was not repeated.
+
+Implementation801d1f69b9693dfc9f0a87590e76cd6dbfde70a6 passed Forgejo run40/API151;
+GitHub main matched exactly. Local Flux render/RBAC/source/approval tests and
+Ansible syntax passed; YAML/Python/shell parsing and diff checks passed. Ansible
+syntax needed normal local temp permissions outside the restricted sandbox.
+CI tested the new manifests offline with pinned kubectl; no cluster credentials.
+
+Live pre-install namespace inspection could not connect: strict SSH to .33 timed
+out, as did bounded10s checks to .34 and .35. The local route to .33 uses en0;
+this is not proof of guest, host or network failure cause. No trust/authentication
+bypass, infrastructure change or Flux resource creation attempted. Anonymous
+Forgejo Git read succeeded without credential helpers. No new privileged Git
+credential is required.
+
+Next operator action: restore this controller's SSH reachability to the three
+existing guests. Then resume the already-approved `make flux-install
+FLUX_INSTALL_APPROVED=yes`, verify source/application/RBAC and one reviewed
+Git-driven demo page change. Do not start Homepage or mark Task120 DONE from CI.

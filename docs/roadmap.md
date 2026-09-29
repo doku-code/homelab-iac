@@ -1,7 +1,7 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
-status: "Task 100 DONE; Task 110 installed, system-pod repair awaits approval"
-updated: 2026-09-28
+status: "Task 110-A accepted; Task 120 repository validated, live SSH blocked"
+updated: 2026-09-29
 ---
 
 # Canonical Homelab Roadmap
@@ -26,9 +26,9 @@ Task110 and any further infrastructure actions remain separate approval gates.
   contract; operator custody implementation is not a disposable-lab prerequisite.
 - Task035 headless capability passed CI, but VM603/.32 not allocated, no plan/
   creation/start/convergence. Preserve its preflight; make VM an optional050 test.
-- Stage A K3s is installed; system-pod permission failures block qualification.
-  Flux/storage integration is not implemented. Existing production services and
-  personal/technical data remain untouched.
+- Stage A K3s minimum foundation is accepted after targeted system-pod repair.
+  Flux/demo repository implementation passed CI; live installation is blocked by
+  controller SSH reachability. Storage remains unimplemented; real data untouched.
 
 ## Critical path and parallel work
 
@@ -145,18 +145,18 @@ resources/states remain unchanged; the new Stage A state is authority seven.
 Portable [050](../tasks/050-independent-controller.md) may
 be assigned separately in parallel; it is not implemented automatically.
 
-Task110 is installed with operator-reported zero-change second convergence.
-The preceding approved unit-only maintenance set all K3s/containerd umasks0022;
-actual etcd stayed healthy. CoreDNS/metrics-server now fail reading projected
-service-account tokens. Record this evidence in110; no further repair authorized
-by this architecture assignment. Broader input-source direction is now approved,
-and045 now implements explicit Stage A private/Infisical delivery with offline
+Task110-A is live verified and operator accepted: targeted replacement of the two
+old system pods renewed their0077 shims; new shims0022, healthy DNS/metrics,
+cross-node networking and actual etcd/API evidence are recorded in110. Earlier
+zero-change Ansible convergence remains dated evidence, not a newly repeated run.
+045 implements explicit Stage A private/Infisical delivery with offline
 tests and an unchanged default public key. Other adapters remain separate work;
 publication CI is checked at delivery, not proof of live provider authentication.
 Lifecycle drills still need separate approval and evidence before110 DONE, but
-not before120: only110 acceptance A is the foundation gate. It remains blocked
-by unhealthy system pods. Next single task: diagnose and resolve projected-token
-permissions under scoped live approval, then verify all110-A health criteria.
+not before120:110 acceptance A is now satisfied. Task120 implementation801d1f6
+passed exact-SHA Forgejo CI and GitHub publication. SSH to all three Stage A guests
+currently times out from the controller; restore access before the approved Flux
+install and Git-driven demo qualification. No Flux resource has been installed.
 Task035 remains separately unallocated.
 
 Task150 read-only assessment on2026-09-28 confirms infra/.10, CT200-204 and

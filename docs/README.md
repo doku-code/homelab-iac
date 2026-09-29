@@ -13,14 +13,14 @@
 | Savoir quel milestone vient ensuite | [Roadmap](roadmap.md) et [tâches](../tasks/README.md) | Plan de travail, pas autorisation d'exécuter |
 | Déployer un stack, Starter ou Recovery | [Contrats d'inputs](deployment-inputs.md) | Adaptateur045 Stage A implémenté; autres adaptateurs et kits distincts |
 | Construire la première application réelle | [Task125 Homepage](../tasks/125-homepage.md) | PLANNED après Flux/demo; instance neuve avant adaptation, aucun cutover |
-| Bootstrap Flux et démo Stage A | [Runbook Flux](flux-stage-a.md), [Task120](../tasks/120-gitops-stateless.md) | Implémentation et qualification en cours; source Git anonyme, une application jetable |
+| Bootstrap Flux et démo Stage A | [Runbook Flux](flux-stage-a.md), [Task120](../tasks/120-gitops-stateless.md) | Code/CI validés; installation live bloquée par accès SSH, source Git anonyme |
 | Préparer la vente de pve-infra | [Inventaire et plan](pve-infra-evacuation.md), [Task150](../tasks/150-pve-infra-evacuation.md) | Inventaire read-only du28 septembre; gates sauvegarde/USB/Tailscale ouverts, aucun cutover |
 | CI qualité et frontière runner | [CI qualité](ci-quality.md) | Run139 LIVE VERIFIED; clôture sécurité 010/020 distincte |
 | Préparer une récupération indépendante | [Contrat et Recovery Kit v1](recovery-contract.md) | Contrat 030 accepté; kit et récupération non qualifiés |
 | Préparer capture, garde et validation du kit | [Préparation Recovery Kit](recovery-kit-preparation.md) | Schéma/tests synthétiques; export et drill non exécutés |
 | Préparer la VM de test sans GPU | [Contrôleur headless](headless-controller.md) | Adaptateur optionnel035 pour portable050; aucune VM déployée |
 | Préparer les trois VM du laboratoire | [Stage A](k3s-stage-a.md) | Task100 DONE; trois invités et baseline live vérifiés/acceptés |
-| Bootstrap et cycle de vie K3s | [K3s Stage A](k3s-bootstrap.md) | Installé, umask corrigé live; incident des volumes projetés dans110; drills non qualifiés |
+| Bootstrap et cycle de vie K3s | [K3s Stage A](k3s-bootstrap.md), [Task110](../tasks/110-k3s-lifecycle.md) | Socle A live vérifié/accepté après réparation; drills avancés non qualifiés |
 | Retrouver les faits établis lors de l'audit | [Audit du 2026-09-24](audits/2026-09-24/executive-summary.md) | Photographie historique, jamais statut live garanti |
 | Déploiement et limites du runner CT301 | [Forgejo runner](forgejo-runner.md) | Runbook/état cible; vérifier le service avant intervention |
 | Comprendre la sécurité et la migration CI/CD | [Infrastructure CI/CD](infrastructure-cicd.md) | **Contient une proposition S3 historique**; ne pas la suivre comme runbook actif |
