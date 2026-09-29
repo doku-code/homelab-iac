@@ -160,6 +160,21 @@ jobs:
       - name: Test K3s bootstrap and lifecycle guards offline
         run: .venv/bin/python tests/k3s-bootstrap.py
 
+      - name: Install pinned kubectl for offline Kustomize rendering
+        env:
+          KUBECTL_SHA256: 874d5e72dbb819f43cff16bcd1e4f8bac5b7f2361fe1e55049b0a6c676fb0cbf
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSLo "$work/kubectl" https://dl.k8s.io/release/v1.35.8/bin/linux/amd64/kubectl
+          printf '%s  %s\n' "$KUBECTL_SHA256" "$work/kubectl" | sha256sum --check --status
+          install -m 0755 "$work/kubectl" /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Test Flux manifests and bounded application offline
+        run: .venv/bin/python tests/flux-demo.py
+
       - name: Parse configuration and check script syntax
         run: .venv/bin/python scripts/check-quality.py
 

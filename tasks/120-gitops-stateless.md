@@ -1,6 +1,7 @@
 # 120 - Flux, first disposable workload and measurements
 
-- Status: PLANNED after110 acceptance A and Git/source/RBAC decisions reviewed.
+- Status: IN_PROGRESS;110-A accepted, Flux and one disposable demo installation
+  authorized. Repository implementation under validation; live results pending.
 - Deliverable: one reviewed Flux entry point, stateless public demo, bounded
   resource observations; extended measurements tracked for later placement.
 - Scope: code-only first; explicit approval for Flux bootstrap Git writes,
@@ -40,3 +41,14 @@ manifests; no data loss possible by scope. No host socket or production credenti
 in CI. Next [125 fresh Homepage](125-homepage.md);130 is demand-driven by the
 first stateful workload, not every app. No stateful cutover. The
 independent150 pve-infra assessment must not wait for this experiment.
+
+## Implementation scope - 2026-09-29
+
+See [Stage A Flux runbook](../docs/flux-stage-a.md). Two pinned controllers only;
+anonymous Forgejo main source, one narrow demo path, namespace-scoped RBAC and
+non-root digest-pinned BusyBox HTTP workload. Ansible bootstrap via existing SSH,
+no exported kubeconfig/privileged Git credentials or writes by Flux to Git.
+Initial implementation and CI are not live reconciliation evidence. Latest
+approval covers installation, app health and one Git-driven configuration change;
+source-outage/drift/revert/rescheduling exercises remain unverified unless
+separately authorized. No synthetic Infisical identity is needed or created.

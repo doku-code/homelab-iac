@@ -142,6 +142,18 @@ k3s-snapshot:
 	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory | $(VENV)/bin/python scripts/k3s-lab.py inventory > "$$work/inventory.json"; \
 	  ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) ansible/playbooks/snapshot-k3s.yml -i "$$work/inventory.json" -e k3s_snapshot_approved=true
 
+.PHONY: flux-check flux-install
+flux-check:
+	$(VENV)/bin/python tests/flux-demo.py
+	$(ANSIBLE) ansible/playbooks/bootstrap-flux.yml --syntax-check -i ansible/inventories/homelab.yml
+
+flux-install:
+	@test "$(FLUX_INSTALL_APPROVED)" = yes || (echo "Separate Stage A Flux/demo installation approval required"; exit 1)
+	@set -euo pipefail; umask 077; work="$$(mktemp -d)"; trap 'rm -f "$$work/inventory.json"; rmdir "$$work"' EXIT; \
+	  test -f "$(STAGE_A_DIR)/terraform.tfstate"; \
+	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory | $(VENV)/bin/python scripts/k3s-lab.py inventory > "$$work/inventory.json"; \
+	  ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) ansible/playbooks/bootstrap-flux.yml -i "$$work/inventory.json" -e flux_install_approved=true
+
 # PostgreSQL host bootstrap state stays local; apply only the reviewed saved plan.
 TFSTATE_DIR := terraform/stacks/pve-core-tfstate
 TFSTATE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub

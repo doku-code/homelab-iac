@@ -1,0 +1,82 @@
+---
+- name: Install the bounded Stage A Flux demo control plane
+  hosts: k3s_lab
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  vars:
+    flux_repo_root: "{{ playbook_dir }}/../.."
+  tasks:
+    - name: Require explicit approval and complete Stage A inventory
+      ansible.builtin.assert:
+        that:
+          - flux_install_approved | default(false) | bool
+          - not ansible_check_mode
+          - groups.k3s_lab | length == 3
+          - ansible_play_hosts_all | sort == groups.k3s_lab | sort
+          - k3s_init_host in groups.k3s_lab
+      run_once: true
+
+    - name: Bootstrap through the existing SSH administration path only
+      run_once: true
+      delegate_to: "{{ k3s_init_host }}"
+      block:
+        - name: Verify the expected cluster before writes
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, get, nodes, -o, json]
+          register: flux_nodes
+          changed_when: false
+
+        - name: Reject a different cluster identity set
+          ansible.builtin.assert:
+            that:
+              - (flux_nodes.stdout | from_json)['items'] | map(attribute='metadata.name') | sort == k3s_node_names | sort
+
+        - name: Inspect existing Flux namespace ownership
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, get, namespace, flux-system, --ignore-not-found, -o, json]
+          register: flux_namespace
+          changed_when: false
+
+        - name: Refuse to adopt an unrelated Flux installation
+          ansible.builtin.assert:
+            that:
+              - >-
+                flux_namespace.stdout | trim == '' or
+                (flux_namespace.stdout | from_json).metadata.labels.get('homelab-iac-bootstrap', '') == 'task120'
+
+        - name: Render reviewed bootstrap resources without accessing an API
+          ansible.builtin.command:
+            argv: [kubectl, kustomize, "{{ flux_repo_root }}/gitops/stage-a/bootstrap"]
+          delegate_to: localhost
+          become: false
+          register: flux_bootstrap
+          changed_when: false
+
+        - name: Apply only the reviewed bootstrap resources
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, apply, --server-side, --field-manager=homelab-flux-bootstrap, -f, '-']
+            stdin: "{{ flux_bootstrap.stdout }}"
+          register: flux_apply
+          changed_when: "'serverside-applied' in flux_apply.stdout"
+
+        - name: Wait for both pinned controllers
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, rollout, status, "deployment/{{ item }}", -n, flux-system, --timeout=180s]
+          loop: [source-controller, kustomize-controller]
+          changed_when: false
+
+        - name: Register anonymous Git source and namespace-scoped reconciliation
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, apply, --server-side, --field-manager=homelab-flux-bootstrap, -f, '-']
+            stdin: "{{ lookup('ansible.builtin.file', flux_repo_root + '/gitops/stage-a/source.yaml') }}"
+          register: flux_source
+          changed_when: "'serverside-applied' in flux_source.stdout"
+
+        - name: Wait for source and application reconciliation
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, wait, "{{ item }}", -n, flux-system, --for=condition=Ready, --timeout=180s]
+          loop:
+            - gitrepository/homelab-iac
+            - kustomization/disposable-demo
+          changed_when: false

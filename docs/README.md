@@ -13,6 +13,7 @@
 | Savoir quel milestone vient ensuite | [Roadmap](roadmap.md) et [tâches](../tasks/README.md) | Plan de travail, pas autorisation d'exécuter |
 | Déployer un stack, Starter ou Recovery | [Contrats d'inputs](deployment-inputs.md) | Adaptateur045 Stage A implémenté; autres adaptateurs et kits distincts |
 | Construire la première application réelle | [Task125 Homepage](../tasks/125-homepage.md) | PLANNED après Flux/demo; instance neuve avant adaptation, aucun cutover |
+| Bootstrap Flux et démo Stage A | [Runbook Flux](flux-stage-a.md), [Task120](../tasks/120-gitops-stateless.md) | Implémentation et qualification en cours; source Git anonyme, une application jetable |
 | Préparer la vente de pve-infra | [Inventaire et plan](pve-infra-evacuation.md), [Task150](../tasks/150-pve-infra-evacuation.md) | Inventaire read-only du28 septembre; gates sauvegarde/USB/Tailscale ouverts, aucun cutover |
 | CI qualité et frontière runner | [CI qualité](ci-quality.md) | Run139 LIVE VERIFIED; clôture sécurité 010/020 distincte |
 | Préparer une récupération indépendante | [Contrat et Recovery Kit v1](recovery-contract.md) | Contrat 030 accepté; kit et récupération non qualifiés |

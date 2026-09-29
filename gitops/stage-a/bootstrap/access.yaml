@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flux-demo
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.35
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: demo-reconciler
+  namespace: flux-system
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flux-controllers
+  namespace: flux-system
+rules:
+  - apiGroups: [source.toolkit.fluxcd.io, kustomize.toolkit.fluxcd.io]
+    resources: ['*']
+    verbs: ['*']
+  - apiGroups: ['']
+    resources: [secrets, configmaps, serviceaccounts]
+    verbs: [get, list, watch]
+  - apiGroups: ['']
+    resources: [events]
+    verbs: [create, patch]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-controllers
+  namespace: flux-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flux-controllers
+subjects:
+  - kind: ServiceAccount
+    name: source-controller
+    namespace: flux-system
+  - kind: ServiceAccount
+    name: kustomize-controller
+    namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: demo-impersonation
+  namespace: flux-system
+rules:
+  - apiGroups: ['']
+    resources: [serviceaccounts]
+    resourceNames: [demo-reconciler, default]
+    verbs: [impersonate]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: demo-impersonation
+  namespace: flux-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: demo-impersonation
+subjects:
+  - kind: ServiceAccount
+    name: kustomize-controller
+    namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: demo-reconciler
+  namespace: flux-demo
+rules:
+  - apiGroups: ['']
+    resources: [configmaps, services]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: ['']
+    resources: [pods]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: demo-reconciler
+  namespace: flux-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: demo-reconciler
+subjects:
+  - kind: ServiceAccount
+    name: demo-reconciler
+    namespace: flux-system
