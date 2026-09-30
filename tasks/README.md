@@ -72,13 +72,15 @@ not acceptance achieved. PLANNED tasks need assignment and any live approval.
 | [110](110-k3s-lifecycle.md) | K3s bootstrap/lifecycle/synthetic recovery | A live verified/operator accepted; advanced B remains open |
 | [120](120-gitops-stateless.md) | Flux/stateless demo | BLOCKED on live SSH access; code/CI passed, installation authorized but not performed |
 | [125](125-homepage.md) | Fresh Homepage, then observed CT201 functionality | PLANNED after120; no migration |
-| [130](130-storage-recovery.md) | Workload-driven TrueNAS CSI/storage qualification | When first stateful app requires it; scoped storage approvals |
+| [130](130-storage-recovery.md) | Future TrueNAS CSI/storage qualification | DEFERRED until NAS readiness; initial node-local apps do not depend on it |
 | [140](140-placement-and-cutover.md) | Distributed/permanent placement and individual service DR/cutover | Epic split into bounded tasks before execution |
 | [150](150-pve-infra-evacuation.md) | Priority node/service inventory and evacuation | IN_PROGRESS; read-only assessment recorded, recovery/cutover gates and operator review pending |
 | [150-F](150-f-tailscale-routers.md) | Independent Tailscale router pair preparation | Repository-only implementation; allocations/deployment/failover remain unverified |
 
 Concentric path: accepted100 ->110 minimum foundation A ->120 Flux/demo ->125
-fresh Homepage -> next suitable app;130 enters when persistence is needed.
+fresh Homepage -> next suitable app; explicit node-local persistence where needed.
+130 follows NAS readiness, not the first stateful app; see the
+[storage contract](../docs/architecture.md#initial-development-storage).
 110 advanced lifecycle B and140-B physical placement do not block fresh Stage A
 apps. After the real portfolio exists, review complete dependencies and improve
 portability/Starter/Recovery.045 is implemented;040/050 and other adapters remain

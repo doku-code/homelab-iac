@@ -506,14 +506,15 @@ The canonical target in docs/architecture.md reconstructs desired functionality
 and irreplaceable state, not incidental historical deployments. For each service
 separate functionality, declarative configuration, mutable data/identity and
 discardable implementation detail. Kubernetes placement is not automatic.
-Approved direction: Proxmox, K3s, initial Flux and centralized TrueNAS application
-storage; official CSI is a candidate pending compatibility qualification.
+Approved direction: Proxmox, K3s, initial Flux and explicit node-local storage for
+initial stateful apps; TrueNAS CSI is future work after NAS readiness/qualification.
 No Longhorn/Ceph on the initial critical path. Local K3s system/etcd disks are required.
 Three server VMs on pve-lab are a development topology, not physical HA.
 Distributed/permanent placement requires new capacity/failure-domain approvals.
 The physical target is pve-k8s-01, pve-k8s-02 and pve-core, each with an active
 voting server VM. Prefer application placement on the two mini-PCs, with core
-fallback; no mandatory affinity that defeats fallback. Hardware, capacity and
+fallback for portable workloads. Local stateful workloads require affinity to
+their data-owning node and cannot fail over with local data. Hardware, capacity and
 service placement details belong only in docs/architecture.md. pve-infra
 evacuation is an independent priority track; do not equate it with pve-compute.
 Never equate pod rescheduling, ZFS snapshots or CI success with data recovery.
@@ -639,7 +640,8 @@ Flux disposable demo, fresh Homepage, then one real capability at a time.
 Verify a fresh app before inspecting its legacy counterpart read-only and adapting
 needed functionality. Advanced lifecycle drills, physical placement, full kits,
 remote state and protected CD do not block disposable app development. Introduce
-CSI at the first actual persistence need; later improve portability/recovery from
+explicit node-local persistence when needed; do not enable disabled local-path
+implicitly. Qualify CSI later when the NAS is ready, then improve portability/recovery from
 the observed portfolio. Keep real-data recovery/cutover gates and all live approvals.
 Ordinary CT transfers are operator-managed maintenance, not the development path.
 

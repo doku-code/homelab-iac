@@ -26,8 +26,11 @@ Acceptance:
   revert/reconciliation is verified and CT201 remains unchanged and available.
 - Record actual validation and operator acceptance before choosing the next app.
 
-If a real persistence requirement appears, scope Task130 to it rather than
-silently depending on local durable data. Final data migration, DNS switch and
+Do not create a PVC for Git/ConfigMaps/Secrets-backed configuration just because
+CT201 had a filesystem. If actual mutable persistence is needed, explicitly scope
+the [node-local contract](../docs/architecture.md#initial-development-storage),
+including owner-node affinity and no cross-node data failover; CSI is not a gate.
+Final data migration, DNS switch and
 retirement are separate approvals under140-C/150, not acceptance of a fresh app.
-Next: choose one suitable service; Wiki.js is an early stateful candidate after
-minimal applicable TrueNAS CSI qualification. Do not automatically start it.
+Next: choose one suitable service; Wiki.js is an early stateful candidate with
+explicit local storage if appropriate. Do not automatically start it.

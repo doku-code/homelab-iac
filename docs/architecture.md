@@ -17,9 +17,9 @@ Nothing here authorizes implementation, allocation, deployment or migration.
 
 | Classification | Direction |
 | --- | --- |
-| APPROVED OPERATOR REQUIREMENTS | Proxmox virtualization; K3s preferred for suitable workloads; Flux initial GitOps candidate; Terraform infrastructure, Ansible OS/cluster bootstrap, GitOps Kubernetes applications, Infisical runtime secrets; TrueNAS centralized application storage |
+| APPROVED OPERATOR REQUIREMENTS | Proxmox virtualization; K3s preferred for suitable workloads; Flux initial GitOps candidate; Terraform infrastructure, Ansible OS/cluster bootstrap, GitOps Kubernetes applications, Infisical runtime secrets; node-local initial application data, future TrueNAS CSI |
 | APPROVED OPERATOR REQUIREMENTS | A: three server VMs on pve-lab, NOT physical HA. C physical target: pve-k8s-01, pve-k8s-02, pve-core with one active voting K3s server VM each. B core/compute/lab is an optional superseded transition proposal, not a prerequisite |
-| APPROVED OPERATOR REQUIREMENTS | Local system/etcd disks; centralized TrueNAS application storage, official CSI candidate; no initial Longhorn/Ceph. Existing TrueNAS apps stay. Preserve workstation resources. Independent protected recovery material; no synced active state; external storage protection is operator-owned |
+| APPROVED OPERATOR REQUIREMENTS | Local system/etcd disks; initial stateful applications pinned to their local-data owner; TrueNAS CSI deferred until NAS readiness/qualification; no Longhorn/Ceph. Existing TrueNAS apps stay. Preserve workstation resources. Independent protected recovery material; no synced active state; external storage protection is operator-owned |
 | APPROVED OPERATOR REQUIREMENTS | pve-lab is dedicated to experimental Kubernetes during transition; workstations remain powered off with configuration/state/mappings preserved. Initial proposal: 3 x 2-vCPU/4-GiB VMs, subject to measured host capacity |
 | APPROVED DIRECTION | One stack definition, explicit input source, no mandatory Infisical or automatic fallback; Starter inputs versus Recovery inputs/data. Prioritize separately inventoried pve-infra evacuation, with core interim placement allowed |
 | UNRESOLVED DECISIONS | Physical allocations/capacity/API failover, exact TrueNAS/CSI compatibility, ingress/Caddy placement, each service's DB/storage/backup and eventual shared backend; alternative input interfaces remain incomplete |
@@ -99,8 +99,10 @@ flowchart TD
   X[Controller + code + explicitly supplied inputs] --> P[Existing Proxmox / local disks]
   P --> A[Stage A: three server VMs on pve-lab]
   A -. separate qualification and allocation .-> C[Stage C: k8s-01 + k8s-02 + core]
-  N[TrueNAS centralized application data] --> W[Kubernetes stateful workloads]
-  C --> W
+  A --> L[Explicit node-local application data]
+  L --> W[Kubernetes stateful workloads]
+  N[Future qualified TrueNAS CSI] -. progressive storage migration .-> W
+  C -. later placement .-> W
   E[Required DNS / artifacts / workload inputs] --> W
 ```
 
@@ -189,7 +191,41 @@ DNS/CA/account recovery; preserving every old leaf certificate is unnecessary.
 
 ## Storage and databases
 
-TrueNAS is an accepted single data-availability dependency. Its uplink does not
+### Initial development storage
+
+The NAS is busy and not ready to own Kubernetes persistent application data.
+It is NOT a prerequisite for fresh application development. Ownership remains
+Terraform -> Proxmox VMs, Ansible -> hosts/K3s, Flux -> application manifests.
+Use node-local data for initial stateful workloads where appropriate.
+
+The inspected Stage A profile (`ansible/vars/k3s-stage-a.yml`) explicitly disables
+K3s `local-storage`. Preserve that decision: the smallest initial pattern is an
+explicit static Kubernetes local PV, a non-default `kubernetes.io/no-provisioner`
+StorageClass with `WaitForFirstConsumer`, and a PVC. The PV must declare
+`nodeAffinity` for one explicitly selected storage-owning node; workload placement
+must respect that owner. Declare the directory, capacity, permissions and host
+preparation through Ansible before Flux reconciles the PV/PVC and application.
+Use `Retain` and explicit data cleanup/recovery ownership; a capacity declaration
+alone is not a filesystem quota. No local volumes are implemented by this decision.
+
+Loss/unavailability of that node makes its data and workload unavailable. The pod
+must not fail over to a different node with empty or inaccessible data. Document
+this limitation per workload, including backup/restore before any real-data move.
+Keep the app consuming a PVC at a stable mount path; isolate PV, StorageClass
+and placement declarations so later qualified CSI can replace them with an
+explicit data migration and removal of local-only affinity, not an app redesign.
+CSI portability still requires qualified attachment/fencing; it is not automatic HA.
+
+Stateless applications should remain portable. Git/ConfigMaps/Secrets-backed
+configuration does not justify a PVC merely because the old CT used a filesystem.
+Homepage remains first, without persistence by default. Follow the
+[concentric application pattern](roadmap.md#application-development-pattern).
+
+### Future centralized storage
+
+Task130 qualifies TrueNAS CSI when the NAS is ready, then suitable local workloads
+can move progressively under separate data/cutover approval. For those workloads,
+TrueNAS becomes an accepted single data-availability dependency. Its uplink does not
 prove end-to-end latency, fsync safety or independent backups. K3s system disks
 and etcd remain on local host storage. No Longhorn/Ceph in the initial target.
 The official TrueNAS CSI is the preferred candidate, not installed or qualified.
@@ -200,7 +236,8 @@ ZFS usage/headroom, snapshots, growth and single-disk risk first. No assumed
 single-disk stripe expansion. Existing Plex/Nextcloud/other TrueNAS apps stay put.
 Storage is a documented capability prerequisite, not hardcoded datasets for every
 user. Compatible alternatives are design intent, not implemented/tested support.
-No suitable storage: stateless work may proceed, stateful work blocks.
+The following NAS recommendations are future qualification guidance, not a gate
+for the explicit node-local development pattern above.
 Longhorn is only a possible measurement-driven future experiment; no task or
 dedicated storage network is approved. Core's single NIC needs its own complete
 network design if that future need arises.

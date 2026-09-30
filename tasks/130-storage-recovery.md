@@ -1,10 +1,15 @@
 # 130 - TrueNAS storage and synthetic stateful recovery
 
-- Status: PLANNED when the first stateful application requires persistence,
+- Status: DEFERRED until the NAS is ready and this milestone is separately assigned,
   after110 acceptance A/120 and verified TrueNAS version/storage access.
 - Deliverable: evidence-based NFS/block/database patterns, not a universal DB move.
 - Scope: compatibility/inventory and code first; approve dedicated throwaway
   datasets/volumes/scoped credentials and isolated outage drills separately.
+
+Initial stateful app development uses the explicit
+[node-local contract](../docs/architecture.md#initial-development-storage), not
+this milestone as a prerequisite. Later qualify CSI and progressively migrate
+suitable workloads, with explicit data transfer, placement and recovery review.
 
 Start with the smallest applicable CSI/protocol, permission, persistence and
 recovery qualification for that workload; Wiki.js is an early candidate. Unused
@@ -25,7 +30,8 @@ NAS-wide reboot or backup schedule changes. Node system/etcd remain local.
 Existing Plex/Nextcloud/other TrueNAS apps are not migration targets. Define
 storage capabilities and configurable endpoints, not a universal NAS provisioner.
 Compatible alternative providers remain unimplemented until separately tested.
-Absent suitable storage blocks stateful workloads, not stateless development.
+Absent qualified NAS storage blocks NAS-backed deployment, not suitable node-local
+stateful development. Local-node loss has no automatic data failover.
 Central NAS outage remains an accepted dependency, not end-to-end storage HA.
 
 Test NFS-compatible files: UID/GID/ACL and multi-client access, checksums,

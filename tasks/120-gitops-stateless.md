@@ -39,8 +39,10 @@ Retain existing outside monitoring; do not refactor live monitoring in this task
 
 Rollback: suspend affected reconciliation, restore reviewed commit/bootstrapped
 manifests; no data loss possible by scope. No host socket or production credentials
-in CI. Next [125 fresh Homepage](125-homepage.md);130 is demand-driven by the
-first stateful workload, not every app. No stateful cutover. The
+in CI. Next [125 fresh Homepage](125-homepage.md);130 waits for NAS readiness,
+not the first stateful workload. Initial persistence follows the
+[node-local contract](../docs/architecture.md#initial-development-storage).
+No stateful cutover. The
 independent150 pve-infra assessment must not wait for this experiment.
 
 ## Implementation scope - 2026-09-29
