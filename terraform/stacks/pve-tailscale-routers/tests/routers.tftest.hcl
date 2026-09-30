@@ -1,4 +1,6 @@
-mock_provider "proxmox" {}
+mock_provider "proxmox" {
+  alias = "root"
+}
 
 variables {
   # Synthetic test fixtures, NOT approved allocations.

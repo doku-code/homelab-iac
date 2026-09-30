@@ -55,6 +55,7 @@ setup-controller:
 	$(VENV)/bin/ansible-galaxy collection install -r collections/requirements.yml
 
 TAILSCALE_DIR := terraform/stacks/pve-tailscale-routers
+TAILSCALE_AUTH := $(VENV)/bin/python scripts/tailscale-proxmox.py
 .PHONY: tailscale-check tailscale-plan tailscale-apply tailscale-configure
 tailscale-check:
 	$(VENV)/bin/python tests/tailscale-routers.py
@@ -66,12 +67,12 @@ tailscale-plan:
 	terraform -chdir=$(TAILSCALE_DIR) fmt -check
 	terraform -chdir=$(TAILSCALE_DIR) init -input=false -lockfile=readonly
 	terraform -chdir=$(TAILSCALE_DIR) validate
-	$(call INFISICAL_RUN,terraform -chdir=$(TAILSCALE_DIR) plan -input=false -out=tailscale.tfplan)
+	@$(TAILSCALE_AUTH) plan
 
 tailscale-apply:
 	@test "$(TAILSCALE_APPLY_APPROVED)" = yes || (echo "Review the saved two-router plan; set TAILSCALE_APPLY_APPROVED=yes only after approval"; exit 1)
 	@test -f "$(TAILSCALE_DIR)/tailscale.tfplan" || (echo "Missing reviewed tailscale.tfplan"; exit 1)
-	$(call INFISICAL_RUN,terraform -chdir=$(TAILSCALE_DIR) apply -input=false tailscale.tfplan)
+	@TAILSCALE_APPLY_APPROVED="$(TAILSCALE_APPLY_APPROVED)" $(TAILSCALE_AUTH) apply
 
 tailscale-configure:
 	@test "$(TAILSCALE_CONFIGURE_APPROVED)" = yes || (echo "Approve only the two new guests with TAILSCALE_CONFIGURE_APPROVED=yes"; exit 1)

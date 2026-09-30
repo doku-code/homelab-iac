@@ -3,6 +3,15 @@ provider "proxmox" {
   insecure = var.proxmox_insecure
 }
 
+provider "proxmox" {
+  alias     = "root"
+  endpoint  = var.proxmox_endpoint
+  insecure  = var.proxmox_insecure
+  username  = "root@pam"
+  api_token = ""
+  # Password comes only from PROXMOX_VE_PASSWORD via the scoped runtime wrapper.
+}
+
 locals {
   nodes = {
     ts-router-01 = "pve-k8s-01"
@@ -11,6 +20,7 @@ locals {
 }
 
 resource "proxmox_virtual_environment_container" "router" {
+  provider = proxmox.root
   for_each = var.routers
 
   node_name     = local.nodes[each.key]

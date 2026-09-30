@@ -18,10 +18,10 @@ remains historical evidence, not an allocation registry.
 - Ansible role `tailscale_subnet_router` owns guest packages, forwarding, daemon
   and preferences. Native Tailscale redundant subnet routing, NOT physical
   Kubernetes HA, VRRP, a VIP or a second tailnet.
-- **Unallocated:** provide one approved free cluster-global VMID and one free
-  static LAN IPv4/24 for EACH router. Repository declarations cannot prove free
-  addresses or DHCP reservations. No scans were run. Confirm the DHCP pool,
-  reservations and current cluster inventory before planning.
+- **Operator allocation now recorded:** see [150-F evidence](../tasks/150-f-tailscale-routers.md#approved-allocation-and-plan-attempt---2026-09-29).
+  The ignored operator profile is populated; local-lvm follows CT201/CT200 on
+  the respective nodes. Cluster VMID absence and template availability were
+  checked read-only. No IP scan was run. The authenticated plan remains pending.
 - Confirm each node's capacity, local rootfs storage, existing bridge (`vmbr0`
   default), Debian 13 template volume ID and provenance. The example 13.6-1 filename
   follows existing CTs but is NOT evidence that this image exists on these nodes.
@@ -44,10 +44,47 @@ administration key is the default; `management_ssh_public_key` accepts a differe
 public key. Never supply a private key or Tailscale credential to Terraform.
 
 Use existing Universal Auth runtime variables `INFISICAL_CLIENT_ID` and
-`INFISICAL_CLIENT_SECRET`; the shared `INFISICAL_RUN` wrapper delivers existing
-Proxmox provider credentials. Project comes from `.infisical.json`, default env `dev`.
+`INFISICAL_CLIENT_SECRET`. Tailscale plan/apply alone use the scoped
+`scripts/tailscale-proxmox.py` adapter: the same pinned SDK/Universal Auth and
+`infisical run` pattern as Stage A, project from `.infisical.json`, environment
+`dev`, path `/proxmox/`. It requires the injected `PROXMOX_ROOT_PASSWORD`.
+There is no ambient-password fallback, manual password export or token fallback.
+Infisical shell-parameter expansion and imported secrets are disabled so a literal
+password (including dollar signs) comes from the selected folder without rewriting.
+The shared `INFISICAL_RUN` wrapper and every other stack remain unchanged.
 Review API certificate trust: verification defaults ON; `proxmox_insecure` is
 the existing explicit opt-in, not a fallback. Do not disable TLS to fix auth.
+
+### Root-only device passthrough
+
+The operator's first apply was rejected: device passthrough requires password
+authentication as `root@pam`, not an Administrator API token. Do not infer guest
+existence or absence from that failure. The operator must check live VMIDs306/307
+and local state before another apply; never auto-import, reset state or adopt
+an unexpected guest. TUN, unprivileged mode and all allocations remain unchanged.
+
+Only `proxmox_virtual_environment_container.router` (the two instances) uses
+`proxmox.root`. This alias sets `username="root@pam"`, clears `api_token`, and
+inherits the existing endpoint/TLS variables. The runtime adapter maps the
+Infisical-injected `PROXMOX_ROOT_PASSWORD` to BPG's `PROXMOX_VE_PASSWORD` solely
+in the Terraform subprocess; it removes token/ticket/legacy authentication,
+Infisical credentials and TF_VAR inputs from that subprocess environment.
+Use the private native tfvars for non-secret configuration. This root must not
+be expanded to unrelated resources under this privileged runtime.
+
+No password Terraform variable, output or resource argument exists. The runtime
+password is not serialized into saved plans/state by this configuration; those
+files still contain private infrastructure metadata and must remain protected.
+Provider debugging/TF_LOG and TF_CLI_ARGS overrides are rejected. No shell
+expansion or command argument carries the password. Privileged local processes
+can inspect process memory/environment: run only on the trusted controller.
+The adapter uses Infisical session-token environment injection, not CLI credential
+arguments. Do not enable external tracing or environment dumps.
+
+Generate and review a NEW plan after this provider change. The Make plan target
+invalidates the old saved plan; apply rejects a saved plan using the old provider.
+No live apply is authorized by this correction. See the pinned
+[BPG authentication implementation](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/proxmoxtf/provider/provider.go).
 
 ```bash
 make tailscale-check

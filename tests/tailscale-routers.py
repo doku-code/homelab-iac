@@ -15,6 +15,10 @@ ROLE = ROOT / "ansible/roles/tailscale_subnet_router"
 
 
 def main():
+    subprocess.run([sys.executable, str(ROOT / "tests/tailscale-auth.py")], check=True)
+    source = (ROOT / "terraform/stacks/pve-tailscale-routers/main.tf").read_text()
+    assert 'provider = proxmox.root' in source and 'username  = "root@pam"' in source
+    assert 'api_token = ""' in source and 'password =' not in source
     tasks = yaml.safe_load((ROLE / "tasks/main.yml").read_text())
     registration = yaml.safe_load((ROLE / "tasks/register.yml").read_text())
     play = yaml.safe_load((ROOT / "ansible/playbooks/configure-tailscale-routers.yml").read_text())[0]
