@@ -1,7 +1,10 @@
 # Redundant Tailscale subnet routers
 
-Task [150-F](../tasks/150-f-tailscale-routers.md). Repository preparation only;
-no deployment, tailnet inspection, route approval or failover has been performed.
+Task [150-F](../tasks/150-f-tailscale-routers.md) records current live evidence.
+The operator created CT306/307; verified SSH enrollment is complete. Guest
+convergence currently stops at missing controller Universal Auth credentials
+on the first router. Tailnet registration, route approval and failover remain
+unverified. Do not repeat Terraform apply to resolve this authentication gate.
 The operator supplied the existing pve-infra preferences: route 192.168.0.0/24,
 SNAT enabled, Tailscale SSH disabled. The dated [inventory](pve-infra-evacuation.md)
 remains historical evidence, not an allocation registry.
@@ -21,7 +24,8 @@ remains historical evidence, not an allocation registry.
 - **Operator allocation now recorded:** see [150-F evidence](../tasks/150-f-tailscale-routers.md#approved-allocation-and-plan-attempt---2026-09-29).
   The ignored operator profile is populated; local-lvm follows CT201/CT200 on
   the respective nodes. Cluster VMID absence and template availability were
-  checked read-only. No IP scan was run. The authenticated plan remains pending.
+  checked read-only before creation. No IP scan was run. The operator subsequently
+  reported successful apply: 2 added, 0 changed, 0 destroyed.
 - Confirm each node's capacity, local rootfs storage, existing bridge (`vmbr0`
   default), Debian 13 template volume ID and provenance. The example 13.6-1 filename
   follows existing CTs but is NOT evidence that this image exists on these nodes.
@@ -92,7 +96,7 @@ make tailscale-plan
 terraform -chdir=terraform/stacks/pve-tailscale-routers show tailscale.tfplan
 # Only after reviewing exactly 2 additions, 0 changes, 0 destroys:
 make tailscale-apply TAILSCALE_APPLY_APPROVED=yes
-# Establish verified SSH host keys by the repository's normal trust procedure.
+# Verify and pin guest SSH keys using the procedure below.
 # Then, explicitly approve guest convergence:
 make tailscale-configure TAILSCALE_CONFIGURE_APPROVED=yes
 ```
@@ -102,6 +106,40 @@ reinitialize a missing authoritative state to adopt existing CTs. Plan deletes
 its previous saved plan before attempting another. Do not change private inputs
 between plan review and apply. Capture this root's state for recovery after
 deployment using the existing recovery contract, not Git or a second live state.
+
+### Verify guest SSH trust before first convergence
+
+Never treat `ssh-keyscan` as authentication. Using an already trusted SSH
+connection to the owning Proxmox node, read ONLY the guest public host key:
+
+```bash
+# On pve-k8s-01 for CT306; use CT307 on pve-k8s-02:
+pct exec 306 -- cat /etc/ssh/ssh_host_ed25519_key.pub
+pct exec 306 -- ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256
+# On the controller, collect the candidate, NOT yet trusted:
+ssh-keyscan -T 8 -t ed25519 192.168.0.36
+ssh-keygen -F 192.168.0.36 -f ~/.ssh/known_hosts
+```
+
+Repeat for `.37`. Compare the complete ED25519 key type/base64 and SHA256
+fingerprint against the authoritative public key read inside that specific CT.
+Stop on any mismatch or conflicting existing trust record; do not remove or
+replace existing entries automatically. Only after both comparisons succeed,
+append each verified `IP ssh-ed25519 BASE64_PUBLIC_KEY` line to the operator's
+normal `~/.ssh/known_hosts`, preserving other entries. Never copy a private key.
+Confirm each hostname with `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes
+root@IP hostname` before convergence. Do not disable checking or use blind TOFU.
+
+For this deployment, the trusted controller connection to pve-core/.11 reached
+each owner using the existing cluster-managed public trust file
+`/etc/pve/nodes/NODE/ssh_known_hosts`, `HostKeyAlias=NODE`, and
+`StrictHostKeyChecking=yes`. This is an alternative trusted path, not permission
+to enroll an unknown Proxmox key blindly. Fingerprints and results are recorded
+in [Task 150-F](../tasks/150-f-tailscale-routers.md#ssh-enrollment-and-partial-convergence---2026-09-30).
+
+If first registration stops because Universal Auth is absent, rerun the same
+`make tailscale-configure TAILSCALE_CONFIGURE_APPROVED=yes` from the authenticated
+operator shell. Do not export the Tailscale key manually or bypass the guard.
 
 Convergence derives a temporary private inventory from this root's outputs,
 uses strict OpenSSH host-key checking and runs serially. Only root SSH into the

@@ -1,9 +1,10 @@
 # 150-F - Prepare two independent Tailscale subnet routers
 
 - Status: BLOCKED for live acceptance; repository phase LOCALLY VALIDATED.
-- Permission: OFFLINE_CODE plus operator-authorized targeted storage/inventory
-  reads and Terraform plan. No apply, convergence, secret writes, route approval,
-  old-router retirement or Proxmox host changes.
+- Permission: operator-authorized verified SSH enrollment and guest convergence
+  on existing CT306/307, plus targeted read-only checks and repository changes.
+  No further Terraform operations, route approval, old-router retirement,
+  Proxmox host changes or push are authorized in this session.
 - Parent: [150](150-pve-infra-evacuation.md), independent of the K3s/Flux path.
 - Operator target: ts-router-01 on pve-k8s-01 and ts-router-02 on pve-k8s-02,
   SAME existing tailnet, exact 192.168.0.0/24, separate persistent identities.
@@ -127,3 +128,55 @@ on the operator's post-failure live-state verification and new plan review.
 Run `make tailscale-plan` from the authenticated shell with access to the new
 Infisical secret; do not export the password manually or apply the old plan.
 This does not authorize TUN removal, privileged containers or apply.
+
+## SSH enrollment and partial convergence - 2026-09-30
+
+The operator reports successful apply: **2 added, 0 changed, 0 destroyed**.
+CT306/.36 and CT307/.37 exist; no apply, import or state modification was repeated.
+Public ED25519 keys were read inside each CT through `pct exec` on its owner,
+via already trusted pve-core SSH and each owner's cluster-managed SSH trust file.
+Strict checking remained enabled on every hop. Complete key bytes matched the
+network-presented ED25519 keys. No conflicting controller trust entry existed;
+both verified keys were appended to the operator's normal known_hosts:
+
+- ts-router-01 /192.168.0.36: `SHA256:CHrz7moXviWKlcxbPviXNex/HwMNfUI0JWe0xPuAPpI`.
+- ts-router-02 /192.168.0.37: `SHA256:IdpuTu7WMyqi6ldU4NwqO8Fy/DjNN87tSFhejAMYzqM`.
+
+Subsequent strict SSH confirmed both expected hostnames. Approved
+`make tailscale-configure TAILSCALE_CONFIGURE_APPROVED=yes` reached CT306:
+**ok=15 changed=5 unreachable=0 failed=1**. It stopped at the first-registration
+Universal Auth credential assertion. Both INFISICAL_CLIENT_ID and
+INFISICAL_CLIENT_SECRET are absent in this agent environment (presence-only
+check). No Infisical read or Tailscale registration was attempted. Serial execution
+correctly prevented advancing to CT307 after the failure.
+
+Read-only post-attempt observations:
+
+| Check | ts-router-01 | ts-router-02 |
+| --- | --- | --- |
+| Strict SSH / hostname | verified | verified |
+| TUN character device | present | present |
+| IPv4 forwarding | 1 | 0 |
+| tailscaled | active | inactive; package absent |
+| Tailscale version / backend | 1.102.4 / NeedsLogin | not installed |
+| Tailnet ID/IP / advertised routes | none / none | unavailable |
+
+CT306 preferences have RouteAll=false, RunSSH=false, NoSNAT=false and no exit
+node. CorpDNS is still the pre-registration default true; intended preferences
+have NOT yet been applied. Device presence alone is not proof of functional TUN
+or subnet routing. Distinct registered identities, existing-tailnet membership,
+exact route advertisements and second convergence remain unverified.
+
+Next action: run `make tailscale-configure TAILSCALE_CONFIGURE_APPROVED=yes`
+from the existing authenticated operator shell. No admin-console approval is
+required yet: neither router was registered in this attempt. Once registered,
+follow the runbook's device-approval gate (if requested) and approve ONLY
+192.168.0.0/24 for both new routers, never exit routes. Do not retire pve-infra.
+No old device/service, private key, Terraform state or container isolation was
+changed. Task remains BLOCKED for live acceptance, not complete.
+
+Repository validation after this documentation update: `make tailscale-check`
+passed (seven synthetic authentication tests, four mocked Terraform cases,
+router guard/idempotence checks and Ansible syntax). Quality parsing passed
+(71 YAML, 18 Python, 25 shell); six relative documentation links and
+`git diff --check` passed. No infrastructure plan/apply or remote CI was run.
