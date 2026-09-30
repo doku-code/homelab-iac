@@ -117,6 +117,7 @@ jobs:
             terraform/stacks/pve-compute-forgejo-runner \
             terraform/stacks/pve-core-garage \
             terraform/stacks/pve-core-tfstate \
+            terraform/stacks/pve-tailscale-routers \
             terraform/stacks/pve-lab-controller \
             terraform/stacks/pve-lab-k3s \
             terraform/examples/cloud-image-vm; do
@@ -144,6 +145,9 @@ jobs:
 
       - name: Test logical backup tooling offline
         run: .venv/bin/python tests/tfstate-backups.py
+
+      - name: Test Tailscale router profiles and secret handling offline
+        run: .venv/bin/python tests/tailscale-routers.py
 
       - name: Test VM profiles with mocked providers
         run: .venv/bin/python tests/vm-profiles.py

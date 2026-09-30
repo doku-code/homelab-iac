@@ -166,6 +166,10 @@ backup coverage, isolated recovery, USB/tunnel/remote-access gates and operator
 review remain for operator-managed maintenance, not the development critical path.
 No migration or cluster removal authorized; Task150 remains IN_PROGRESS.
 
+150-F now has a separately assigned [repository-only router pair](../tasks/150-f-tailscale-routers.md)
+on pve-k8s-01/02. Two VMIDs/IPs and live route/failover acceptance remain pending;
+this does not authorize retirement or change the concentric application path.
+
 ## Evidence and delivery discipline
 
 Read task/code/current state; implement one coherent deliverable; update tests

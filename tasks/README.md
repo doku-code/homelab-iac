@@ -75,6 +75,7 @@ not acceptance achieved. PLANNED tasks need assignment and any live approval.
 | [130](130-storage-recovery.md) | Workload-driven TrueNAS CSI/storage qualification | When first stateful app requires it; scoped storage approvals |
 | [140](140-placement-and-cutover.md) | Distributed/permanent placement and individual service DR/cutover | Epic split into bounded tasks before execution |
 | [150](150-pve-infra-evacuation.md) | Priority node/service inventory and evacuation | IN_PROGRESS; read-only assessment recorded, recovery/cutover gates and operator review pending |
+| [150-F](150-f-tailscale-routers.md) | Independent Tailscale router pair preparation | Repository-only implementation; allocations/deployment/failover remain unverified |
 
 Concentric path: accepted100 ->110 minimum foundation A ->120 Flux/demo ->125
 fresh Homepage -> next suitable app;130 enters when persistence is needed.

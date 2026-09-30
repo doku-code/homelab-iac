@@ -1,0 +1,19 @@
+# Copy to ignored terraform.tfvars and replace ALL placeholders before planning.
+# No VMID/IP is allocated by this example. Confirm availability cluster-wide and
+# against DHCP reservations/pools first. Never put credentials or auth keys here.
+routers = {
+  ts-router-01 = {
+    vm_id            = 0 # TODO: approved free VMID on pve-k8s-01
+    ipv4_address     = "TODO/24"
+    datastore_id     = "TODO-local-storage-on-pve-k8s-01"
+    template_file_id = "TODO:vztmpl/debian-13-standard_13.6-1_amd64.tar.zst"
+  }
+  ts-router-02 = {
+    vm_id            = 0 # TODO: different approved free VMID on pve-k8s-02
+    ipv4_address     = "TODO/24"
+    datastore_id     = "TODO-local-storage-on-pve-k8s-02"
+    template_file_id = "TODO:vztmpl/debian-13-standard_13.6-1_amd64.tar.zst"
+  }
+}
+# Default TLS verification remains enabled. Review cluster certificate trust;
+# proxmox_insecure is an explicit existing-provider opt-in, not an auto fallback.

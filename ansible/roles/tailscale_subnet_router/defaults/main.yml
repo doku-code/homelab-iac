@@ -1,0 +1,7 @@
+---
+tailscale_version: "1.102.4"
+tailscale_keyring_sha256: "3e03dacf222698c60b8e2f990b809ca1b3e104de127767864284e6c228f1fb39"
+tailscale_infisical_url: "https://secrets.doku-lab.net"
+tailscale_infisical_environment: "dev"
+tailscale_infisical_path: "/tailscale/"
+tailscale_infisical_project: "{{ (lookup('ansible.builtin.file', playbook_dir + '/../../.infisical.json') | from_json).workspaceId }}"

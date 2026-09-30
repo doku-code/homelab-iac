@@ -1,0 +1,61 @@
+---
+# Delegated reads stay on the controller; pipelined command stdin never writes
+# the reusable bootstrap key to a guest file or a command-line argument.
+- name: Require runtime Universal Auth credentials for first registration only
+  ansible.builtin.assert:
+    that:
+      - lookup('ansible.builtin.env', 'INFISICAL_CLIENT_ID') | length > 0
+      - lookup('ansible.builtin.env', 'INFISICAL_CLIENT_SECRET') | length > 0
+  no_log: true
+
+- name: Authenticate to Infisical on the controller
+  infisical.vault.login:
+    url: "{{ tailscale_infisical_url }}"
+    auth_method: universal_auth
+    universal_auth_client_id: "{{ lookup('ansible.builtin.env', 'INFISICAL_CLIENT_ID') }}"
+    universal_auth_client_secret: "{{ lookup('ansible.builtin.env', 'INFISICAL_CLIENT_SECRET') }}"
+  register: tailscale_login
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+  no_log: true
+
+- name: Read the existing subnet-router bootstrap credential
+  infisical.vault.read_secrets:
+    login_data: "{{ tailscale_login.login_data }}"
+    project_id: "{{ tailscale_infisical_project }}"
+    env_slug: "{{ tailscale_infisical_environment }}"
+    path: "{{ tailscale_infisical_path }}"
+    as_dict: true
+  register: tailscale_bootstrap_secrets
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+  no_log: true
+
+- name: Require the canonical bootstrap secret without showing its value
+  ansible.builtin.assert:
+    that:
+      - tailscale_bootstrap_secrets.secrets.get('TS_AUTH_KEY_SUBNET_ROUTER', '') | length > 0
+  no_log: true
+
+- name: Authenticate through pipelined stdin without a guest key file
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/tailscale
+      - up
+      - --auth-key=file:/dev/stdin
+      - --timeout=60s
+      - --advertise-routes=192.168.0.0/24
+      - --accept-routes=false
+      - --accept-dns=false
+      - --ssh=false
+      - --advertise-exit-node=false
+      - --exit-node=
+      - --snat-subnet-routes=true
+      - --netfilter-mode=on
+      - "--hostname={{ inventory_hostname }}"
+    stdin: "{{ tailscale_bootstrap_secrets.secrets.TS_AUTH_KEY_SUBNET_ROUTER }}"
+    stdin_add_newline: false
+  no_log: true
+  changed_when: true

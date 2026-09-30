@@ -1,0 +1,138 @@
+---
+- name: Require the supported Debian guest and memory-only secret transport
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == 'Debian'
+      - ansible_facts['distribution_major_version'] == '13'
+      - ansible_facts['architecture'] == 'x86_64'
+      - ansible_connection == 'ssh'
+      - ansible_ssh_pipelining | bool
+      - not lookup('ansible.builtin.config', 'DEFAULT_KEEP_REMOTE_FILES') | bool
+
+- name: Check TUN character device access without changing it
+  ansible.builtin.command: /usr/bin/test -c /dev/net/tun
+  changed_when: false
+
+- name: Inspect installed packages before deciding whether a refresh is needed
+  ansible.builtin.package_facts:
+    manager: apt
+
+- name: Refresh metadata before initial installation or a deliberate version change
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - jq
+    state: present
+    update_cache: >-
+      {{ 'ca-certificates' not in ansible_facts.packages or
+         'jq' not in ansible_facts.packages or
+         (ansible_facts.packages.get('tailscale', [{}])[0].get('version', '') != tailscale_version) }}
+    cache_valid_time: 0
+
+- name: Install the verified official Tailscale signing key
+  ansible.builtin.get_url:
+    url: https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg
+    dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+    checksum: "sha256:{{ tailscale_keyring_sha256 }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure the official Debian 13 stable repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/tailscale.list
+    content: "deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/debian trixie main\n"
+    owner: root
+    group: root
+    mode: '0644'
+  register: tailscale_repository
+
+- name: Install the pinned Tailscale package without automatic upgrades
+  ansible.builtin.apt:
+    name: "tailscale={{ tailscale_version }}"
+    state: present
+    update_cache: "{{ tailscale_repository.changed }}"
+    install_recommends: false
+
+- name: Persist subnet-router forwarding in the guest only
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: '1'
+    sysctl_file: /etc/sysctl.d/99-tailscale-router.conf
+    sysctl_set: true
+    reload: true
+  loop:
+    - net.ipv4.ip_forward
+    - net.ipv6.conf.all.forwarding
+
+- name: Enable and start the persistent Tailscale daemon
+  ansible.builtin.systemd_service:
+    name: tailscaled
+    state: started
+    enabled: true
+
+- name: Read authentication status without exposing peer metadata
+  ansible.builtin.command: /usr/bin/tailscale status --json
+  register: tailscale_status
+  changed_when: false
+  failed_when: tailscale_status.rc not in [0, 1]
+  no_log: true
+
+- name: Classify only the public backend state
+  ansible.builtin.set_fact:
+    tailscale_backend_state: "{{ (tailscale_status.stdout | from_json).BackendState }}"
+  no_log: true
+
+- name: Stop for operator review of stopped, pending approval or unexpected daemon states
+  ansible.builtin.assert:
+    that: tailscale_backend_state in ['Running', 'NeedsLogin']
+    fail_msg: "Tailscale is not Running or NeedsLogin. Inspect daemon health/device approval; this role will not reset identity or override an intentional stop."
+
+- name: Register only a router that needs authentication
+  ansible.builtin.include_tasks: register.yml
+  when: tailscale_backend_state == 'NeedsLogin'
+
+- name: Read preferences privately for idempotent convergence
+  ansible.builtin.command: /usr/bin/tailscale debug prefs
+  register: tailscale_preferences
+  changed_when: false
+  no_log: true
+
+- name: Select only owned non-secret preferences for comparisons
+  ansible.builtin.set_fact:
+    tailscale_prefs: >-
+      {{ tailscale_preferences.stdout | from_json | dict2items |
+         selectattr('key', 'in', ['AdvertiseRoutes', 'RouteAll', 'CorpDNS', 'RunSSH',
+                                 'NoSNAT', 'ExitNodeID', 'ExitNodeIP', 'Hostname', 'NetfilterMode']) |
+         items2dict }}
+  no_log: true
+
+- name: Converge subnet routing without an auth key or identity reset
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/tailscale
+      - set
+      - --advertise-routes=192.168.0.0/24
+      - --accept-routes=false
+      - --accept-dns=false
+      - --ssh=false
+      - --advertise-exit-node=false
+      - --exit-node=
+      - --snat-subnet-routes=true
+      - --netfilter-mode=on
+      - "--hostname={{ inventory_hostname }}"
+  when: >-
+    tailscale_prefs.AdvertiseRoutes != ['192.168.0.0/24'] or
+    tailscale_prefs.RouteAll or tailscale_prefs.CorpDNS or tailscale_prefs.RunSSH or
+    tailscale_prefs.NoSNAT or tailscale_prefs.ExitNodeID != '' or tailscale_prefs.ExitNodeIP != '' or
+    tailscale_prefs.Hostname != inventory_hostname or tailscale_prefs.NetfilterMode != 2
+  changed_when: true
+
+- name: Require authenticated daemon health after convergence
+  ansible.builtin.command: /usr/bin/tailscale status --json
+  register: tailscale_health
+  changed_when: false
+  until: tailscale_health.rc == 0 and (tailscale_health.stdout | from_json).BackendState == 'Running'
+  retries: 6
+  delay: 5
+  no_log: true

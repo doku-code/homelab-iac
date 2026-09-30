@@ -322,6 +322,12 @@ No service or node is stopped, migrated or retired by this planning update.
 Check cluster quorum, shared storage/network and PBS effects before proposing
 decommission. Keep historical resources and data until accepted cutover.
 
+The approved replacement route design is now [150-F](../tasks/150-f-tailscale-routers.md):
+two independent unprivileged Debian LXCs on pve-k8s-01/02, in the EXISTING tailnet,
+both advertising 192.168.0.0/24 with native Tailscale failover. Separate identities,
+no cloned state, VIP or host networking changes. Repository preparation is not
+live deployment or failover proof; pve-infra's service remains unchanged.
+
 ## Backend and ownership transitions
 
 Recommend local state and one designated operator writer initially, with protected

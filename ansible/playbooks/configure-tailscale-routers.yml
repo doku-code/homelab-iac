@@ -1,0 +1,25 @@
+---
+- name: Configure only the two approved Tailscale subnet routers
+  hosts: tailscale_routers
+  serial: 1
+  any_errors_fatal: true
+  gather_facts: true
+  become: false
+  vars:
+    ansible_connection: ssh
+    ansible_ssh_pipelining: true
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=yes"
+  pre_tasks:
+    - name: Require explicit convergence approval and dedicated generated inventory
+      ansible.builtin.assert:
+        that:
+          - tailscale_configure_approved | default(false) | bool
+          - not ansible_check_mode
+          - groups['tailscale_routers'] | sort == ['ts-router-01', 'ts-router-02']
+          - inventory_hostname in ['ts-router-01', 'ts-router-02']
+          - ansible_facts['hostname'] == inventory_hostname
+          - ansible_facts['user_id'] == 'root'
+          - not lookup('ansible.builtin.config', 'DEFAULT_KEEP_REMOTE_FILES') | bool
+        fail_msg: "Require approval, generated two-router inventory, strict SSH trust and pipelining (no kept module files). Use syntax checks offline, not --check for bootstrap."
+  roles:
+    - tailscale_subnet_router

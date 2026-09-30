@@ -54,6 +54,34 @@ setup-controller:
 	$(VENV)/bin/python -m pip install -r requirements-controller.txt
 	$(VENV)/bin/ansible-galaxy collection install -r collections/requirements.yml
 
+TAILSCALE_DIR := terraform/stacks/pve-tailscale-routers
+.PHONY: tailscale-check tailscale-plan tailscale-apply tailscale-configure
+tailscale-check:
+	$(VENV)/bin/python tests/tailscale-routers.py
+	$(ANSIBLE) --syntax-check ansible/playbooks/configure-tailscale-routers.yml
+
+tailscale-plan:
+	@test -f "$(TAILSCALE_DIR)/terraform.tfvars" || (echo "Supply the two approved allocations in private terraform.tfvars; see docs/tailscale-routers.md"; exit 1)
+	rm -f "$(TAILSCALE_DIR)/tailscale.tfplan"
+	terraform -chdir=$(TAILSCALE_DIR) fmt -check
+	terraform -chdir=$(TAILSCALE_DIR) init -input=false -lockfile=readonly
+	terraform -chdir=$(TAILSCALE_DIR) validate
+	$(call INFISICAL_RUN,terraform -chdir=$(TAILSCALE_DIR) plan -input=false -out=tailscale.tfplan)
+
+tailscale-apply:
+	@test "$(TAILSCALE_APPLY_APPROVED)" = yes || (echo "Review the saved two-router plan; set TAILSCALE_APPLY_APPROVED=yes only after approval"; exit 1)
+	@test -f "$(TAILSCALE_DIR)/tailscale.tfplan" || (echo "Missing reviewed tailscale.tfplan"; exit 1)
+	$(call INFISICAL_RUN,terraform -chdir=$(TAILSCALE_DIR) apply -input=false tailscale.tfplan)
+
+tailscale-configure:
+	@test "$(TAILSCALE_CONFIGURE_APPROVED)" = yes || (echo "Approve only the two new guests with TAILSCALE_CONFIGURE_APPROVED=yes"; exit 1)
+	@set -euo pipefail; umask 077; work="$$(mktemp -d)"; inventory="$$work/inventory.json"; \
+	trap 'rm -f "$$inventory"; rmdir "$$work"' EXIT; \
+	terraform -chdir=$(TAILSCALE_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True ANSIBLE_KEEP_REMOTE_FILES=False \
+	$(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-tailscale-routers.yml \
+	-e tailscale_configure_approved=true
+
 # New isolated ownership; never invokes workstation host configuration.
 CONTROLLER_DIR := terraform/stacks/pve-lab-controller
 .PHONY: controller-check controller-plan controller-apply

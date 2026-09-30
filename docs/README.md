@@ -15,6 +15,7 @@
 | Construire la première application réelle | [Task125 Homepage](../tasks/125-homepage.md) | PLANNED après Flux/demo; instance neuve avant adaptation, aucun cutover |
 | Bootstrap Flux et démo Stage A | [Runbook Flux](flux-stage-a.md), [Task120](../tasks/120-gitops-stateless.md) | Code/CI validés; installation live bloquée par accès SSH, source Git anonyme |
 | Préparer la vente de pve-infra | [Inventaire et plan](pve-infra-evacuation.md), [Task150](../tasks/150-pve-infra-evacuation.md) | Inventaire read-only du28 septembre; gates sauvegarde/USB/Tailscale ouverts, aucun cutover |
+| Préparer les routeurs Tailscale redondants | [Runbook](tailscale-routers.md), [150-F](../tasks/150-f-tailscale-routers.md) | Repository-only; deux allocations et validation live requises |
 | CI qualité et frontière runner | [CI qualité](ci-quality.md) | Run139 LIVE VERIFIED; clôture sécurité 010/020 distincte |
 | Préparer une récupération indépendante | [Contrat et Recovery Kit v1](recovery-contract.md) | Contrat 030 accepté; kit et récupération non qualifiés |
 | Préparer capture, garde et validation du kit | [Préparation Recovery Kit](recovery-kit-preparation.md) | Schéma/tests synthétiques; export et drill non exécutés |

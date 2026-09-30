@@ -118,6 +118,9 @@ failure domain of DNS, edge and applications; retain an independent access path.
 6. **150-F, parallel before retirement: Tailscale route responsibility.** Choose
    destination; review scoped route/ACL approvals and prove independent client
    access/failover. No route/identity/credential change is authorized here.
+   Follow-up: the operator selected two new LXCs on pve-k8s-01/02; see the
+   [repository-only implementation/runbook](tailscale-routers.md). The above
+   inventory is historical; no live cutover or failover has been verified.
 7. **150-G: separate physical retirement approval**, only after all accepted
    cutovers, no needed local payloads/guests, replacement remote access, verified
    backups and reviewed automation/cluster-removal consequences.

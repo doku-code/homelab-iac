@@ -44,6 +44,10 @@ reviewed manifests, scoped RBAC and `make flux-check` / `make flux-install`
 interfaces. Code/CI pass; live bootstrap is blocked on controller SSH reachability.
 No Flux installation, CSI or application migration is claimed yet.
 
+The [Tailscale router pair](docs/tailscale-routers.md) provides a separate
+repository-only LXC/Ansible workflow (`make tailscale-check/plan/apply/configure`).
+Allocations, deployment and failover are not yet verified; pve-infra stays intact.
+
 For a new environment, start with [Starter prerequisites and input contracts](docs/deployment-inputs.md),
 not the original operator's credentials. Proxmox/access/network and suitable
 storage must already exist. Infisical/private/Starter/Recovery paths must reuse
