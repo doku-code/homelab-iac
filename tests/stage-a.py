@@ -48,7 +48,9 @@ def main():
     assert "|| { rm -f" in plan
     assert "STAGE_A_PLAN_SHA256" in make and "shasum -a 256 -c" in make
     assert 'output -json ansible_inventory > "$$inventory"' in make
-    assert make.count('inventory="$$work/inventory.json"') == 2
+    for target in ("stage-a-start", "stage-a-configure"):
+        recipe = make.split(f"{target}:\n", 1)[1].split("\n\n", 1)[0]
+        assert recipe.count('inventory="$$work/inventory.json"') == 1, target
     assert 'start-k3s-lab.yml -i ansible/inventories/homelab.yml -i "$$inventory"' in make
     with tempfile.TemporaryDirectory(prefix="stage-a-inventory-") as directory:
         inventory = Path(directory) / "inventory.json"
