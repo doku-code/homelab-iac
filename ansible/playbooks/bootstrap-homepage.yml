@@ -1,0 +1,62 @@
+---
+- name: Register only the fresh Stage A Homepage application with existing Flux
+  hosts: k3s_lab
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  tasks:
+    - name: Require explicit Homepage approval and complete Stage A inventory
+      ansible.builtin.assert:
+        that:
+          - homepage_install_approved | default(false) | bool
+          - not ansible_check_mode
+          - groups.k3s_lab | length == 3
+          - ansible_play_hosts_all | sort == groups.k3s_lab | sort
+          - k3s_init_host in groups.k3s_lab
+      run_once: true
+
+    - name: Register through the existing SSH administration path
+      run_once: true
+      delegate_to: "{{ k3s_init_host }}"
+      block:
+        - name: Read cluster identity before writes
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, get, nodes, -o, json]
+          register: homepage_nodes
+          changed_when: false
+        - name: Require the expected cluster identity set
+          ansible.builtin.assert:
+            that:
+              - (homepage_nodes.stdout | from_json)['items'] | map(attribute='metadata.name') | sort == k3s_node_names | sort
+        - name: Require the existing Ready Flux source
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, wait, gitrepository/homelab-iac, -n, flux-system, '--for=condition=Ready', '--timeout=30s']
+          changed_when: false
+        - name: Inspect Homepage namespace ownership
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, get, namespace, homepage, --ignore-not-found, -o, json]
+          register: homepage_namespace
+          changed_when: false
+        - name: Refuse adoption of an unrelated Homepage namespace
+          ansible.builtin.assert:
+            that:
+              - >-
+                homepage_namespace.stdout | trim == '' or
+                (homepage_namespace.stdout | from_json).metadata.labels.get('homelab-iac-bootstrap', '') == 'task125'
+        - name: Render only Homepage namespace RBAC and Flux registration
+          ansible.builtin.command:
+            argv: [kubectl, kustomize, "{{ playbook_dir }}/../../gitops/stage-a/homepage-bootstrap"]
+          delegate_to: localhost
+          become: false
+          register: homepage_bootstrap
+          changed_when: false
+        - name: Apply only Homepage bootstrap objects
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, apply, --server-side, --field-manager=homelab-homepage-bootstrap, -f, '-']
+            stdin: "{{ homepage_bootstrap.stdout }}"
+          register: homepage_apply
+          changed_when: "'serverside-applied' in homepage_apply.stdout"
+        - name: Wait for Flux to deploy Homepage from Git
+          ansible.builtin.command:
+            argv: [/usr/local/bin/k3s, kubectl, wait, kustomization/homepage, -n, flux-system, '--for=condition=Ready', '--timeout=240s']
+          changed_when: false

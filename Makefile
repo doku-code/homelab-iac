@@ -183,6 +183,18 @@ flux-install:
 	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory | $(VENV)/bin/python scripts/k3s-lab.py inventory > "$$work/inventory.json"; \
 	  ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) ansible/playbooks/bootstrap-flux.yml -i "$$work/inventory.json" -e flux_install_approved=true
 
+.PHONY: homepage-check homepage-install
+homepage-check:
+	$(VENV)/bin/python tests/homepage.py
+	$(ANSIBLE) ansible/playbooks/bootstrap-homepage.yml --syntax-check -i ansible/inventories/homelab.yml
+
+homepage-install:
+	@test "$(HOMEPAGE_INSTALL_APPROVED)" = yes || (echo "Explicit fresh Homepage installation approval required"; exit 1)
+	@set -euo pipefail; umask 077; work="$$(mktemp -d)"; trap 'rm -f "$$work/inventory.json"; rmdir "$$work"' EXIT; \
+	  test -f "$(STAGE_A_DIR)/terraform.tfstate"; \
+	  terraform -chdir=$(STAGE_A_DIR) output -json ansible_inventory | $(VENV)/bin/python scripts/k3s-lab.py inventory > "$$work/inventory.json"; \
+	  ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) ansible/playbooks/bootstrap-homepage.yml -i "$$work/inventory.json" -e homepage_install_approved=true
+
 # PostgreSQL host bootstrap state stays local; apply only the reviewed saved plan.
 TFSTATE_DIR := terraform/stacks/pve-core-tfstate
 TFSTATE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub

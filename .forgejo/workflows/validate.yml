@@ -179,6 +179,9 @@ jobs:
       - name: Test Flux manifests and bounded application offline
         run: .venv/bin/python tests/flux-demo.py
 
+      - name: Test fresh stateless Homepage offline
+        run: .venv/bin/python tests/homepage.py
+
       - name: Parse configuration and check script syntax
         run: .venv/bin/python scripts/check-quality.py
 

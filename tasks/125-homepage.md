@@ -1,6 +1,7 @@
 # 125 - Fresh declarative Homepage
 
-- Status: PLANNED; no implementation or live operation authorized here.
+- Status: IN_PROGRESS; fresh stateless deployment and normal pod recreation
+  authorized. CT201 inspection/adaptation explicitly excluded from this phase.
 - Dependencies: Task110 acceptance A and Task120 disposable Flux demo accepted.
 - Scope: first real application, fresh and disposable; no CT201 migration.
 
@@ -25,6 +26,13 @@ Acceptance:
 - Required functions work in the new instance with bounded resource use; Git
   revert/reconciliation is verified and CT201 remains unchanged and available.
 - Record actual validation and operator acceptance before choosing the next app.
+
+## Fresh phase - 2026-10-02
+
+The current assignment covers fresh deployment only; the CT201 comparison and
+adaptation criteria above remain open. See the [Homepage runbook](../docs/homepage-stage-a.md)
+for the pinned upstream source, configuration surfaces, scoped Flux registration,
+stateless runtime and test-only access. No live success inferred from manifests.
 
 Do not create a PVC for Git/ConfigMaps/Secrets-backed configuration just because
 CT201 had a filesystem. If actual mutable persistence is needed, explicitly scope
