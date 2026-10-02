@@ -7,4 +7,4 @@ resources:
 configMapGenerator:
   - name: demo-page
     literals:
-      - index.html=Stage A Flux demo - revision 1
+      - index.html=Stage A Flux demo - revision 2
