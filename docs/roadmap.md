@@ -1,7 +1,7 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
-status: "Task 110-A accepted; Task 120 repository validated, live SSH blocked"
-updated: 2026-09-30
+status: "Task 120 disposable milestone live verified; next fresh Homepage"
+updated: 2026-10-02
 ---
 
 # Canonical Homelab Roadmap
@@ -27,8 +27,8 @@ Task110 and any further infrastructure actions remain separate approval gates.
 - Task035 headless capability passed CI, but VM603/.32 not allocated, no plan/
   creation/start/convergence. Preserve its preflight; make VM an optional050 test.
 - Stage A K3s minimum foundation is accepted after targeted system-pod repair.
-  Flux/demo repository implementation passed CI; live installation is blocked by
-  controller SSH reachability. Storage remains unimplemented; real data untouched.
+  Flux/controllers/source/demo and one Git-driven change are live verified under
+  Task120; broader exercises remain open. Storage is unimplemented; real data untouched.
 
 ## Critical path and parallel work
 
@@ -158,10 +158,12 @@ zero-change Ansible convergence remains dated evidence, not a newly repeated run
 tests and an unchanged default public key. Other adapters remain separate work;
 publication CI is checked at delivery, not proof of live provider authentication.
 Lifecycle drills still need separate approval and evidence before110 DONE, but
-not before120:110 acceptance A is now satisfied. Task120 implementation801d1f6
-passed exact-SHA Forgejo CI and GitHub publication. SSH to all three Stage A guests
-currently times out from the controller; restore access before the approved Flux
-install and Git-driven demo qualification. No Flux resource has been installed.
+not before120:110 acceptance A is now satisfied. Task120's approved disposable
+milestone is live verified: restored strict SSH access, healthy Flux controllers,
+anonymous Forgejo source, two healthy demo replicas and Git-driven revision2.
+See [actual evidence](../tasks/120-gitops-stateless.md#live-disposable-milestone---2026-10-02).
+Broader drift/revert/source-outage/rescheduling exercises remain open, not claimed
+by the successful rollout. Next single task is125 fresh Homepage, not started here.
 Task035 remains separately unallocated.
 
 Task150 read-only assessment on2026-09-28 confirms infra/.10, CT200-204 and

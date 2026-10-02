@@ -23,7 +23,7 @@ Nothing here authorizes implementation, allocation, deployment or migration.
 | APPROVED OPERATOR REQUIREMENTS | pve-lab is dedicated to experimental Kubernetes during transition; workstations remain powered off with configuration/state/mappings preserved. Initial proposal: 3 x 2-vCPU/4-GiB VMs, subject to measured host capacity |
 | APPROVED DIRECTION | One stack definition, explicit input source, no mandatory Infisical or automatic fallback; Starter inputs versus Recovery inputs/data. Prioritize separately inventoried pve-infra evacuation, with core interim placement allowed |
 | UNRESOLVED DECISIONS | Physical allocations/capacity/API failover, exact TrueNAS/CSI compatibility, ingress/Caddy placement, each service's DB/storage/backup and eventual shared backend; alternative input interfaces remain incomplete |
-| IMPLEMENTED AND VERIFIED | Stage A VM/OS accepted; K3s installed and actual etcd healthy. Unit maintenance completed, system pods still blocked on projected-token permissions. Flux/CSI/service migration not implemented |
+| IMPLEMENTED AND VERIFIED | Stage A VM/OS and minimum K3s baseline accepted after system-pod repair. Task120 Flux/source/disposable demo and one Git-driven update live verified; advanced drills remain open. CSI/service migration not implemented |
 
 ## Reconciliation and deployment contract - 2026-09-27
 
@@ -72,9 +72,10 @@ joins, private node API/manual fallback, Flannel/CoreDNS, disabled bundled
 Traefik/ServiceLB/local-storage, scoped guest firewall and private lab-token path.
 Operator reported second convergence with zero changes. In the preceding approved
 maintenance, all three units/processes moved to0022, etcd remained healthy and
-server-2 became leader (term3). Both system pods now fail reading projected
-service-account tokens. This session makes no live checks or repairs; Task110
-owns this incident and remains open. Failure/restore/upgrade drills are unverified.
+server-2 became leader (term3). Task110 records subsequent targeted system-pod
+replacement and accepted minimum baseline; failure/restore/upgrade drills remain
+unverified. Task120 now records live Flux/source/demo and Git-driven update
+evidence. No wider architectural or physical-placement qualification is implied.
 
 | Evidence | Known result | Limit |
 | --- | --- | --- |

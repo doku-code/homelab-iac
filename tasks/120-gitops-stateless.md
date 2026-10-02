@@ -1,8 +1,8 @@
 # 120 - Flux, first disposable workload and measurements
 
-- Status: BLOCKED on SSH reachability to Stage A;110-A accepted and the bounded
-  Flux/demo installation authorized. Repository implementation/CI passed; no live
-  Flux installation or application reconciliation performed yet.
+- Status: LIVE VERIFIED for the approved disposable Flux milestone (2026-10-02):
+  installation, source/controllers, demo and one Git-driven change passed.
+  Broader exercise criteria below remain OPEN, not silently marked complete.
 - Deliverable: one reviewed Flux entry point, stateless public demo, bounded
   resource observations; extended measurements tracked for later placement.
 - Scope: code-only first; explicit approval for Flux bootstrap Git writes,
@@ -79,3 +79,63 @@ Next operator action: restore this controller's SSH reachability to the three
 existing guests. Then resume the already-approved `make flux-install
 FLUX_INSTALL_APPROVED=yes`, verify source/application/RBAC and one reviewed
 Git-driven demo page change. Do not start Homepage or mark Task120 DONE from CI.
+
+## Live disposable milestone - 2026-10-02
+
+The earlier SSH blocker is resolved: strict authenticated SSH returned the three
+expected hostnames; all nodes were Ready at v1.35.8+k3s1. No network, trust,
+Terraform, K3s configuration or service restart was needed. No existing Flux
+namespace was present before bootstrap.
+
+Publication gate:
+
+- Requested a80e60cc29044ad3cceb270e7045fb6b9b57d327 pushed; GitHub main matched.
+  Forgejo run42/API153 FAILED at the Stage A test's global Makefile inventory
+  count, which now also counted the Tailscale target. Not a Flux/runtime failure.
+- d908ce054cb00b3e3123b3f165e9fd4d5bdcff24 scoped the assertion to each of the two
+  Stage A recipes, retaining the guard. Local Stage A tests passed, Forgejo
+  run43/API154 succeeded and GitHub main matched before live installation.
+
+`make flux-install FLUX_INSTALL_APPROVED=yes` completed:
+**ok=10 changed=2 unreachable=0 failed=0**. Source-controller and
+kustomize-controller v1.9.5 each became 1/1 Ready with zero restarts. Anonymous
+Forgejo GitRepository and disposable-demo Kustomization became Ready at d908ce0.
+No privileged Git credentials, source Secret or controller kubeconfig export.
+
+The two digest-pinned BusyBox replicas initially ran on server-2/server-3;
+ClusterIP/service DNS HTTP returned `Stage A Flux demo - revision 1`.
+Published bde0e7c0c7282a436dc50f652f3edb38194ac01d changed only the page literal.
+Forgejo run44/API155 succeeded for this exact SHA and GitHub main matched it.
+Normal polling, without a forced reconcile or manual app apply, produced:
+
+- Source artifact and last applied revision both
+  `main@sha1:bde0e7c0c7282a436dc50f652f3edb38194ac01d`, Ready.
+- Deployment 2/2, new replicas on server-1/server-2, zero restarts.
+- Both individual pod HTTP responses and service-DNS HTTP returned revision2.
+- ConfigMap `demo-page-8728488c8t` replaced by `demo-page-fbgkmdh9kf`;
+  the old generated ConfigMap was pruned by Flux.
+
+Read-only impersonation checks: demo-reconciler can create deployments in
+flux-demo; denied in default, denied Secrets reads in flux-demo, denied
+ClusterRoleBinding creation. These checks are not proof of network isolation.
+Point-in-time node CPU was28/29/35m, memory944/901/958Mi (24/22/24 percent).
+Controller samples: kustomize3m/76Mi, source1m/35Mi. These are basic headroom
+observations, not sustained-load or 24-hour capacity qualification.
+
+Approved milestone criteria:
+
+- [x] Reviewed existing bootstrap installed; two healthy pinned controllers.
+- [x] Anonymous Forgejo source and namespace-scoped app reconciliation.
+- [x] Healthy disposable app and verified Git-driven HTTP/configuration change.
+- [x] Scoped RBAC denial and basic resource observations.
+- [x] No extra disposable validation resources created; no manual cleanup needed.
+- [ ] Deliberate drift correction, Git revert, source outage/recovery and forced
+  pod rescheduling remain unperformed; normal rolling replacement is not those drills.
+
+Local `make flux-check` passed before install and before the page change
+(render/pins/RBAC/source/approval regressions and Ansible syntax).
+No Homepage, NAS, persistent storage, physical topology or recovery changes.
+The demo remains as declared in Git; no teardown is defined or performed.
+The bounded disposable milestone is complete; Task120's broader exercises remain
+open under separate approval. Next single application task:125 fresh Homepage;
+do not begin it in this session.

@@ -1,8 +1,9 @@
 # Stage A Flux disposable demo
 
-Task [120](../tasks/120-gitops-stateless.md). Implementation is repository-validated;
-live installation/reconciliation evidence is recorded in the task, not inferred
-from CI. No Homepage, storage integration, production ingress or data migration.
+Task [120](../tasks/120-gitops-stateless.md#live-disposable-milestone---2026-10-02)
+records the live-verified bootstrap, healthy demo and Git-driven revision1-to-2
+change. Broader exercises remain open; CI alone is not live evidence.
+No Homepage, storage integration, production ingress or data migration.
 
 ## Pins and provenance
 

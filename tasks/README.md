@@ -70,7 +70,7 @@ not acceptance achieved. PLANNED tasks need assignment and any live approval.
 | [090](090-reusable-lxc.md) | Historical generic LXC-first proposal | SUPERSEDED as prerequisite by100; live CTs untouched |
 | [100](100-stage-a-headless-vms.md) | Three new headless server VM profiles | DONE / operator accepted live evidence for guests303-305 and second convergence |
 | [110](110-k3s-lifecycle.md) | K3s bootstrap/lifecycle/synthetic recovery | A live verified/operator accepted; advanced B remains open |
-| [120](120-gitops-stateless.md) | Flux/stateless demo | BLOCKED on live SSH access; code/CI passed, installation authorized but not performed |
+| [120](120-gitops-stateless.md) | Flux/stateless demo | Disposable milestone LIVE VERIFIED; broader drift/revert/outage/rescheduling exercises remain open |
 | [125](125-homepage.md) | Fresh Homepage, then observed CT201 functionality | PLANNED after120; no migration |
 | [130](130-storage-recovery.md) | Future TrueNAS CSI/storage qualification | DEFERRED until NAS readiness; initial node-local apps do not depend on it |
 | [140](140-placement-and-cutover.md) | Distributed/permanent placement and individual service DR/cutover | Epic split into bounded tasks before execution |
