@@ -32,6 +32,7 @@
 | Vérifier les gates PostgreSQL les plus récents de ce lot | [Gates PostgreSQL](terraform-pg-production-gates.md) | Checkpoint daté, **pas une autorisation de migration** |
 | Sauvegardes PostgreSQL | [Backup PostgreSQL](terraform-pg-backups.md) | Procédure et preuves datées; full PBS restore distinct |
 | Incident de démarrage VM502 | [Diagnostic workstation](workstation-start-diagnosis.md) | Diagnostic daté, pas une condition permanente |
+| Réconciliation USB du 10 octobre | [Imprimante et workstations](usb-transition-repair.md) | VM502/601 démarrent; imprimante non énumérée, intervention physique requise |
 
 ## Audit détaillé
 

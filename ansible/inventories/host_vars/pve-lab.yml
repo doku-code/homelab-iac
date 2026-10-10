@@ -23,7 +23,7 @@ pve_workstation_pci_mappings:
 
 pve_workstation_usb_mappings:
   - name: "pve-lab-workstation-logitech"
-    map: "node=pve-lab,id=046d:c539"
+    map: "node=pve-lab,id=046d:c088"
 
   - name: "pve-lab-workstation-keyboard"
     map: "node=pve-lab,id=1038:1622"

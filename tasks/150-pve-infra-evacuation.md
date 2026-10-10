@@ -49,3 +49,13 @@ canonical roadmap through110-A,120 and fresh125. Initial inventory is complete;
 ordinary CT transfers do not replace declarative Kubernetes application work.
 No live changes, DB/state inspection, secret-value retrieval or backup exports.
 Task110 incident, Task050 and architecture refactoring were not started.
+
+## Emergency USB follow-up - 2026-10-10
+
+See [targeted reconciliation evidence](../docs/usb-transition-repair.md).
+CT203 is now observed on pve-core after operator-managed moves; printing remains
+blocked by absent host USB enumeration. No CT/CUPS change or new print job.
+The separate authorized workstation repair corrected one shared Logitech mapping
+and verified sequential VM502/VM601 boot and graceful shutdown. Targeted
+Terraform planning remains pending operator authentication. This does not close
+the printer, recovery or evacuation acceptance criteria above.
