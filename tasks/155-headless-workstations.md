@@ -1,6 +1,6 @@
 # 155 - Retire physical workstation passthrough
 
-- Status: remote conversion LIVE VERIFIED; repository delivery in progress.
+- Status: remote conversion and implementation delivery LIVE VERIFIED.
   Physical POST acceptance remains separate and pending.
 - Scope: pve-lab and existing VM501/502/503/601/602 only; VM401 interruption and
   one normal host reboot with temporary quorum loss explicitly accepted.
@@ -16,7 +16,7 @@
 - [x] One controlled reboot; management/quorum and normal GPU ownership recover.
 - [x] Sequential boot/console/network checks; report guest-specific limitations.
 - [x] Restore original guest power policy; unrelated guests remain unchanged.
-- [ ] Local tests, reviewed commit/push, exact Forgejo CI and mirror verification.
+- [x] Local tests, reviewed commit/push, exact Forgejo CI and mirror verification.
 - [ ] Operator physical power+Ethernet-only POST test (separate from remote work).
 
 Provider authentication is unavailable to this execution environment. The
@@ -30,3 +30,11 @@ gracefully stopped after tests. VM401 restored. VM501 required disabling its
 legacy software virtual display adapter; no driver uninstall. VM501/503 both
 reported .51 during separate tests: do not run concurrently until addressing is
 reviewed. This task did not change network identities or resolve that overlap.
+
+Delivery evidence: implementation commit
+`23b476d885984bac4e1509b72d318dc98f7d0bc1` passed
+[Forgejo run48](https://git.doku-lab.net/Homelab/homelab-iac/actions/runs/48);
+GitHub main independently matched that exact SHA. Seven helper tests and19
+mocked Terraform tests passed locally; live post-reboot Ansible check changed=0.
+Software is ready for the operator's physical power+Ethernet-only test.
+Full physical acceptance remains open; no monitorless POST success is claimed.
