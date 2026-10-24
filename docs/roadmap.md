@@ -1,7 +1,7 @@
 ---
 title: "Homelab IaC - Reconstruction roadmap"
 status: "Task 120 disposable milestone live verified; next fresh Homepage"
-updated: 2026-10-02
+updated: 2026-10-24
 ---
 
 # Canonical Homelab Roadmap
@@ -15,6 +15,13 @@ not a competing active plan. Task100's authorized guest baseline is live verifie
 Task110 and any further infrastructure actions remain separate approval gates.
 
 ## Starting evidence and boundaries
+
+- Separate approved maintenance: [Task155](../tasks/155-headless-workstations.md)
+  retires pve-lab workstation GPU/USB passthrough in favor of virtual consoles.
+  Guest disks/identities and state ownership remain intact. This does not resume
+  Kubernetes/application work or establish concurrent workstation capacity.
+  Remote conversion evidence and the remaining physical headless POST test are
+  recorded in its [runbook](workstations-headless.md).
 
 - Quality CI is functional: run139/01ccefb reported, run24/8c12871 and
   run25/c636d1f observed successful. Task010 and formal020 security gates remain

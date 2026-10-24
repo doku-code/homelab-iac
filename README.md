@@ -143,7 +143,7 @@ requires explicit approval of the reviewed plan):
 
 ```bash
 make workstations-plan
-make workstations-apply
+make workstations-apply WORKSTATIONS_HEADLESS_APPROVED=yes
 make workstations-verify
 ```
 
@@ -154,12 +154,8 @@ Proxmox host rather than to the VM resource itself.
 
 Examples include:
 
-- VFIO configuration
-- GPU binding
-- PCI and USB resource mappings
-- Proxmox ACL configuration
-- CPU affinity
-- Proxmox hook scripts
+- Guarded retirement of workstation VFIO and physical resource mappings
+- Host and guest OS configuration
 - Monitoring deployment
 - Node Exporter deployment
 - Host auditing
@@ -167,54 +163,16 @@ Examples include:
 The roles aim for idempotence; syntax checks alone do not prove repeatable
 convergence on a fresh host. Consult the relevant qualification/runbook first.
 
-## Shared Workstation Pool
+## Headless Workstations
 
-One of the more experimental parts of this project is a pool of workstation
-VMs sharing physical workstation hardware.
+pve-lab is a network-managed Proxmox host. Windows and Linux workstations use
+standard virtual VGA/noVNC and virtual input, not a physical GPU, USB peripherals
+or a KVM. Existing OS disks, EFI/TPM and network identities are preserved.
+The retired passthrough exclusivity hook is removed; this does not imply enough
+RAM to run every workstation concurrently. Size concurrent use explicitly.
 
-The VMs can represent different environments such as:
-
-- Windows gaming
-- Windows development
-- Windows school/work
-- Ubuntu development
-- Fedora development
-
-They share resources such as a dedicated GPU and USB peripherals through
-PCI/USB passthrough.
-
-Because the physical hardware cannot safely be assigned to multiple guests at
-the same time, an Ansible-managed Proxmox hook provides exclusive access.
-
-```text
-Start workstation B
-        │
-        ▼
-Discover VMs tagged "workstation"
-        │
-        ▼
-Is another workstation running?
-        │
-       yes
-        │
-        ▼
-Request graceful shutdown
-        │
-        ▼
-Wait until stopped
-        │
-        ▼
-Release shared hardware
-        │
-        ▼
-Start workstation B
-```
-
-There is deliberately no automatic forced shutdown: if a guest cannot shut
-down cleanly, the new workstation is not started.
-
-Workstation membership is discovered dynamically through Proxmox tags rather
-than a hardcoded list of VM IDs.
+See [headless conversion and maintenance](docs/workstations-headless.md) for
+approval gates, state reconciliation and remote versus physical validation.
 
 ## Repository Structure
 
@@ -254,7 +212,7 @@ than a hardcoded list of VM IDs.
 
 ### `terraform/stacks/pve-lab-workstations`
 
-Manages workstation VMs and their shared hardware configuration.
+Manages existing workstation identities and virtual-only display/input.
 
 ### `terraform/stacks/deb13-monitoring`
 
@@ -262,8 +220,8 @@ Provisions infrastructure used by the monitoring stack.
 
 ### `ansible/roles/pve_workstation_host`
 
-Configures the Proxmox host for workstation workloads, including VFIO,
-resource mappings, CPU affinity and workstation arbitration.
+Retires workstation-owned passthrough mappings, hooks and VFIO boot overrides
+with explicit maintenance approval. Does not reboot or change CPU affinity.
 
 ### `services/monitoring`
 
@@ -303,9 +261,9 @@ make guests-apply LIMIT=w11-game
 `guests-inventory` queries Proxmox and shows discovered groups. `guests-apply`
 requires an explicit `LIMIT`; it does not run against every guest by default.
 
-The NVIDIA tag currently records declarative intent only. Guest driver
-installation is deferred until the supported Linux repositories, Windows
-driver source, and passthrough validation procedure are confirmed.
+Historical NVIDIA tags in existing VM profiles are not hardware assignments.
+Workstations now use virtual console drivers; no NVIDIA driver provisioning
+or physical passthrough is part of their deployment.
 
 ## Controller Prerequisites
 

@@ -38,24 +38,12 @@ resource "proxmox_virtual_environment_vm" "workstation" {
     floating  = local.workstation_profile.balloon
   }
 
-  dynamic "hostpci" {
-    for_each = lookup(var.hardware_profiles, each.key, local.default_hardware).gpu ? [1] : []
-    content {
-      device  = "hostpci0"
-      mapping = "pve-lab-workstation-gpu"
-      pcie    = true
-      rombar  = true
-      xvga    = true
-    }
+  vga {
+    type   = "std"
+    memory = 32
   }
-
-  dynamic "usb" {
-    for_each = lookup(var.hardware_profiles, each.key, local.default_hardware).usb_mappings
-    content {
-      mapping = usb.value
-      usb3    = true
-    }
-  }
+  tablet_device       = true
+  hook_script_file_id = ""
 
   efi_disk {
     datastore_id      = local.workstation_datastore
@@ -129,7 +117,6 @@ resource "proxmox_virtual_environment_vm" "workstation" {
     ignore_changes = [
       started,
       cpu[0].affinity,
-      hook_script_file_id,
     ]
   }
 }

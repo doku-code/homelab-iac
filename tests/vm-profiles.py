@@ -5,18 +5,23 @@ import hashlib
 import shutil
 import subprocess
 import tempfile
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
+    subprocess.run([sys.executable, str(ROOT / "tests/workstation-headless.py")], check=True)
     source = (ROOT / "terraform/stacks/pve-lab-workstations/vms.tf").read_text()
     # Snapshot the pre-change ordinary VM model, excluding only hardware blocks.
-    ordinary = source[:source.index('  dynamic "hostpci"')] + source[source.index('  efi_disk {'):]
+    ordinary = source[:source.index('  vga {')] + source[source.index('  efi_disk {'):]
+    ordinary = ordinary.replace("      cpu[0].affinity,\n", "      cpu[0].affinity,\n      hook_script_file_id,\n")
     assert hashlib.sha256(ordinary.encode()).hexdigest() == "486a0b319789a20fb0ef058b3d4654f7767c1d7cbaf7bca9c7dda6294ee6fa25"
     assert hashlib.sha256((ROOT / "terraform/stacks/pve-lab-workstations/locals.tf").read_bytes()).hexdigest() == "1b906b3f6a14a60d12b7ebc15a8068f0644eebd8448346222e9f267ef58545c8"
-    for clause in ["prevent_destroy = true", "started,", "cpu[0].affinity,", "hook_script_file_id,", "for_each = local.workstation_vms"]:
+    for clause in ["prevent_destroy = true", "started,", "cpu[0].affinity,", 'hook_script_file_id = ""', "for_each = local.workstation_vms"]:
         assert clause in source, clause
+    assert "hostpci" not in source and 'dynamic "usb"' not in source
+    assert "hook_script_file_id," not in source
     headless = (ROOT / "terraform/stacks/pve-lab-controller/main.tf").read_text()
     assert "hostpci" not in headless and "hook_script_file_id" not in headless
     with tempfile.TemporaryDirectory(prefix="vm-profiles-") as directory:

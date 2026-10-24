@@ -1,5 +1,5 @@
 ---
-- name: Configure pve-lab workstation hardware
+- name: Retire pve-lab workstation passthrough for virtual consoles
   hosts: pve-lab
   become: true
 

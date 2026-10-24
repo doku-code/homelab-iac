@@ -355,8 +355,9 @@ runner-migration-configure:
 	$(ANSIBLE) ansible/playbooks/configure-forgejo-runner-migration.yml -i $(MIGRATION_RUNNER_INVENTORY) --limit forgejo-runner-migration --diff
 
 workstations-bootstrap:
+	@test "$(WORKSTATIONS_HEADLESS_APPROVED)" = yes || (echo "Review headless maintenance and stop affected VMs; set WORKSTATIONS_HEADLESS_APPROVED=yes"; exit 1)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) $(WS_PLAYBOOK) --diff
+	$(ANSIBLE) $(WS_PLAYBOOK) --diff -e workstation_headless_approved=true
 
 workstations-plan:
 	rm -f $(WS_PLAN)
@@ -365,11 +366,12 @@ workstations-plan:
 	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) plan -out=$(WS_PLAN))
 
 workstations-apply:
+	@test "$(WORKSTATIONS_HEADLESS_APPROVED)" = yes || (echo "Review workstation maintenance; set WORKSTATIONS_HEADLESS_APPROVED=yes"; exit 1)
 	@test -f $(WS_PLAN) || \
 		(echo "No saved workstation plan. Run 'make workstations-plan' first."; exit 1)
 	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) apply -parallelism=1 $(WS_PLAN))
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
-	$(ANSIBLE) $(WS_PLAYBOOK) --diff
+	$(ANSIBLE) $(WS_PLAYBOOK) --diff -e workstation_headless_approved=true
 	rm -f $(WS_PLAN)
 
 workstations-verify:

@@ -13,10 +13,11 @@ run "existing_profiles" {
       vm.smbios[0].uuid == local.workstation_vms[k].smbios_uuid &&
       vm.disk[0].size == local.workstation_vms[k].disk_size &&
       !vm.started && !vm.on_boot && !vm.reboot_after_update &&
-      length(vm.hostpci) == 1 && vm.hostpci[0].mapping == "pve-lab-workstation-gpu" &&
-      [for u in vm.usb : u.mapping] == local.default_hardware.usb_mappings
+      length(vm.hostpci) == 0 && length(vm.usb) == 0 &&
+      vm.vga[0].type == "std" && vm.vga[0].memory == 32 &&
+      vm.tablet_device && vm.hook_script_file_id == ""
     ])
-    error_message = "Existing VM identity, disks, running policy or passthrough changed."
+    error_message = "Preserve identity/disks/power policy and require virtual-only display/input."
   }
   assert {
     condition     = toset(keys(proxmox_virtual_environment_vm.workstation)) == toset(["game", "dev", "school", "ubuntu", "fedora"])
@@ -30,8 +31,8 @@ run "optional_hardware" {
     hardware_profiles = { ubuntu = { gpu = false, usb_mappings = [] } }
   }
   assert {
-    condition     = length(proxmox_virtual_environment_vm.workstation["ubuntu"].hostpci) == 0 && length(proxmox_virtual_environment_vm.workstation["ubuntu"].usb) == 0 && length(proxmox_virtual_environment_vm.workstation["game"].hostpci) == 1
-    error_message = "Hardware capabilities must be independently optional."
+    condition     = alltrue([for vm in proxmox_virtual_environment_vm.workstation : length(vm.hostpci) == 0 && length(vm.usb) == 0])
+    error_message = "Legacy empty overrides must not reintroduce passthrough."
   }
 }
 
@@ -39,6 +40,14 @@ run "invalid_mapping" {
   command = plan
   variables {
     hardware_profiles = { ubuntu = { gpu = false, usb_mappings = ["unknown"] } }
+  }
+  expect_failures = [var.hardware_profiles]
+}
+
+run "retired_gpu" {
+  command = plan
+  variables {
+    hardware_profiles = { game = { gpu = true, usb_mappings = [] } }
   }
   expect_failures = [var.hardware_profiles]
 }
