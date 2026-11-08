@@ -34,6 +34,7 @@
 | Incident de démarrage VM502 | [Diagnostic workstation](workstation-start-diagnosis.md) | Diagnostic daté, pas une condition permanente |
 | Réconciliation USB du 10 octobre | [Imprimante et workstations](usb-transition-repair.md) | VM502/601 démarrent; imprimante non énumérée, intervention physique requise |
 | Workstations headless | [Conversion du 24 octobre](workstations-headless.md), [Task155](../tasks/155-headless-workstations.md) | Retrait permanent du passthrough; test physique sans écran distinct |
+| Windmill CE | [Déploiement dédié](windmill.md), [Task160](../tasks/160-windmill.md) | CT dédié préparé; allocation et validation live en attente |
 
 ## Audit détaillé
 

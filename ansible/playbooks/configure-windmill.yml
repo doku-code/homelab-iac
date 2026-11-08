@@ -1,0 +1,153 @@
+---
+- name: Configure only the dedicated Windmill CT
+  hosts: windmill
+  gather_facts: true
+  vars:
+    windmill_dir: /opt/windmill
+    db_env: "DB_PASSWORD={{ windmill_secrets.secrets.WINDMILL_DB_PASSWORD }}\n"
+  pre_tasks:
+    - name: Refuse other guests or non-LXC targets
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.hostname == 'windmill'
+          - ansible_facts.virtualization_type == 'lxc'
+          - ansible_facts.distribution == 'Debian'
+          - ansible_facts.distribution_major_version == '13'
+          - ansible_host in ansible_facts.all_ipv4_addresses
+
+    - name: Read only Windmill service credentials on the controller
+      delegate_to: localhost
+      become: false
+      check_mode: false
+      no_log: true
+      block:
+        - name: Authenticate using existing Universal Auth
+          infisical.vault.login:
+            url: https://secrets.doku-lab.net
+            auth_method: universal_auth
+            universal_auth_client_id: "{{ lookup('env','INFISICAL_CLIENT_ID') }}"
+            universal_auth_client_secret: "{{ lookup('env','INFISICAL_CLIENT_SECRET') }}"
+          register: windmill_login
+        - name: Read private service inputs
+          infisical.vault.read_secrets:
+            login_data: "{{ windmill_login.login_data }}"
+            project_id: "{{ (lookup('file', playbook_dir + '/../../.infisical.json') | from_json).workspaceId }}"
+            env_slug: dev
+            path: /windmill
+            as_dict: true
+          register: windmill_secrets
+        - name: Reject weak, missing or duplicated credentials before configuration
+          ansible.builtin.assert:
+            that:
+              - windmill_secrets.secrets.WINDMILL_DB_PASSWORD is match('^[A-Za-z0-9_-]{32,}$')
+              - windmill_secrets.secrets.WINDMILL_ADMIN_PASSWORD is string
+              - windmill_secrets.secrets.WINDMILL_ADMIN_PASSWORD | length >= 24
+              - windmill_secrets.secrets.WINDMILL_ADMIN_PASSWORD != windmill_secrets.secrets.WINDMILL_DB_PASSWORD
+
+  tasks:
+    - name: Refresh Debian metadata and install repository prerequisites
+      ansible.builtin.apt:
+        update_cache: true
+        name: [ca-certificates, python3-debian]
+        state: present
+    - name: Configure the existing Debian Docker CE repository convention
+      ansible.builtin.deb822_repository:
+        name: docker
+        types: [deb]
+        uris: [https://download.docker.com/linux/debian]
+        suites: ["{{ ansible_facts.distribution_release }}"]
+        components: [stable]
+        architectures: [amd64]
+        signed_by: https://download.docker.com/linux/debian/gpg
+        state: present
+      register: docker_repo
+    - name: Install Docker and Compose inside this CT only
+      ansible.builtin.apt:
+        update_cache: "{{ docker_repo.changed }}"
+        name: [docker-ce, docker-ce-cli, containerd.io, docker-compose-plugin]
+        state: present
+    - name: Enable Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        enabled: true
+        state: started
+    - name: Check the dedicated engine has no unrelated containers
+      ansible.builtin.command:
+        argv: [docker, ps, -aq, --filter, "label!=com.docker.compose.project=windmill"]
+      changed_when: false
+      register: other_containers
+      failed_when: other_containers.rc != 0 or other_containers.stdout | trim != ''
+    - name: Create restricted project directory
+      ansible.builtin.file:
+        path: "{{ windmill_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+    - name: Inspect private runtime environment without printing it
+      ansible.builtin.stat:
+        path: "{{ windmill_dir }}/.env"
+        checksum_algorithm: sha256
+      register: previous_env
+    - name: Reject unplanned database credential rotation
+      ansible.builtin.assert:
+        that: not previous_env.stat.exists or previous_env.stat.checksum == db_env | hash('sha256')
+      no_log: true
+    - name: List only the intended PostgreSQL volume
+      ansible.builtin.command: docker volume ls -q --filter name=^windmill_postgres$
+      register: volume
+      changed_when: false
+    - name: Require explicit fresh initialization if the volume is missing
+      ansible.builtin.assert:
+        that:
+          - volume.stdout == 'windmill_postgres' or (not previous_env.stat.exists and lookup('env','WINDMILL_INIT_APPROVED') == 'yes')
+        fail_msg: "Missing PostgreSQL volume. Restore it, or explicitly approve FIRST initialization on a fresh CT."
+    - name: Create only the first independent Windmill PostgreSQL volume
+      ansible.builtin.command: docker volume create --label homelab.owner=windmill windmill_postgres
+      when: volume.stdout != 'windmill_postgres'
+    - name: Verify volume ownership before attaching it
+      ansible.builtin.command:
+        argv: [docker, volume, inspect, windmill_postgres]
+      register: volume_owner
+      changed_when: false
+      failed_when: >-
+        volume_owner.rc != 0 or
+        ((volume_owner.stdout | from_json)[0].Labels | default({}, true)).get('homelab.owner') != 'windmill'
+    - name: Write restricted database environment for Compose
+      ansible.builtin.copy:
+        dest: "{{ windmill_dir }}/.env"
+        content: "{{ db_env }}"
+        mode: "0600"
+      no_log: true
+      diff: false
+    - name: Install reviewed Compose definition and verification script
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../services/windmill/{{ item }}"
+        dest: "{{ windmill_dir }}/{{ item }}"
+        mode: "0644"
+      loop: [compose.yml, verify.py]
+    - name: Start the dedicated project without removing other resources
+      community.docker.docker_compose_v2:
+        project_src: "{{ windmill_dir }}"
+        state: present
+      no_log: true
+    - name: Wait for the local API before admin initialization
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/api/version
+      register: api
+      until: api.status == 200
+      retries: 60
+      delay: 3
+    - name: Verify a real SQL read from the private Windmill database
+      ansible.builtin.command:
+        argv: [docker, compose, exec, -T, db, psql, -U, postgres, -d, windmill, -tAc, "SELECT 1"]
+        chdir: "{{ windmill_dir }}"
+      register: sql_check
+      changed_when: false
+      failed_when: sql_check.rc != 0 or sql_check.stdout | trim != '1'
+    - name: Initialize admin securely and run one real read-only smoke job
+      ansible.builtin.command:
+        argv: [python3, "{{ windmill_dir }}/verify.py"]
+        stdin: "{{ windmill_secrets.secrets.WINDMILL_ADMIN_PASSWORD | to_json }}"
+      no_log: true
+      changed_when: false

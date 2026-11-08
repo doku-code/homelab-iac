@@ -1,0 +1,42 @@
+name: windmill
+x-wm: &wm
+  image: ghcr.io/windmill-labs/windmill:1.864.1@sha256:4ec428ad7e4e970e2e38b791fc9aaca658fa0b9142cd94b88c3112c0577e2836
+  restart: unless-stopped
+  depends_on:
+    db: {condition: service_healthy}
+x-db-url: &url "postgres://postgres:${DB_PASSWORD:?missing private DB_PASSWORD}@db/windmill?sslmode=disable"
+services:
+  db:
+    image: postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+    restart: unless-stopped
+    shm_size: 1g
+    environment:
+      POSTGRES_DB: windmill
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?missing private DB_PASSWORD}"
+    volumes: [db_data:/var/lib/postgresql]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d windmill]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  server:
+    <<: *wm
+    environment:
+      MODE: server
+      DATABASE_URL: *url
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: [logs:/tmp/windmill/logs]
+  worker:
+    <<: *wm
+    environment:
+      MODE: worker
+      WORKER_GROUP: default
+      DATABASE_URL: *url
+    mem_limit: 2g
+    volumes: [cache:/tmp/windmill/cache, logs:/tmp/windmill/logs]
+volumes:
+  db_data:
+    external: true
+    name: windmill_postgres
+  cache: {}
+  logs: {}

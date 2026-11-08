@@ -395,3 +395,5 @@ deploy-monitoring:
 .PHONY: recovery-check
 recovery-check:
 	$(VENV)/bin/python tests/recovery-kit.py
+
+include services/windmill/targets.mk

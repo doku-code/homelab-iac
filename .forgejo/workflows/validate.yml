@@ -117,6 +117,7 @@ jobs:
             terraform/stacks/pve-compute-forgejo-runner \
             terraform/stacks/pve-core-garage \
             terraform/stacks/pve-core-tfstate \
+            terraform/stacks/pve-core-windmill \
             terraform/stacks/pve-tailscale-routers \
             terraform/stacks/pve-lab-controller \
             terraform/stacks/pve-lab-k3s \
@@ -139,6 +140,12 @@ jobs:
 
       - name: Validate monitoring Compose configuration
         run: docker-compose -f services/monitoring/compose.yml config --quiet
+
+      - name: Validate Windmill Compose configuration with synthetic inputs
+        run: |
+          set -euo pipefail
+          DB_PASSWORD=synthetic-ci-only docker-compose -f services/windmill/compose.yml config --quiet
+          .venv/bin/python tests/windmill.py
 
       - name: Test runner configuration offline
         run: .venv/bin/python tests/runner-connections.py
