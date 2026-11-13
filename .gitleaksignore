@@ -1,0 +1,3 @@
+# Reviewed false positives only (gitleaks fingerprint: commit:file:rule:line).
+# scripts/windmill-plan.py:58 passes the secret NAME "PROXMOX_ROOT_PASSWORD" to Infisical; no value.
+915333c2858bcb37e27e7870310820b8f6ea09d3:scripts/windmill-plan.py:generic-api-key:58
