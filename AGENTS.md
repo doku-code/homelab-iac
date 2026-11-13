@@ -4,7 +4,8 @@ Public Infrastructure-as-Code repository for a homelab under a **rolling rebuild
 infrastructure provisions its replacement, one service at a time. Every committed file is
 world-readable.
 
-Read first: [project overview](docs/project-overview.md) (vision, strategy) and
+Read first: [project vision](docs/project-overview.md) (vision, strategy, status, decisions vs
+assumptions — the single authoritative source) and
 [platform architecture](docs/architecture/platform.md) (layers, owners, target layout).
 Decisions: `docs/decisions/`. Current state: `harness status`.
 
@@ -39,8 +40,12 @@ planning metadata, never authorization.
   the code: never move, rename, delete or re-init those directories.
 - Existing services keep running until their replacement is validated with a rollback path.
   Adopt or replace explicitly; never delete something because it is legacy.
-- Prefer `pve-lab` or disposable guests for experiments; avoid reboots and high-impact tests
-  on hosts with critical workloads.
+- Never recreate existing VMs/containers without a verified migration plan, delete persistent
+  volumes or data, change IPs/DNS records/networking, touch pfSense or critical network services,
+  rotate secrets unnecessarily, remove cluster nodes, or migrate Forgejo, DNS or authentication
+  early. Backup verification and a rollback plan come before any destructive operation.
+- Keep read-only discovery separate from mutation; prefer testing against newly created resources,
+  `pve-lab` or disposable guests; avoid reboots and high-impact tests on critical hosts.
 - Validation CI gets no infrastructure credentials; only gated pushes to `main` run on the
   `homelab-iac` runner. Never add `pull_request` triggers to workflows on that runner.
 - Use `no_log: true` on Ansible tasks that handle secrets.

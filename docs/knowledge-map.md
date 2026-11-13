@@ -38,7 +38,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-003 | planned | high | M000 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M000 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
 | TASK-005 | planned | high | M000 | [Migration order and bootstrap credential requirements](../tasks/TASK-005-migration-order-and-bootstrap-credentials.md) | Decide the service migration order and list every bootstrap credential and recovery prerequisite. |
-| TASK-006 | planned | critical | M001 | [Target repository layout, OpenTofu toolchain and service catalog schema](../tasks/TASK-006-target-layout-and-service-contract.md) | Create the target layout (modules/, stacks/, services/, windmill/), pin OpenTofu, and define the service.yaml schema with offline validation. |
+| TASK-006 | planned | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](../tasks/TASK-006-target-layout-and-service-contract.md) | Create the target layout (modules/, stacks/), pin OpenTofu in the controller setup, add mgmt-* Make targets and offline CI validation for new roots. |
 | TASK-007 | planned | critical | M001 | [Scoped Proxmox API token and SSH access for pve-management](../tasks/TASK-007-pve-management-access.md) | Define and verify the dedicated automation identity, role and token on pve-management, and SSH access for Ansible. |
 | TASK-008 | planned | critical | M001 | [Reusable OpenTofu guest module and management VM root](../tasks/TASK-008-proxmox-guest-module-and-management-vm.md) | Write modules/opentofu/proxmox-guest (bpg/proxmox, cloud-init) and the stacks/management root that creates the Ubuntu management VM. |
 | TASK-009 | planned | high | M001 | [Ansible baseline for the management VM (toolchain and runner)](../tasks/TASK-009-management-vm-ansible-baseline.md) | Configure the management VM with Ansible: users, SSH hardening, OpenTofu, Ansible, SOPS/age, CLI tools, and a dedicated Forgejo runner. |
@@ -66,7 +66,7 @@ _No external references captured yet. Create one with `harness new api-reference
 
 ### Project overview
 
-- **DOC-project-overview** [homelab-iac — project overview](project-overview.md) (current) `overview, vision, rebuild` — Vision, rolling-rebuild strategy, scope and navigation for the homelab rebuild; read first.
+- **DOC-project-overview** [homelab-iac — project vision and overview](project-overview.md) (current) `overview, vision, rebuild, status` — Authoritative vision, rolling-rebuild strategy, principles, recovery philosophy, current status and confirmed decisions vs assumptions; read first.
 
 ### Architecture
 
@@ -75,6 +75,7 @@ _No external references captured yet. Create one with `harness new api-reference
 ### Investigation result
 
 - **INV-legacy-inventory** [Legacy homelab inventory (from the archived repository, unverified)](investigations/legacy-inventory.md) (needs-review) — inventory `investigation, inventory, legacy` — Hosts, guests, services and local Terraform states as described by the legacy repo at 915333c; starting point for the M000 live inventory, not current truth.
+- **INV-pve-management-bootstrap** [pve-management bootstrap — readiness and implementation plan](investigations/pve-management-bootstrap.md) (current) — pve-management `investigation, bootstrap, pve-management, plan` — Reusable IaC, missing prerequisites, task sequence and acceptance tests for provisioning the management VM on pve-management; plan only.
 
 ## Implementation history
 
@@ -90,7 +91,7 @@ _No commit records. Generate with `harness history sync`._
 - **argocd**: ADR-006
 - **automation**: M003
 - **backup**: TASK-003, TASK-004, TASK-010
-- **bootstrap**: ADR-002, M001
+- **bootstrap**: ADR-002, INV-pve-management-bootstrap, M001
 - **compose**: ADR-006
 - **compute**: M004
 - **cutover**: M007
@@ -102,11 +103,12 @@ _No commit records. Generate with `harness history sync`._
 - **harness**: TASK-001
 - **infisical**: ADR-004
 - **inventory**: INV-legacy-inventory, M000, TASK-002, TASK-003
-- **investigation**: INV-legacy-inventory
+- **investigation**: INV-legacy-inventory, INV-pve-management-bootstrap
 - **k3s**: ADR-006
 - **kubernetes**: ADR-006, M008
 - **layout**: TASK-006
 - **legacy**: ADR-007, INV-legacy-inventory
+- **make**: TASK-006
 - **management**: ADR-002
 - **migration**: ADR-001, M005, TASK-005
 - **observability**: M006
@@ -114,10 +116,11 @@ _No commit records. Generate with `harness history sync`._
 - **overview**: DOC-project-overview
 - **pbs**: TASK-004
 - **phase**: ADR-004, M002
+- **plan**: INV-pve-management-bootstrap
 - **planning**: M000, TASK-005
 - **platform**: ARCH-platform
 - **proxmox**: ADR-002, M004, TASK-002
-- **pve-management**: M001, TASK-007, TASK-008
+- **pve-management**: INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview
 - **recovery**: TASK-004, TASK-012
 - **repository**: TASK-001
@@ -125,9 +128,10 @@ _No commit records. Generate with `harness history sync`._
 - **runbook**: TASK-012
 - **runner**: TASK-009
 - **secrets**: ADR-004, M002, TASK-011
-- **service-catalog**: ADR-005, TASK-006
+- **service-catalog**: ADR-005
 - **sops**: ADR-004, TASK-011
 - **state**: ADR-007, TASK-010
+- **status**: DOC-project-overview
 - **strategy**: ADR-001
 - **terraform**: ADR-003
 - **vision**: DOC-project-overview
@@ -140,7 +144,7 @@ _No commit records. Generate with `harness history sync`._
 - **inventory**: INV-legacy-inventory
 - **orchestration**: ADR-005
 - **platform**: ADR-001, ARCH-platform
-- **pve-management**: ADR-002
+- **pve-management**: ADR-002, INV-pve-management-bootstrap
 - **repository**: ADR-007
 - **secrets**: ADR-004
 

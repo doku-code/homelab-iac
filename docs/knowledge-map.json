@@ -125,6 +125,10 @@
           "field": "related_decisions"
         },
         {
+          "from": "INV-pve-management-bootstrap",
+          "field": "related"
+        },
+        {
           "from": "M001",
           "field": "related_decisions"
         },
@@ -195,6 +199,10 @@
           "field": "related_decisions"
         },
         {
+          "from": "INV-pve-management-bootstrap",
+          "field": "related"
+        },
+        {
           "from": "M001",
           "field": "related_decisions"
         },
@@ -262,6 +270,10 @@
         {
           "from": "ARCH-platform",
           "field": "related_decisions"
+        },
+        {
+          "from": "INV-pve-management-bootstrap",
+          "field": "related"
         },
         {
           "from": "M001",
@@ -515,6 +527,7 @@
         "Target homelab platform architecture",
         "Overview",
         "Structure",
+        "Current versus target",
         "Layers and owners",
         "Hosts",
         "Target repository layout",
@@ -574,6 +587,10 @@
         },
         {
           "from": "INV-legacy-inventory",
+          "field": "related"
+        },
+        {
+          "from": "INV-pve-management-bootstrap",
           "field": "related"
         },
         {
@@ -664,8 +681,8 @@
     },
     {
       "id": "DOC-project-overview",
-      "title": "homelab-iac — project overview",
-      "summary": "Vision, rolling-rebuild strategy, scope and navigation for the homelab rebuild; read first.",
+      "title": "homelab-iac — project vision and overview",
+      "summary": "Authoritative vision, rolling-rebuild strategy, principles, recovery philosophy, current status and confirmed decisions vs assumptions; read first.",
       "importance": 5,
       "lifecycle": "active",
       "topics": [],
@@ -679,7 +696,8 @@
       "tags": [
         "overview",
         "vision",
-        "rebuild"
+        "rebuild",
+        "status"
       ],
       "component": null,
       "technology": null,
@@ -688,10 +706,15 @@
       "source": null,
       "version": null,
       "headings": [
-        "homelab-iac — project overview",
+        "homelab-iac — project vision and overview",
         "Purpose",
         "Scope",
+        "Principles",
+        "Bootstrap and disaster-recovery philosophy",
         "Structure",
+        "Roadmap",
+        "Current status (2026-11-12)",
+        "Confirmed decisions vs assumptions",
         "Where to look"
       ],
       "relations": {
@@ -699,7 +722,9 @@
           "ARCH-platform",
           "ADR-001",
           "INV-legacy-inventory",
-          "M000"
+          "INV-pve-management-bootstrap",
+          "M000",
+          "M001"
         ]
       },
       "backrefs": [
@@ -773,6 +798,87 @@
         },
         {
           "from": "DOC-project-overview",
+          "field": "related"
+        }
+      ]
+    },
+    {
+      "id": "INV-pve-management-bootstrap",
+      "title": "pve-management bootstrap — readiness and implementation plan",
+      "summary": "Reusable IaC, missing prerequisites, task sequence and acceptance tests for provisioning the management VM on pve-management; plan only.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [
+        "opentofu",
+        "bpg-proxmox",
+        "cloud-init",
+        "api-token",
+        "runner",
+        "state",
+        "sops"
+      ],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "investigation",
+      "status": "current",
+      "path": "docs/investigations/pve-management-bootstrap.md",
+      "tags": [
+        "investigation",
+        "bootstrap",
+        "pve-management",
+        "plan"
+      ],
+      "component": "pve-management",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "pve-management bootstrap — readiness and implementation plan",
+        "Question",
+        "Method",
+        "Findings",
+        "Reusable IaC",
+        "Runner capabilities and network",
+        "Proxmox API authentication",
+        "SSH",
+        "Image and cloud-init",
+        "State storage",
+        "Secrets bootstrap",
+        "Recovery",
+        "Inferences",
+        "Proposed sequence",
+        "Minimal acceptance tests",
+        "Open questions"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "ADR-002",
+          "ADR-003",
+          "ADR-004",
+          "M001"
+        ],
+        "related_tasks": [
+          "TASK-006",
+          "TASK-007",
+          "TASK-008",
+          "TASK-009",
+          "TASK-010",
+          "TASK-011",
+          "TASK-012"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "M001",
           "field": "related"
         }
       ]
@@ -898,7 +1004,8 @@
       ],
       "relations": {
         "related": [
-          "ARCH-platform"
+          "ARCH-platform",
+          "INV-pve-management-bootstrap"
         ],
         "related_tasks": [
           "TASK-006",
@@ -928,6 +1035,14 @@
         {
           "from": "ADR-004",
           "field": "related_milestones"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "INV-pve-management-bootstrap",
+          "field": "related"
         },
         {
           "from": "TASK-006",
@@ -1358,6 +1473,10 @@
         {
           "from": "TASK-006",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-007",
+          "field": "depends_on"
         }
       ]
     },
@@ -1424,10 +1543,6 @@
         },
         {
           "from": "TASK-005",
-          "field": "depends_on"
-        },
-        {
-          "from": "TASK-007",
           "field": "depends_on"
         }
       ]
@@ -1614,8 +1729,8 @@
     },
     {
       "id": "TASK-006",
-      "title": "Target repository layout, OpenTofu toolchain and service catalog schema",
-      "summary": "Create the target layout (modules/, stacks/, services/, windmill/), pin OpenTofu, and define the service.yaml schema with offline validation.",
+      "title": "Target repository layout, OpenTofu toolchain and management Make targets",
+      "summary": "Create the target layout (modules/, stacks/), pin OpenTofu in the controller setup, add mgmt-* Make targets and offline CI validation for new roots.",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -1629,7 +1744,7 @@
       "tags": [
         "layout",
         "opentofu",
-        "service-catalog"
+        "make"
       ],
       "component": null,
       "technology": null,
@@ -1638,7 +1753,7 @@
       "source": null,
       "version": null,
       "headings": [
-        "TASK-006 — Target repository layout, OpenTofu toolchain and service catalog schema",
+        "TASK-006 — Target repository layout, OpenTofu toolchain and management Make targets",
         "Goal",
         "Context",
         "Acceptance criteria",
@@ -1669,6 +1784,10 @@
         },
         {
           "from": "ADR-005",
+          "field": "related_tasks"
+        },
+        {
+          "from": "INV-pve-management-bootstrap",
           "field": "related_tasks"
         },
         {
@@ -1731,7 +1850,7 @@
           "ADR-002"
         ],
         "depends_on": [
-          "TASK-002"
+          "TASK-001"
         ],
         "milestone": [
           "M001"
@@ -1740,6 +1859,10 @@
       "backrefs": [
         {
           "from": "ADR-002",
+          "field": "related_tasks"
+        },
+        {
+          "from": "INV-pve-management-bootstrap",
           "field": "related_tasks"
         },
         {
@@ -1806,6 +1929,10 @@
       "backrefs": [
         {
           "from": "ADR-002",
+          "field": "related_tasks"
+        },
+        {
+          "from": "INV-pve-management-bootstrap",
           "field": "related_tasks"
         },
         {
@@ -1877,6 +2004,10 @@
           "field": "related_tasks"
         },
         {
+          "from": "INV-pve-management-bootstrap",
+          "field": "related_tasks"
+        },
+        {
           "from": "M001",
           "field": "related_tasks"
         },
@@ -1937,6 +2068,10 @@
       "backrefs": [
         {
           "from": "ADR-003",
+          "field": "related_tasks"
+        },
+        {
+          "from": "INV-pve-management-bootstrap",
           "field": "related_tasks"
         },
         {
@@ -2008,6 +2143,10 @@
           "field": "related_tasks"
         },
         {
+          "from": "INV-pve-management-bootstrap",
+          "field": "related_tasks"
+        },
+        {
           "from": "M001",
           "field": "related_tasks"
         },
@@ -2075,6 +2214,10 @@
       },
       "backrefs": [
         {
+          "from": "INV-pve-management-bootstrap",
+          "field": "related_tasks"
+        },
+        {
           "from": "M001",
           "field": "related_tasks"
         }
@@ -2095,7 +2238,8 @@
       "ADR-007"
     ],
     "investigation": [
-      "INV-legacy-inventory"
+      "INV-legacy-inventory",
+      "INV-pve-management-bootstrap"
     ],
     "milestone": [
       "M000",
@@ -2156,6 +2300,7 @@
     ],
     "bootstrap": [
       "ADR-002",
+      "INV-pve-management-bootstrap",
       "M001"
     ],
     "compose": [
@@ -2202,7 +2347,8 @@
       "TASK-003"
     ],
     "investigation": [
-      "INV-legacy-inventory"
+      "INV-legacy-inventory",
+      "INV-pve-management-bootstrap"
     ],
     "k3s": [
       "ADR-006"
@@ -2217,6 +2363,9 @@
     "legacy": [
       "ADR-007",
       "INV-legacy-inventory"
+    ],
+    "make": [
+      "TASK-006"
     ],
     "management": [
       "ADR-002"
@@ -2244,6 +2393,9 @@
       "ADR-004",
       "M002"
     ],
+    "plan": [
+      "INV-pve-management-bootstrap"
+    ],
     "planning": [
       "M000",
       "TASK-005"
@@ -2257,6 +2409,7 @@
       "TASK-002"
     ],
     "pve-management": [
+      "INV-pve-management-bootstrap",
       "M001",
       "TASK-007",
       "TASK-008"
@@ -2287,8 +2440,7 @@
       "TASK-011"
     ],
     "service-catalog": [
-      "ADR-005",
-      "TASK-006"
+      "ADR-005"
     ],
     "sops": [
       "ADR-004",
@@ -2297,6 +2449,9 @@
     "state": [
       "ADR-007",
       "TASK-010"
+    ],
+    "status": [
+      "DOC-project-overview"
     ],
     "strategy": [
       "ADR-001"

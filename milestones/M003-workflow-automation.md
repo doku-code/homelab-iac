@@ -39,6 +39,7 @@ Out of scope:
 
 ## Expected deliverables
 
+- `services/_schema/service.schema.json` catalog schema with offline validation (moved from TASK-006)
 - services/windmill definition
 - windmill/ scripts and flows in Git
 - First catalog-driven deployment workflow

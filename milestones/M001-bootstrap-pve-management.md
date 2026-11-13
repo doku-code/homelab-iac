@@ -10,7 +10,7 @@ updated: 2026-11-12
 tags: [bootstrap, pve-management]
 related_tasks: [TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012]
 related_decisions: [ADR-002, ADR-003, ADR-004, ADR-005]
-related: [ARCH-platform]
+related: [ARCH-platform, INV-pve-management-bootstrap]
 depends_on: []
 completion_criteria: []
 ---
@@ -20,6 +20,8 @@ completion_criteria: []
 ## Objective
 
 Establish the independent management foundation on the fresh pve-management host.
+
+Implementation plan: [INV-pve-management-bootstrap](../docs/investigations/pve-management-bootstrap.md).
 
 **Completion criterion:** Existing infrastructure provisions and configures a management VM on pve-management automatically, with recoverable state and bootstrap secrets.
 

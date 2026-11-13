@@ -31,6 +31,7 @@ Replace the unverified legacy inventory with observed facts.
 
 - [INV-legacy-inventory](../docs/investigations/legacy-inventory.md), including the pve-infra / pve-management address discrepancy
 - Legacy inventory `ansible/inventories/homelab.yml`
+- `pve-management` facts needed for M001 are verified in TASK-007; this task covers the legacy estate
 
 ## Acceptance criteria
 

@@ -56,7 +56,7 @@ gantt
 | ID | Priority | Milestone | Title |
 |----|----------|-----------|-------|
 | TASK-002 | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) |
-| TASK-006 | critical | M001 | [Target repository layout, OpenTofu toolchain and service catalog schema](../tasks/TASK-006-target-layout-and-service-contract.md) |
+| TASK-006 | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](../tasks/TASK-006-target-layout-and-service-contract.md) |
 | TASK-007 | critical | M001 | [Scoped Proxmox API token and SSH access for pve-management](../tasks/TASK-007-pve-management-access.md) |
 | TASK-008 | critical | M001 | [Reusable OpenTofu guest module and management VM root](../tasks/TASK-008-proxmox-guest-module-and-management-vm.md) |
 | TASK-010 | critical | M001 | [OpenTofu state management and backups](../tasks/TASK-010-state-management-and-backups.md) |

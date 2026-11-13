@@ -9,7 +9,7 @@ milestone: M001
 created: 2026-11-12
 updated: 2026-11-12
 tags: [pve-management, access]
-depends_on: [TASK-002]
+depends_on: [TASK-001]
 related: [ARCH-platform]
 related_decisions: [ADR-002]
 related_implementations: []
@@ -30,13 +30,15 @@ Automation can reach pve-management with least privilege; nothing is assumed to 
 ## Context
 
 - [ADR-002](../docs/decisions/ADR-002-pve-management-standalone-host.md)
-- TASK-002 network facts
+- Readiness and required privileges: [INV-pve-management-bootstrap](../docs/investigations/pve-management-bootstrap.md)
 
 ## Acceptance criteria
 
 - [ ] Documented role/privilege list for the automation user
 - [ ] Token created by the operator and stored as a bootstrap secret (TASK-011)
-- [ ] Read-only API call and SSH connection verified from the existing runner and from a workstation
+- [ ] Token reads `/version` and `/nodes` with TLS verified (pinned CA or trusted certificate)
+- [ ] Storages (incl. `import` content), bridge, free VMID and the management VM address recorded
+- [ ] Reachability of 8006/tcp and 22/tcp from the workstation and from CT301 recorded
 
 ## Verification
 

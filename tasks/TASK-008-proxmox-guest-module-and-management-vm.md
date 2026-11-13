@@ -29,6 +29,7 @@ Provision the management VM declaratively and idempotently.
 
 ## Context
 
+- Plan, reusable assets and acceptance tests: [INV-pve-management-bootstrap](../docs/investigations/pve-management-bootstrap.md)
 - TASK-006 layout
 - TASK-007 access
 - Legacy `terraform/examples/cloud-image-vm` as a reference only

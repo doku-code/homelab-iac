@@ -1,68 +1,127 @@
 ---
 id: DOC-project-overview
-title: homelab-iac — project overview
-summary: Vision, rolling-rebuild strategy, scope and navigation for the homelab rebuild; read first.
+title: homelab-iac — project vision and overview
+summary: Authoritative vision, rolling-rebuild strategy, principles, recovery philosophy, current status and confirmed decisions vs assumptions; read first.
 type: overview
 status: current
 importance: 5
 created: 2026-11-12
 updated: 2026-11-12
-tags: [overview, vision, rebuild]
-related: [ARCH-platform, ADR-001, INV-legacy-inventory, M000]
+tags: [overview, vision, rebuild, status]
+aliases: [PROJECT_VISION]
+related: [ARCH-platform, ADR-001, INV-legacy-inventory, INV-pve-management-bootstrap, M000, M001]
 ---
 
-# homelab-iac — project overview
+# homelab-iac — project vision and overview
+
+This is the authoritative project vision (the briefing of 2026-11-12). Architecture details live
+in [ARCH-platform](architecture/platform.md); decisions in [docs/decisions/](decisions/); work in
+[milestones](../milestones/) and [tasks](../tasks/). Other documents link here instead of repeating it.
 
 ## Purpose
 
 `homelab-iac` is the central Infrastructure-as-Code repository of a personal homelab that is
-being rebuilt into a reproducible, automated, self-hosted platform.
+being transformed from a manually maintained estate into a reproducible, automated platform.
 
 **Vision:** the homelab is reproducible from version-controlled definitions, with automated
-provisioning, OS configuration, application deployment, secrets, networking (DNS/HTTPS),
-monitoring, backup and recovery. Deploying a service becomes a mostly automated operation:
-select it, supply its configuration (a Windmill form), validate inputs and dependencies,
-provision, configure, fetch secrets, deploy, wire DNS/HTTPS, register monitoring and backups,
-run health checks and record the result. Mature open-source tools are assembled for this;
-no custom provisioning engine is built.
+provisioning, OS configuration, application deployment, secrets, networking, monitoring, backup
+and recovery, and no reliance on undocumented knowledge. Deploying a service becomes a mostly
+automated operation:
 
-**Strategy:** a rolling rebuild ([ADR-001](decisions/ADR-001-rolling-infrastructure-rebuild.md)).
-The running homelab provisions its replacement; services move one at a time with data
-migration, validation and rollback; emptied machines are reinstalled and joined. The old
-infrastructure builds the new until the new can manage itself. The first new node is
-`pve-management`, a standalone bootstrap and recovery host ([ADR-002](decisions/ADR-002-pve-management-standalone-host.md)).
+1. select the service or component; 2. supply its configuration (eventually a Windmill form);
+3. validate configuration and dependencies; 4. provision infrastructure; 5. configure the OS;
+6. retrieve secrets; 7. deploy the application; 8. configure networking, DNS and HTTPS;
+9. register monitoring and backups; 10. run health checks; 11. record the resulting state.
+
+This is assembled progressively from mature open-source tools; no custom provisioning engine.
+
+**Strategy — rolling rebuild** ([ADR-001](decisions/ADR-001-rolling-infrastructure-rebuild.md)):
+the existing homelab builds the new one, the new one gradually replaces the old one, and freed
+hardware joins the new environment. Per service: deploy a clean replacement, migrate data and
+configuration, validate, prepare rollback, cut over, retire the old instance. An emptied machine
+is reinstalled and joined. No step may require every machine at once or a full hardware duplicate;
+minimal downtime, no data loss and a rollback path are mandatory.
 
 ## Scope
 
-In scope: Proxmox hosts and guests (OpenTofu), OS configuration (Ansible), Compose
-applications, Forgejo Actions workflows, Windmill workflows, secret references (Phase,
-SOPS + age bootstrap), DNS/proxy, monitoring and backup configuration, recovery runbooks.
+In scope: Proxmox hosts and guests (OpenTofu), OS configuration (Ansible), Compose applications,
+Forgejo Actions and Windmill workflows, secret references, DNS/proxy, monitoring and backup
+configuration, bootstrap and recovery runbooks.
 
-Out of scope: secret values, Terraform/OpenTofu state, private tfvars, recovery keys — never
-committed. The repository is public.
+Never in Git: secret values, OpenTofu/Terraform state, private tfvars, recovery keys. The repository is public.
 
-Principles: reproducibility, idempotency, one owner per layer, minimal complexity (no
-Kubernetes/HA/distributed storage without need), security by design (scoped identities,
-no secrets in Git or CI logs), independent recovery from a clean workstation, and small
-incremental changes. Details in [ARCH-platform](architecture/platform.md).
+### Principles
+
+| Principle | Meaning here |
+|-----------|--------------|
+| Reproducibility | Rebuildable from Git + bootstrap credentials + state + off-host data backups; no unreproducible manual change |
+| Idempotency | Re-running automation converges without duplicates or breakage |
+| Separation of concerns | Hypervisor, provisioning, OS config, app config and orchestration stay separate layers ([ARCH-platform](architecture/platform.md#layers-and-owners)) |
+| Minimal complexity | Compose by default; no Kubernetes, HA or distributed storage without demonstrated need |
+| Security by design | Dedicated scoped identities, no plaintext secrets/state/keys in Git, protected CI logs, verified TLS |
+| Independent recovery | A clean workstation with the repo, recovery keys and off-host backups can start recovery |
+| Incremental delivery | Smallest useful change, tested, then the next; no oversized milestones |
+
+### Bootstrap and disaster-recovery philosophy
+
+- `pve-management` is a standalone bootstrap, orchestration and recovery host, not a compute node
+  ([ADR-002](decisions/ADR-002-pve-management-standalone-host.md)). It is first provisioned *from*
+  the existing infrastructure; the management VM is never a prerequisite of its own creation.
+- Every bootstrap step also runs from an administrator workstation. Forgejo, Phase and Windmill
+  are conveniences during normal operation, never requirements for recovering themselves.
+- Bootstrap secrets are SOPS + age encrypted; age private keys and recovery material are held
+  outside the infrastructure they protect ([ADR-004](decisions/ADR-004-secrets-phase-runtime-sops-bootstrap.md)).
+- Backups count only once a restore has been tested. Pod rescheduling, snapshots or CI success
+  are not data recovery.
 
 ## Structure
 
 | Path | Content |
 |------|---------|
-| `docs/architecture/platform.md` | Target architecture: layers, owners, stack, service catalog, recovery |
-| `docs/decisions/` | Decision records (ADR-001…) |
-| `docs/investigations/` | Inventories and findings (legacy estate, live audits) |
-| `milestones/`, `tasks/` | Roadmap M000–M008 and executable tasks |
+| `docs/architecture/platform.md` | Current vs target architecture, layer owners, stack, service catalog, recovery flow |
+| `docs/decisions/` | Decision records ADR-001…007 |
+| `docs/investigations/` | Legacy inventory, pve-management bootstrap readiness and plan |
+| `milestones/`, `tasks/` | Roadmap M000–M008 and the tasks of the next two milestones |
 | `docs/archive/codex-2026/` | Previous agent workflow, roadmap, tasks and runbooks — evidence only, not indexed |
-| `terraform/stacks/`, `ansible/`, `services/`, `gitops/`, `scripts/`, `tests/`, `Makefile` | Legacy implementation still managing live resources ([ADR-007](decisions/ADR-007-archive-legacy-workflow-keep-live-roots.md)) |
+| `terraform/`, `ansible/`, `services/`, `gitops/`, `scripts/`, `tests/`, `Makefile` | Legacy implementation still managing live resources ([ADR-007](decisions/ADR-007-archive-legacy-workflow-keep-live-roots.md)) |
 
-New code follows the target layout in [ARCH-platform](architecture/platform.md#target-repository-layout).
+### Roadmap
+
+M000 inventory and migration planning (active) → **M001 bootstrap `pve-management`** (first
+implementation milestone) → M002 Phase → M003 Windmill → M004 new compute → M005 rolling
+application migration → M006 observability → M007 core cutover and retirement → M008 future
+(k3s + Argo CD, self-service catalog). Progress: [dashboard](dashboard.md).
+
+### Current status (2026-11-12)
+
+- Repository reset onto the agent harness; legacy documentation archived; this direction documented.
+- `pve-management` is installed (fresh Proxmox VE) with no management workloads. Its API identity,
+  SSH access, storage and network have **not** been verified.
+- Legacy services keep running; nothing has been migrated. Nine legacy Terraform roots hold their
+  only state as local files on the operator workstation.
+- Next: M001 bootstrap plan in [INV-pve-management-bootstrap](investigations/pve-management-bootstrap.md),
+  in parallel with the read-only M000 inventory.
+
+### Confirmed decisions vs assumptions
+
+| Item | Status |
+|------|--------|
+| Rolling rebuild; old infrastructure builds the new | **Confirmed** (ADR-001) |
+| `pve-management` standalone, minimal hypervisor, Ubuntu management VM | **Confirmed** (ADR-002) |
+| OpenTofu for new roots, `bpg/proxmox` provider; legacy roots migrate one by one | **Confirmed** (ADR-003) |
+| Windmill as operations UI over versioned workflows and a service catalog | **Confirmed** (ADR-005) |
+| Compose first; k3s + Argo CD later; Flux not the target | **Confirmed** (ADR-006) |
+| SOPS + age for bootstrap secrets | **Confirmed** (ADR-004) |
+| Phase as the runtime secret store | **Selected, pending validation** of self-hosted features and licence (ADR-004 is `proposed`) |
+| Existing CI runners can provision `pve-management` | **Assumption, contradicted today**: CI is validation-only and the CT301 runner trust gate is open; see the bootstrap plan |
+| Legacy host/service inventory | **Assumption** from archived docs ([INV-legacy-inventory](investigations/legacy-inventory.md)); `pve-infra` and `pve-management` share the same address in the legacy inventory |
+| Spare machine for the new compute environment; cluster topology | **Unknown** (M004) |
+| State backend for new roots | **Open** (TASK-010); Garage rejected, PostgreSQL candidate never production-qualified |
 
 ## Where to look
 
 - Current status and next task: `harness status`; roadmap: [dashboard](dashboard.md).
 - Before infrastructure work: [ARCH-platform](architecture/platform.md) and the relevant ADR.
+- First implementation: [INV-pve-management-bootstrap](investigations/pve-management-bootstrap.md) and
+  [M001](../milestones/M001-bootstrap-pve-management.md).
 - What exists today (unverified): [INV-legacy-inventory](investigations/legacy-inventory.md).
-- First milestones: [M000 inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md),
-  then [M001 bootstrap pve-management](../milestones/M001-bootstrap-pve-management.md).

@@ -30,6 +30,18 @@ evidence; the legacy estate is described in [INV-legacy-inventory](../investigat
 
 ## Structure
 
+### Current versus target
+
+| Concern | Current (legacy, partly verified) | Target |
+|---------|-----------------------------------|--------|
+| Provisioning | Terraform ≥ 1.16 + `bpg/proxmox` 0.112.0, per-guest roots, local state on one workstation | OpenTofu roots with backed-up remote state (TASK-010) |
+| Proxmox auth | Mixed: API token (Stage A) and `root@pam` password from Infisical (Tailscale, Windmill flows) | Dedicated scoped API token per environment |
+| Execution | Operator-run Make targets; CI is validation-only on the CT301 runner (open trust gate) | Same Make entrypoints, plus a trusted runner on the management VM and Windmill triggers |
+| Services | Mostly hand-configured guests (Forgejo on TrueNAS, Infisical, AdGuard, Caddy, Vaultwarden, Wiki.js…) | `services/<service>/` catalog entries deployed by Ansible + Compose |
+| Secrets | Infisical (Universal Auth) | Phase at runtime, SOPS + age for bootstrap |
+| Kubernetes | K3s Stage A lab + Flux demo on `pve-lab` | None by default; k3s + Argo CD later (ADR-006) |
+| Management | No dedicated management host | `pve-management` with management VM(s) |
+
 ### Layers and owners
 
 Each layer has exactly one owner. A tool never writes objects another layer owns.
