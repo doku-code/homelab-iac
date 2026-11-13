@@ -17,6 +17,9 @@ def main():
     with tempfile.TemporaryDirectory(prefix="stage-a-inputs-") as directory:
         base = Path(directory)
         shutil.copyfile(ROOT / "Makefile", base / "Makefile")
+        # The Makefile includes per-service target fragments.
+        (base / "services/windmill").mkdir(parents=True)
+        shutil.copyfile(ROOT / "services/windmill/targets.mk", base / "services/windmill/targets.mk")
         (base / "scripts").mkdir()
         shutil.copyfile(ROOT / "scripts/stage-a-inputs.py", base / "scripts/stage-a-inputs.py")
         (base / ".venv/bin").mkdir(parents=True)
