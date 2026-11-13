@@ -30,7 +30,7 @@ the plan is missing and uses the same Universal Auth wrapper as planning.
 Garage was deployed on CT209, but FAILED the native Terraform concurrency
 gate. It is unsuitable for this repository's Terraform backend requirement.
 Do not migrate a canary or production state. See
-[the evaluation report](../../../docs/garage-evaluation.md) for measured results.
+[the evaluation report](../../../docs/archive/codex-2026/docs/garage-evaluation.md) for measured results.
 
 The original deployment gates were:
 

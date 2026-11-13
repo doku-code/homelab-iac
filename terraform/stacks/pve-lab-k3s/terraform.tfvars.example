@@ -1,6 +1,6 @@
 # Documentation-only allocations. Replace after your own allocation/capacity review.
 # Copy to ignored terraform.tfvars in a fresh checkout, never over existing inputs.
-# Set TF_VAR_ssh_public_key from YOUR public key as shown in docs/k3s-stage-a.md.
+# Set TF_VAR_ssh_public_key from YOUR public key as shown in docs/archive/codex-2026/docs/k3s-stage-a.md.
 # Provider credentials belong only in the runtime environment, never here.
 proxmox_endpoint = "https://proxmox.example.invalid:8006/"
 proxmox_insecure = false

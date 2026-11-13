@@ -7,7 +7,7 @@ on:
 
 jobs:
   validate:
-    # Activation gate, not isolation: see docs/ci-quality.md before enabling.
+    # Activation gate, not isolation: see docs/archive/codex-2026/docs/ci-quality.md before enabling.
     if: forgejo.ref == 'refs/heads/main' && vars.CI_QUALITY_APPROVED == 'true'
     runs-on: homelab-iac
 

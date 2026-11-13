@@ -53,10 +53,10 @@ Passed gates: remote state CRUD, native two-client mutual exclusion, observed
 advisory locks, crashed-session lock release, cross-root database isolation,
 narrow PBS inclusion, and isolated logical backup/restore. Temporary databases
 and credentials were removed. No existing state migration is authorized.
-See the [qualification report](../../../docs/terraform-pg-backend-qualification.md)
+See the [qualification report](../../../docs/archive/codex-2026/docs/terraform-pg-backend-qualification.md)
 for measured results, historical runner/PBS ambiguity and remaining limits.
 
 The eventual endpoint is `tfstate.doku-lab.net:5432` with native PostgreSQL TLS,
 not an HTTP reverse proxy. Direct-IP trusted-LAN disposable qualification is
 permitted with restricted clients; final DNS/TLS is required for production.
-See [the backend design](../../../docs/terraform-pg-backend-design.md).
+See [the backend design](../../../docs/archive/codex-2026/docs/terraform-pg-backend-design.md).

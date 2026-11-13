@@ -117,7 +117,7 @@ def main():
         read_token(path)
         print("PASS: private bootstrap token available; value withheld")
     except (ValueError, KeyError, TypeError, OSError, yaml.YAMLError):
-        print("FAIL: invalid inventory/profile or private token prerequisites; see docs/k3s-bootstrap.md", file=sys.stderr)
+        print("FAIL: invalid inventory/profile or private token prerequisites; see docs/archive/codex-2026/docs/k3s-bootstrap.md", file=sys.stderr)
         raise SystemExit(1)
 
 

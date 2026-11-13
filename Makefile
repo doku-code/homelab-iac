@@ -62,7 +62,7 @@ tailscale-check:
 	$(ANSIBLE) --syntax-check ansible/playbooks/configure-tailscale-routers.yml
 
 tailscale-plan:
-	@test -f "$(TAILSCALE_DIR)/terraform.tfvars" || (echo "Supply the two approved allocations in private terraform.tfvars; see docs/tailscale-routers.md"; exit 1)
+	@test -f "$(TAILSCALE_DIR)/terraform.tfvars" || (echo "Supply the two approved allocations in private terraform.tfvars; see docs/archive/codex-2026/docs/tailscale-routers.md"; exit 1)
 	rm -f "$(TAILSCALE_DIR)/tailscale.tfplan"
 	terraform -chdir=$(TAILSCALE_DIR) fmt -check
 	terraform -chdir=$(TAILSCALE_DIR) init -input=false -lockfile=readonly
