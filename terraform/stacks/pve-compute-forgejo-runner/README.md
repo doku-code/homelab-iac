@@ -1,5 +1,9 @@
 # Forgejo Runner Container
 
+> **Retired host (2026-11-12):** `pve-compute` no longer exists. The local state of this root
+> still records CT300 (retired runner; ID 300 is now `tfstate` on `pve-core`) on `pve-compute` and is stale; it is kept untouched pending review
+> ([INV-legacy-inventory](../../../docs/investigations/legacy-inventory.md)). Live Make targets refuse to run.
+
 RETIRED: the operator permanently retired the old CT300 runner and reassigned
 CT300 / 192.168.0.30 to PostgreSQL on pve-core. The authoritative new allocation
 is in `../pve-core-tfstate`. CT301 is the active Forgejo runner. Instructions

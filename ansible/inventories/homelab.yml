@@ -7,6 +7,9 @@ all:
           ansible_user: debian
           ansible_python_interpreter: /usr/bin/python3
 
+    # pve-infra and pve-compute are permanently retired (2026-11-12). 192.168.0.10 now
+    # belongs to the standalone pve-management host, which is deliberately NOT in this
+    # legacy group: audit-linux.yml and deploy-node-exporter.yml target `proxmox`.
     proxmox:
       vars:
         ansible_user: root
@@ -17,11 +20,5 @@ all:
         pve-core:
           ansible_host: 192.168.0.11
 
-        pve-compute:
-          ansible_host: 192.168.0.12
-
         pve-lab:
           ansible_host: 192.168.0.14
-
-        pve-infra:
-          ansible_host: 192.168.0.10

@@ -26,6 +26,17 @@ define INFISICAL_RUN
 		--env "$(INFISICAL_ENV)" -- $(1)
 endef
 
+# Retired hosts (2026-11-12): pve-infra (192.168.0.10) and pve-compute (192.168.0.12) no longer
+# exist; 192.168.0.10 is now the standalone pve-management host. Legacy roots must never reach it.
+RETIRED_ENDPOINT_RE := //192\.168\.0\.(10|12)[:/]
+define LEGACY_ENDPOINT_GUARD
+	@if cat "$(1)/terraform.tfvars" "$(1)/terraform.tfvars.json" 2>/dev/null | grep -Eq '"?proxmox_endpoint"?[[:space:]]*[=:].*$(RETIRED_ENDPOINT_RE)'; then \
+		echo "$(1): proxmox_endpoint targets a retired host address; 192.168.0.10 is now pve-management. Point the private tfvars at the legacy cluster API first." >&2; exit 1; fi
+endef
+define RETIRED_ROOT
+	@echo "$(1) records resources on the retired pve-compute host; its local state is stale and under review (docs/investigations/legacy-inventory.md). Live Terraform operations are refused." >&2; exit 1
+endef
+
 .PHONY: \
 	setup-controller \
 	workstations-check \
@@ -62,6 +73,7 @@ tailscale-check:
 	$(ANSIBLE) --syntax-check ansible/playbooks/configure-tailscale-routers.yml
 
 tailscale-plan:
+	$(call LEGACY_ENDPOINT_GUARD,$(TAILSCALE_DIR))
 	@test -f "$(TAILSCALE_DIR)/terraform.tfvars" || (echo "Supply the two approved allocations in private terraform.tfvars; see docs/archive/codex-2026/docs/tailscale-routers.md"; exit 1)
 	rm -f "$(TAILSCALE_DIR)/tailscale.tfplan"
 	terraform -chdir=$(TAILSCALE_DIR) fmt -check
@@ -70,6 +82,7 @@ tailscale-plan:
 	@$(TAILSCALE_AUTH) plan
 
 tailscale-apply:
+	$(call LEGACY_ENDPOINT_GUARD,$(TAILSCALE_DIR))
 	@test "$(TAILSCALE_APPLY_APPROVED)" = yes || (echo "Review the saved two-router plan; set TAILSCALE_APPLY_APPROVED=yes only after approval"; exit 1)
 	@test -f "$(TAILSCALE_DIR)/tailscale.tfplan" || (echo "Missing reviewed tailscale.tfplan"; exit 1)
 	@TAILSCALE_APPLY_APPROVED="$(TAILSCALE_APPLY_APPROVED)" $(TAILSCALE_AUTH) apply
@@ -91,12 +104,14 @@ controller-check:
 	$(ANSIBLE) ansible/playbooks/configure-recovery-controller.yml --syntax-check -i ansible/inventories/homelab.yml
 
 controller-plan:
+	$(call LEGACY_ENDPOINT_GUARD,$(CONTROLLER_DIR))
 	@test "$(CONTROLLER_ALLOCATION_REVIEWED)" = yes || (echo "Review live VMID/IP, image, storage and network allocation first"; exit 1)
 	@test -f "$(CONTROLLER_DIR)/terraform.tfvars" || (echo "Missing private reviewed profile"; exit 1)
 	terraform -chdir=$(CONTROLLER_DIR) init -input=false -lockfile=readonly
 	$(call INFISICAL_RUN,terraform -chdir=$(CONTROLLER_DIR) plan -input=false -out=controller.tfplan)
 
 controller-apply:
+	$(call LEGACY_ENDPOINT_GUARD,$(CONTROLLER_DIR))
 	@test "$(CONTROLLER_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required"; exit 1)
 	@test -f "$(CONTROLLER_DIR)/controller.tfplan" || (echo "Missing reviewed saved plan"; exit 1)
 	$(call INFISICAL_RUN,terraform -chdir=$(CONTROLLER_DIR) apply -input=false controller.tfplan)
@@ -114,6 +129,7 @@ stage-a-check:
 	$(ANSIBLE) ansible/playbooks/start-k3s-lab.yml --syntax-check -i ansible/inventories/homelab.yml
 
 stage-a-plan:
+	$(call LEGACY_ENDPOINT_GUARD,$(STAGE_A_DIR))
 	@test "$(STAGE_A_ALLOCATION_REVIEWED)" = yes || (echo "Review allocation, stopped workstations, local storage and host capacity first"; exit 1)
 	rm -f "$(STAGE_A_DIR)/stage-a.tfplan"
 	@test -f "$(STAGE_A_DIR)/terraform.tfvars" || (echo "Missing private reviewed Stage A inputs"; exit 1)
@@ -123,6 +139,7 @@ stage-a-plan:
 	shasum -a 256 "$(STAGE_A_DIR)/stage-a.tfplan"
 
 stage-a-apply:
+	$(call LEGACY_ENDPOINT_GUARD,$(STAGE_A_DIR))
 	@test "$(STAGE_A_APPLY_APPROVED)" = yes || (echo "Explicit exact-plan approval required"; exit 1)
 	@test -n "$(STAGE_A_PLAN_SHA256)" || (echo "Supply the reviewed plan SHA256"; exit 1)
 	@printf '%s  %s\n' '$(STAGE_A_PLAN_SHA256)' '$(STAGE_A_DIR)/stage-a.tfplan' | shasum -a 256 -c
@@ -201,6 +218,7 @@ TFSTATE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub
 
 .PHONY: tfstate-plan tfstate-apply
 tfstate-plan:
+	$(call LEGACY_ENDPOINT_GUARD,$(TFSTATE_DIR))
 	@test -r "$(TFSTATE_SSH_PUBLIC_KEY_FILE)" || (echo "Missing controller public SSH key"; exit 1)
 	rm -f "$(TFSTATE_DIR)/tfstate.tfplan"
 	terraform -chdir=$(TFSTATE_DIR) fmt -check
@@ -209,6 +227,7 @@ tfstate-plan:
 	$(call INFISICAL_RUN,env TF_VAR_management_ssh_public_key="$$(cat "$(TFSTATE_SSH_PUBLIC_KEY_FILE)")" terraform -chdir=$(TFSTATE_DIR) plan -input=false -out=tfstate.tfplan)
 
 tfstate-apply:
+	$(call LEGACY_ENDPOINT_GUARD,$(TFSTATE_DIR))
 	@test -f "$(TFSTATE_DIR)/tfstate.tfplan" || (echo "Missing reviewed tfstate plan; run make tfstate-plan first"; exit 1)
 	$(call INFISICAL_RUN,terraform -chdir=$(TFSTATE_DIR) apply -input=false tfstate.tfplan)
 
@@ -234,6 +253,7 @@ GARAGE_SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub
 
 .PHONY: garage-plan garage-apply garage-check garage-configure
 garage-plan:
+	$(call LEGACY_ENDPOINT_GUARD,$(GARAGE_DIR))
 	@test -r "$(GARAGE_SSH_PUBLIC_KEY_FILE)" || (echo "Missing controller public SSH key"; exit 1)
 	terraform -chdir=$(GARAGE_DIR) fmt -check
 	terraform -chdir=$(GARAGE_DIR) init -input=false
@@ -241,6 +261,7 @@ garage-plan:
 	$(call INFISICAL_RUN,env TF_VAR_management_ssh_public_key="$$(cat "$(GARAGE_SSH_PUBLIC_KEY_FILE)")" terraform -chdir=$(GARAGE_DIR) plan -input=false -out=garage.tfplan)
 
 garage-apply:
+	$(call LEGACY_ENDPOINT_GUARD,$(GARAGE_DIR))
 	@test -f "$(GARAGE_DIR)/garage.tfplan" || (echo "Missing saved Garage plan; run make garage-plan and review it first"; exit 1)
 	$(call INFISICAL_RUN,terraform -chdir=$(GARAGE_DIR) apply -input=false garage.tfplan)
 
@@ -322,14 +343,17 @@ runner-plan:
 	terraform -chdir=$(RUNNER_DIR) validate
 
 runner-import:
+	$(call RETIRED_ROOT,$(RUNNER_DIR))
 	@test -f "$(RUNNER_DIR)/terraform.tfvars" || (echo "Create private $(RUNNER_DIR)/terraform.tfvars first"; exit 1)
 	$(call INFISICAL_RUN,terraform -chdir=$(RUNNER_DIR) import -input=false -var-file=terraform.tfvars proxmox_virtual_environment_container.forgejo_runner pve-compute/300)
 
 runner-live-plan:
+	$(call RETIRED_ROOT,$(RUNNER_DIR))
 	@test -f "$(RUNNER_DIR)/terraform.tfvars" || (echo "Create private $(RUNNER_DIR)/terraform.tfvars first"; exit 1)
 	$(call INFISICAL_RUN,terraform -chdir=$(RUNNER_DIR) plan -input=false -var-file=terraform.tfvars)
 
 runner-migration-plan:
+	$(call RETIRED_ROOT,$(MIGRATION_RUNNER_DIR))
 	@test -f "$(MIGRATION_RUNNER_DIR)/terraform.tfvars" || (echo "Create private $(MIGRATION_RUNNER_DIR)/terraform.tfvars first"; exit 1)
 	terraform -chdir=$(MIGRATION_RUNNER_DIR) fmt -check
 	$(call INFISICAL_RUN,terraform -chdir=$(MIGRATION_RUNNER_DIR) init -input=false)
@@ -337,6 +361,7 @@ runner-migration-plan:
 	$(call INFISICAL_RUN,terraform -chdir=$(MIGRATION_RUNNER_DIR) plan -input=false -var-file=terraform.tfvars)
 
 runner-migration-apply:
+	$(call RETIRED_ROOT,$(MIGRATION_RUNNER_DIR))
 	@test -f "$(MIGRATION_RUNNER_DIR)/terraform.tfvars" || (echo "Create private $(MIGRATION_RUNNER_DIR)/terraform.tfvars first"; exit 1)
 	$(call INFISICAL_RUN,terraform -chdir=$(MIGRATION_RUNNER_DIR) apply -input=false -auto-approve -var-file=terraform.tfvars)
 
@@ -360,12 +385,14 @@ workstations-bootstrap:
 	$(ANSIBLE) $(WS_PLAYBOOK) --diff -e workstation_headless_approved=true
 
 workstations-plan:
+	$(call LEGACY_ENDPOINT_GUARD,$(WS_DIR))
 	rm -f $(WS_PLAN)
 	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) fmt)
 	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) validate)
 	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) plan -out=$(WS_PLAN))
 
 workstations-apply:
+	$(call LEGACY_ENDPOINT_GUARD,$(WS_DIR))
 	@test "$(WORKSTATIONS_HEADLESS_APPROVED)" = yes || (echo "Review workstation maintenance; set WORKSTATIONS_HEADLESS_APPROVED=yes"; exit 1)
 	@test -f $(WS_PLAN) || \
 		(echo "No saved workstation plan. Run 'make workstations-plan' first."; exit 1)
@@ -375,6 +402,7 @@ workstations-apply:
 	rm -f $(WS_PLAN)
 
 workstations-verify:
+	$(call LEGACY_ENDPOINT_GUARD,$(WS_DIR))
 	$(call INFISICAL_RUN,terraform -chdir=$(WS_DIR) plan)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	$(ANSIBLE) $(WS_PLAYBOOK) --check --diff
