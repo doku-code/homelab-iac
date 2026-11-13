@@ -1,0 +1,201 @@
+{
+  "harness_version": "0.1.0",
+  "entries": [
+    {
+      "path": ".agents/skills/context-retrieval/SKILL.md",
+      "kind": "managed",
+      "hash": "5903ea2a10f507a47953e8b3969972bf6b259bb9faef7a7b60d0e42152ca0f5c",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".agents/skills/documentation-maintenance/SKILL.md",
+      "kind": "managed",
+      "hash": "f60ca57c3cf5e32099a33889fb3bdfa54dcba84fa8323153dd2d9a39aa938549",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".agents/skills/implementation-review/SKILL.md",
+      "kind": "managed",
+      "hash": "841f484afd50f9c6603ba279c2da22457531449a214a0e5c843f14574c6074d6",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".agents/skills/project-onboarding/SKILL.md",
+      "kind": "managed",
+      "hash": "895b4076aeb07e0cf31ae28b0b84210a0db00f86f952cc6585038afb9c3cfa99",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".agents/skills/task-execution/SKILL.md",
+      "kind": "managed",
+      "hash": "60d0728c16d362cece0ce6e834df4d584e0134dcdc392980bd71d7f0e4f60cf7",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".agents/skills/technical-research/SKILL.md",
+      "kind": "managed",
+      "hash": "dc23d93a0837185f44b1e58277dd2b42878206f01052892a1331b526a7f6a17d",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/agents/harness-code-reviewer.md",
+      "kind": "managed",
+      "hash": "e09a49c3b18e1c8d0ec7c4aaf616cc60a6034375cc7f9f9b68c9b51f09582c9c",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/agents/harness-context-retriever.md",
+      "kind": "managed",
+      "hash": "5a571734c5eb188974874206b00522d371a507d455ee107b683771b37ffa35e9",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/agents/harness-implementer.md",
+      "kind": "managed",
+      "hash": "854ea7742c2c4ab90083c4514eb21ef199eb7d94da2d9cd64507e81cdcd8fa5d",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/agents/harness-test-runner.md",
+      "kind": "managed",
+      "hash": "ec629b4dad6098064f0f6ec9a329ccd4d170550301ddcbd955cfdb96b58465e5",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/rules/harness-documents.md",
+      "kind": "managed",
+      "hash": "e6fbec86f6fa70ef943eafd646ab887a09b154ab143f1bf123c74504fc671011",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/settings.json",
+      "kind": "block",
+      "hash": "bef985717762e72d8f2dc95d8d0de6c8f0b1b9bfc84c70b4466e04c24070cdad",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/skills/context-retrieval/SKILL.md",
+      "kind": "managed",
+      "hash": "5903ea2a10f507a47953e8b3969972bf6b259bb9faef7a7b60d0e42152ca0f5c",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/skills/documentation-maintenance/SKILL.md",
+      "kind": "managed",
+      "hash": "f60ca57c3cf5e32099a33889fb3bdfa54dcba84fa8323153dd2d9a39aa938549",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/skills/implementation-review/SKILL.md",
+      "kind": "managed",
+      "hash": "841f484afd50f9c6603ba279c2da22457531449a214a0e5c843f14574c6074d6",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/skills/project-onboarding/SKILL.md",
+      "kind": "managed",
+      "hash": "895b4076aeb07e0cf31ae28b0b84210a0db00f86f952cc6585038afb9c3cfa99",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/skills/task-execution/SKILL.md",
+      "kind": "managed",
+      "hash": "60d0728c16d362cece0ce6e834df4d584e0134dcdc392980bd71d7f0e4f60cf7",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".claude/skills/technical-research/SKILL.md",
+      "kind": "managed",
+      "hash": "dc23d93a0837185f44b1e58277dd2b42878206f01052892a1331b526a7f6a17d",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".forgejo/workflows/harness-docs-validate.yml",
+      "kind": "managed",
+      "hash": "f7d52c5925aaee6e356e1a436d3d611d5009e524f59a61c91f6f778dca0a31c1",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".forgejo/workflows/harness-wiki-publish.yml",
+      "kind": "managed",
+      "hash": "0afb1c68f1fe4b9173bb52ea66d565f4597135b868e389a87cd54a9be741ab64",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".gitignore",
+      "kind": "block",
+      "hash": "6b015a201de2df8e9f517c1fcb53db19e3dd58e855e4dc529ef0db35e3e0c366",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": ".local/README.md",
+      "kind": "seed",
+      "hash": "32ec0fe361907ea66f1e667a9b3d7c825834d8cf5a5c6916a1a30a4ff4175513",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": "AGENTS.md",
+      "kind": "block",
+      "hash": "142890d80484d330f010d68573eef6eff88786d80efbb2ae72c4ed8d5f0ba724",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": "CLAUDE.md",
+      "kind": "block",
+      "hash": "660ffd221e4708dba51fc046a2c3c12f403a4f6bb69bb27f5e8d369d4e534584",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": "docs/project-overview.md",
+      "kind": "seed",
+      "hash": "44f548de779dab09669554f13119b7a9664dbf01c6e99f43c1a0b070fb7a6327",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": "docs/reference/external/README.md",
+      "kind": "seed",
+      "hash": "635188d773134f3f385f9377e0d60595c53a43dd3a14c08e9f29ce2fd472c76d",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": "milestones/M001-project-foundation.md",
+      "kind": "seed",
+      "hash": "a1c057b78660986260e26f9c9c964846d74e393b5fff1ec21a5b557df35efe95",
+      "version": "0.1.0",
+      "template": null
+    },
+    {
+      "path": "tasks/TASK-001-review-harness-setup.md",
+      "kind": "seed",
+      "hash": "7238d6ae63c89f658140b2a42cf3f4bb6790eb79805810485882c36b190884d0",
+      "version": "0.1.0",
+      "template": null
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+# Agent harness documentation validation (harness v0.1.0 template, adapted for homelab-iac).
+# Deliberately diverges from the upstream template: no pull_request trigger, and the same
+# main-only activation gate and runner as validate.yml. No secrets are used.
+# `harness update` reports this file as locally modified; keep these adaptations when merging.
+name: Documentation validation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    # Activation gate, not isolation: the runner trust boundary is unchanged.
+    if: forgejo.ref == 'refs/heads/main' && vars.CI_QUALITY_APPROVED == 'true'
+    runs-on: homelab-iac
+
+    steps:
+      - name: Check out repository
+        uses: https://code.forgejo.org/actions/checkout@v6.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install Python
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends git python3 python3-venv
+
+      - name: Install pinned harness
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/harness-venv
+          /tmp/harness-venv/bin/python -m pip install -r requirements-agents.txt
+
+      - name: Validate configuration, documents, indexes and sensitive-data rules
+        run: /tmp/harness-venv/bin/harness check --no-content-scan

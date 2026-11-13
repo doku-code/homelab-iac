@@ -1,0 +1,104 @@
+# harness.yaml — project configuration for the agent harness.
+# Project-owned: edit freely. Framework updates never rewrite this file.
+harness:
+  version: 0.1.0
+  profile: infrastructure
+  detected_profiles:
+  - infrastructure
+  - python
+  platforms:
+  - claude
+  - codex
+  # Separate from requirements-controller.txt: recovery never depends on the harness forge.
+  harness_install: .venv/bin/python -m pip install -r requirements-agents.txt
+project:
+  name: homelab-iac
+  description: Reproducible self-hosted homelab rebuilt with OpenTofu, Ansible and Compose on Proxmox,
+    driven from Forgejo and Windmill.
+verification:
+  commands:
+  - name: whitespace
+    run: git diff --check
+    detected: false
+    verified: true
+    description: No whitespace errors in the working tree (also enforced in CI)
+  - name: harness-check
+    run: .venv/bin/harness check
+    detected: false
+    verified: true
+    description: Frontmatter, links, indexes and sensitive-data rules for docs/, milestones/, tasks/
+  - name: quality
+    run: .venv/bin/python scripts/check-quality.py
+    detected: false
+    verified: true
+    description: Parses every tracked YAML/Python/shell file and guards the CI activation gate
+  - name: terraform-fmt
+    run: terraform fmt -check -recursive terraform
+    detected: false
+    verified: true
+  - name: terraform-validate
+    run: d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do n="$d/$(basename
+      "$r")"; TF_DATA_DIR="$n" terraform -chdir="$r" init -backend=false -input=false -lockfile=readonly
+      >/dev/null && TF_DATA_DIR="$n" terraform -chdir="$r" validate >/dev/null || { echo "FAIL $r"; exit
+      1; }; done; rm -rf "$d"
+    detected: false
+    verified: true
+    description: Every root with the backend disabled and a throwaway TF_DATA_DIR (never touches local
+      state)
+  - name: ansible-syntax
+    run: for p in ansible/playbooks/*.yml; do .venv/bin/ansible-playbook --syntax-check -i ansible/inventories/homelab.yml
+      "$p" >/dev/null || exit 1; done
+    detected: false
+    verified: true
+  - name: compose-config
+    run: docker-compose -f services/monitoring/compose.yml config --quiet && DB_PASSWORD=synthetic-ci-only
+      docker-compose -f services/windmill/compose.yml config --quiet
+    detected: false
+    verified: true
+    description: Static Compose validation with synthetic inputs; starts nothing
+  - name: offline-tests
+    run: for t in windmill runner-connections tfstate-backups tailscale-routers vm-profiles stage-a stage-a-inputs
+      k3s-bootstrap flux-demo homepage; do .venv/bin/python "tests/$t.py" || exit 1; done
+    detected: false
+    verified: true
+    description: Offline test scripts run by CI (mocked providers, synthetic fixtures; flux/homepage need
+      kubectl)
+paths:
+  docs: docs
+  milestones: milestones
+  tasks: tasks
+  history: history
+  references: docs/reference/external
+  local: .local
+  knowledge_map: docs/knowledge-map.md
+  catalog: docs/knowledge-map.json
+  llms: docs/llms.txt
+documents:
+  ignore:
+  - .local
+  - .venv
+  - node_modules
+  - .git
+  - .harness
+  - archive
+history:
+  branches:
+  - HEAD
+  limit: 50
+  skip_history_only_commits: true
+# Wiki publication is intentionally not installed; `harness update` re-creates
+# .forgejo/workflows/harness-wiki-publish.yml, delete it again (see TASK-001).
+wiki:
+  home_title: homelab-iac documentation
+  include:
+  - docs/**/*.md
+  - milestones/*.md
+  - tasks/*.md
+  - history/**/*.md
+  exclude:
+  - docs/knowledge-map.json
+  - '**/README.md'
+  include_readme: true
+  home_from_readme: true
+  remote: null
+  token_env: HARNESS_WIKI_TOKEN

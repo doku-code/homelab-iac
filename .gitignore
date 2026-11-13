@@ -96,3 +96,17 @@ temp/
 # Defense in depth only: sensitive staging belongs outside synced directories.
 recovery-private/
 *.age
+
+# >>> harness managed block (do not edit inside) >>>
+# Local sensitive and ephemeral artifacts (agent harness convention)
+.local/
+CLAUDE.local.md
+# Common secret-bearing files (keep *.example variants)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.tfstate
+*.tfstate.backup
+# <<< harness managed block <<<
