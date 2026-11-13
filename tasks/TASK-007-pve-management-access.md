@@ -34,7 +34,7 @@ Automation can reach pve-management with least privilege; nothing is assumed to 
 
 ## Acceptance criteria
 
-- [ ] Documented role/privilege list for the automation user
+- [x] Documented exact role/privilege list per ACL path (PVE API schema)
 - [ ] Token created by the operator and stored as a bootstrap secret (TASK-011)
 - [ ] Token reads `/version` and `/nodes` with TLS verified (pinned CA or trusted certificate)
 - [ ] Storages (incl. `import` content), bridge, free VMID and the management VM address recorded
@@ -54,7 +54,9 @@ Automation can reach pve-management with least privilege; nothing is assumed to 
 
 | Check | Result | Reference (commit / output / doc) | Date |
 |-------|--------|-----------------------------------|------|
-| | not verified | | |
+| Ports 8006/22 reachable from the workstation | PASS (TCP connect) | read-only check | 2026-11-12 |
+| TLS certificate inspected | Self-signed PVE CA, SANs include 192.168.0.10 and pve-management; not yet trusted | INV-pve-management-bootstrap | 2026-11-12 |
+| Identity/token created; API read with verified TLS | not verified (operator action pending) | — | 2026-11-12 |
 
 ## Completion summary
 

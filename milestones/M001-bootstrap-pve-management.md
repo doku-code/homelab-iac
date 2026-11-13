@@ -3,7 +3,7 @@ id: M001
 title: "Bootstrap pve-management"
 summary: "Existing infrastructure provisions and configures a management VM on pve-management automatically, with recoverable state and bootstrap secrets."
 type: milestone
-status: planned
+status: active
 priority: critical
 created: 2026-11-12
 updated: 2026-11-12

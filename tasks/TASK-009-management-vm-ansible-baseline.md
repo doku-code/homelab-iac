@@ -1,9 +1,9 @@
 ---
 id: TASK-009
 title: "Ansible baseline for the management VM (toolchain and runner)"
-summary: "Configure the management VM with Ansible: users, SSH hardening, OpenTofu, Ansible, SOPS/age, CLI tools, and a dedicated Forgejo runner."
+summary: "Configure the management VM with Ansible: SSH hardening, guest agent, OpenTofu, Ansible environment, SOPS/age. No runner in M001 (ADR-008)."
 type: task
-status: planned
+status: in-progress
 priority: high
 milestone: M001
 created: 2026-11-12
@@ -35,8 +35,8 @@ The management VM can run IaC workflows itself.
 ## Acceptance criteria
 
 - [ ] Role(s) converge with changed=0 on the second run
-- [ ] Runner registered with a dedicated label and scoped token
-- [ ] Runner registration secret handled with no_log and never committed
+- [ ] Toolchain versions reported (OpenTofu, SOPS, age) and `pip check` clean
+- [x] No runner installed in M001; a trusted runner is a later, separate decision (ADR-008)
 
 ## Verification
 
@@ -54,7 +54,8 @@ The management VM can run IaC workflows itself.
 
 | Check | Result | Reference (commit / output / doc) | Date |
 |-------|--------|-----------------------------------|------|
-| | not verified | | |
+| `ansible-playbook --syntax-check` (legacy and synthetic inventory) | PASS | local run | 2026-11-12 |
+| Two live convergence runs | not verified (VM not provisioned) | — | 2026-11-12 |
 
 ## Completion summary
 

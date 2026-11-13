@@ -223,7 +223,7 @@
     {
       "id": "ADR-004",
       "title": "Phase for runtime secrets, SOPS + age for bootstrap and recovery secrets",
-      "summary": "Phase is the intended Infisical replacement (pending capability and licence validation); SOPS+age protects bootstrap material so recovery never needs Phase, Forgejo or Windmill.",
+      "summary": "Phase is the confirmed Infisical replacement (deployment gated on validating its self-hosted free edition); SOPS+age protects bootstrap material so recovery never needs Phase, Forgejo or Windmill.",
       "importance": 5,
       "lifecycle": "active",
       "topics": [],
@@ -232,7 +232,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "decision",
-      "status": "proposed",
+      "status": "accepted",
       "path": "docs/decisions/ADR-004-secrets-phase-runtime-sops-bootstrap.md",
       "tags": [
         "decision",
@@ -489,6 +489,71 @@
       ]
     },
     {
+      "id": "ADR-008",
+      "title": "Bootstrap runs from the operator workstation; CT301 stays validation-only",
+      "summary": "The first OpenTofu applies on pve-management run from the workstation through approval-gated Make targets; CT301 never holds Proxmox credentials nor applies; a trusted runner comes later.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "accepted",
+      "path": "docs/decisions/ADR-008-workstation-bootstrap-ct301-validation-only.md",
+      "tags": [
+        "decision",
+        "bootstrap",
+        "ci",
+        "runner",
+        "security"
+      ],
+      "component": "execution",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "ADR-008: Workstation bootstrap, validation-only CI",
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "INV-pve-management-bootstrap"
+        ],
+        "related_tasks": [
+          "TASK-006",
+          "TASK-008"
+        ],
+        "related_milestones": [
+          "M001"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ARCH-platform",
+          "field": "related_decisions"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "INV-legacy-inventory",
+          "field": "related"
+        },
+        {
+          "from": "INV-pve-management-bootstrap",
+          "field": "related"
+        }
+      ]
+    },
+    {
       "id": "ARCH-platform",
       "title": "Target homelab platform architecture",
       "summary": "Layers, tool responsibilities, target stack, pve-management role, service catalog model, secrets and recovery boundaries for the rebuild.",
@@ -531,6 +596,7 @@
         "Layers and owners",
         "Hosts",
         "Target repository layout",
+        "State management",
         "Key flows",
         "Deploy a service (target)",
         "Migrate an existing service (per service, M005)",
@@ -549,7 +615,8 @@
           "ADR-004",
           "ADR-005",
           "ADR-006",
-          "ADR-007"
+          "ADR-007",
+          "ADR-008"
         ]
       },
       "backrefs": [
@@ -579,6 +646,10 @@
         },
         {
           "from": "ADR-007",
+          "field": "related"
+        },
+        {
+          "from": "ADR-008",
           "field": "related"
         },
         {
@@ -721,6 +792,7 @@
         "related": [
           "ARCH-platform",
           "ADR-001",
+          "ADR-008",
           "INV-legacy-inventory",
           "INV-pve-management-bootstrap",
           "M000",
@@ -736,8 +808,8 @@
     },
     {
       "id": "INV-legacy-inventory",
-      "title": "Legacy homelab inventory (from the archived repository, unverified)",
-      "summary": "Hosts, guests, services and local Terraform states as described by the legacy repo at 915333c; starting point for the M000 live inventory, not current truth.",
+      "title": "Legacy homelab inventory (archived repository, operator corrections, state review)",
+      "summary": "Legacy hosts, guests, services and local Terraform states, with retired hosts, stale state and endpoint hazards; starting point for the M000 live inventory.",
       "importance": 4,
       "lifecycle": "needs-review",
       "topics": [
@@ -773,14 +845,16 @@
         "Proxmox hosts",
         "Guests and services (legacy IDs)",
         "Local Terraform state (verified on the operator workstation, 2026-11-12)",
-        "Discrepancy: pve-infra vs pve-management",
+        "Retired hosts (resolved 2026-11-12)",
         "Inferences",
         "Open questions"
       ],
       "relations": {
         "related": [
           "ARCH-platform",
-          "ADR-007"
+          "ADR-007",
+          "ADR-008",
+          "INV-pve-management-bootstrap"
         ],
         "related_tasks": [
           "TASK-002",
@@ -805,7 +879,7 @@
     {
       "id": "INV-pve-management-bootstrap",
       "title": "pve-management bootstrap — readiness and implementation plan",
-      "summary": "Reusable IaC, missing prerequisites, task sequence and acceptance tests for provisioning the management VM on pve-management; plan only.",
+      "summary": "Readiness, exact API privileges, SSH/TLS/state decisions, proposed VM values and the next step for provisioning mgmt-control-01 on pve-management; nothing applied.",
       "importance": 5,
       "lifecycle": "active",
       "topics": [
@@ -813,7 +887,7 @@
         "bpg-proxmox",
         "cloud-init",
         "api-token",
-        "runner",
+        "tls",
         "state",
         "sops"
       ],
@@ -841,17 +915,18 @@
         "Question",
         "Method",
         "Findings",
-        "Reusable IaC",
-        "Runner capabilities and network",
-        "Proxmox API authentication",
+        "Implementation (offline, in the repository)",
+        "OpenTofu compatibility",
+        "Proxmox API privileges (exact, from the PVE API schema)",
+        "Same ACL for the user and the token; one line per path in the table above, e.g.:",
         "SSH",
-        "Image and cloud-init",
-        "State storage",
-        "Secrets bootstrap",
-        "Recovery",
+        "TLS (observed 2026-11-12)",
+        "SSH host keys",
+        "State",
+        "Secrets",
+        "Proposed VM configuration (not confirmed)",
         "Inferences",
-        "Proposed sequence",
-        "Minimal acceptance tests",
+        "Acceptance tests for M001",
         "Open questions"
       ],
       "relations": {
@@ -860,6 +935,7 @@
           "ADR-002",
           "ADR-003",
           "ADR-004",
+          "ADR-008",
           "M001"
         ],
         "related_tasks": [
@@ -874,7 +950,15 @@
       },
       "backrefs": [
         {
+          "from": "ADR-008",
+          "field": "related"
+        },
+        {
           "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "INV-legacy-inventory",
           "field": "related"
         },
         {
@@ -980,7 +1064,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "active",
       "path": "milestones/M001-bootstrap-pve-management.md",
       "tags": [
         "bootstrap",
@@ -1034,6 +1118,10 @@
         },
         {
           "from": "ADR-004",
+          "field": "related_milestones"
+        },
+        {
+          "from": "ADR-008",
           "field": "related_milestones"
         },
         {
@@ -1730,7 +1818,7 @@
     {
       "id": "TASK-006",
       "title": "Target repository layout, OpenTofu toolchain and management Make targets",
-      "summary": "Create the target layout (modules/, stacks/), pin OpenTofu in the controller setup, add mgmt-* Make targets and offline CI validation for new roots.",
+      "summary": "Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check).",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -1739,7 +1827,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "planned",
+      "status": "in-progress",
       "path": "tasks/TASK-006-target-layout-and-service-contract.md",
       "tags": [
         "layout",
@@ -1784,6 +1872,10 @@
         },
         {
           "from": "ADR-005",
+          "field": "related_tasks"
+        },
+        {
+          "from": "ADR-008",
           "field": "related_tasks"
         },
         {
@@ -1887,7 +1979,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "planned",
+      "status": "in-progress",
       "path": "tasks/TASK-008-proxmox-guest-module-and-management-vm.md",
       "tags": [
         "opentofu",
@@ -1922,6 +2014,11 @@
           "TASK-007",
           "TASK-010"
         ],
+        "related_tests": [
+          "terraform/stacks/pve-management-control/tests/profile.tftest.hcl",
+          "tests/mgmt-control.py",
+          "tests/vm-profiles.py"
+        ],
         "milestone": [
           "M001"
         ]
@@ -1929,6 +2026,10 @@
       "backrefs": [
         {
           "from": "ADR-002",
+          "field": "related_tasks"
+        },
+        {
+          "from": "ADR-008",
           "field": "related_tasks"
         },
         {
@@ -1952,7 +2053,7 @@
     {
       "id": "TASK-009",
       "title": "Ansible baseline for the management VM (toolchain and runner)",
-      "summary": "Configure the management VM with Ansible: users, SSH hardening, OpenTofu, Ansible, SOPS/age, CLI tools, and a dedicated Forgejo runner.",
+      "summary": "Configure the management VM with Ansible: SSH hardening, guest agent, OpenTofu, Ansible environment, SOPS/age. No runner in M001 (ADR-008).",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -1961,7 +2062,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "planned",
+      "status": "in-progress",
       "path": "tasks/TASK-009-management-vm-ansible-baseline.md",
       "tags": [
         "ansible",
@@ -2029,7 +2130,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "planned",
+      "status": "in-progress",
       "path": "tasks/TASK-010-state-management-and-backups.md",
       "tags": [
         "state",
@@ -2235,7 +2336,8 @@
       "ADR-004",
       "ADR-005",
       "ADR-006",
-      "ADR-007"
+      "ADR-007",
+      "ADR-008"
     ],
     "investigation": [
       "INV-legacy-inventory",
@@ -2300,8 +2402,12 @@
     ],
     "bootstrap": [
       "ADR-002",
+      "ADR-008",
       "INV-pve-management-bootstrap",
       "M001"
+    ],
+    "ci": [
+      "ADR-008"
     ],
     "compose": [
       "ADR-006"
@@ -2319,7 +2425,8 @@
       "ADR-004",
       "ADR-005",
       "ADR-006",
-      "ADR-007"
+      "ADR-007",
+      "ADR-008"
     ],
     "dependencies": [
       "TASK-003"
@@ -2432,12 +2539,16 @@
       "TASK-012"
     ],
     "runner": [
+      "ADR-008",
       "TASK-009"
     ],
     "secrets": [
       "ADR-004",
       "M002",
       "TASK-011"
+    ],
+    "security": [
+      "ADR-008"
     ],
     "service-catalog": [
       "ADR-005"

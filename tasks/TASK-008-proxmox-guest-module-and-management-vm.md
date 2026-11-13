@@ -3,7 +3,7 @@ id: TASK-008
 title: "Reusable OpenTofu guest module and management VM root"
 summary: "Write modules/opentofu/proxmox-guest (bpg/proxmox, cloud-init) and the stacks/management root that creates the Ubuntu management VM."
 type: task
-status: planned
+status: in-progress
 priority: critical
 milestone: M001
 created: 2026-11-12
@@ -13,7 +13,7 @@ depends_on: [TASK-006, TASK-007, TASK-010]
 related: [ARCH-platform]
 related_decisions: [ADR-002, ADR-003]
 related_implementations: []
-related_tests: []
+related_tests: [terraform/stacks/pve-management-control/tests/profile.tftest.hcl, tests/mgmt-control.py, tests/vm-profiles.py]
 tests_justification: ""
 verification_commands: []
 evidence: []
@@ -36,7 +36,7 @@ Provision the management VM declaratively and idempotently.
 
 ## Acceptance criteria
 
-- [ ] Module with tests using mocked providers (`tofu test`)
+- [x] Existing `headless-vm` module reused (engine-agnostic, legacy defaults kept); root tested with mocked provider (`tofu test`)
 - [ ] Root plans the management VM with explicit placement/storage/network inputs
 - [ ] Apply (approved) creates it; second plan shows no changes
 
@@ -55,7 +55,9 @@ Provision the management VM declaratively and idempotently.
 
 | Check | Result | Reference (commit / output / doc) | Date |
 |-------|--------|-----------------------------------|------|
-| | not verified | | |
+| `tofu test` (contract + 4 refusal cases) | PASS 5/5 | terraform/stacks/pve-management-control/tests | 2026-11-12 |
+| Legacy mocked Terraform tests after the module change | PASS 13/13 | tests/vm-profiles.py | 2026-11-12 |
+| Reviewed plan on pve-management | not verified (needs TASK-007) | — | 2026-11-12 |
 
 ## Completion summary
 

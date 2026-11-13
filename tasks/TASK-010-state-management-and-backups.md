@@ -3,7 +3,7 @@ id: TASK-010
 title: "OpenTofu state management and backups"
 summary: "Choose the state backend for new roots and back up the existing legacy local states outside the operator workstation."
 type: task
-status: planned
+status: in-progress
 priority: critical
 milestone: M001
 created: 2026-11-12
@@ -53,7 +53,8 @@ No state exists only on one laptop; each root has one writable authority.
 
 | Check | Result | Reference (commit / output / doc) | Date |
 |-------|--------|-----------------------------------|------|
-| | not verified | | |
+| Bootstrap strategy for new roots: local state + `mgmt-state-backup` (age, off-machine) | Implemented; refusal paths tested; no state exists yet | Makefile, ARCH-platform#state-management | 2026-11-12 |
+| Backups of the nine legacy local states | not verified | — | 2026-11-12 |
 
 ## Completion summary
 

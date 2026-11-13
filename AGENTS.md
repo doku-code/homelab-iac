@@ -7,7 +7,8 @@ world-readable.
 Read first: [project vision](docs/project-overview.md) (vision, strategy, status, decisions vs
 assumptions — the single authoritative source) and
 [platform architecture](docs/architecture/platform.md) (layers, owners, target layout).
-Decisions: `docs/decisions/`. Current state: `harness status`.
+Decisions: `docs/decisions/`. Current state: `harness status`. First implementation:
+[pve-management bootstrap](docs/investigations/pve-management-bootstrap.md).
 
 ## Layer ownership
 
@@ -38,6 +39,11 @@ planning metadata, never authorization.
   private tfvars, recovery material or credential caches. Inspect the staged diff before committing.
 - Nine legacy roots under `terraform/stacks/` hold live state as **untracked local files** beside
   the code: never move, rename, delete or re-init those directories.
+- `pve-infra` and `pve-compute` are retired; `192.168.0.10` is the standalone `pve-management`. Never
+  point legacy automation at it; keep the Make guards (`LEGACY_ENDPOINT_GUARD`, `RETIRED_ROOT`).
+- Infrastructure is applied only from the operator workstation through approval-gated Make targets;
+  CT301 never gets Proxmox credentials (ADR-008). Run Make targets that can reach infrastructure
+  only when the task authorizes it; test guards in a sandbox, not against real targets.
 - Existing services keep running until their replacement is validated with a rollback path.
   Adopt or replace explicitly; never delete something because it is legacy.
 - Never recreate existing VMs/containers without a verified migration plan, delete persistent

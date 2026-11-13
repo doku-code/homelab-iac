@@ -11,7 +11,7 @@ tags: [architecture, platform, rebuild]
 component: platform
 topics: [opentofu, ansible, compose, windmill, phase, sops, forgejo, proxmox, recovery]
 related: [DOC-project-overview, INV-legacy-inventory]
-related_decisions: [ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007]
+related_decisions: [ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008]
 related_implementations: []
 ---
 
@@ -36,11 +36,12 @@ evidence; the legacy estate is described in [INV-legacy-inventory](../investigat
 |---------|-----------------------------------|--------|
 | Provisioning | Terraform ≥ 1.16 + `bpg/proxmox` 0.112.0, per-guest roots, local state on one workstation | OpenTofu roots with backed-up remote state (TASK-010) |
 | Proxmox auth | Mixed: API token (Stage A) and `root@pam` password from Infisical (Tailscale, Windmill flows) | Dedicated scoped API token per environment |
-| Execution | Operator-run Make targets; CI is validation-only on the CT301 runner (open trust gate) | Same Make entrypoints, plus a trusted runner on the management VM and Windmill triggers |
+| Execution | Operator-run Make targets; CI is validation-only on the CT301 runner (open trust gate) | Workstation bootstrap kept permanently (ADR-008); later a trusted runner inside the management environment and Windmill triggers |
 | Services | Mostly hand-configured guests (Forgejo on TrueNAS, Infisical, AdGuard, Caddy, Vaultwarden, Wiki.js…) | `services/<service>/` catalog entries deployed by Ansible + Compose |
 | Secrets | Infisical (Universal Auth) | Phase at runtime, SOPS + age for bootstrap |
 | Kubernetes | K3s Stage A lab + Flux demo on `pve-lab` | None by default; k3s + Argo CD later (ADR-006) |
-| Management | No dedicated management host | `pve-management` with management VM(s) |
+| Management | `pve-management` installed (standalone, 192.168.0.10), no guests yet; `mgmt-control-01` root ready offline | `pve-management` with management VM(s) |
+| Hosts | `pve-core`, `pve-lab`, `pve-k8s-01/02`; `pve-infra` and `pve-compute` permanently retired | Reclaimed machines join the new compute environment |
 
 ### Layers and owners
 
@@ -71,7 +72,7 @@ consumers are migrated.
 |------|--------------------|-------|
 | `pve-management` | Standalone bootstrap, orchestration and recovery host ([ADR-002](../decisions/ADR-002-pve-management-standalone-host.md)) | Fresh Proxmox VE, not joined to the compute cluster. Runs only management VMs. |
 | Compute cluster | Application workloads | Topology, quorum and storage planned in M004; two nodes never imply HA. |
-| Legacy hosts (`pve-core`, `pve-lab`, others) | Keep running services until migrated, then reinstalled and joined | Inventory in M000. |
+| Legacy hosts (`pve-core`, `pve-lab`, `pve-k8s-01`, `pve-k8s-02`) | Keep running services until migrated, then reinstalled and joined | Inventory in M000; `pve-infra` and `pve-compute` are retired ([INV-legacy-inventory](../investigations/legacy-inventory.md)). |
 
 On `pve-management` the first guest is an **Ubuntu Server management VM** with the IaC
 toolchain (OpenTofu, Ansible, SOPS/age, Phase CLI) and a dedicated Forgejo runner. Further
@@ -79,12 +80,14 @@ management applications (Windmill, Phase) run in their own VMs when resources al
 
 ### Target repository layout
 
-New code follows this layout; legacy directories stay where they are until their resources
-are migrated or retired ([ADR-007](../decisions/ADR-007-archive-legacy-workflow-keep-live-roots.md)).
+Infrastructure code keeps the existing `terraform/` tree: no parallel tree is created. New roots are
+OpenTofu roots under `terraform/stacks/<host>-<purpose>/` reusing `terraform/modules/*`
+(first: `terraform/stacks/pve-management-control`); legacy roots stay on Terraform until migrated
+([ADR-003](../decisions/ADR-003-opentofu-for-new-infrastructure.md), [ADR-007](../decisions/ADR-007-archive-legacy-workflow-keep-live-roots.md)).
 
 ```
-modules/opentofu/<module>/     reusable OpenTofu modules (proxmox-guest, ...)
-stacks/<environment>/<stack>/  one OpenTofu root = one state = one owner
+terraform/modules/<module>/    shared modules, engine-agnostic (no required_version)
+terraform/stacks/<root>/       one root = one engine = one state = one owner
 ansible/roles/<role>/          reusable roles; playbooks stay thin
 services/<service>/            one self-contained deployable unit per service:
   service.yaml                 catalog entry: inputs schema, dependencies, placement, secrets refs, health check
@@ -95,8 +98,17 @@ windmill/                      Windmill scripts/flows synced from Git (thin call
 secrets/bootstrap/*.sops.yaml  SOPS-encrypted bootstrap material only (age recipients in .sops.yaml)
 ```
 
-Legacy layout still in use: `terraform/stacks/*` (local state beside the code),
+Legacy layout still in use: the Terraform roots with local state beside the code,
 `ansible/playbooks/*`, `services/monitoring`, `services/windmill`, `gitops/stage-a`.
+
+### State management
+
+- **Bootstrap (now):** each new root uses the local backend on the operator workstation, one operator
+  at a time; after every apply an age-encrypted, dated copy goes to an off-machine location
+  (`make mgmt-state-backup`). State never lives only on the infrastructure it manages.
+- **Future:** before any second executor (e.g. a trusted runner) may apply, introduce a shared remote
+  backend with locking and migrate roots explicitly, one at a time, with a no-change plan as proof
+  (TASK-010). No silent state migration; legacy local states are backed up first.
 
 ## Key flows
 

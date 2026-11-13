@@ -26,8 +26,9 @@ keep their live state as local files beside the code. The target stack prefers O
 
 ## Decision
 
-- Every new root (starting with `pve-management`) uses OpenTofu and the `bpg/proxmox` provider,
-  pinned in its lock file, with the layout in [ARCH-platform](../architecture/platform.md).
+- Every new root (starting with `terraform/stacks/pve-management-control`) uses OpenTofu and the
+  `bpg/proxmox` provider, pinned in its own OpenTofu lock file. New roots stay under `terraform/stacks/`
+  and reuse `terraform/modules/*`; shared modules carry no `required_version`, each root pins its engine.
 - Legacy Terraform roots are not converted in bulk. A root moves to OpenTofu only when it is
   touched for migration, after `tofu plan` shows no changes against its existing state.
 - Roots whose resources are retired are archived with their state backed up, never deleted blindly.

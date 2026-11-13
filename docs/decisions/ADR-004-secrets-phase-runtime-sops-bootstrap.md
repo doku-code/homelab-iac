@@ -1,9 +1,9 @@
 ---
 id: ADR-004
 title: Phase for runtime secrets, SOPS + age for bootstrap and recovery secrets
-summary: Phase is the intended Infisical replacement (pending capability and licence validation); SOPS+age protects bootstrap material so recovery never needs Phase, Forgejo or Windmill.
+summary: Phase is the confirmed Infisical replacement (deployment gated on validating its self-hosted free edition); SOPS+age protects bootstrap material so recovery never needs Phase, Forgejo or Windmill.
 type: decision
-status: proposed
+status: accepted
 importance: 5
 created: 2026-11-12
 updated: 2026-11-12
@@ -27,9 +27,9 @@ objectives. The platform must stay recoverable when the secrets service itself i
 
 ## Decision
 
-- **Runtime:** Phase (self-hosted) is the selected replacement for Infisical. Status stays
-  `proposed` until its self-hosted capabilities and licensing (SSO, service accounts, backups)
-  are verified in M002.
+- **Runtime:** Phase (self-hosted) is the confirmed replacement for Infisical (operator decision,
+  2026-11-12). Its deployment in M002 is gated on validating the self-hosted free edition:
+  service identities, API/CLI, access controls, Authentik SSO and backup/restore.
 - **Bootstrap/recovery:** SOPS + age encrypts the small set of credentials needed before
   Phase/Forgejo exist (Proxmox API token, initial SSH keys, Phase recovery material).
   Encrypted files may be committed; age private keys are kept outside the infrastructure they protect.

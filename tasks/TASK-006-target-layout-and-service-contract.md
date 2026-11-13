@@ -1,9 +1,9 @@
 ---
 id: TASK-006
 title: "Target repository layout, OpenTofu toolchain and management Make targets"
-summary: "Create the target layout (modules/, stacks/), pin OpenTofu in the controller setup, add mgmt-* Make targets and offline CI validation for new roots."
+summary: "Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check)."
 type: task
-status: planned
+status: in-progress
 priority: critical
 milestone: M001
 created: 2026-11-12
@@ -34,10 +34,10 @@ Give the first new root a predictable home and a repeatable, approval-gated work
 
 ## Acceptance criteria
 
-- [ ] Directories exist with READMEs; legacy paths untouched
-- [ ] OpenTofu version pinned and installed by `make setup-controller` (or a dedicated target)
-- [ ] `mgmt-check`, `mgmt-plan`, `mgmt-apply` targets reusing the saved-plan + explicit-approval pattern
-- [ ] CI validates new OpenTofu roots offline (fmt, validate with backend disabled, `tofu test`)
+- [x] New OpenTofu root under `terraform/stacks/` reusing `terraform/modules/*`; no parallel tree; legacy paths untouched
+- [x] OpenTofu 1.13.9 pinned: CI (SHA256), management VM playbook (release SHA256SUMS), workstation via Homebrew
+- [x] `mgmt-check`, `mgmt-discover`, `mgmt-plan`, `mgmt-apply`, `mgmt-configure`, `mgmt-state-backup` with saved plan + approval + plan hash
+- [ ] CI validates new OpenTofu roots offline (step added; first CI run pending)
 
 ## Verification
 
@@ -55,7 +55,9 @@ Give the first new root a predictable home and a repeatable, approval-gated work
 
 | Check | Result | Reference (commit / output / doc) | Date |
 |-------|--------|-----------------------------------|------|
-| | not verified | | |
+| `make mgmt-check` (fmt, validate, 5 mocked tofu tests, Ansible syntax, guard tests) | PASS | local run | 2026-11-12 |
+| Refusal paths of mgmt-* targets in a sandbox with fake binaries | PASS | tests/mgmt-control.py | 2026-11-12 |
+| CI step `Validate OpenTofu root …` | not verified (not pushed) | — | 2026-11-12 |
 
 ## Completion summary
 

@@ -37,7 +37,8 @@ Replace the unverified legacy inventory with observed facts.
 
 - [ ] Each Proxmox host listed with version, cluster membership, CPU/RAM/storage and free capacity
 - [ ] Every VM/LXC listed with node, purpose, owner (IaC root or manual) and state
-- [ ] pve-infra/pve-management discrepancy resolved and the Ansible inventory corrected
+- [x] pve-infra/pve-compute confirmed retired by the operator; removed from the Ansible inventory and Prometheus targets
+- [ ] Former pve-infra/pve-compute workloads located (CT301 runner host, DNS/proxy)
 - [ ] No credential values or private configuration recorded
 
 ## Verification

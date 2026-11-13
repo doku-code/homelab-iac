@@ -1,7 +1,7 @@
 ---
 id: INV-pve-management-bootstrap
 title: pve-management bootstrap — readiness and implementation plan
-summary: Reusable IaC, missing prerequisites, task sequence and acceptance tests for provisioning the management VM on pve-management; plan only.
+summary: Readiness, exact API privileges, SSH/TLS/state decisions, proposed VM values and the next step for provisioning mgmt-control-01 on pve-management; nothing applied.
 type: investigation
 status: current
 importance: 5
@@ -9,132 +9,142 @@ created: 2026-11-12
 updated: 2026-11-12
 tags: [investigation, bootstrap, pve-management, plan]
 component: pve-management
-topics: [opentofu, bpg-proxmox, cloud-init, api-token, runner, state, sops]
+topics: [opentofu, bpg-proxmox, cloud-init, api-token, tls, state, sops]
 related_tasks: [TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012]
-related: [ARCH-platform, ADR-002, ADR-003, ADR-004, M001]
+related: [ARCH-platform, ADR-002, ADR-003, ADR-004, ADR-008, M001]
 ---
 
 # pve-management bootstrap — readiness and implementation plan
 
 ## Question
 
-What exactly is needed to provision and configure the Ubuntu management VM on `pve-management`
-from the existing infrastructure, without applying anything yet?
+What is needed to provision and configure `mgmt-control-01` on `pve-management` from the operator
+workstation (ADR-008), and what is ready now?
 
 ## Method
 
-Read-only review of the repository at `51a4d6e` (2026-11-12): Terraform modules/stacks, Make
-targets, Ansible playbooks/roles, CI workflows, and the unfinished Codex runner work kept in
-`stash@{0}`. No live system was contacted.
+Repository review and offline implementation at 2026-11-12; read-only, unauthenticated checks of
+`pve-management` (TCP 8006/22, TLS handshake, SSH host-key scan). No API call, no login, no plan, no apply.
 
 ## Findings
 
-### Reusable IaC
+### Implementation (offline, in the repository)
 
-| Asset | What it gives | Reuse |
-|-------|---------------|-------|
-| `terraform/modules/headless-vm` | VM from an imported cloud image (`import_from`), cloud-init IP/DNS/user/SSH key, profile object input | Port to `modules/opentofu/proxmox-vm` (Ubuntu, OpenTofu) |
-| `terraform/stacks/pve-lab-controller` | Checksum-pinned image download (`proxmox_download_file`, content `import`) + VM; mock-provider tests | Template for `stacks/management/mgmt-vm` |
-| `tests/vm-profiles.py`, `*.tftest.hcl` with `mock_provider` | Offline plan tests without Proxmox | Same pattern with `tofu test` |
-| Make `controller-plan` / `controller-apply` | Saved plan + explicit approval variable + apply of that exact plan | Same flow for `mgmt-plan` / `mgmt-apply` |
-| `ansible/playbooks/configure-recovery-controller.yml` | Pinned IaC toolchain install, repo checkout from an independent source | Base of the management VM role (switch to Ubuntu + OpenTofu) |
-| `ansible/roles/guest_base`, `headless_baseline` | Baseline OS configuration | Review, reuse what is OS-agnostic |
-| `ansible/roles/forgejo_runner` (+ unfinished VM208 "infra runner" in `stash@{0}`) | Runner install/registration | Reference for a dedicated management runner |
-| `keys/doku-lab-admin.pub` | Operator public SSH key | Cloud-init authorized key |
+| Piece | Path | Status |
+|-------|------|--------|
+| OpenTofu root (reuses `terraform/modules/headless-vm`) | `terraform/stacks/pve-management-control/` | Written; `tofu validate` and 5 mocked `tofu test` runs pass |
+| Module made engine-agnostic (no `required_version`; `username`, `started`, `on_boot` variables, legacy defaults) | `terraform/modules/headless-vm/` | Legacy roots unchanged: Terraform mocked tests 13/13 pass |
+| Auth guard (token only, no `root@pam`, no password, TLS on, no debug logs) | `scripts/pve-auth-guard.py` | Offline tests pass |
+| Read-only discovery incl. effective token privileges | `scripts/pve-discover.py`, `make mgmt-discover` | Logic tested offline; not run live (no token yet) |
+| Make workflow | `mgmt-check`, `mgmt-discover`, `mgmt-plan`, `mgmt-apply`, `mgmt-configure`, `mgmt-state-backup` | Refusal paths tested in a sandbox |
+| Ansible baseline (Ubuntu, OpenTofu 1.13.9, SOPS, age, guest agent, SSH hardening; no runner) | `ansible/playbooks/configure-mgmt-control.yml` | Syntax check passes |
+| CI | `.forgejo/workflows/validate.yml` step "Validate OpenTofu root …" (pinned OpenTofu, `make mgmt-check`) | Not yet run in CI |
+| Runbook | [root README](../../terraform/stacks/pve-management-control/README.md) | Written |
 
-Pins today: `bpg/proxmox` 0.112.0, Terraform `>= 1.16.0`. New OpenTofu roots set their own
-`required_version` and lock file (the legacy constraint does not apply to OpenTofu).
+### OpenTofu compatibility
 
-### Runner capabilities and network
+OpenTofu 1.13.9 installs `bpg/proxmox` 0.112.0 (signed) and validates the reused module once its
+Terraform-specific `required_version` is removed from the module (roots keep their own). The new root
+has its own OpenTofu lock file (linux_amd64, darwin_arm64, darwin_amd64). Legacy roots stay on Terraform.
+Difference handled in tests: OpenTofu mocks generate computed IDs at plan time, so the test gives the
+image a realistic volume ID. A provider deprecation warning (`timeout_move_disk`) comes from the module
+output and is harmless.
 
-- The only runner, CT301 (`homelab-iac` label), runs validation only, gated by
-  `CI_QUALITY_APPROVED` on pushes to `main`. It has a rootful Podman socket; the legacy trust
-  review is unresolved, so it must not hold Proxmox credentials.
-- No workflow plans or applies infrastructure; every legacy apply was operator-run via Make.
-- Network reachability from CT301 or the workstation to `pve-management` (8006/tcp, 22/tcp) is unverified.
+### Proxmox API privileges (exact, from the PVE API schema)
 
-### Proxmox API authentication
+Dedicated user `tofu@pve` with a privilege-separated token. Minimum role and ACL paths:
 
-- Not created or verified. Required: a dedicated user (e.g. `tofu@pve`), a custom role with the
-  minimum VM lifecycle, datastore, image download and network-use privileges for the installed
-  PVE version, and a privilege-separated API token (`PROXMOX_VE_API_TOKEN=user@realm!id=secret`).
-- Legacy flows partly use the `root@pam` password; the new root must reject password auth (the
-  Stage A input check already does this) and use the token only.
-- TLS: legacy examples set `insecure = true`. The target verifies TLS (pinned PVE CA or a
-  trusted certificate on `pve-management`); decide which.
+| Path | Privileges | Needed for |
+|------|-----------|------------|
+| `/vms` | `VM.Allocate VM.Audit VM.Config.CDROM VM.Config.CPU VM.Config.Cloudinit VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.PowerMgmt VM.GuestAgent.Audit` | Create/configure/start the VM, cloud-init drive, read agent addresses |
+| `/storage/<image datastore>` | `Datastore.AllocateTemplate Datastore.Audit` | `download-url` of the cloud image into `import` content |
+| `/storage/<disk datastore>` | `Datastore.AllocateSpace Datastore.Audit` | Disk and cloud-init volume allocation |
+| `/nodes/pve-management` | `Sys.AccessNetwork Sys.Audit` | `download-url` (instead of `Sys.Modify` on `/`), task status |
+| `/sdn/zones/localnetwork/<bridge>` | `SDN.Use` | Attaching the NIC to the bridge |
+
+No Administrator role, no `Sys.Modify` on `/`, no realm/user privileges. Commands for the operator
+(on `pve-management`, after confirming storage and bridge names):
+
+```
+pveum role add IaCManagementVM -privs "VM.Allocate VM.Audit VM.Config.CDROM VM.Config.CPU VM.Config.Cloudinit VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.PowerMgmt VM.GuestAgent.Audit Datastore.AllocateTemplate Datastore.AllocateSpace Datastore.Audit Sys.AccessNetwork Sys.Audit SDN.Use"
+pveum user add tofu@pve --comment "OpenTofu automation for pve-management"
+pveum user token add tofu@pve mgmt --privsep 1
+# Same ACL for the user and the token; one line per path in the table above, e.g.:
+pveum acl modify /vms --roles IaCManagementVM --users tofu@pve --tokens 'tofu@pve!mgmt'
+```
+
+The single role is assigned on each path; privileges a path does not check are inert there, and
+nothing is granted on `/`. `VM.GuestAgent.Audit` exists from PVE 9.0 (on 8.x the agent read uses
+`VM.Monitor`); `make mgmt-discover` reports the PVE version and any missing privilege per path. Unverified until the first plan/apply: whether importing from
+an `import` volume needs more than `Datastore.Audit` on the image storage.
 
 ### SSH
 
-- VM creation needs no SSH to the hypervisor if cloud-init stays API-driven (no snippets).
-- The management VM gets the operator key and a dedicated automation key via cloud-init for Ansible.
-- Hypervisor SSH stays an administrator path, not an automation dependency.
+Not required for provisioning: the `bpg/proxmox` v0.112.0 documentation lists SSH only for snippets,
+some file uploads, `source_file.path` imports and container idmaps; `import_from` and image downloads
+use the API. The provider block has no SSH settings. SSH is used only by Ansible into the VM, with the
+repository operator key (`keys/doku-lab-admin.pub`) injected by cloud-init.
 
-### Image and cloud-init
+### TLS (observed 2026-11-12)
 
-- No VM template is needed: download a SHA256-pinned Ubuntu LTS cloud image into a datastore
-  with the `import` content type enabled, import it as the boot disk, cloud-init for user/key/IP.
-- To verify on `pve-management`: storage names and content types, bridge, free VMID, the IP
-  address (static reservation or DHCP), and that the guest agent is installed by Ansible.
+- `pve-management:8006` presents the default node certificate issued on 2026-11-11 by the host's own
+  `PVE Cluster Manager CA` (valid to 2028-11-10); SANs: `192.168.0.10`, `pve-management`,
+  `pve-management.doku-lab.net`, localhost. Leaf SHA-256 fingerprint
+  `FC:BE:8F:18:57:93:1F:AD:34:E9:2B:43:4A:C5:A9:8D:D0:36:77:7C:50:63:79:49:F4:8D:85:63:D3:9F:9B:91`.
+- Not trusted by the workstation yet (expected). The root never sets `insecure = true`.
+- **Bootstrap strategy:** trust the host's `pve-root-ca.pem` on the workstation (macOS Keychain, since
+  OpenTofu uses the system store), after verifying it on the console. `mgmt-discover` also accepts `PVE_CA_FILE`.
+- **Later:** an ACME certificate for `pve-management.doku-lab.net` (DNS-01) removes CA distribution;
+  it needs DNS API credentials and is a separate, approved change.
 
-### State storage
+### SSH host keys
 
-- Legacy state is local and unbacked. The first new root must not keep state only on one laptop,
-  and must not store it on the VM it creates.
-- Smallest safe option: local state on the operator workstation, OpenTofu client-side state
-  encryption, and an encrypted off-host copy after each apply; a shared backend is decided in
-  TASK-010 before more roots depend on it.
+The workstation's `known_hosts` entries for `192.168.0.10` are the retired `pve-infra` keys; none
+match the keys `pve-management` presents (ED25519 `SHA256:gdWdOeB7oxmR5xMQ2C/KjjgOW5hZDOxw46LnB1I6mgY`).
+SSH therefore fails closed. The operator replaces them after checking the fingerprints on the console.
 
-### Secrets bootstrap
+### State
 
-- The token can be supplied from Infisical (working today, existing `INFISICAL_RUN` pattern) or
-  from a SOPS + age file (TASK-011). The input source is explicit; there is no fallback between them.
-- M001 is complete only when SOPS + age covers the bootstrap credentials and a workstation can
-  run the plan with Infisical unavailable.
+- **Now:** local backend in the root directory on the workstation (git-ignored), one operator; after each
+  apply `make mgmt-state-backup` writes a dated, age-encrypted copy to an off-machine location.
+  Never stored on `pve-management` or the VM it manages. Restore = decrypt + no-change plan.
+- **Later (TASK-010):** a shared remote backend with locking before any second executor may apply. Not now.
 
-### Recovery
+### Secrets
 
-- The management VM is rebuildable: its definition is the root plus the Ansible role; its
-  irreplaceable inputs (state, token, age key) live off the VM. A PBS backup is a convenience,
-  not the recovery method.
+The API token comes from Infisical, path `/pve-management` (`MGMT_INPUT_SOURCE=infisical`), or from the
+environment (`MGMT_INPUT_SOURCE=env`, e.g. decrypted from SOPS during recovery). No default, no fallback.
+The guard strips Infisical bootstrap credentials before OpenTofu runs. SOPS + age files follow in TASK-011.
+
+### Proposed VM configuration (not confirmed)
+
+| Value | Proposed | Confirm with |
+|-------|----------|--------------|
+| VMID | 100 | `mgmt-discover` (used VMIDs, next free) |
+| Address | static, outside the DHCP pool (e.g. a reserved `192.168.0.x/24`) | pfSense DHCP scope |
+| Gateway / DNS | `192.168.0.1` / `192.168.0.20` | pfSense, AdGuard |
+| vCPU / RAM / disk | 2 / 4096 MiB / 40 GiB | `pve-management` capacity |
+| Image storage / disk storage / bridge | `local` (needs `import` content) / `local-lvm` / `vmbr0` | `mgmt-discover` |
+| Ubuntu | 24.04 LTS cloud image, dated release + SHA256 | cloud-images.ubuntu.com SHA256SUMS |
 
 ## Inferences
 
-- **Contradiction with the briefing:** "use the existing CI runners to provision `pve-management`"
-  is not possible safely today. The existing infrastructure contributes Forgejo (code), Infisical
-  (token), the controller environment and the Make workflows; the first apply runs from the operator
-  workstation, which is also the disaster-recovery path. CI-triggered plans follow once the
-  management VM hosts its own trusted runner (TASK-009).
-- Bootstrapping `pve-management` needs only the `pve-management` facts from M000 (TASK-007
-  checks them), not the full inventory; M000 and M001 can progress in parallel.
+- Everything up to the first read-only API call is ready; every remaining step needs an operator action.
+- The legacy roots that still point at `192.168.0.10` are blocked by a Make guard; their correct
+  endpoint is an operator decision ([INV-legacy-inventory](legacy-inventory.md)).
 
-### Proposed sequence
-
-1. **TASK-007** — operator creates the user/role/token; agent verifies read-only: API version and
-   node list with the token, TLS, storages and `import` content, bridge, free VMID/IP, reachability.
-2. **TASK-006** — target layout, pinned OpenTofu in the controller setup, `mgmt-*` Make targets.
-3. **TASK-008** — `modules/opentofu/proxmox-vm` + `stacks/management/mgmt-vm` with `tofu test`
-   (mock provider); a reviewed plan; apply only after approval.
-4. **TASK-010** (state decision for this root) before that apply.
-5. **TASK-009** — Ansible baseline: users, SSH hardening, guest agent, OpenTofu, Ansible, SOPS/age,
-   Phase CLI later; dedicated runner registration.
-6. **TASK-011** — SOPS + age for the token and SSH material; **TASK-012** — workstation runbook, exercised once.
-
-### Minimal acceptance tests
+### Acceptance tests for M001
 
 | Level | Test |
 |-------|------|
-| Offline (CI) | `tofu fmt -check`, `tofu validate`, `tofu test` with mock provider (node is `pve-management`, image checksum set, no password auth), Ansible `--syntax-check` |
-| Live read-only | Token reads `/version` and `/nodes`; TLS verified; required storages and bridge exist |
-| Live change (approved) | Plan shows only the image download and one VM; apply succeeds; VM boots and answers SSH; second plan reports no changes |
-| Configuration | Ansible converges twice with `changed=0` the second time; tool versions match pins; runner registered and runs a harmless job |
-| Recovery | From a workstation, with the SOPS file and age key, the plan runs without Infisical |
+| Offline (CI) | `make mgmt-check`: fmt, validate, 5 mocked `tofu test` runs, Ansible syntax, guard tests |
+| Live read-only | `mgmt-discover`: TLS verified, standalone, storages with `import`, bridge, free VMID, no missing privileges |
+| Live change (approved) | Plan shows exactly 1 image download + 1 VM; apply; VM boots; SSH works; second plan reports no changes |
+| Configuration | `mgmt-configure` twice, second run without changes; tool versions reported |
+| Recovery | State restored from the age backup gives a no-change plan; plan runs with `MGMT_INPUT_SOURCE=env` |
 
 ## Open questions
 
-Needed from the operator before any provisioning:
-
-- First execution path: workstation via Make (recommended) or a dedicated workflow on CT301.
-- Management VM: VMID, address (static or DHCP reservation), vCPU/RAM/disk, Ubuntu LTS version.
-- `pve-management` storage for images/disks and the bridge to use.
-- TLS approach for the Proxmox API (pinned CA vs trusted certificate).
-- Token source for the first run (Infisical now, SOPS from TASK-011) and age key custody.
+- Operator: create the identity/token and store it; trust the PVE CA; replace stale host keys.
+- Operator: confirm the VM address and sizing; whether `local` should get the `import` content type.
+- Correct API endpoint for the four legacy roots that still use `192.168.0.10`.

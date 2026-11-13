@@ -9,7 +9,7 @@ created: 2026-11-12
 updated: 2026-11-12
 tags: [overview, vision, rebuild, status]
 aliases: [PROJECT_VISION]
-related: [ARCH-platform, ADR-001, INV-legacy-inventory, INV-pve-management-bootstrap, M000, M001]
+related: [ARCH-platform, ADR-001, ADR-008, INV-legacy-inventory, INV-pve-management-bootstrap, M000, M001]
 ---
 
 # homelab-iac — project vision and overview
@@ -79,7 +79,7 @@ Never in Git: secret values, OpenTofu/Terraform state, private tfvars, recovery 
 | Path | Content |
 |------|---------|
 | `docs/architecture/platform.md` | Current vs target architecture, layer owners, stack, service catalog, recovery flow |
-| `docs/decisions/` | Decision records ADR-001…007 |
+| `docs/decisions/` | Decision records ADR-001…008 |
 | `docs/investigations/` | Legacy inventory, pve-management bootstrap readiness and plan |
 | `milestones/`, `tasks/` | Roadmap M000–M008 and the tasks of the next two milestones |
 | `docs/archive/codex-2026/` | Previous agent workflow, roadmap, tasks and runbooks — evidence only, not indexed |
@@ -95,12 +95,16 @@ application migration → M006 observability → M007 core cutover and retiremen
 ### Current status (2026-11-12)
 
 - Repository reset onto the agent harness; legacy documentation archived; this direction documented.
-- `pve-management` is installed (fresh Proxmox VE) with no management workloads. Its API identity,
-  SSH access, storage and network have **not** been verified.
-- Legacy services keep running; nothing has been migrated. Nine legacy Terraform roots hold their
-  only state as local files on the operator workstation.
-- Next: M001 bootstrap plan in [INV-pve-management-bootstrap](investigations/pve-management-bootstrap.md),
-  in parallel with the read-only M000 inventory.
+- `pve-infra` and `pve-compute` are permanently retired; `192.168.0.10` is `pve-management` (fresh
+  Proxmox VE, standalone, no guests). Ports 8006/22 answer; its API identity, storage and network are
+  not verified yet.
+- M001 is prepared offline: OpenTofu root `terraform/stacks/pve-management-control` (reusing
+  `headless-vm`), Ansible playbook, guarded `mgmt-*` Make targets, mocked tests. Nothing applied.
+- Legacy services keep running; nothing has been migrated. Nine legacy Terraform roots hold their only
+  state locally; four still point at `192.168.0.10` and two record retired `pve-compute` guests —
+  Make now refuses those operations ([INV-legacy-inventory](investigations/legacy-inventory.md)).
+- Next: operator creates the dedicated API token, then `make mgmt-discover`
+  ([INV-pve-management-bootstrap](investigations/pve-management-bootstrap.md)).
 
 ### Confirmed decisions vs assumptions
 
@@ -112,9 +116,12 @@ application migration → M006 observability → M007 core cutover and retiremen
 | Windmill as operations UI over versioned workflows and a service catalog | **Confirmed** (ADR-005) |
 | Compose first; k3s + Argo CD later; Flux not the target | **Confirmed** (ADR-006) |
 | SOPS + age for bootstrap secrets | **Confirmed** (ADR-004) |
-| Phase as the runtime secret store | **Selected, pending validation** of self-hosted features and licence (ADR-004 is `proposed`) |
-| Existing CI runners can provision `pve-management` | **Assumption, contradicted today**: CI is validation-only and the CT301 runner trust gate is open; see the bootstrap plan |
-| Legacy host/service inventory | **Assumption** from archived docs ([INV-legacy-inventory](investigations/legacy-inventory.md)); `pve-infra` and `pve-management` share the same address in the legacy inventory |
+| Phase as the runtime secret store | **Confirmed direction**; deployment gated on validating the self-hosted free edition (ADR-004) |
+| Bootstrap from the workstation; CT301 validation-only, never Proxmox credentials | **Confirmed** (ADR-008) |
+| `pve-infra`, `pve-compute` permanently retired; `192.168.0.10` is `pve-management` | **Confirmed** (operator) |
+| Former `pve-infra`/`pve-compute` workloads safely migrated | **Unknown**: not proven by retirement (TASK-002/003) |
+| Legacy host/service inventory | **Assumption** from archived docs and state review ([INV-legacy-inventory](investigations/legacy-inventory.md)) |
+| Management VM values (VMID, IP, size, storage, bridge, Ubuntu release) | **Proposed**, to confirm by discovery |
 | Spare machine for the new compute environment; cluster topology | **Unknown** (M004) |
 | State backend for new roots | **Open** (TASK-010); Garage rejected, PostgreSQL candidate never production-qualified |
 
