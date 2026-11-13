@@ -138,6 +138,24 @@ jobs:
               "$playbook"
           done
 
+      - name: Install pinned OpenTofu
+        env:
+          TOFU_VERSION: "1.13.9"
+          TOFU_SHA256: bc44eb6b06446ba83bd4072114891987f590f66cca712737a7f1147c50c539ce
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSLo "$work/tofu.zip" \
+            "https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_linux_amd64.zip"
+          printf '%s  %s\n' "$TOFU_SHA256" "$work/tofu.zip" | sha256sum --check --status
+          unzip -qo "$work/tofu.zip" tofu -d /usr/local/bin
+          tofu version
+
+      # Offline only: mocked provider, no backend, no Proxmox credentials.
+      - name: Validate OpenTofu root terraform/stacks/pve-management-control offline
+        run: make mgmt-check
+
       - name: Validate monitoring Compose configuration
         run: docker-compose -f services/monitoring/compose.yml config --quiet
 

@@ -1,0 +1,24 @@
+# Copy to terraform.tfvars (git-ignored) and replace every PROPOSED value with a value confirmed
+# by `make mgmt-discover`. Nothing here is a verified fact about pve-management yet.
+proxmox_endpoint = "https://192.168.0.10:8006/" # confirmed: pve-management address (TLS name must match the certificate)
+
+profile = {
+  node            = "pve-management" # confirmed hostname
+  vm_id           = 100              # PROPOSED: first free VMID on a fresh host
+  name            = "mgmt-control-01"
+  image_datastore = "local"          # PROPOSED: needs the "import" content type enabled
+  disk_datastore  = "local-lvm"      # PROPOSED: default thin pool on a fresh install
+  bridge          = "vmbr0"          # PROPOSED: default bridge
+  ipv4            = "192.168.0.X/24" # PROPOSED: reserve a static address outside the DHCP pool
+  gateway         = "192.168.0.1"    # PROPOSED: confirm against pfSense
+  dns_servers     = ["192.168.0.20"] # PROPOSED: AdGuard address used by legacy guests
+  cores           = 2                # PROPOSED
+  memory          = 4096             # PROPOSED (MiB)
+  disk_gb         = 40               # PROPOSED
+}
+
+image = {
+  # PROPOSED: Ubuntu 24.04 LTS (noble). Pin a dated release directory and its SHA256SUMS entry.
+  url    = "https://cloud-images.ubuntu.com/releases/noble/release-YYYYMMDD/ubuntu-24.04-server-cloudimg-amd64.img"
+  sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+}

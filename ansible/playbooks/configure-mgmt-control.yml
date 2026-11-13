@@ -1,0 +1,109 @@
+---
+# Baseline for the management VM (mgmt-control-01) on pve-management. Adapted from
+# configure-recovery-controller.yml: Ubuntu instead of Debian, OpenTofu instead of Terraform.
+# Run through `make mgmt-configure`, which derives the inventory from the OpenTofu outputs.
+# No secrets are handled here; no Forgejo runner is installed in this milestone step.
+- name: Configure the management VM baseline and IaC toolchain
+  hosts: mgmt_control
+  become: true
+  gather_facts: true
+  vars:
+    mgmt_checkout: "/home/{{ ansible_user }}/homelab-iac"
+    # Independent code source: recovery must not depend on Forgejo.
+    mgmt_source_repo: https://github.com/doku-code/homelab-iac.git
+    opentofu_version: "1.13.9"
+    sops_version: "3.10.2" # PROPOSED pin; confirm the current release before the first run
+  pre_tasks:
+    - name: Require a reviewed source and a compatible OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution == 'Ubuntu'
+          - ansible_facts.distribution_version is version('24.04', '>=')
+          - ansible_facts.architecture == 'x86_64'
+          - mgmt_source_commit is defined
+          - mgmt_source_commit is match('^[a-f0-9]{40}$')
+        fail_msg: Use the approved Ubuntu LTS guest and a full reviewed Git commit (mgmt_source_commit).
+  tasks:
+    - name: Install OS prerequisites
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+        name: [age, ca-certificates, curl, git, make, python3, python3-venv, qemu-guest-agent, unzip]
+        state: present
+
+    - name: Run the QEMU guest agent (address reporting to Proxmox)
+      ansible.builtin.service:
+        name: qemu-guest-agent
+        state: started
+        enabled: true
+
+    - name: Harden SSH (keys only, no root login)
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/10-homelab-hardening.conf
+        content: |
+          # Managed by homelab-iac (configure-mgmt-control.yml)
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PermitRootLogin no
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Validate and reload SSH
+
+    - name: Fetch OpenTofu, verified against the release SHA256SUMS
+      ansible.builtin.get_url:
+        url: "https://github.com/opentofu/opentofu/releases/download/v{{ opentofu_version }}/tofu_{{ opentofu_version }}_linux_amd64.zip"
+        dest: "/var/tmp/tofu_{{ opentofu_version }}_linux_amd64.zip"
+        checksum: "sha256:https://github.com/opentofu/opentofu/releases/download/v{{ opentofu_version }}/tofu_{{ opentofu_version }}_SHA256SUMS"
+        mode: "0600"
+
+    - name: Install the pinned OpenTofu binary
+      ansible.builtin.unarchive:
+        src: "/var/tmp/tofu_{{ opentofu_version }}_linux_amd64.zip"
+        dest: /usr/local/bin
+        remote_src: true
+        include: [tofu]
+        creates: /usr/local/bin/tofu
+
+    - name: Install SOPS, verified against the release checksums
+      ansible.builtin.get_url:
+        url: "https://github.com/getsops/sops/releases/download/v{{ sops_version }}/sops-v{{ sops_version }}.linux.amd64"
+        dest: /usr/local/bin/sops
+        checksum: "sha256:https://github.com/getsops/sops/releases/download/v{{ sops_version }}/sops-v{{ sops_version }}.checksums.txt"
+        mode: "0755"
+
+    - name: Retrieve the reviewed repository commit from the independent source
+      become: false
+      ansible.builtin.git:
+        repo: "{{ mgmt_source_repo }}"
+        dest: "{{ mgmt_checkout }}"
+        version: "{{ mgmt_source_commit }}"
+        force: false
+
+    - name: Build the controller environment through the existing Make interface
+      become: false
+      ansible.builtin.command:
+        argv: [make, setup-controller, CONTROLLER_PYTHON=/usr/bin/python3]
+        chdir: "{{ mgmt_checkout }}"
+        creates: "{{ mgmt_checkout }}/.venv/bin/ansible-playbook"
+
+    - name: Check Python dependency compatibility
+      become: false
+      ansible.builtin.command:
+        argv: ["{{ mgmt_checkout }}/.venv/bin/python", -m, pip, check]
+      changed_when: false
+
+    - name: Report toolchain versions
+      ansible.builtin.command:
+        argv: [sh, -c, "tofu version | head -1; sops --version | head -1; age --version"]
+      register: mgmt_tool_versions
+      changed_when: false
+
+    - name: Show toolchain versions
+      ansible.builtin.debug:
+        var: mgmt_tool_versions.stdout_lines
+
+  handlers:
+    - name: Validate and reload SSH
+      ansible.builtin.shell: sshd -t && systemctl reload ssh
+      changed_when: true

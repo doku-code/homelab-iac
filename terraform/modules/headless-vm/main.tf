@@ -1,5 +1,5 @@
+# No required_version here: each root pins its engine (Terraform for legacy roots, OpenTofu for new ones).
 terraform {
-  required_version = ">= 1.16.0"
   required_providers {
     proxmox = {
       source  = "bpg/proxmox"
@@ -13,8 +13,8 @@ resource "proxmox_virtual_environment_vm" "this" {
   vm_id               = var.profile.vm_id
   name                = var.profile.name
   tags                = concat(["terraform"], var.tags)
-  started             = false
-  on_boot             = false
+  started             = var.started
+  on_boot             = var.on_boot
   reboot_after_update = false
   machine             = "q35"
   scsi_hardware       = "virtio-scsi-single"
@@ -52,7 +52,7 @@ resource "proxmox_virtual_environment_vm" "this" {
       servers = var.profile.dns_servers
     }
     user_account {
-      username = "debian"
+      username = var.username
       keys     = [trimspace(var.ssh_public_key)]
     }
   }

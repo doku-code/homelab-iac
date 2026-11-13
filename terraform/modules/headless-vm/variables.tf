@@ -30,3 +30,19 @@ variable "ssh_public_key" {
     error_message = "Supply an Ed25519 public key, never a private key."
   }
 }
+
+# Defaults preserve the legacy Debian, stopped-by-default behaviour of existing roots.
+variable "username" {
+  type    = string
+  default = "debian"
+}
+
+variable "started" {
+  type    = bool
+  default = false
+}
+
+variable "on_boot" {
+  type    = bool
+  default = false
+}

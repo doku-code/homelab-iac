@@ -425,3 +425,99 @@ recovery-check:
 	$(VENV)/bin/python tests/recovery-kit.py
 
 include services/windmill/targets.mk
+
+# ─────────────────────────────────────────────
+# pve-management: management VM mgmt-control-01 (M001, OpenTofu)
+# Run from the operator workstation only. CT301 never receives these credentials.
+# ─────────────────────────────────────────────
+
+TOFU ?= tofu
+MGMT_DIR := terraform/stacks/pve-management-control
+MGMT_PLAN := mgmt.tfplan
+MGMT_ENDPOINT ?= https://192.168.0.10:8006/
+# Reusable provider cache for offline checks (git-ignored); never the root's live .terraform.
+MGMT_CHECK_DATA := $(CURDIR)/.local/tofu-check/pve-management-control
+MGMT_GUARD := $(VENV)/bin/python scripts/pve-auth-guard.py --
+# Explicit credential source, no default and no fallback:
+#   infisical: Universal Auth in the operator shell; secrets read from MGMT_INFISICAL_PATH only
+#   env:       PROXMOX_VE_API_TOKEN already exported (e.g. decrypted from SOPS during recovery)
+MGMT_INPUT_SOURCE ?=
+MGMT_INFISICAL_PATH ?= /pve-management
+define MGMT_REQUIRE_SOURCE
+	@case "$(MGMT_INPUT_SOURCE)" in infisical|env) ;; *) echo "Set MGMT_INPUT_SOURCE=infisical or MGMT_INPUT_SOURCE=env (no default, no fallback)." >&2; exit 1;; esac
+endef
+ifeq ($(MGMT_INPUT_SOURCE),infisical)
+define MGMT_RUN
+	@set -euo pipefail; \
+	: "$${INFISICAL_CLIENT_ID:?Set INFISICAL_CLIENT_ID in the runtime environment}"; \
+	: "$${INFISICAL_CLIENT_SECRET:?Set INFISICAL_CLIENT_SECRET in the runtime environment}"; \
+	token="$$(infisical login --silent --plain --domain "$(INFISICAL_DOMAIN)" \
+		--method universal-auth \
+		--client-id "$$INFISICAL_CLIENT_ID" \
+		--client-secret "$$INFISICAL_CLIENT_SECRET")"; \
+	infisical run --silent --domain "$(INFISICAL_DOMAIN)" \
+		--token "$$token" \
+		--projectId "$(INFISICAL_PROJECT_ID)" \
+		--env "$(INFISICAL_ENV)" --path "$(MGMT_INFISICAL_PATH)" -- $(MGMT_GUARD) $(1)
+endef
+else
+define MGMT_RUN
+	@$(MGMT_GUARD) $(1)
+endef
+endif
+
+.PHONY: mgmt-check mgmt-discover mgmt-plan mgmt-apply mgmt-configure mgmt-state-backup
+
+# Offline only: no credentials, no backend, mocked provider.
+mgmt-check:
+	$(TOFU) -chdir=$(MGMT_DIR) fmt -check -recursive
+	@mkdir -p "$(MGMT_CHECK_DATA)"
+	TF_DATA_DIR="$(MGMT_CHECK_DATA)" $(TOFU) -chdir=$(MGMT_DIR) init -backend=false -input=false -lockfile=readonly -no-color >/dev/null
+	TF_DATA_DIR="$(MGMT_CHECK_DATA)" $(TOFU) -chdir=$(MGMT_DIR) validate -no-color
+	TF_DATA_DIR="$(MGMT_CHECK_DATA)" $(TOFU) -chdir=$(MGMT_DIR) test -no-color
+	$(ANSIBLE) ansible/playbooks/configure-mgmt-control.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(VENV)/bin/python tests/mgmt-control.py
+
+# Read-only: GET requests with verified TLS. Pass datastores/bridge to check privileges, e.g.
+# MGMT_DISCOVER_ARGS="--image-datastore local --disk-datastore local-lvm --bridge vmbr0"
+mgmt-discover:
+	$(MGMT_REQUIRE_SOURCE)
+	$(call MGMT_RUN,$(VENV)/bin/python scripts/pve-discover.py --endpoint "$(MGMT_ENDPOINT)" --node pve-management $(MGMT_DISCOVER_ARGS))
+
+mgmt-plan:
+	@test "$(MGMT_ALLOCATION_REVIEWED)" = yes || (echo "Confirm every PROPOSED value with make mgmt-discover, then set MGMT_ALLOCATION_REVIEWED=yes" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@test -f "$(MGMT_DIR)/terraform.tfvars" || (echo "Create the private $(MGMT_DIR)/terraform.tfvars from terraform.tfvars.example" >&2; exit 1)
+	@test ! -e "$(MGMT_DIR)/$(MGMT_PLAN)" || mv -f "$(MGMT_DIR)/$(MGMT_PLAN)" "$(MGMT_DIR)/mgmt.previous.tfplan"
+	$(TOFU) -chdir=$(MGMT_DIR) init -input=false -lockfile=readonly
+	$(call MGMT_RUN,$(TOFU) -chdir=$(MGMT_DIR) plan -input=false -out=$(MGMT_PLAN))
+	@shasum -a 256 "$(MGMT_DIR)/$(MGMT_PLAN)"
+
+# Mutates pve-management: only with explicit approval of the exact saved plan.
+mgmt-apply:
+	@test "$(MGMT_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: MGMT_APPLY_APPROVED=yes" >&2; exit 1)
+	@test -n "$(MGMT_PLAN_SHA256)" || (echo "Supply MGMT_PLAN_SHA256 as printed by make mgmt-plan" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@printf '%s  %s\n' '$(MGMT_PLAN_SHA256)' '$(MGMT_DIR)/$(MGMT_PLAN)' | shasum -a 256 -c
+	$(call MGMT_RUN,$(TOFU) -chdir=$(MGMT_DIR) apply -input=false $(MGMT_PLAN))
+	@mv -f "$(MGMT_DIR)/$(MGMT_PLAN)" "$(MGMT_DIR)/mgmt.applied.tfplan"
+	@echo "Back up the new state now: make mgmt-state-backup"
+
+mgmt-configure:
+	@test "$(MGMT_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of mgmt-control-01 with MGMT_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@test -n "$(MGMT_SOURCE_COMMIT)" || (echo "Supply MGMT_SOURCE_COMMIT: a reviewed full commit published on the GitHub mirror" >&2; exit 1)
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/mgmt-control-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
+	$(TOFU) -chdir=$(MGMT_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-mgmt-control.yml \
+	--diff -e mgmt_source_commit="$(MGMT_SOURCE_COMMIT)"
+
+# Encrypted, dated off-machine copy of the local state (age public recipients only).
+mgmt-state-backup:
+	@command -v age >/dev/null || (echo "Install age first" >&2; exit 1)
+	@test -n "$(MGMT_BACKUP_DIR)" && test -d "$(MGMT_BACKUP_DIR)" || (echo "Set MGMT_BACKUP_DIR to a mounted off-machine location" >&2; exit 1)
+	@test -f "$(AGE_RECIPIENTS_FILE)" || (echo "Set AGE_RECIPIENTS_FILE to the public age recipients file" >&2; exit 1)
+	@test -f "$(MGMT_DIR)/terraform.tfstate" || (echo "No $(MGMT_DIR)/terraform.tfstate to back up" >&2; exit 1)
+	@set -euo pipefail; out="$(MGMT_BACKUP_DIR)/pve-management-control-$$(date -u +%Y%m%dT%H%M%SZ).tfstate.age"; \
+	age -R "$(AGE_RECIPIENTS_FILE)" -o "$$out" "$(MGMT_DIR)/terraform.tfstate"; \
+	shasum -a 256 "$$out"

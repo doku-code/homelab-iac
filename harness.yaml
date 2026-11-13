@@ -37,14 +37,19 @@ verification:
     detected: false
     verified: true
   - name: terraform-validate
-    run: d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do n="$d/$(basename
-      "$r")"; TF_DATA_DIR="$n" terraform -chdir="$r" init -backend=false -input=false -lockfile=readonly
+    run: d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do [ "$r" = terraform/stacks/pve-management-control/
+      ] && continue; n="$d/$(basename "$r")"; TF_DATA_DIR="$n" terraform -chdir="$r" init -backend=false -input=false -lockfile=readonly
       >/dev/null && TF_DATA_DIR="$n" terraform -chdir="$r" validate >/dev/null || { echo "FAIL $r"; exit
       1; }; done; rm -rf "$d"
     detected: false
     verified: true
     description: Every root with the backend disabled and a throwaway TF_DATA_DIR (never touches local
       state)
+  - name: mgmt-check
+    run: make mgmt-check
+    detected: false
+    verified: true
+    description: OpenTofu root for mgmt-control-01 (fmt, validate, mocked tofu test) plus auth/Make guard tests; offline
   - name: ansible-syntax
     run: for p in ansible/playbooks/*.yml; do .venv/bin/ansible-playbook --syntax-check -i ansible/inventories/homelab.yml
       "$p" >/dev/null || exit 1; done
