@@ -180,6 +180,12 @@ def test_make_guards():
         assert result.returncode != 0 and "MGMT_INPUT_SOURCE" in result.stderr
         assert calls(base) == ""
 
+        # Without the local state, planning refuses: VM 100 exists, an empty state would recreate it.
+        result = run_make(base, fake, "mgmt-plan", "MGMT_ALLOCATION_REVIEWED=yes", "MGMT_INPUT_SOURCE=env",
+                          extra_env={"PROXMOX_VE_API_TOKEN": TOKEN})
+        assert result.returncode != 0 and "terraform.tfstate" in result.stderr and calls(base) == ""
+        (mgmt / "terraform.tfstate").write_text('{"version": 4, "resources": []}\n')
+
         # A root@pam token is refused by the guard: tofu init may run, tofu plan never does.
         result = run_make(base, fake, "mgmt-plan", "MGMT_ALLOCATION_REVIEWED=yes", "MGMT_INPUT_SOURCE=env",
                           extra_env={"PROXMOX_VE_API_TOKEN": "root@pam!x=1"})
@@ -300,13 +306,18 @@ def test_admin_workstation_role():
             checks.append({"name": f"{label}: TLS {item['action']}", "vars": {**facts, "item": item},
                            "ansible.builtin.assert": {"that": [expect(condition(cert_task["name"]))]}})
         for name in ("Set the remote login credentials once", "Enable remote login over RDP"):
-            checks.append({"name": f"{label}: {name}", "vars": facts,
+            checks.append({"name": f"{label}: {name}", "vars": {**facts, "mgmt_rdp_password": "synthetic-test-only"},
                            "ansible.builtin.assert": {"that": [expect(condition(name))]}})
         checks.append({"name": f"{label}: final verification", "vars": facts, "ansible.builtin.assert": {
             "that": [expect(by_name["Verify the remote login configuration"]["failed_when"])]}})
-        checks.append({"name": f"{label}: rerun without a password", "vars": {**facts, "mgmt_rdp_password": ""},
-                       "ansible.builtin.assert": {"that": [
-                           ("" if configured else "not ") + f"({by_name['Require an RDP password on the first run']['ansible.builtin.assert']['that']})"]}})
+        # A non-interactive run never sets credentials, and reports the missing ones instead.
+        checks.append({"name": f"{label}: no RDP password given", "vars": {**facts, "mgmt_rdp_password": ""},
+                       "ansible.builtin.assert": {"that": [f"not ({condition('Set the remote login credentials once')})"]}})
+        password = {"stdout": "ubuntu P 2026-11-14 0 99999 7 -1" if configured else "ubuntu L 2026-11-14 0 99999 7 -1"}
+        report = by_name["Report credentials that are still unset"]["when"]
+        checks.append({"name": f"{label}: report unset credentials", "vars": {**facts,
+                       "admin_workstation_password_final": password},
+                       "ansible.builtin.assert": {"that": [expect(report)]}})
     defaults = {k: v for k, v in catalog.items() if not k.startswith("admin_workstation_user")}
     with tempfile.TemporaryDirectory(prefix="role-syntax-") as directory:
         # The role itself is only syntax-checked, never executed here.

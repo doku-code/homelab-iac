@@ -488,6 +488,7 @@ mgmt-plan:
 	@test "$(MGMT_ALLOCATION_REVIEWED)" = yes || (echo "Confirm every PROPOSED value with make mgmt-discover, then set MGMT_ALLOCATION_REVIEWED=yes" >&2; exit 1)
 	$(MGMT_REQUIRE_SOURCE)
 	@test -f "$(MGMT_DIR)/terraform.tfvars" || (echo "Create the private $(MGMT_DIR)/terraform.tfvars from terraform.tfvars.example" >&2; exit 1)
+	@test -f "$(MGMT_DIR)/terraform.tfstate" || test "$(MGMT_NEW_STATE)" = yes || (echo "No $(MGMT_DIR)/terraform.tfstate here: VM 100 already exists. Copy the state from the workstation that holds it (docs/handoff.md); MGMT_NEW_STATE=yes only for a deliberately empty state." >&2; exit 1)
 	@test ! -e "$(MGMT_DIR)/$(MGMT_PLAN)" || mv -f "$(MGMT_DIR)/$(MGMT_PLAN)" "$(MGMT_DIR)/mgmt.previous.tfplan"
 	$(TOFU) -chdir=$(MGMT_DIR) init -input=false -lockfile=readonly
 	$(call MGMT_RUN,$(TOFU) -chdir=$(MGMT_DIR) plan -input=false -out=$(MGMT_PLAN))
@@ -501,7 +502,7 @@ mgmt-apply:
 	@printf '%s  %s\n' '$(MGMT_PLAN_SHA256)' '$(MGMT_DIR)/$(MGMT_PLAN)' | shasum -a 256 -c
 	$(call MGMT_RUN,$(TOFU) -chdir=$(MGMT_DIR) apply -input=false $(MGMT_PLAN))
 	@mv -f "$(MGMT_DIR)/$(MGMT_PLAN)" "$(MGMT_DIR)/mgmt.applied.tfplan"
-	@echo "Back up the new state now: make mgmt-state-backup"
+	@echo "State updated locally: $(MGMT_DIR)/terraform.tfstate (this workstation only, never in Git)"
 
 mgmt-configure:
 	@test "$(MGMT_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of mgmt-control-01 with MGMT_CONFIGURE_APPROVED=yes" >&2; exit 1)

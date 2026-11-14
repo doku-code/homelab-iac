@@ -45,6 +45,22 @@
         name: [age, ca-certificates, curl, git, make, python3, python3-venv, qemu-guest-agent, unzip]
         state: present
 
+    # Public certificate (keys/): OpenTofu, curl and Python then verify pve-management without flags.
+    - name: Trust the pve-management root CA system-wide
+      ansible.builtin.copy:
+        src: ../../keys/pve-management-root-ca.crt
+        dest: /usr/local/share/ca-certificates/pve-management-root-ca.crt
+        owner: root
+        group: root
+        mode: "0644"
+      register: mgmt_pve_ca
+
+    - name: Rebuild the system trust store
+      ansible.builtin.command:
+        argv: [update-ca-certificates]
+      changed_when: true
+      when: mgmt_pve_ca is changed
+
     - name: Run the QEMU guest agent (address reporting to Proxmox)
       ansible.builtin.service:
         name: qemu-guest-agent
@@ -86,6 +102,8 @@
         checksum: "sha256:https://github.com/getsops/sops/releases/download/v{{ sops_version }}/sops-v{{ sops_version }}.checksums.txt"
         mode: "0755"
 
+    # First run only: the checkout then becomes the operator's working copy (Forgejo origin, main
+    # branch, local state); later runs never move or overwrite it.
     - name: Retrieve the reviewed repository commit from the independent source
       become: false
       ansible.builtin.git:
@@ -93,6 +111,7 @@
         dest: "{{ mgmt_checkout }}"
         version: "{{ mgmt_source_commit }}"
         force: false
+        update: false
 
     - name: Build the controller environment through the existing Make interface
       become: false
@@ -100,6 +119,13 @@
         argv: [make, setup-controller, CONTROLLER_PYTHON=/usr/bin/python3]
         chdir: "{{ mgmt_checkout }}"
         creates: "{{ mgmt_checkout }}/.venv/bin/ansible-playbook"
+
+    - name: Install the agent harness CLI into the repository environment
+      become: false
+      ansible.builtin.command:
+        argv: ["{{ mgmt_checkout }}/.venv/bin/python", -m, pip, install, --quiet, -r, requirements-agents.txt]
+        chdir: "{{ mgmt_checkout }}"
+        creates: "{{ mgmt_checkout }}/.venv/bin/harness"
 
     - name: Check Python dependency compatibility
       become: false
