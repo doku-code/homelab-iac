@@ -121,6 +121,10 @@
       },
       "backrefs": [
         {
+          "from": "ADR-009",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -536,6 +540,10 @@
       },
       "backrefs": [
         {
+          "from": "ADR-009",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -547,6 +555,60 @@
           "from": "INV-legacy-inventory",
           "field": "related"
         },
+        {
+          "from": "INV-pve-management-bootstrap",
+          "field": "related"
+        }
+      ]
+    },
+    {
+      "id": "ADR-009",
+      "title": "The management VM is the operator's GNOME admin workstation",
+      "summary": "mgmt-control-01 is a GNOME admin workstation (Ubuntu 26.04, 8 vCPU host type, 10 GiB, 120 GiB) with RDP remote login, the IaC toolchain, Claude Code and Codex.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "accepted",
+      "path": "docs/decisions/ADR-009-management-vm-gnome-admin-workstation.md",
+      "tags": [
+        "decision",
+        "management",
+        "workstation",
+        "desktop",
+        "pve-management"
+      ],
+      "component": "pve-management",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "ADR-009: Management VM as a GNOME admin workstation",
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "relations": {
+        "related": [
+          "ADR-002",
+          "ADR-008",
+          "INV-pve-management-bootstrap"
+        ],
+        "related_tasks": [
+          "TASK-008",
+          "TASK-009"
+        ],
+        "related_milestones": [
+          "M001"
+        ]
+      },
+      "backrefs": [
         {
           "from": "INV-pve-management-bootstrap",
           "field": "related"
@@ -924,7 +986,8 @@
         "SSH host keys",
         "State",
         "Secrets",
-        "Proposed VM configuration (not confirmed)",
+        "Live read-only discovery (2026-11-14)",
+        "Confirmed allocation (2026-11-14)",
         "Inferences",
         "Acceptance tests for M001",
         "Open questions"
@@ -936,6 +999,7 @@
           "ADR-003",
           "ADR-004",
           "ADR-008",
+          "ADR-009",
           "M001"
         ],
         "related_tasks": [
@@ -951,6 +1015,10 @@
       "backrefs": [
         {
           "from": "ADR-008",
+          "field": "related"
+        },
+        {
+          "from": "ADR-009",
           "field": "related"
         },
         {
@@ -1122,6 +1190,10 @@
         },
         {
           "from": "ADR-008",
+          "field": "related_milestones"
+        },
+        {
+          "from": "ADR-009",
           "field": "related_milestones"
         },
         {
@@ -1912,7 +1984,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "planned",
+      "status": "completed",
       "path": "tasks/TASK-007-pve-management-access.md",
       "tags": [
         "pve-management",
@@ -2033,6 +2105,10 @@
           "field": "related_tasks"
         },
         {
+          "from": "ADR-009",
+          "field": "related_tasks"
+        },
+        {
           "from": "INV-pve-management-bootstrap",
           "field": "related_tasks"
         },
@@ -2095,6 +2171,9 @@
           "TASK-008",
           "TASK-011"
         ],
+        "related_tests": [
+          "tests/mgmt-control.py"
+        ],
         "milestone": [
           "M001"
         ]
@@ -2102,6 +2181,10 @@
       "backrefs": [
         {
           "from": "ADR-002",
+          "field": "related_tasks"
+        },
+        {
+          "from": "ADR-009",
           "field": "related_tasks"
         },
         {
@@ -2337,7 +2420,8 @@
       "ADR-005",
       "ADR-006",
       "ADR-007",
-      "ADR-008"
+      "ADR-008",
+      "ADR-009"
     ],
     "investigation": [
       "INV-legacy-inventory",
@@ -2426,10 +2510,14 @@
       "ADR-005",
       "ADR-006",
       "ADR-007",
-      "ADR-008"
+      "ADR-008",
+      "ADR-009"
     ],
     "dependencies": [
       "TASK-003"
+    ],
+    "desktop": [
+      "ADR-009"
     ],
     "flux": [
       "ADR-006"
@@ -2475,7 +2563,8 @@
       "TASK-006"
     ],
     "management": [
-      "ADR-002"
+      "ADR-002",
+      "ADR-009"
     ],
     "migration": [
       "ADR-001",
@@ -2516,6 +2605,7 @@
       "TASK-002"
     ],
     "pve-management": [
+      "ADR-009",
       "INV-pve-management-bootstrap",
       "M001",
       "TASK-007",
@@ -2576,6 +2666,9 @@
     "windmill": [
       "ADR-005",
       "M003"
+    ],
+    "workstation": [
+      "ADR-009"
     ]
   },
   "broken_references": []

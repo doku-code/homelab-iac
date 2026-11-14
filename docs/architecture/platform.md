@@ -74,8 +74,9 @@ consumers are migrated.
 | Compute cluster | Application workloads | Topology, quorum and storage planned in M004; two nodes never imply HA. |
 | Legacy hosts (`pve-core`, `pve-lab`, `pve-k8s-01`, `pve-k8s-02`) | Keep running services until migrated, then reinstalled and joined | Inventory in M000; `pve-infra` and `pve-compute` are retired ([INV-legacy-inventory](../investigations/legacy-inventory.md)). |
 
-On `pve-management` the first guest is an **Ubuntu Server management VM** with the IaC
-toolchain (OpenTofu, Ansible, SOPS/age, Phase CLI) and a dedicated Forgejo runner. Further
+On `pve-management` the first guest is `mgmt-control-01`, the operator's **GNOME admin workstation**
+(Ubuntu 26.04 LTS, [ADR-009](../decisions/ADR-009-management-vm-gnome-admin-workstation.md)) with the IaC
+toolchain (OpenTofu, Ansible, SOPS/age) and Claude Code/Codex; a dedicated runner comes later (ADR-008). Further
 management applications (Windmill, Phase) run in their own VMs when resources allow.
 
 ### Target repository layout

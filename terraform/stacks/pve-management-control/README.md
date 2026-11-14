@@ -28,8 +28,21 @@ Runs **only from the operator workstation** (ADR-008). CT301 never receives thes
 | Plan | `make mgmt-plan MGMT_ALLOCATION_REVIEWED=yes MGMT_INPUT_SOURCE=infisical` | Saved plan `mgmt.tfplan` + SHA256; expected: 1 image download, 1 VM, nothing else |
 | Apply | `make mgmt-apply MGMT_APPLY_APPROVED=yes MGMT_PLAN_SHA256=<sha> MGMT_INPUT_SOURCE=infisical` | **Mutates pve-management.** Applies exactly the reviewed plan |
 | Backup | `make mgmt-state-backup MGMT_BACKUP_DIR=<off-machine dir> AGE_RECIPIENTS_FILE=<recipients>` | age-encrypted, dated copy of the state |
-| Configure | `make mgmt-configure MGMT_CONFIGURE_APPROVED=yes MGMT_SOURCE_COMMIT=<full sha on the GitHub mirror>` | Ansible baseline and toolchain |
+| Configure | `make mgmt-configure MGMT_CONFIGURE_APPROVED=yes MGMT_SOURCE_COMMIT=<full sha on the GitHub mirror>` | Ansible baseline, toolchain and admin workstation (prompts for the desktop and RDP passwords, set once, never stored) |
+| Remote access | Thincast → RDP `192.168.0.39:3389` | GNOME Remote Login, two stages (below) |
 | Idempotency | `make mgmt-plan …` again | Must report no changes |
+
+## Remote login (GNOME Remote Login, ADR-009)
+
+1. **RDP stage**: Thincast connects to `192.168.0.39:3389` with user `ubuntu` and the *RDP password*.
+   Compare the certificate fingerprint with the one `mgmt-configure` prints, then accept it.
+2. **Linux stage**: the GDM login screen appears; log in as `ubuntu` with the *desktop password*. The
+   client is redirected to the new headless GNOME session (it may reconnect once).
+
+Only `admin_workstation_rdp_allowed_networks` reach 3389/tcp. SSH (key-only) and the Proxmox console stay
+available when RDP fails. Post-deployment checks: both stages; disconnect and reconnect to the session;
+a connection from outside the allowed networks is refused; a second `mgmt-configure` reports no changes
+and both passwords still work; SSH and the console still log in.
 
 ## State
 

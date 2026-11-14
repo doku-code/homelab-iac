@@ -7,7 +7,7 @@ status: in-progress
 priority: critical
 milestone: M001
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [opentofu, pve-management]
 depends_on: [TASK-006, TASK-007, TASK-010]
 related: [ARCH-platform]
@@ -57,7 +57,11 @@ Provision the management VM declaratively and idempotently.
 |-------|--------|-----------------------------------|------|
 | `tofu test` (contract + 4 refusal cases) | PASS 5/5 | terraform/stacks/pve-management-control/tests | 2026-11-12 |
 | Legacy mocked Terraform tests after the module change | PASS 13/13 | tests/vm-profiles.py | 2026-11-12 |
-| Reviewed plan on pve-management | not verified (needs TASK-007) | — | 2026-11-12 |
+| Allocation confirmed (VMID 100, 192.168.0.39/24, 8 vCPU, 8 GiB, 120 GiB with discard, Ubuntu 26.04) | Recorded in private tfvars + example; root validates | INV-pve-management-bootstrap | 2026-11-14 |
+| Readiness pass: CPU type `host`, 10 GiB proposed; discovery re-run (VMID 100 free, no missing privileges); `make mgmt-plan` | Plan: 2 to add (image download + VM 100), 0 change, 0 destroy; saved plan SHA256 `32cc53fb…4815b` | `make mgmt-check`, `tests/mgmt-control.py` | 2026-11-14 |
+| `make mgmt-apply` of that plan (operator approval) | Apply complete: 2 added, 0 changed, 0 destroyed; image download 32 s; VM 100 created in 15m10s (only warning: guest agent not yet installed). SSH key login works; Ubuntu 26.04.1, kernel 7.0.0-38, 8 vCPU with AVX2, 10 GiB, 120 GiB disk, DNS 192.168.0.20; cloud-init done (only a deprecation notice from the Proxmox-generated config). State local and git-ignored | SSH checks | 2026-11-14 |
+| Re-plan after apply | No changes, infrastructure matches the configuration (refresh waits ~15 min for the guest agent until `mgmt-configure` installs it) | `make mgmt-plan` | 2026-11-14 |
+| Reviewed plan on pve-management | not verified (next step: `make mgmt-plan`) | — | — |
 
 ## Completion summary
 

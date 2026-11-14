@@ -79,7 +79,7 @@ Never in Git: secret values, OpenTofu/Terraform state, private tfvars, recovery 
 | Path | Content |
 |------|---------|
 | `docs/architecture/platform.md` | Current vs target architecture, layer owners, stack, service catalog, recovery flow |
-| `docs/decisions/` | Decision records ADR-001…008 |
+| `docs/decisions/` | Decision records ADR-001…009 |
 | `docs/investigations/` | Legacy inventory, pve-management bootstrap readiness and plan |
 | `milestones/`, `tasks/` | Roadmap M000–M008 and the tasks of the next two milestones |
 | `docs/archive/codex-2026/` | Previous agent workflow, roadmap, tasks and runbooks — evidence only, not indexed |
@@ -121,7 +121,7 @@ application migration → M006 observability → M007 core cutover and retiremen
 | `pve-infra`, `pve-compute` permanently retired; `192.168.0.10` is `pve-management` | **Confirmed** (operator) |
 | Former `pve-infra`/`pve-compute` workloads safely migrated | **Unknown**: not proven by retirement (TASK-002/003) |
 | Legacy host/service inventory | **Assumption** from archived docs and state review ([INV-legacy-inventory](investigations/legacy-inventory.md)) |
-| Management VM values (VMID, IP, size, storage, bridge, Ubuntu release) | **Proposed**, to confirm by discovery |
+| Management VM `mgmt-control-01`: GNOME admin workstation, VMID 100, `192.168.0.39`, 8 vCPU / 10 GiB / 120 GiB, Ubuntu 26.04 | **Confirmed** (ADR-009, discovery 2026-11-14) |
 | Spare machine for the new compute environment; cluster topology | **Unknown** (M004) |
 | State backend for new roots | **Open** (TASK-010); Garage rejected, PostgreSQL candidate never production-qualified |
 

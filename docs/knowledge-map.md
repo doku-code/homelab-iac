@@ -20,7 +20,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ID | Status | Priority | Title | Tasks | Summary |
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 4 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
-| M001 | active | critical | [Bootstrap pve-management](../milestones/M001-bootstrap-pve-management.md) | in-progress: 4, planned: 3 | Existing infrastructure provisions and configures a management VM on pve-management automatically, with recoverable state and bootstrap secrets. |
+| M001 | active | critical | [Bootstrap pve-management](../milestones/M001-bootstrap-pve-management.md) | completed: 1, in-progress: 4, planned: 2 | Existing infrastructure provisions and configures a management VM on pve-management automatically, with recoverable state and bootstrap secrets. |
 | M002 | planned | high | [Secrets infrastructure (Phase)](../milestones/M002-secrets-infrastructure.md) | none | Phase deployed, recoverable independently, and used by deployment automation; controlled migration from Infisical begins. |
 | M003 | planned | high | [Workflow automation (Windmill)](../milestones/M003-workflow-automation.md) | none | A Windmill workflow initiates an approved IaC operation from a service-catalog form and reports its outcome. |
 | M004 | planned | high | [New compute infrastructure](../milestones/M004-new-compute-infrastructure.md) | none | The new compute environment can reliably host and restore migrated applications. |
@@ -42,9 +42,9 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-003 | planned | high | M000 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M000 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
 | TASK-005 | planned | high | M000 | [Migration order and bootstrap credential requirements](../tasks/TASK-005-migration-order-and-bootstrap-credentials.md) | Decide the service migration order and list every bootstrap credential and recovery prerequisite. |
-| TASK-007 | planned | critical | M001 | [Scoped Proxmox API token and SSH access for pve-management](../tasks/TASK-007-pve-management-access.md) | Define and verify the dedicated automation identity, role and token on pve-management, and SSH access for Ansible. |
 | TASK-011 | planned | critical | M001 | [SOPS + age bootstrap secrets](../tasks/TASK-011-sops-age-bootstrap-secrets.md) | Introduce .sops.yaml, an encrypted secrets/bootstrap/ file for the Proxmox token and SSH material, and decryption in Ansible/OpenTofu workflows. |
 | TASK-012 | planned | high | M001 | [Independent bootstrap and recovery runbook](../tasks/TASK-012-bootstrap-and-recovery-runbook.md) | Write and exercise the runbook that rebuilds the management VM from a clean workstation. |
+| TASK-007 | completed | critical | M001 | [Scoped Proxmox API token and SSH access for pve-management](../tasks/TASK-007-pve-management-access.md) | Define and verify the dedicated automation identity, role and token on pve-management, and SSH access for Ansible. |
 
 ## Decisions
 
@@ -58,6 +58,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ADR-006 | accepted | [Docker Compose first; k3s and Argo CD later, only where they add value](decisions/ADR-006-compose-first-kubernetes-later.md) | application | Applications run as Compose projects on VMs; k3s with Argo CD is a future option. Supersedes the legacy K3s/Flux-first direction. |
 | ADR-007 | accepted | [Archive the legacy Codex workflow; keep live legacy IaC roots in place until migrated](decisions/ADR-007-archive-legacy-workflow-keep-live-roots.md) | repository | Old AGENTS.md, roadmap, tasks and docs moved verbatim to docs/archive/codex-2026; legacy Terraform/Ansible code that still manages live resources stays at its path. |
 | ADR-008 | accepted | [Bootstrap runs from the operator workstation; CT301 stays validation-only](decisions/ADR-008-workstation-bootstrap-ct301-validation-only.md) | execution | The first OpenTofu applies on pve-management run from the workstation through approval-gated Make targets; CT301 never holds Proxmox credentials nor applies; a trusted runner comes later. |
+| ADR-009 | accepted | [The management VM is the operator's GNOME admin workstation](decisions/ADR-009-management-vm-gnome-admin-workstation.md) | pve-management | mgmt-control-01 is a GNOME admin workstation (Ubuntu 26.04, 8 vCPU host type, 10 GiB, 120 GiB) with RDP remote login, the IaC toolchain, Claude Code and Codex. |
 
 ## External references
 
@@ -97,8 +98,9 @@ _No commit records. Generate with `harness history sync`._
 - **compose**: ADR-006
 - **compute**: M004
 - **cutover**: M007
-- **decision**: ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008
+- **decision**: ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009
 - **dependencies**: TASK-003
+- **desktop**: ADR-009
 - **flux**: ADR-006
 - **future**: M008
 - **gitops**: ADR-005, M008
@@ -111,7 +113,7 @@ _No commit records. Generate with `harness history sync`._
 - **layout**: TASK-006
 - **legacy**: ADR-007, INV-legacy-inventory
 - **make**: TASK-006
-- **management**: ADR-002
+- **management**: ADR-002, ADR-009
 - **migration**: ADR-001, M005, TASK-005
 - **observability**: M006
 - **opentofu**: ADR-003, TASK-006, TASK-008
@@ -122,7 +124,7 @@ _No commit records. Generate with `harness history sync`._
 - **planning**: M000, TASK-005
 - **platform**: ARCH-platform
 - **proxmox**: ADR-002, M004, TASK-002
-- **pve-management**: INV-pve-management-bootstrap, M001, TASK-007, TASK-008
+- **pve-management**: ADR-009, INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview
 - **recovery**: TASK-004, TASK-012
 - **repository**: TASK-001
@@ -139,6 +141,7 @@ _No commit records. Generate with `harness history sync`._
 - **terraform**: ADR-003
 - **vision**: DOC-project-overview
 - **windmill**: ADR-005, M003
+- **workstation**: ADR-009
 
 ## By component
 
@@ -148,7 +151,7 @@ _No commit records. Generate with `harness history sync`._
 - **inventory**: INV-legacy-inventory
 - **orchestration**: ADR-005
 - **platform**: ADR-001, ARCH-platform
-- **pve-management**: ADR-002, INV-pve-management-bootstrap
+- **pve-management**: ADR-002, ADR-009, INV-pve-management-bootstrap
 - **repository**: ADR-007
 - **secrets**: ADR-004
 

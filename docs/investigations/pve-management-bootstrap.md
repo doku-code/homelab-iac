@@ -6,12 +6,12 @@ type: investigation
 status: current
 importance: 5
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [investigation, bootstrap, pve-management, plan]
 component: pve-management
 topics: [opentofu, bpg-proxmox, cloud-init, api-token, tls, state, sops]
 related_tasks: [TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012]
-related: [ARCH-platform, ADR-002, ADR-003, ADR-004, ADR-008, M001]
+related: [ARCH-platform, ADR-002, ADR-003, ADR-004, ADR-008, ADR-009, M001]
 ---
 
 # pve-management bootstrap — readiness and implementation plan
@@ -116,16 +116,44 @@ The API token comes from Infisical, path `/pve-management` (`MGMT_INPUT_SOURCE=i
 environment (`MGMT_INPUT_SOURCE=env`, e.g. decrypted from SOPS during recovery). No default, no fallback.
 The guard strips Infisical bootstrap credentials before OpenTofu runs. SOPS + age files follow in TASK-011.
 
-### Proposed VM configuration (not confirmed)
+### Live read-only discovery (2026-11-14)
 
-| Value | Proposed | Confirm with |
-|-------|----------|--------------|
-| VMID | 100 | `mgmt-discover` (used VMIDs, next free) |
-| Address | static, outside the DHCP pool (e.g. a reserved `192.168.0.x/24`) | pfSense DHCP scope |
-| Gateway / DNS | `192.168.0.1` / `192.168.0.20` | pfSense, AdGuard |
-| vCPU / RAM / disk | 2 / 4096 MiB / 40 GiB | `pve-management` capacity |
-| Image storage / disk storage / bridge | `local` (needs `import` content) / `local-lvm` / `vmbr0` | `mgmt-discover` |
-| Ubuntu | 24.04 LTS cloud image, dated release + SHA256 | cloud-images.ubuntu.com SHA256SUMS |
+Operator created `tofu@pve` with the `IaCManagementVM` role and the privilege-separated token
+`tofu@pve!mgmt` on the five ACL paths above (storage `local` / `local-lvm`, bridge `vmbr0`); the token
+is stored in Infisical (`dev`, `/pve-management`, `PROXMOX_VE_API_TOKEN`). `make mgmt-discover` with
+the token injected by `infisical run` and TLS verified against the host CA (exit 0):
+
+| Fact | Observed |
+|------|----------|
+| PVE version | 9.2.26, kernel 7.0.14 |
+| Standalone | yes: only `pve-management` visible (`/cluster/status` needs `Sys.Audit` on `/`, deliberately not granted) |
+| Host capacity | Intel i5-10500T, 6 cores / 12 threads, 15.3 GiB RAM (13.3 GiB free) |
+| Disk | NVMe KIOXIA 238.5 GiB: `local` 67.7 GiB, `local-lvm` 141.2 GiB; the remaining ~30 GiB is swap, boot, thin metadata and probably ~16 GiB unallocated in VG `pve` (LVM detail needs `Sys.Audit` on `/`; confirm with `vgs` on the host) |
+| `local` (dir) | content `iso,backup,vztmpl,import`, about 58 GiB free |
+| `local-lvm` (lvmthin) | content `images,rootdir`, about 141 GiB free, empty |
+| Bridge | `vmbr0` on `nic0`, host `192.168.0.10/24`, gateway `192.168.0.1` |
+| VMIDs | none used; next free `100` |
+| Token privileges | none missing on `/vms`, `/storage/local`, `/storage/local-lvm`, `/nodes/pve-management`, `/sdn/zones/localnetwork/vmbr0` |
+
+TLS trust anchor: `/etc/pve/pve-root-ca.pem`, read from the host console, SHA-256
+`6A:DD:1D:D8:51:8A:B3:93:9B:10:E4:EB:89:68:8F:47:40:2A:37:AA:38:A8:12:17:60:DB:FA:87:DB:46:70:2E`
+(valid to 2036-11-08); `openssl verify -verify_ip 192.168.0.10` of the served certificate: OK. Kept
+locally in `.local/pve-root-ca.pem` and trusted in the operator's macOS Keychain (operator, 2026-11-14).
+Console host-key fingerprints match the earlier network scan (ED25519 `gdWdOe…6mgY`).
+
+### Confirmed allocation (2026-11-14)
+
+Private `terraform/stacks/pve-management-control/terraform.tfvars` (git-ignored); the committed
+example carries the same values. Workstation profile per [ADR-009](../decisions/ADR-009-management-vm-gnome-admin-workstation.md).
+
+| Value | Confirmed | Source |
+|-------|-----------|--------|
+| VMID | 100 | discovery (free) |
+| Address | `192.168.0.39/24`, static | operator (outside the DHCP pool); no ping/ARP reply before allocation |
+| Gateway / DNS | `192.168.0.1` / `192.168.0.20` (AdGuard) | host network / operator |
+| vCPU / RAM / disk | 8 (CPU type `host`, AVX2 for software rendering) / 10240 MiB / 120 GiB, `discard=on` + SSD flag (TRIM returns freed blocks to the thin pool) | operator (8 GiB minimum); 10 GiB and `host` proposed in the readiness pass, approved with the plan |
+| Image storage / disk storage / bridge | `local` / `local-lvm` / `vmbr0` | discovery |
+| Image | Ubuntu 26.04 LTS cloud image `release-20261016`, SHA256 `5645d031…7eb5` (canonical `releases/resolute/` URL, 819 MiB) | cloud-images.ubuntu.com SHA256SUMS |
 
 ## Inferences
 
@@ -140,11 +168,10 @@ The guard strips Infisical bootstrap credentials before OpenTofu runs. SOPS + ag
 | Offline (CI) | `make mgmt-check`: fmt, validate, 5 mocked `tofu test` runs, Ansible syntax, guard tests |
 | Live read-only | `mgmt-discover`: TLS verified, standalone, storages with `import`, bridge, free VMID, no missing privileges |
 | Live change (approved) | Plan shows exactly 1 image download + 1 VM; apply; VM boots; SSH works; second plan reports no changes |
-| Configuration | `mgmt-configure` twice, second run without changes; tool versions reported |
+| Configuration | `mgmt-configure` twice, second run without changes and both passwords unchanged; tool versions reported; Thincast RDP login works through both stages (RDP credentials, then GDM); 3389 refused outside the allowed networks; SSH and the Proxmox console work independently |
 | Recovery | State restored from the age backup gives a no-change plan; plan runs with `MGMT_INPUT_SOURCE=env` |
 
 ## Open questions
 
-- Operator: create the identity/token and store it; trust the PVE CA; replace stale host keys.
-- Operator: confirm the VM address and sizing; whether `local` should get the `import` content type.
+- Operator (optional): replace the stale `pve-infra` host keys for 192.168.0.10; grow `pve/data` with the free VG space.
 - Correct API endpoint for the four legacy roots that still use `192.168.0.10`.
