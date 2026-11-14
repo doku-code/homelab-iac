@@ -6,7 +6,7 @@ type: decision
 status: accepted
 importance: 5
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [decision, secrets, phase, sops, age, infisical]
 component: secrets
 related: [ARCH-platform]
@@ -17,6 +17,8 @@ superseded_by: []
 ---
 
 # ADR-004: Secrets — Phase at runtime, SOPS + age for bootstrap
+
+> Placement update 2026-11-14: Phase runs on k3s ([ADR-011](ADR-011-k3s-first-argocd-headlamp.md)), on the central PostgreSQL when officially supported ([ADR-013](ADR-013-central-postgresql-patroni.md)) and external NVMe-backed PVCs ([ADR-012](ADR-012-external-nvme-storage-truenas-backups.md)). Infisical stays in use until secrets migrate incrementally; the rebuild is not blocked on Phase.
 
 ## Context
 

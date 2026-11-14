@@ -45,6 +45,10 @@
       },
       "backrefs": [
         {
+          "from": "ADR-010",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -57,19 +61,19 @@
           "field": "related_decisions"
         },
         {
-          "from": "M004",
+          "from": "M002",
           "field": "related_decisions"
         },
         {
-          "from": "M005",
-          "field": "related_decisions"
-        },
-        {
-          "from": "M007",
+          "from": "M010",
           "field": "related_decisions"
         },
         {
           "from": "TASK-005",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-013",
           "field": "related_decisions"
         }
       ]
@@ -79,14 +83,14 @@
       "title": "pve-management is a standalone bootstrap, orchestration and recovery host",
       "summary": "The fresh Proxmox host pve-management stays outside the compute cluster and runs only management VMs (IaC toolchain, runner, later Windmill/Phase).",
       "importance": 5,
-      "lifecycle": "active",
+      "lifecycle": "superseded",
       "topics": [],
       "applies_to": [],
       "source_paths": [],
       "last_verified": null,
       "review_after": null,
       "type": "decision",
-      "status": "accepted",
+      "status": "superseded",
       "path": "docs/decisions/ADR-002-pve-management-standalone-host.md",
       "tags": [
         "decision",
@@ -117,6 +121,9 @@
         ],
         "related_milestones": [
           "M001"
+        ],
+        "superseded_by": [
+          "ADR-010"
         ]
       },
       "backrefs": [
@@ -125,16 +132,12 @@
           "field": "related"
         },
         {
-          "from": "ARCH-platform",
-          "field": "related_decisions"
+          "from": "ADR-010",
+          "field": "supersedes"
         },
         {
           "from": "INV-pve-management-bootstrap",
           "field": "related"
-        },
-        {
-          "from": "M001",
-          "field": "related_decisions"
         },
         {
           "from": "TASK-007",
@@ -146,10 +149,6 @@
         },
         {
           "from": "TASK-009",
-          "field": "related_decisions"
-        },
-        {
-          "from": "TASK-012",
           "field": "related_decisions"
         }
       ]
@@ -221,6 +220,10 @@
         {
           "from": "TASK-010",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-013",
+          "field": "related_decisions"
         }
       ]
     },
@@ -272,6 +275,10 @@
       },
       "backrefs": [
         {
+          "from": "ADR-013",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -280,11 +287,11 @@
           "field": "related"
         },
         {
-          "from": "M001",
+          "from": "M008",
           "field": "related_decisions"
         },
         {
-          "from": "M002",
+          "from": "M012",
           "field": "related_decisions"
         },
         {
@@ -346,19 +353,15 @@
       },
       "backrefs": [
         {
+          "from": "ADR-011",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
         {
-          "from": "M001",
-          "field": "related_decisions"
-        },
-        {
-          "from": "M003",
-          "field": "related_decisions"
-        },
-        {
-          "from": "M008",
+          "from": "M009",
           "field": "related_decisions"
         },
         {
@@ -372,14 +375,14 @@
       "title": "Docker Compose first; k3s and Argo CD later, only where they add value",
       "summary": "Applications run as Compose projects on VMs; k3s with Argo CD is a future option. Supersedes the legacy K3s/Flux-first direction.",
       "importance": 4,
-      "lifecycle": "active",
+      "lifecycle": "superseded",
       "topics": [],
       "applies_to": [],
       "source_paths": [],
       "last_verified": null,
       "review_after": null,
       "type": "decision",
-      "status": "accepted",
+      "status": "superseded",
       "path": "docs/decisions/ADR-006-compose-first-kubernetes-later.md",
       "tags": [
         "decision",
@@ -408,20 +411,15 @@
         "related_milestones": [
           "M005",
           "M008"
+        ],
+        "superseded_by": [
+          "ADR-011"
         ]
       },
       "backrefs": [
         {
-          "from": "ARCH-platform",
-          "field": "related_decisions"
-        },
-        {
-          "from": "M005",
-          "field": "related_decisions"
-        },
-        {
-          "from": "M008",
-          "field": "related_decisions"
+          "from": "ADR-011",
+          "field": "supersedes"
         }
       ]
     },
@@ -544,12 +542,12 @@
           "field": "related"
         },
         {
-          "from": "ARCH-platform",
-          "field": "related_decisions"
+          "from": "ADR-014",
+          "field": "related"
         },
         {
-          "from": "DOC-project-overview",
-          "field": "related"
+          "from": "ARCH-platform",
+          "field": "related_decisions"
         },
         {
           "from": "INV-legacy-inventory",
@@ -558,6 +556,22 @@
         {
           "from": "INV-pve-management-bootstrap",
           "field": "related"
+        },
+        {
+          "from": "M001",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M003",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M012",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-012",
+          "field": "related_decisions"
         }
       ]
     },
@@ -610,29 +624,512 @@
       },
       "backrefs": [
         {
+          "from": "ADR-010",
+          "field": "related"
+        },
+        {
+          "from": "ARCH-platform",
+          "field": "related_decisions"
+        },
+        {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
           "from": "INV-pve-management-bootstrap",
           "field": "related"
+        },
+        {
+          "from": "M001",
+          "field": "related_decisions"
+        }
+      ]
+    },
+    {
+      "id": "ADR-010",
+      "title": "The new Proxmox cluster is founded on pve-management and grows with reclaimed hosts",
+      "summary": "pve-management founds the new Proxmox cluster; the emptied pve-core joins first, every reclaimed host follows by the same repeatable process. Supersedes ADR-002.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [
+        "proxmox",
+        "cluster",
+        "quorum",
+        "qdevice"
+      ],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "accepted",
+      "path": "docs/decisions/ADR-010-new-proxmox-cluster-on-pve-management.md",
+      "tags": [
+        "decision",
+        "proxmox",
+        "cluster",
+        "pve-management",
+        "pve-core"
+      ],
+      "component": "proxmox",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "ADR-010: New Proxmox cluster founded on pve-management",
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "ADR-001",
+          "ADR-009"
+        ],
+        "related_milestones": [
+          "M002",
+          "M011"
+        ],
+        "supersedes": [
+          "ADR-002"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-002",
+          "field": "superseded_by"
+        },
+        {
+          "from": "ADR-012",
+          "field": "related"
+        },
+        {
+          "from": "ARCH-platform",
+          "field": "related_decisions"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "M001",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M002",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M011",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-012",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-013",
+          "field": "related_decisions"
+        }
+      ]
+    },
+    {
+      "id": "ADR-011",
+      "title": "k3s is the application platform from the start, reconciled by Argo CD and administered with Headlamp",
+      "summary": "New applications run on k3s (OpenTofu VMs, Ansible bootstrap, embedded etcd); Argo CD reconciles them from Forgejo; Headlamp is the Kubernetes UI; Windmill automates workflows. Supersedes ADR-006.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [
+        "k3s",
+        "argocd",
+        "headlamp",
+        "windmill",
+        "gitops",
+        "etcd"
+      ],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "accepted",
+      "path": "docs/decisions/ADR-011-k3s-first-argocd-headlamp.md",
+      "tags": [
+        "decision",
+        "kubernetes",
+        "k3s",
+        "argocd",
+        "headlamp",
+        "windmill"
+      ],
+      "component": "application",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "ADR-011: k3s first, Argo CD for GitOps, Headlamp for administration",
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "ADR-005",
+          "ADR-012",
+          "ADR-014"
+        ],
+        "related_milestones": [
+          "M004",
+          "M005",
+          "M009"
+        ],
+        "supersedes": [
+          "ADR-006"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-006",
+          "field": "superseded_by"
+        },
+        {
+          "from": "ADR-012",
+          "field": "related"
+        },
+        {
+          "from": "ADR-013",
+          "field": "related"
+        },
+        {
+          "from": "ADR-014",
+          "field": "related"
+        },
+        {
+          "from": "ARCH-platform",
+          "field": "related_decisions"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "M004",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M005",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M009",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M010",
+          "field": "related_decisions"
+        }
+      ]
+    },
+    {
+      "id": "ADR-012",
+      "title": "Kubernetes persistent data lives on NVMe-backed storage outside k3s; TrueNAS is the backup destination; Ceph later",
+      "summary": "PVCs come through CSI from NVMe-backed storage outside k3s on the physical hosts; TrueNAS only receives backups; Ceph (RBD, CephFS) is the future distributed layer.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [
+        "storage",
+        "nvme",
+        "csi",
+        "storageclass",
+        "ceph",
+        "rbd",
+        "cephfs",
+        "truenas",
+        "backup"
+      ],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "accepted",
+      "path": "docs/decisions/ADR-012-external-nvme-storage-truenas-backups.md",
+      "tags": [
+        "decision",
+        "storage",
+        "nvme",
+        "csi",
+        "truenas",
+        "ceph",
+        "backup"
+      ],
+      "component": "storage",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "ADR-012: External NVMe-backed Kubernetes storage, TrueNAS for backups, Ceph later",
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "ADR-010",
+          "ADR-011",
+          "ADR-013"
+        ],
+        "related_milestones": [
+          "M006",
+          "M011",
+          "M012"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-011",
+          "field": "related"
+        },
+        {
+          "from": "ADR-013",
+          "field": "related"
+        },
+        {
+          "from": "ARCH-platform",
+          "field": "related_decisions"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "M006",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M007",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M008",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M010",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M011",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M012",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-013",
+          "field": "related_decisions"
+        }
+      ]
+    },
+    {
+      "id": "ADR-013",
+      "title": "A central PostgreSQL platform with Patroni replication serves the applications",
+      "summary": "Applications get their own database, role and credentials on a shared PostgreSQL platform managed by Patroni (Zalando Postgres Operator pending validation), on external NVMe-backed PVCs.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [
+        "postgresql",
+        "patroni",
+        "zalando",
+        "database",
+        "replication"
+      ],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "accepted",
+      "path": "docs/decisions/ADR-013-central-postgresql-patroni.md",
+      "tags": [
+        "decision",
+        "postgresql",
+        "patroni",
+        "database"
+      ],
+      "component": "database",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "ADR-013: Central PostgreSQL with Patroni",
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "ADR-011",
+          "ADR-012",
+          "ADR-004"
+        ],
+        "related_milestones": [
+          "M007",
+          "M011"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-012",
+          "field": "related"
+        },
+        {
+          "from": "ARCH-platform",
+          "field": "related_decisions"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "M007",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M008",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M011",
+          "field": "related_decisions"
+        }
+      ]
+    },
+    {
+      "id": "ADR-014",
+      "title": "A dedicated Forgejo runner VM executes approved infrastructure workflows",
+      "summary": "A runner VM created with OpenTofu and configured with Ansible runs approved OpenTofu, Ansible, k3s and Helm jobs with scoped credentials; CT301 stays validation-only. Amends ADR-008.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [
+        "forgejo",
+        "runner",
+        "ci",
+        "opentofu",
+        "ansible",
+        "helm"
+      ],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "accepted",
+      "path": "docs/decisions/ADR-014-dedicated-forgejo-deployment-runner.md",
+      "tags": [
+        "decision",
+        "forgejo",
+        "runner",
+        "ci",
+        "deployment"
+      ],
+      "component": "execution",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "ADR-014: Dedicated Forgejo deployment runner",
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "ADR-008",
+          "ADR-011"
+        ],
+        "related_milestones": [
+          "M003"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-011",
+          "field": "related"
+        },
+        {
+          "from": "ARCH-platform",
+          "field": "related_decisions"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "M003",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M009",
+          "field": "related_decisions"
         }
       ]
     },
     {
       "id": "ARCH-platform",
       "title": "Target homelab platform architecture",
-      "summary": "Layers, tool responsibilities, target stack, pve-management role, service catalog model, secrets and recovery boundaries for the rebuild.",
+      "summary": "Layers and owners of the rebuilt homelab: Proxmox cluster, k3s, Headlamp, external NVMe storage via CSI, PostgreSQL/Patroni, Phase, Argo CD, Windmill, runner; TrueNAS for backups.",
       "importance": 5,
       "lifecycle": "active",
       "topics": [
-        "opentofu",
-        "ansible",
-        "compose",
-        "windmill",
-        "phase",
-        "sops",
-        "forgejo",
         "proxmox",
-        "recovery"
+        "cluster",
+        "k3s",
+        "headlamp",
+        "argocd",
+        "windmill",
+        "storage",
+        "nvme",
+        "csi",
+        "ceph",
+        "truenas",
+        "postgresql",
+        "patroni",
+        "phase",
+        "forgejo",
+        "runner",
+        "opentofu",
+        "ansible"
       ],
-      "applies_to": [],
+      "applies_to": [
+        "terraform",
+        "ansible",
+        "kubernetes"
+      ],
       "source_paths": [],
       "last_verified": null,
       "review_after": null,
@@ -654,31 +1151,32 @@
         "Target homelab platform architecture",
         "Overview",
         "Structure",
-        "Current versus target",
         "Layers and owners",
         "Hosts",
-        "Target repository layout",
-        "State management",
+        "Repository layout",
+        "State",
         "Key flows",
-        "Deploy a service (target)",
-        "Migrate an existing service (per service, M005)",
-        "Recover",
         "Constraints"
       ],
       "relations": {
         "related": [
           "DOC-project-overview",
-          "INV-legacy-inventory"
+          "INV-legacy-inventory",
+          "GUIDE-handoff"
         ],
         "related_decisions": [
           "ADR-001",
-          "ADR-002",
           "ADR-003",
           "ADR-004",
           "ADR-005",
-          "ADR-006",
           "ADR-007",
-          "ADR-008"
+          "ADR-008",
+          "ADR-009",
+          "ADR-010",
+          "ADR-011",
+          "ADR-012",
+          "ADR-013",
+          "ADR-014"
         ]
       },
       "backrefs": [
@@ -715,7 +1213,31 @@
           "field": "related"
         },
         {
+          "from": "ADR-010",
+          "field": "related"
+        },
+        {
+          "from": "ADR-011",
+          "field": "related"
+        },
+        {
+          "from": "ADR-012",
+          "field": "related"
+        },
+        {
+          "from": "ADR-013",
+          "field": "related"
+        },
+        {
+          "from": "ADR-014",
+          "field": "related"
+        },
+        {
           "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-handoff",
           "field": "related"
         },
         {
@@ -760,6 +1282,22 @@
         },
         {
           "from": "M008",
+          "field": "related"
+        },
+        {
+          "from": "M009",
+          "field": "related"
+        },
+        {
+          "from": "M010",
+          "field": "related"
+        },
+        {
+          "from": "M011",
+          "field": "related"
+        },
+        {
+          "from": "M012",
           "field": "related"
         },
         {
@@ -809,16 +1347,34 @@
         {
           "from": "TASK-012",
           "field": "related"
+        },
+        {
+          "from": "TASK-013",
+          "field": "related"
         }
       ]
     },
     {
       "id": "DOC-project-overview",
       "title": "homelab-iac — project vision and overview",
-      "summary": "Authoritative vision, rolling-rebuild strategy, principles, recovery philosophy, current status and confirmed decisions vs assumptions; read first.",
+      "summary": "Authoritative vision, rolling-rebuild strategy, target stack and roadmap M000-M012, current status, confirmed decisions vs pending technical choices; read first.",
       "importance": 5,
       "lifecycle": "active",
-      "topics": [],
+      "topics": [
+        "rebuild",
+        "roadmap",
+        "proxmox",
+        "k3s",
+        "headlamp",
+        "storage",
+        "nvme",
+        "truenas",
+        "ceph",
+        "postgresql",
+        "phase",
+        "argocd",
+        "windmill"
+      ],
       "applies_to": [],
       "source_paths": [],
       "last_verified": null,
@@ -843,27 +1399,150 @@
         "Purpose",
         "Scope",
         "Principles",
-        "Bootstrap and disaster-recovery philosophy",
+        "Target stack and responsibilities",
         "Structure",
         "Roadmap",
-        "Current status (2026-11-12)",
-        "Confirmed decisions vs assumptions",
+        "Current status (2026-11-14)",
+        "Current priority (operator, 2026-11-14)",
+        "Confirmed decisions vs pending choices",
         "Where to look"
       ],
       "relations": {
         "related": [
           "ARCH-platform",
+          "GUIDE-handoff",
           "ADR-001",
-          "ADR-008",
+          "ADR-010",
+          "ADR-011",
+          "ADR-012",
+          "ADR-013",
+          "ADR-014",
           "INV-legacy-inventory",
-          "INV-pve-management-bootstrap",
-          "M000",
-          "M001"
+          "M001",
+          "M002"
         ]
       },
       "backrefs": [
         {
           "from": "ARCH-platform",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "M002",
+          "field": "related"
+        },
+        {
+          "from": "M003",
+          "field": "related"
+        },
+        {
+          "from": "M004",
+          "field": "related"
+        },
+        {
+          "from": "M005",
+          "field": "related"
+        },
+        {
+          "from": "M006",
+          "field": "related"
+        },
+        {
+          "from": "M007",
+          "field": "related"
+        },
+        {
+          "from": "M008",
+          "field": "related"
+        },
+        {
+          "from": "M009",
+          "field": "related"
+        },
+        {
+          "from": "M010",
+          "field": "related"
+        },
+        {
+          "from": "M011",
+          "field": "related"
+        },
+        {
+          "from": "M012",
+          "field": "related"
+        }
+      ]
+    },
+    {
+      "id": "GUIDE-handoff",
+      "title": "Current handoff and next steps",
+      "summary": "Read first in a new session: what exists, where the state lives, how to work from mgmt-control-01, the current and next task.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [
+        "handoff",
+        "current-work",
+        "workstation",
+        "state",
+        "next-task"
+      ],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/handoff.md",
+      "tags": [
+        "guide",
+        "handoff",
+        "workstation",
+        "pve-management"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Current handoff and next steps",
+        "How we work (operator preference)",
+        "Infrastructure now",
+        "Working from mgmt-control-01",
+        "First steps in the first Ubuntu session",
+        "Current and next work",
+        "Commands",
+        "Known issues"
+      ],
+      "relations": {
+        "related": [
+          "DOC-project-overview",
+          "ARCH-platform",
+          "ADR-009",
+          "ADR-010",
+          "ADR-012",
+          "INV-pve-management-bootstrap",
+          "M001",
+          "M002",
+          "TASK-013"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ARCH-platform",
+          "field": "related"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "TASK-013",
           "field": "related"
         }
       ]
@@ -934,6 +1613,10 @@
         },
         {
           "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "TASK-013",
           "field": "related"
         }
       ]
@@ -1022,7 +1705,7 @@
           "field": "related"
         },
         {
-          "from": "DOC-project-overview",
+          "from": "GUIDE-handoff",
           "field": "related"
         },
         {
@@ -1031,6 +1714,10 @@
         },
         {
           "from": "M001",
+          "field": "related"
+        },
+        {
+          "from": "TASK-013",
           "field": "related"
         }
       ]
@@ -1075,10 +1762,7 @@
         ],
         "related_tasks": [
           "TASK-001",
-          "TASK-002",
-          "TASK-003",
-          "TASK-004",
-          "TASK-005"
+          "TASK-002"
         ],
         "related_decisions": [
           "ADR-001",
@@ -1095,35 +1779,19 @@
           "field": "related_milestones"
         },
         {
-          "from": "DOC-project-overview",
-          "field": "related"
-        },
-        {
           "from": "TASK-001",
           "field": "milestone"
         },
         {
           "from": "TASK-002",
           "field": "milestone"
-        },
-        {
-          "from": "TASK-003",
-          "field": "milestone"
-        },
-        {
-          "from": "TASK-004",
-          "field": "milestone"
-        },
-        {
-          "from": "TASK-005",
-          "field": "milestone"
         }
       ]
     },
     {
       "id": "M001",
-      "title": "Bootstrap pve-management",
-      "summary": "Existing infrastructure provisions and configures a management VM on pve-management automatically, with recoverable state and bootstrap secrets.",
+      "title": "Management workstation",
+      "summary": "Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it.",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -1145,7 +1813,7 @@
       "source": null,
       "version": null,
       "headings": [
-        "M001 — Bootstrap pve-management",
+        "M001 — Management workstation",
         "Objective",
         "Scope",
         "Expected deliverables",
@@ -1164,15 +1832,13 @@
           "TASK-007",
           "TASK-008",
           "TASK-009",
-          "TASK-010",
-          "TASK-011",
-          "TASK-012"
+          "TASK-010"
         ],
         "related_decisions": [
-          "ADR-002",
+          "ADR-009",
           "ADR-003",
-          "ADR-004",
-          "ADR-005"
+          "ADR-010",
+          "ADR-008"
         ]
       },
       "backrefs": [
@@ -1201,8 +1867,16 @@
           "field": "related"
         },
         {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
           "from": "INV-pve-management-bootstrap",
           "field": "related"
+        },
+        {
+          "from": "M002",
+          "field": "depends_on"
         },
         {
           "from": "TASK-006",
@@ -1223,6 +1897,696 @@
         {
           "from": "TASK-010",
           "field": "milestone"
+        }
+      ]
+    },
+    {
+      "id": "M002",
+      "title": "New Proxmox compute capacity (pve-core, new cluster)",
+      "summary": "pve-core is reinstalled cleanly and joined to the new Proxmox cluster founded on pve-management, with the two-node quorum handled explicitly.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M002-proxmox-compute-capacity.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "critical",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M002 — New Proxmox compute capacity (pve-core, new cluster)",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_tasks": [
+          "TASK-013"
+        ],
+        "related_decisions": [
+          "ADR-010",
+          "ADR-001"
+        ],
+        "depends_on": [
+          "M001"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-004",
+          "field": "related_milestones"
+        },
+        {
+          "from": "ADR-010",
+          "field": "related_milestones"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "M003",
+          "field": "depends_on"
+        },
+        {
+          "from": "M004",
+          "field": "depends_on"
+        },
+        {
+          "from": "TASK-013",
+          "field": "milestone"
+        }
+      ]
+    },
+    {
+      "id": "M003",
+      "title": "Dedicated Forgejo deployment runner",
+      "summary": "A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M003-deployment-runner.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M003 — Dedicated Forgejo deployment runner",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_decisions": [
+          "ADR-014",
+          "ADR-008"
+        ],
+        "depends_on": [
+          "M002"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-005",
+          "field": "related_milestones"
+        },
+        {
+          "from": "ADR-014",
+          "field": "related_milestones"
+        }
+      ]
+    },
+    {
+      "id": "M004",
+      "title": "k3s bootstrap",
+      "summary": "The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M004-k3s-bootstrap.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M004 — k3s bootstrap",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_decisions": [
+          "ADR-011"
+        ],
+        "depends_on": [
+          "M002"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-011",
+          "field": "related_milestones"
+        },
+        {
+          "from": "M005",
+          "field": "depends_on"
+        },
+        {
+          "from": "M006",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "M005",
+      "title": "Headlamp",
+      "summary": "Headlamp is deployed with its official Helm chart, RBAC-based authentication and network restriction, and shows nodes, workloads, storage objects, events and logs.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M005-headlamp.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M005 — Headlamp",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_decisions": [
+          "ADR-011"
+        ],
+        "depends_on": [
+          "M004"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-001",
+          "field": "related_milestones"
+        },
+        {
+          "from": "ADR-006",
+          "field": "related_milestones"
+        },
+        {
+          "from": "ADR-011",
+          "field": "related_milestones"
+        },
+        {
+          "from": "M009",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "M006",
+      "title": "External NVMe-backed storage",
+      "summary": "Kubernetes provisions PVCs through CSI from an NVMe-backed storage service outside k3s; data survives pod and k3s VM replacement; the failure domain is documented.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M006-external-nvme-storage.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M006 — External NVMe-backed storage",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_decisions": [
+          "ADR-012"
+        ],
+        "depends_on": [
+          "M004"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-012",
+          "field": "related_milestones"
+        },
+        {
+          "from": "M007",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "M007",
+      "title": "PostgreSQL platform",
+      "summary": "The selected PostgreSQL operator runs a Patroni-managed primary on external NVMe-backed storage, with per-application databases and roles.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M007-postgresql-platform.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M007 — PostgreSQL platform",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_decisions": [
+          "ADR-013",
+          "ADR-012"
+        ],
+        "depends_on": [
+          "M006"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-001",
+          "field": "related_milestones"
+        },
+        {
+          "from": "ADR-013",
+          "field": "related_milestones"
+        },
+        {
+          "from": "M008",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "M008",
+      "title": "Phase",
+      "summary": "Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M008-phase.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M008 — Phase",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_decisions": [
+          "ADR-004",
+          "ADR-013",
+          "ADR-012"
+        ],
+        "depends_on": [
+          "M007"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-006",
+          "field": "related_milestones"
+        },
+        {
+          "from": "M009",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "M009",
+      "title": "Argo CD and Windmill",
+      "summary": "Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M009-argocd-windmill.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M009 — Argo CD and Windmill",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_decisions": [
+          "ADR-011",
+          "ADR-005",
+          "ADR-014"
+        ],
+        "depends_on": [
+          "M005",
+          "M008"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-011",
+          "field": "related_milestones"
+        },
+        {
+          "from": "M010",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "M010",
+      "title": "Rolling application migration",
+      "summary": "Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M010-rolling-application-migration.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M010 — Rolling application migration",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_tasks": [
+          "TASK-003",
+          "TASK-005"
+        ],
+        "related_decisions": [
+          "ADR-001",
+          "ADR-011",
+          "ADR-012"
+        ],
+        "depends_on": [
+          "M009"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M011",
+          "field": "depends_on"
+        },
+        {
+          "from": "M012",
+          "field": "depends_on"
+        },
+        {
+          "from": "TASK-003",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-005",
+          "field": "milestone"
+        }
+      ]
+    },
+    {
+      "id": "M011",
+      "title": "Ceph and infrastructure expansion",
+      "summary": "With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M011-ceph-and-expansion.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M011 — Ceph and infrastructure expansion",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_decisions": [
+          "ADR-012",
+          "ADR-013",
+          "ADR-010"
+        ],
+        "depends_on": [
+          "M010"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-010",
+          "field": "related_milestones"
+        },
+        {
+          "from": "ADR-012",
+          "field": "related_milestones"
+        },
+        {
+          "from": "ADR-013",
+          "field": "related_milestones"
+        }
+      ]
+    },
+    {
+      "id": "M012",
+      "title": "Backups and finalization",
+      "summary": "Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M012-backups-and-finalization.md",
+      "tags": [
+        "roadmap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M012 — Backups and finalization",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_tasks": [
+          "TASK-004",
+          "TASK-011",
+          "TASK-012"
+        ],
+        "related_decisions": [
+          "ADR-012",
+          "ADR-004",
+          "ADR-008"
+        ],
+        "depends_on": [
+          "M010"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-012",
+          "field": "related_milestones"
+        },
+        {
+          "from": "TASK-004",
+          "field": "milestone"
         },
         {
           "from": "TASK-011",
@@ -1231,341 +2595,6 @@
         {
           "from": "TASK-012",
           "field": "milestone"
-        }
-      ]
-    },
-    {
-      "id": "M002",
-      "title": "Secrets infrastructure (Phase)",
-      "summary": "Phase deployed, recoverable independently, and used by deployment automation; controlled migration from Infisical begins.",
-      "importance": null,
-      "lifecycle": "active",
-      "topics": [],
-      "applies_to": [],
-      "source_paths": [],
-      "last_verified": null,
-      "review_after": null,
-      "type": "milestone",
-      "status": "planned",
-      "path": "milestones/M002-secrets-infrastructure.md",
-      "tags": [
-        "secrets",
-        "phase"
-      ],
-      "component": null,
-      "technology": null,
-      "priority": "high",
-      "milestone": null,
-      "source": null,
-      "version": null,
-      "headings": [
-        "M002 — Secrets infrastructure (Phase)",
-        "Objective",
-        "Scope",
-        "Expected deliverables",
-        "Dependencies",
-        "Acceptance criteria",
-        "Verification evidence",
-        "Completion summary"
-      ],
-      "relations": {
-        "related": [
-          "ARCH-platform"
-        ],
-        "related_decisions": [
-          "ADR-004"
-        ]
-      },
-      "backrefs": [
-        {
-          "from": "ADR-004",
-          "field": "related_milestones"
-        }
-      ]
-    },
-    {
-      "id": "M003",
-      "title": "Workflow automation (Windmill)",
-      "summary": "A Windmill workflow initiates an approved IaC operation from a service-catalog form and reports its outcome.",
-      "importance": null,
-      "lifecycle": "active",
-      "topics": [],
-      "applies_to": [],
-      "source_paths": [],
-      "last_verified": null,
-      "review_after": null,
-      "type": "milestone",
-      "status": "planned",
-      "path": "milestones/M003-workflow-automation.md",
-      "tags": [
-        "windmill",
-        "automation"
-      ],
-      "component": null,
-      "technology": null,
-      "priority": "high",
-      "milestone": null,
-      "source": null,
-      "version": null,
-      "headings": [
-        "M003 — Workflow automation (Windmill)",
-        "Objective",
-        "Scope",
-        "Expected deliverables",
-        "Dependencies",
-        "Acceptance criteria",
-        "Verification evidence",
-        "Completion summary"
-      ],
-      "relations": {
-        "related": [
-          "ARCH-platform"
-        ],
-        "related_decisions": [
-          "ADR-005"
-        ]
-      },
-      "backrefs": [
-        {
-          "from": "ADR-005",
-          "field": "related_milestones"
-        }
-      ]
-    },
-    {
-      "id": "M004",
-      "title": "New compute infrastructure",
-      "summary": "The new compute environment can reliably host and restore migrated applications.",
-      "importance": null,
-      "lifecycle": "active",
-      "topics": [],
-      "applies_to": [],
-      "source_paths": [],
-      "last_verified": null,
-      "review_after": null,
-      "type": "milestone",
-      "status": "planned",
-      "path": "milestones/M004-new-compute-infrastructure.md",
-      "tags": [
-        "compute",
-        "proxmox"
-      ],
-      "component": null,
-      "technology": null,
-      "priority": "high",
-      "milestone": null,
-      "source": null,
-      "version": null,
-      "headings": [
-        "M004 — New compute infrastructure",
-        "Objective",
-        "Scope",
-        "Expected deliverables",
-        "Dependencies",
-        "Acceptance criteria",
-        "Verification evidence",
-        "Completion summary"
-      ],
-      "relations": {
-        "related": [
-          "ARCH-platform"
-        ],
-        "related_decisions": [
-          "ADR-001"
-        ]
-      },
-      "backrefs": []
-    },
-    {
-      "id": "M005",
-      "title": "Rolling application migration",
-      "summary": "Existing services are progressively replaced without a complete homelab outage; emptied hosts are reinstalled and joined.",
-      "importance": null,
-      "lifecycle": "active",
-      "topics": [],
-      "applies_to": [],
-      "source_paths": [],
-      "last_verified": null,
-      "review_after": null,
-      "type": "milestone",
-      "status": "planned",
-      "path": "milestones/M005-rolling-application-migration.md",
-      "tags": [
-        "migration"
-      ],
-      "component": null,
-      "technology": null,
-      "priority": "high",
-      "milestone": null,
-      "source": null,
-      "version": null,
-      "headings": [
-        "M005 — Rolling application migration",
-        "Objective",
-        "Scope",
-        "Expected deliverables",
-        "Dependencies",
-        "Acceptance criteria",
-        "Verification evidence",
-        "Completion summary"
-      ],
-      "relations": {
-        "related": [
-          "ARCH-platform"
-        ],
-        "related_decisions": [
-          "ADR-001",
-          "ADR-006"
-        ]
-      },
-      "backrefs": [
-        {
-          "from": "ADR-001",
-          "field": "related_milestones"
-        },
-        {
-          "from": "ADR-006",
-          "field": "related_milestones"
-        }
-      ]
-    },
-    {
-      "id": "M006",
-      "title": "Observability and platform improvements",
-      "summary": "Prometheus, Loki and Grafana give useful health checks, dashboards, logs and alerts, outside the bootstrap path.",
-      "importance": null,
-      "lifecycle": "active",
-      "topics": [],
-      "applies_to": [],
-      "source_paths": [],
-      "last_verified": null,
-      "review_after": null,
-      "type": "milestone",
-      "status": "planned",
-      "path": "milestones/M006-observability.md",
-      "tags": [
-        "observability"
-      ],
-      "component": null,
-      "technology": null,
-      "priority": "medium",
-      "milestone": null,
-      "source": null,
-      "version": null,
-      "headings": [
-        "M006 — Observability and platform improvements",
-        "Objective",
-        "Scope",
-        "Expected deliverables",
-        "Dependencies",
-        "Acceptance criteria",
-        "Verification evidence",
-        "Completion summary"
-      ],
-      "relations": {
-        "related": [
-          "ARCH-platform"
-        ]
-      },
-      "backrefs": []
-    },
-    {
-      "id": "M007",
-      "title": "Core service cutover and retirement",
-      "summary": "Foundational services run on the new platform, recovery works without the original cluster, and the old environment is decommissioned.",
-      "importance": null,
-      "lifecycle": "active",
-      "topics": [],
-      "applies_to": [],
-      "source_paths": [],
-      "last_verified": null,
-      "review_after": null,
-      "type": "milestone",
-      "status": "planned",
-      "path": "milestones/M007-core-service-cutover.md",
-      "tags": [
-        "cutover",
-        "retirement"
-      ],
-      "component": null,
-      "technology": null,
-      "priority": "medium",
-      "milestone": null,
-      "source": null,
-      "version": null,
-      "headings": [
-        "M007 — Core service cutover and retirement",
-        "Objective",
-        "Scope",
-        "Expected deliverables",
-        "Dependencies",
-        "Acceptance criteria",
-        "Verification evidence",
-        "Completion summary"
-      ],
-      "relations": {
-        "related": [
-          "ARCH-platform"
-        ],
-        "related_decisions": [
-          "ADR-001"
-        ]
-      },
-      "backrefs": [
-        {
-          "from": "ADR-001",
-          "field": "related_milestones"
-        }
-      ]
-    },
-    {
-      "id": "M008",
-      "title": "Advanced capabilities (future)",
-      "summary": "Future evaluation: k3s + Argo CD, self-service deployment forms and service catalog, automated node reinstallation, advanced DR.",
-      "importance": null,
-      "lifecycle": "active",
-      "topics": [],
-      "applies_to": [],
-      "source_paths": [],
-      "last_verified": null,
-      "review_after": null,
-      "type": "milestone",
-      "status": "planned",
-      "path": "milestones/M008-advanced-capabilities.md",
-      "tags": [
-        "future",
-        "kubernetes",
-        "gitops"
-      ],
-      "component": null,
-      "technology": null,
-      "priority": "low",
-      "milestone": null,
-      "source": null,
-      "version": null,
-      "headings": [
-        "M008 — Advanced capabilities (future)",
-        "Objective",
-        "Scope",
-        "Expected deliverables",
-        "Dependencies",
-        "Acceptance criteria",
-        "Verification evidence",
-        "Completion summary"
-      ],
-      "relations": {
-        "related": [
-          "ARCH-platform"
-        ],
-        "related_decisions": [
-          "ADR-005",
-          "ADR-006"
-        ]
-      },
-      "backrefs": [
-        {
-          "from": "ADR-006",
-          "field": "related_milestones"
         }
       ]
     },
@@ -1729,7 +2758,7 @@
       "component": null,
       "technology": null,
       "priority": "high",
-      "milestone": "M000",
+      "milestone": "M010",
       "source": null,
       "version": null,
       "headings": [
@@ -1750,7 +2779,7 @@
           "TASK-002"
         ],
         "milestone": [
-          "M000"
+          "M010"
         ]
       },
       "backrefs": [
@@ -1759,7 +2788,7 @@
           "field": "related_tasks"
         },
         {
-          "from": "M000",
+          "from": "M010",
           "field": "related_tasks"
         },
         {
@@ -1794,7 +2823,7 @@
       "component": null,
       "technology": null,
       "priority": "high",
-      "milestone": "M000",
+      "milestone": "M012",
       "source": null,
       "version": null,
       "headings": [
@@ -1815,12 +2844,12 @@
           "TASK-003"
         ],
         "milestone": [
-          "M000"
+          "M012"
         ]
       },
       "backrefs": [
         {
-          "from": "M000",
+          "from": "M012",
           "field": "related_tasks"
         },
         {
@@ -1850,7 +2879,7 @@
       "component": null,
       "technology": null,
       "priority": "high",
-      "milestone": "M000",
+      "milestone": "M010",
       "source": null,
       "version": null,
       "headings": [
@@ -1877,12 +2906,12 @@
           "TASK-004"
         ],
         "milestone": [
-          "M000"
+          "M010"
         ]
       },
       "backrefs": [
         {
-          "from": "M000",
+          "from": "M010",
           "field": "related_tasks"
         }
       ]
@@ -2198,13 +3227,17 @@
         {
           "from": "TASK-012",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-013",
+          "field": "depends_on"
         }
       ]
     },
     {
       "id": "TASK-010",
-      "title": "OpenTofu state management and backups",
-      "summary": "Choose the state backend for new roots and back up the existing legacy local states outside the operator workstation.",
+      "title": "OpenTofu state: one local authority, handed over to the workstation",
+      "summary": "Keep new-root state local on the single operator workstation, move it from the Mac to mgmt-control-01, and never let an empty state recreate existing guests.",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -2294,7 +3327,7 @@
       "component": null,
       "technology": null,
       "priority": "critical",
-      "milestone": "M001",
+      "milestone": "M012",
       "source": null,
       "version": null,
       "headings": [
@@ -2318,7 +3351,7 @@
           "TASK-006"
         ],
         "milestone": [
-          "M001"
+          "M012"
         ]
       },
       "backrefs": [
@@ -2331,7 +3364,7 @@
           "field": "related_tasks"
         },
         {
-          "from": "M001",
+          "from": "M012",
           "field": "related_tasks"
         },
         {
@@ -2365,7 +3398,7 @@
       "component": null,
       "technology": null,
       "priority": "high",
-      "milestone": "M001",
+      "milestone": "M012",
       "source": null,
       "version": null,
       "headings": [
@@ -2383,8 +3416,9 @@
           "ARCH-platform"
         ],
         "related_decisions": [
-          "ADR-002",
-          "ADR-004"
+          "ADR-010",
+          "ADR-004",
+          "ADR-008"
         ],
         "depends_on": [
           "TASK-008",
@@ -2393,7 +3427,7 @@
           "TASK-011"
         ],
         "milestone": [
-          "M001"
+          "M012"
         ]
       },
       "backrefs": [
@@ -2402,7 +3436,75 @@
           "field": "related_tasks"
         },
         {
-          "from": "M001",
+          "from": "M012",
+          "field": "related_tasks"
+        }
+      ]
+    },
+    {
+      "id": "TASK-013",
+      "title": "Reinstall pve-core and form the new Proxmox cluster",
+      "summary": "Confirm the emptied pve-core holds nothing to keep, inventory its NVMe, reinstall Proxmox VE, create the cluster on pve-management and join pve-core with an explicit two-node quorum plan.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "planned",
+      "path": "tasks/TASK-013-reinstall-pve-core-and-form-cluster.md",
+      "tags": [
+        "compute",
+        "proxmox",
+        "cluster",
+        "pve-core",
+        "m002"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "critical",
+      "milestone": "M002",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-013 — Reinstall pve-core and form the new Proxmox cluster",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "GUIDE-handoff",
+          "ARCH-platform",
+          "INV-legacy-inventory",
+          "INV-pve-management-bootstrap"
+        ],
+        "related_decisions": [
+          "ADR-010",
+          "ADR-001",
+          "ADR-003",
+          "ADR-012"
+        ],
+        "depends_on": [
+          "TASK-009"
+        ],
+        "milestone": [
+          "M002"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "M002",
           "field": "related_tasks"
         }
       ]
@@ -2421,7 +3523,15 @@
       "ADR-006",
       "ADR-007",
       "ADR-008",
-      "ADR-009"
+      "ADR-009",
+      "ADR-010",
+      "ADR-011",
+      "ADR-012",
+      "ADR-013",
+      "ADR-014"
+    ],
+    "guide": [
+      "GUIDE-handoff"
     ],
     "investigation": [
       "INV-legacy-inventory",
@@ -2436,7 +3546,11 @@
       "M005",
       "M006",
       "M007",
-      "M008"
+      "M008",
+      "M009",
+      "M010",
+      "M011",
+      "M012"
     ],
     "overview": [
       "DOC-project-overview"
@@ -2453,7 +3567,8 @@
       "TASK-009",
       "TASK-010",
       "TASK-011",
-      "TASK-012"
+      "TASK-012",
+      "TASK-013"
     ]
   },
   "by_tag": {
@@ -2474,12 +3589,11 @@
       "ADR-007"
     ],
     "argocd": [
-      "ADR-006"
-    ],
-    "automation": [
-      "M003"
+      "ADR-006",
+      "ADR-011"
     ],
     "backup": [
+      "ADR-012",
       "TASK-003",
       "TASK-004",
       "TASK-010"
@@ -2490,17 +3604,28 @@
       "INV-pve-management-bootstrap",
       "M001"
     ],
+    "ceph": [
+      "ADR-012"
+    ],
     "ci": [
-      "ADR-008"
+      "ADR-008",
+      "ADR-014"
+    ],
+    "cluster": [
+      "ADR-010",
+      "TASK-013"
     ],
     "compose": [
       "ADR-006"
     ],
     "compute": [
-      "M004"
+      "TASK-013"
     ],
-    "cutover": [
-      "M007"
+    "csi": [
+      "ADR-012"
+    ],
+    "database": [
+      "ADR-013"
     ],
     "decision": [
       "ADR-001",
@@ -2511,10 +3636,18 @@
       "ADR-006",
       "ADR-007",
       "ADR-008",
-      "ADR-009"
+      "ADR-009",
+      "ADR-010",
+      "ADR-011",
+      "ADR-012",
+      "ADR-013",
+      "ADR-014"
     ],
     "dependencies": [
       "TASK-003"
+    ],
+    "deployment": [
+      "ADR-014"
     ],
     "desktop": [
       "ADR-009"
@@ -2522,15 +3655,23 @@
     "flux": [
       "ADR-006"
     ],
-    "future": [
-      "M008"
+    "forgejo": [
+      "ADR-014"
     ],
     "gitops": [
-      "ADR-005",
-      "M008"
+      "ADR-005"
+    ],
+    "guide": [
+      "GUIDE-handoff"
+    ],
+    "handoff": [
+      "GUIDE-handoff"
     ],
     "harness": [
       "TASK-001"
+    ],
+    "headlamp": [
+      "ADR-011"
     ],
     "infisical": [
       "ADR-004"
@@ -2546,11 +3687,12 @@
       "INV-pve-management-bootstrap"
     ],
     "k3s": [
-      "ADR-006"
+      "ADR-006",
+      "ADR-011"
     ],
     "kubernetes": [
       "ADR-006",
-      "M008"
+      "ADR-011"
     ],
     "layout": [
       "TASK-006"
@@ -2558,6 +3700,9 @@
     "legacy": [
       "ADR-007",
       "INV-legacy-inventory"
+    ],
+    "m002": [
+      "TASK-013"
     ],
     "make": [
       "TASK-006"
@@ -2568,11 +3713,10 @@
     ],
     "migration": [
       "ADR-001",
-      "M005",
       "TASK-005"
     ],
-    "observability": [
-      "M006"
+    "nvme": [
+      "ADR-012"
     ],
     "opentofu": [
       "ADR-003",
@@ -2582,12 +3726,14 @@
     "overview": [
       "DOC-project-overview"
     ],
+    "patroni": [
+      "ADR-013"
+    ],
     "pbs": [
       "TASK-004"
     ],
     "phase": [
-      "ADR-004",
-      "M002"
+      "ADR-004"
     ],
     "plan": [
       "INV-pve-management-bootstrap"
@@ -2599,13 +3745,23 @@
     "platform": [
       "ARCH-platform"
     ],
+    "postgresql": [
+      "ADR-013"
+    ],
     "proxmox": [
       "ADR-002",
-      "M004",
-      "TASK-002"
+      "ADR-010",
+      "TASK-002",
+      "TASK-013"
+    ],
+    "pve-core": [
+      "ADR-010",
+      "TASK-013"
     ],
     "pve-management": [
       "ADR-009",
+      "ADR-010",
+      "GUIDE-handoff",
       "INV-pve-management-bootstrap",
       "M001",
       "TASK-007",
@@ -2622,19 +3778,29 @@
     "repository": [
       "TASK-001"
     ],
-    "retirement": [
-      "M007"
+    "roadmap": [
+      "M002",
+      "M003",
+      "M004",
+      "M005",
+      "M006",
+      "M007",
+      "M008",
+      "M009",
+      "M010",
+      "M011",
+      "M012"
     ],
     "runbook": [
       "TASK-012"
     ],
     "runner": [
       "ADR-008",
+      "ADR-014",
       "TASK-009"
     ],
     "secrets": [
       "ADR-004",
-      "M002",
       "TASK-011"
     ],
     "security": [
@@ -2654,21 +3820,28 @@
     "status": [
       "DOC-project-overview"
     ],
+    "storage": [
+      "ADR-012"
+    ],
     "strategy": [
       "ADR-001"
     ],
     "terraform": [
       "ADR-003"
     ],
+    "truenas": [
+      "ADR-012"
+    ],
     "vision": [
       "DOC-project-overview"
     ],
     "windmill": [
       "ADR-005",
-      "M003"
+      "ADR-011"
     ],
     "workstation": [
-      "ADR-009"
+      "ADR-009",
+      "GUIDE-handoff"
     ]
   },
   "broken_references": []

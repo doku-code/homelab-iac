@@ -6,7 +6,7 @@ type: decision
 status: accepted
 importance: 5
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [decision, windmill, service-catalog, gitops]
 component: orchestration
 related: [ARCH-platform]
@@ -17,6 +17,8 @@ superseded_by: []
 ---
 
 # ADR-005: Windmill over a versioned service catalog
+
+> Responsibilities update 2026-11-14 ([ADR-011](ADR-011-k3s-first-argocd-headlamp.md)): Kubernetes applications are reconciled by Argo CD; Windmill triggers workflows and schedules, Headlamp administers Kubernetes, the runner executes approved jobs.
 
 ## Context
 

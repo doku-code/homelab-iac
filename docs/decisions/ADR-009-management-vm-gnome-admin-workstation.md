@@ -26,12 +26,17 @@ IaC toolchain. `pve-management` has 6 cores / 12 threads and 15.3 GiB RAM (disco
 
 ## Decision
 
-- `mgmt-control-01` is a full admin workstation: Ubuntu 26.04 LTS cloud image, `ubuntu-desktop-minimal`
-  (GNOME), graphical boot target, 8 vCPU, 10 GiB RAM, 120 GiB thin disk with discard, static `192.168.0.39/24`.
+- `mgmt-control-01` is a regular **Ubuntu Desktop 26.04.1 LTS** installed from the official ISO (operator,
+  2026-11-14: a genuine Desktop install, not Server plus a desktop), unattended by autoinstall: the
+  installer finds its NoCloud seed over HTTP from the operator workstation through the SMBIOS serial and
+  asks for one confirmation on the Proxmox console. Std VGA so the Proxmox console shows GDM and the
+  desktop; NetworkManager with the static `192.168.0.39/24`; 8 vCPU, 10 GiB RAM, 120 GiB thin disk with
+  discard. Ansible (`admin_workstation`) then adds the tooling and remote login.
   CPU type `host`: the VM has no GPU, so GNOME, the RDP encoder and Zed render in software (llvmpipe /
   lavapipe), which needs AVX2; `x86-64-v2-AES` hides it, and a standalone host never live-migrates.
-- It is still built reproducibly by the same OpenTofu root and Ansible playbook (ADR-002 otherwise
-  unchanged: standalone host, minimal hypervisor, provisioned from the existing infrastructure).
+- It is still built reproducibly by the same OpenTofu root and Ansible playbook, provisioned from the
+  existing infrastructure on a minimal hypervisor (`pve-management`, founding node of the new cluster,
+  ADR-010).
 - The desktop login and RDP passwords are entered interactively at configuration time and never stored.
 - Its tooling is a declarative catalog in `ansible/roles/admin_workstation/defaults/main.yml`: apt for
   system and CLI tools (incl. Docker), Flathub for GUI apps (Zed, Obsidian, Sublime Merge — SourceTree

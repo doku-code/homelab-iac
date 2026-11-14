@@ -1,17 +1,18 @@
 ---
 id: ARCH-platform
 title: Target homelab platform architecture
-summary: Layers, tool responsibilities, target stack, pve-management role, service catalog model, secrets and recovery boundaries for the rebuild.
+summary: "Layers and owners of the rebuilt homelab: Proxmox cluster, k3s, Headlamp, external NVMe storage via CSI, PostgreSQL/Patroni, Phase, Argo CD, Windmill, runner; TrueNAS for backups."
 type: architecture
 status: current
 importance: 5
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [architecture, platform, rebuild]
 component: platform
-topics: [opentofu, ansible, compose, windmill, phase, sops, forgejo, proxmox, recovery]
-related: [DOC-project-overview, INV-legacy-inventory]
-related_decisions: [ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008]
+topics: [proxmox, cluster, k3s, headlamp, argocd, windmill, storage, nvme, csi, ceph, truenas, postgresql, patroni, phase, forgejo, runner, opentofu, ansible]
+applies_to: [terraform, ansible, kubernetes]
+related: [DOC-project-overview, INV-legacy-inventory, GUIDE-handoff]
+related_decisions: [ADR-001, ADR-003, ADR-004, ADR-005, ADR-007, ADR-008, ADR-009, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014]
 related_implementations: []
 ---
 
@@ -19,137 +20,121 @@ related_implementations: []
 
 ## Overview
 
-The homelab is rebuilt as a reproducible platform: every resource, host configuration and
-service deployment is declared in this repository, secrets live outside Git, and recovery
-starts from a clean workstation. The rebuild is **rolling** ([ADR-001](../decisions/ADR-001-rolling-infrastructure-rebuild.md)):
-the existing infrastructure provisions its replacement, services move one at a time, and
-reclaimed hardware joins the new environment.
+The homelab is rebuilt as a reproducible platform declared in this repository. The rebuild is
+**rolling** ([ADR-001](../decisions/ADR-001-rolling-infrastructure-rebuild.md)): the existing
+infrastructure builds its replacement, services move one at a time, and reclaimed hardware is
+reinstalled and joins the new cluster.
 
-This document is the target. What is actually deployed is recorded in tasks and milestone
-evidence; the legacy estate is described in [INV-legacy-inventory](../investigations/legacy-inventory.md).
+**Proxmox → k3s → Headlamp → external NVMe-backed storage / CSI → PostgreSQL + Patroni → Phase →
+Argo CD + Windmill → applications.**
+
+This document is the target. Deployed state is in milestone and task evidence; the legacy estate is
+in [INV-legacy-inventory](../investigations/legacy-inventory.md); the current step is in the
+[handoff](../handoff.md).
 
 ## Structure
 
-### Current versus target
-
-| Concern | Current (legacy, partly verified) | Target |
-|---------|-----------------------------------|--------|
-| Provisioning | Terraform ≥ 1.16 + `bpg/proxmox` 0.112.0, per-guest roots, local state on one workstation | OpenTofu roots with backed-up remote state (TASK-010) |
-| Proxmox auth | Mixed: API token (Stage A) and `root@pam` password from Infisical (Tailscale, Windmill flows) | Dedicated scoped API token per environment |
-| Execution | Operator-run Make targets; CI is validation-only on the CT301 runner (open trust gate) | Workstation bootstrap kept permanently (ADR-008); later a trusted runner inside the management environment and Windmill triggers |
-| Services | Mostly hand-configured guests (Forgejo on TrueNAS, Infisical, AdGuard, Caddy, Vaultwarden, Wiki.js…) | `services/<service>/` catalog entries deployed by Ansible + Compose |
-| Secrets | Infisical (Universal Auth) | Phase at runtime, SOPS + age for bootstrap |
-| Kubernetes | K3s Stage A lab + Flux demo on `pve-lab` | None by default; k3s + Argo CD later (ADR-006) |
-| Management | `pve-management` installed (standalone, 192.168.0.10), no guests yet; `mgmt-control-01` root ready offline | `pve-management` with management VM(s) |
-| Hosts | `pve-core`, `pve-lab`, `pve-k8s-01/02`; `pve-infra` and `pve-compute` permanently retired | Reclaimed machines join the new compute environment |
+```mermaid
+flowchart TB
+  subgraph phys["Physical Proxmox infrastructure (new cluster, ADR-010)"]
+    pm["pve-management<br/>local NVMe"]
+    pc["pve-core<br/>local NVMe"]
+    px["reclaimed hosts<br/>local NVMe"]
+  end
+  subgraph store["External storage layer (ADR-012)"]
+    s1["initial NVMe-backed service<br/>outside k3s"]
+    ceph["future Ceph RBD / CephFS"]
+  end
+  subgraph k8s["k3s compute (ADR-011)"]
+    csi["CSI drivers → StorageClasses → PVCs"]
+    pg["PostgreSQL + Patroni (ADR-013)"]
+    apps["Phase, Windmill, Authentik, applications"]
+    argo["Argo CD"]
+    hl["Headlamp"]
+  end
+  ws["mgmt-control-01<br/>Ubuntu Desktop workstation"]
+  fj["Forgejo + dedicated runner (ADR-014)"]
+  nas["TrueNAS SCALE<br/>backup destination only"]
+  pm --- s1
+  pc --- s1
+  px -.-> ceph
+  s1 --> csi
+  ceph -.-> csi
+  csi --> pg
+  csi --> apps
+  pg --> apps
+  fj --> argo
+  argo --> apps
+  ws --> fj
+  ws --> hl
+  s1 -. backups .-> nas
+  pg -. database backups .-> nas
+  apps -. application backups .-> nas
+```
 
 ### Layers and owners
 
-Each layer has exactly one owner. A tool never writes objects another layer owns.
+Each layer has one owner; a tool never writes objects another layer owns.
 
-| Layer | Owner | Owns | Never does |
-|-------|-------|------|------------|
-| Hypervisor | Proxmox VE (minimal hosts) | Compute, local storage, networking bridges | Run application stacks on the host |
-| Infrastructure | OpenTofu, `bpg/proxmox` provider ([ADR-003](../decisions/ADR-003-opentofu-for-new-infrastructure.md)) | VMs/LXCs, disks, NICs, cloud-init, API-level resources | Install packages, configure apps |
-| OS configuration | Ansible | Users, SSH, packages, hardening, Docker engine, agents, runner | Create VMs, hold app topology |
-| Application | Docker Compose (k3s + Argo CD later, [ADR-006](../decisions/ADR-006-compose-first-kubernetes-later.md)) | Container topology, volumes, app config files | Provision hosts |
-| Source of truth | Forgejo | Code, deployment definitions, workflow history | Store secrets in repositories |
-| Execution | Forgejo Actions runners | Run reviewed, versioned workflows | Accept untrusted code with privileged credentials |
-| Orchestration UI | Windmill ([ADR-005](../decisions/ADR-005-windmill-service-catalog.md)) | Forms, schedules, run history; calls versioned workflows | Become an infrastructure engine or a recovery dependency |
-| Runtime secrets | Phase, target ([ADR-004](../decisions/ADR-004-secrets-phase-runtime-sops-bootstrap.md)) | Service/CI secrets, machine identities | Be required to recover itself |
-| Bootstrap secrets | SOPS + age | Credentials needed before Phase/Forgejo exist | Hold day-to-day app secrets |
-| Edge | Caddy, AdGuard Home, pfSense | HTTPS, internal DNS (`home.arpa`), routing/firewall | — |
-| Identity | Authentik | SSO for humans and supported apps | Gate break-glass recovery |
-| Data protection | PBS + TrueNAS | Guest backups, persistent datasets | — |
-| Observability | Prometheus, Loki, Grafana | Metrics, logs, dashboards, alerts | Sit in the bootstrap critical path |
+| # | Layer | Technology | Owns | Never does |
+|---|-------|------------|------|------------|
+| 1 | Physical infrastructure | Proxmox VE cluster on `pve-management`, `pve-core`, reclaimed hosts ([ADR-010](../decisions/ADR-010-new-proxmox-cluster-on-pve-management.md)) | Compute, local NVMe, bridges | Application stacks or ad-hoc NFS exports on hypervisors |
+| — | Provisioning / OS config | OpenTofu `bpg/proxmox` ([ADR-003](../decisions/ADR-003-opentofu-for-new-infrastructure.md)) / Ansible | VMs, disks, NICs / packages, users, k3s install | App topology |
+| 2 | Kubernetes compute | k3s, embedded etcd ([ADR-011](../decisions/ADR-011-k3s-first-argocd-headlamp.md)) | Workload scheduling | Hold persistent data on its VM disks |
+| 3 | Persistent storage | NVMe-backed service external to k3s; Ceph later ([ADR-012](../decisions/ADR-012-external-nvme-storage-truenas-backups.md)) | Volumes, their failure domain | Depend on the k3s cluster it serves |
+| 4 | CSI integration | CSI driver of the chosen backend; StorageClasses (`nvme-block`, `nvme-shared`, later `ceph-rbd`, `cephfs`) | Dynamic PVC provisioning | Exist for a backend that does not support it |
+| 5 | Central database | PostgreSQL + Patroni, Zalando operator pending validation ([ADR-013](../decisions/ADR-013-central-postgresql-patroni.md)) | Per-application databases, roles, replication | Bootstrap k3s, store data on TrueNAS |
+| 6 | Applications | Phase ([ADR-004](../decisions/ADR-004-secrets-phase-runtime-sops-bootstrap.md)), Windmill, Authentik, migrated services; Compose only for bootstrap exceptions | Their configuration | — |
+| 7 | Management tools | Headlamp (UI), Argo CD (GitOps), Windmill (workflows, [ADR-005](../decisions/ADR-005-windmill-service-catalog.md)), Forgejo + dedicated runner ([ADR-014](../decisions/ADR-014-dedicated-forgejo-deployment-runner.md)), workstation `mgmt-control-01` ([ADR-009](../decisions/ADR-009-management-vm-gnome-admin-workstation.md)) | Inspect / reconcile / automate / execute | Duplicate each other or OpenTofu/Ansible |
+| 8 | Backup storage | TrueNAS SCALE (and PBS for guests) | Storage, VM, database and application backups | Provide live PVCs (no TrueNAS CSI/NFS/iSCSI for applications) |
+| — | Edge, identity, observability | Caddy and/or ingress, AdGuard Home, pfSense; Authentik; Prometheus, Loki, Grafana | HTTPS, DNS, routing; SSO; metrics, logs, alerts | Sit in the bootstrap path |
 
-Infisical stays the runtime secret store until Phase is deployed, backed up, tested and its
-consumers are migrated.
+Secrets: Infisical stays in use until secrets migrate incrementally to Phase (M008); SOPS + age for
+bootstrap material is deferred to M012.
 
 ### Hosts
 
-| Host | Role in the target | Notes |
-|------|--------------------|-------|
-| `pve-management` | Standalone bootstrap, orchestration and recovery host ([ADR-002](../decisions/ADR-002-pve-management-standalone-host.md)) | Fresh Proxmox VE, not joined to the compute cluster. Runs only management VMs. |
-| Compute cluster | Application workloads | Topology, quorum and storage planned in M004; two nodes never imply HA. |
-| Legacy hosts (`pve-core`, `pve-lab`, `pve-k8s-01`, `pve-k8s-02`) | Keep running services until migrated, then reinstalled and joined | Inventory in M000; `pve-infra` and `pve-compute` are retired ([INV-legacy-inventory](../investigations/legacy-inventory.md)). |
+| Host | Now | Target |
+|------|-----|--------|
+| `pve-management` 192.168.0.10 | Operational, standalone; runs `mgmt-control-01` (VM 100) | Founding node of the new cluster |
+| `pve-core` | Emptied, workloads moved to `pve-lab` | Reinstalled, first node joined (M002, TASK-013) |
+| `pve-lab` | Hosts legacy and former `pve-core` workloads | Continuity host; reclaimed after migration (M010) |
+| `pve-k8s-01/02` | Legacy | Reclaimed after migration |
+| TrueNAS SCALE | Serves Forgejo and datasets | Backup destination; current apps stay until replaced |
+| `pve-infra`, `pve-compute` | **Retired**, no longer exist | — |
 
-On `pve-management` the first guest is `mgmt-control-01`, the operator's **GNOME admin workstation**
-(Ubuntu 26.04 LTS, [ADR-009](../decisions/ADR-009-management-vm-gnome-admin-workstation.md)) with the IaC
-toolchain (OpenTofu, Ansible, SOPS/age) and Claude Code/Codex; a dedicated runner comes later (ADR-008). Further
-management applications (Windmill, Phase) run in their own VMs when resources allow.
+Two nodes have no quorum tolerance (QDevice evaluated in M002); a cluster creates no shared storage;
+initial availability and later HA are designed separately (M004, M011).
 
-### Target repository layout
+### Repository layout
 
-Infrastructure code keeps the existing `terraform/` tree: no parallel tree is created. New roots are
-OpenTofu roots under `terraform/stacks/<host>-<purpose>/` reusing `terraform/modules/*`
-(first: `terraform/stacks/pve-management-control`); legacy roots stay on Terraform until migrated
-([ADR-003](../decisions/ADR-003-opentofu-for-new-infrastructure.md), [ADR-007](../decisions/ADR-007-archive-legacy-workflow-keep-live-roots.md)).
+Infrastructure code keeps the `terraform/` tree: new roots are OpenTofu roots under
+`terraform/stacks/<host>-<purpose>/` reusing `terraform/modules/*`; legacy roots stay on Terraform
+until migrated ([ADR-007](../decisions/ADR-007-archive-legacy-workflow-keep-live-roots.md)).
+Ansible roles under `ansible/roles/`, workflows under `.forgejo/workflows/`, Kubernetes manifests and
+Helm values reconciled by Argo CD in a directory chosen in M004/M009.
 
-```
-terraform/modules/<module>/    shared modules, engine-agnostic (no required_version)
-terraform/stacks/<root>/       one root = one engine = one state = one owner
-ansible/roles/<role>/          reusable roles; playbooks stay thin
-services/<service>/            one self-contained deployable unit per service:
-  service.yaml                 catalog entry: inputs schema, dependencies, placement, secrets refs, health check
-  compose.yaml                 application topology (when Compose-based)
-  config/                      versioned application configuration templates
-windmill/                      Windmill scripts/flows synced from Git (thin callers)
-.forgejo/workflows/            validation and approved deployment workflows
-secrets/bootstrap/*.sops.yaml  SOPS-encrypted bootstrap material only (age recipients in .sops.yaml)
-```
+### State
 
-Legacy layout still in use: the Terraform roots with local state beside the code,
-`ansible/playbooks/*`, `services/monitoring`, `services/windmill`, `gitops/stage-a`.
-
-### State management
-
-- **Bootstrap (now):** each new root uses the local backend on the operator workstation, one operator
-  at a time; after every apply an age-encrypted, dated copy goes to an off-machine location
-  (`make mgmt-state-backup`). State never lives only on the infrastructure it manages.
-- **Future:** before any second executor (e.g. a trusted runner) may apply, introduce a shared remote
-  backend with locking and migrate roots explicitly, one at a time, with a no-change plan as proof
-  (TASK-010). No silent state migration; legacy local states are backed up first.
+OpenTofu state is local on the operator workstation (`mgmt-control-01`), one writer at a time, never
+in Git. A shared backend is decided only when the dedicated runner must apply (TASK-010, M003).
 
 ## Key flows
 
-### Deploy a service (target)
-
-1. Operator picks a service in Windmill; the form is generated from `services/<service>/service.yaml`.
-2. Windmill validates the inputs against that schema and triggers the versioned Forgejo
-   deployment workflow (or the same Make/script entrypoint), passing only non-secret inputs.
-3. The workflow runs `tofu plan` for the guest, then requires approval before `apply`.
-4. Ansible configures the OS and deploys the Compose project; secrets are fetched from
-   Phase at runtime by a scoped machine identity.
-5. DNS, Caddy route, monitoring and backup registration are applied from the same catalog entry.
-6. Health checks run; the result (commit, plan summary, outputs) is reported back to Windmill.
-
-Every step is runnable without Windmill from a workstation (`make`/scripts), so Windmill is
-a convenience layer, not a dependency.
-
-### Migrate an existing service (per service, M005)
-
-Analyse dependencies and config → implement the reproducible deployment → provision the
-replacement → migrate persistent data → validate function, monitoring and backups → controlled
-cutover with a rollback path → verify → retire the old workload once safe. An emptied
-physical host is reinstalled and joined to the new environment.
-
-### Recover
-
-A clean workstation with the repository (or its external mirror), the age private key held
-outside the homelab, and off-host backups can: provision `pve-management` guests with
-OpenTofu, configure them with Ansible using SOPS-decrypted bootstrap credentials, restore
-Forgejo/Phase/Windmill data from backups, then resume normal workflows.
+- **New service:** define the deployment (manifests or Helm values) → Argo CD reconciles it on k3s →
+  PVCs from the external NVMe-backed StorageClass → database and role on the central PostgreSQL →
+  secrets from Phase (Infisical until then) → ingress/DNS → health check. Windmill may trigger the
+  workflow; every step stays runnable from the workstation.
+- **Migrate a service (M010):** deploy the replacement, copy its data, configure database and secrets,
+  validate, cut over, retire the old workload only after validation.
+- **Reclaim a host:** confirm it is empty → guard legacy roots → reinstall Proxmox → join the cluster
+  → add k3s and storage capacity.
 
 ## Constraints
 
-- No `tofu apply`/`destroy`, VM deletion, storage, network, firewall or credential changes
-  without explicit operator approval for that operation.
-- One writable state per OpenTofu root; state is never committed. Remote state and its
-  backups are designed in TASK-010 before new roots hold real resources.
-- Recovery never depends on the service being recovered (Forgejo, Phase, Windmill).
-- Validation CI receives no infrastructure credentials; privileged workflows run only from
-  trusted triggers on protected refs.
-- Do not add Kubernetes, distributed storage, HA clusters or new services without a
-  demonstrated need.
-- Avoid SaaS dependencies and enterprise-only licensing; verify licences before adoption.
+- No apply/destroy, reinstall, cluster, storage, network, firewall or credential change without
+  explicit operator approval of that operation.
+- Never destroy an original workload or its data before the replacement works.
+- Single-host storage is never labelled HA; no Ceph on too few nodes.
+- Validation CI receives no infrastructure credentials; CT301 stays validation-only.
+- Verify licences and self-hosting support (Phase, operators, charts) when their milestone starts.

@@ -6,7 +6,7 @@ type: decision
 status: accepted
 importance: 5
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [decision, bootstrap, ci, runner, security]
 component: execution
 related: [ARCH-platform, INV-pve-management-bootstrap]
@@ -17,6 +17,8 @@ superseded_by: []
 ---
 
 # ADR-008: Workstation bootstrap, validation-only CI
+
+> Amended on 2026-11-14 by [ADR-014](ADR-014-dedicated-forgejo-deployment-runner.md): a dedicated runner VM will execute approved workflows; bootstrap and recovery stay workstation-runnable and CT301 stays validation-only.
 
 ## Context
 

@@ -6,9 +6,9 @@ type: milestone
 status: active
 priority: critical
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [inventory, planning]
-related_tasks: [TASK-001, TASK-002, TASK-003, TASK-004, TASK-005]
+related_tasks: [TASK-001, TASK-002]
 related_decisions: [ADR-001, ADR-007]
 related: [ARCH-platform]
 depends_on: []
@@ -16,6 +16,8 @@ completion_criteria: []
 ---
 
 # M000 — Infrastructure inventory and migration planning
+
+> Roadmap 2026-11-14: the dependency map and migration order moved to M010, the PBS restore to M012. M000 keeps the repository reset and the live inventory, including the hosts' NVMe devices (needed by M002 and M006).
 
 ## Objective
 

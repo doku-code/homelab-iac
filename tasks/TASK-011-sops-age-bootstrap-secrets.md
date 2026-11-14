@@ -5,9 +5,9 @@ summary: "Introduce .sops.yaml, an encrypted secrets/bootstrap/ file for the Pro
 type: task
 status: planned
 priority: critical
-milestone: M001
+milestone: M012
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [secrets, sops, age]
 depends_on: [TASK-006]
 related: [ARCH-platform]
@@ -20,6 +20,8 @@ evidence: []
 ---
 
 # TASK-011 — SOPS + age bootstrap secrets
+
+> Deferred by the operator on 2026-11-14: not a prerequisite for the rebuild (moved from M001 to M012, backups and finalization).
 
 **Authorization:** OFFLINE_CODE; key generation by the operator. A task status never authorizes a live change by itself.
 

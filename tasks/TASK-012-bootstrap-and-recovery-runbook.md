@@ -5,13 +5,13 @@ summary: "Write and exercise the runbook that rebuilds the management VM from a 
 type: task
 status: planned
 priority: high
-milestone: M001
+milestone: M012
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [recovery, runbook]
 depends_on: [TASK-008, TASK-009, TASK-010, TASK-011]
 related: [ARCH-platform]
-related_decisions: [ADR-002, ADR-004]
+related_decisions: [ADR-010, ADR-004, ADR-008]
 related_implementations: []
 related_tests: []
 tests_justification: ""
@@ -20,6 +20,8 @@ evidence: []
 ---
 
 # TASK-012 — Independent bootstrap and recovery runbook
+
+> Deferred by the operator on 2026-11-14: not a prerequisite for the rebuild (moved from M001 to M012, backups and finalization).
 
 **Authorization:** LIVE_CHANGE with approval. A task status never authorizes a live change by itself.
 

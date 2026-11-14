@@ -5,9 +5,9 @@ summary: "Map every service's dependencies (DNS, proxy, auth, secrets, storage),
 type: task
 status: planned
 priority: high
-milestone: M000
+milestone: M010
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [inventory, dependencies, backup]
 depends_on: [TASK-002]
 related: [ARCH-platform]
@@ -20,6 +20,8 @@ evidence: []
 ---
 
 # TASK-003 — Service dependency, network/DNS and data/backup map
+
+> Roadmap 2026-11-14: moved from M000 to M010.
 
 **Authorization:** LIVE_READ. A task status never authorizes a live change by itself.
 

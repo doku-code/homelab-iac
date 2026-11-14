@@ -26,3 +26,6 @@ You are the primary agent: you read the documentation path, pick the task, imple
   gate, `homelab-iac` runner); keep that adaptation. It also re-creates `harness-wiki-publish.yml`; delete it.
 - Keep delegation light: one coordinating agent, at most 2–4 subagents and only for independent work; no review
   or report ceremony that does not change a decision.
+- Primary workstation: `mgmt-control-01` (Ubuntu, `~/homelab-iac`). Read `docs/handoff.md` first; its
+  "First steps" section lists what the operator still has to do at the keyboard (logins, tokens).
+- OpenTofu state for `pve-management-control` exists only on the workstation; never create a fresh one.

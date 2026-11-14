@@ -3,20 +3,22 @@ id: ADR-002
 title: pve-management is a standalone bootstrap, orchestration and recovery host
 summary: The fresh Proxmox host pve-management stays outside the compute cluster and runs only management VMs (IaC toolchain, runner, later Windmill/Phase).
 type: decision
-status: accepted
+status: superseded
 importance: 5
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [decision, management, bootstrap, proxmox]
 component: pve-management
 related: [ARCH-platform]
 related_tasks: [TASK-007, TASK-008, TASK-009]
 related_milestones: [M001]
 supersedes: []
-superseded_by: []
+superseded_by: [ADR-010]
 ---
 
 # ADR-002: pve-management as a standalone host
+
+> Superseded on 2026-11-14 by [ADR-010](ADR-010-new-proxmox-cluster-on-pve-management.md): pve-management founds the new cluster.
 
 ## Context
 

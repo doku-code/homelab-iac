@@ -5,9 +5,9 @@ summary: "Decide the service migration order and list every bootstrap credential
 type: task
 status: planned
 priority: high
-milestone: M000
+milestone: M010
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [planning, migration]
 depends_on: [TASK-002, TASK-003, TASK-004]
 related: [ARCH-platform]
@@ -20,6 +20,8 @@ evidence: []
 ---
 
 # TASK-005 — Migration order and bootstrap credential requirements
+
+> Roadmap 2026-11-14: moved from M000 to M010.
 
 **Authorization:** READ_ONLY. A task status never authorizes a live change by itself.
 

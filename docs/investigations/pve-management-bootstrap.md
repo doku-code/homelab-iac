@@ -57,7 +57,7 @@ Dedicated user `tofu@pve` with a privilege-separated token. Minimum role and ACL
 | Path | Privileges | Needed for |
 |------|-----------|------------|
 | `/vms` | `VM.Allocate VM.Audit VM.Config.CDROM VM.Config.CPU VM.Config.Cloudinit VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.PowerMgmt VM.GuestAgent.Audit` | Create/configure/start the VM, cloud-init drive, read agent addresses |
-| `/storage/<image datastore>` | `Datastore.AllocateTemplate Datastore.Audit` | `download-url` of the cloud image into `import` content |
+| `/storage/<image datastore>` | `Datastore.AllocateTemplate Datastore.Audit` | `download-url` of the Desktop ISO into `iso` content (formerly the cloud image into `import`) |
 | `/storage/<disk datastore>` | `Datastore.AllocateSpace Datastore.Audit` | Disk and cloud-init volume allocation |
 | `/nodes/pve-management` | `Sys.AccessNetwork Sys.Audit` | `download-url` (instead of `Sys.Modify` on `/`), task status |
 | `/sdn/zones/localnetwork/<bridge>` | `SDN.Use` | Attaching the NIC to the bridge |

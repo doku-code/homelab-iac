@@ -6,7 +6,7 @@ type: investigation
 status: needs-review
 importance: 4
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [investigation, inventory, legacy]
 component: inventory
 topics: [proxmox, guests, services, state, migration]
@@ -35,10 +35,10 @@ documents** unless marked otherwise.
 
 | Host | Legacy role | Status to verify |
 |------|-------------|------------------|
-| `pve-core` | Essential services (Infisical-adjacent, PG candidate CT300, Windmill CT210, DNS/proxy guests) | Running services, capacity |
-| `pve-lab` | Main compute, workstation VMs, K3s Stage A lab (VM303–305) | Headless since 2026-10-24; GPU workloads |
+| `pve-core` | **Emptied** (operator, 2026-11-14): its workloads moved to `pve-lab`; Ryzen 7 6800H, 8C/16T, 32 GB DDR5; to be reinstalled and joined to the new cluster (TASK-013) | NVMe layout |
+| `pve-lab` | Main compute, workstation VMs, K3s Stage A lab (VM303–305), and since 2026-11-14 the former `pve-core` workloads; continuity host, do not disrupt | Headless since 2026-10-24; GPU workloads |
 | `pve-k8s-01`, `pve-k8s-02` | Mini-PCs; legacy state records Tailscale routers CT306/CT307 on them | Exist (per state); role and membership to verify |
-| `pve-management` | **New**, standalone bootstrap/recovery host at 192.168.0.10 (operator, 2026-11-12) | API identity, storage, network (TASK-007) |
+| `pve-management` | **New** host at 192.168.0.10 (operator, 2026-11-12); founding node of the new cluster (ADR-010) | API identity, storage, network (TASK-007) |
 | ~~`pve-infra`~~ | **Permanently retired** (operator, 2026-11-12); its former address now belongs to `pve-management` | Former workloads' migration not proven |
 | ~~`pve-compute`~~ | **Permanently retired** (operator, 2026-11-12) | Former workloads' migration not proven |
 
@@ -76,9 +76,9 @@ Untracked `terraform.tfstate` files exist beside the code in nine roots. Only no
 | `pve-lab-controller` | none | `192.168.0.10` | **Endpoint now reaches `pve-management`** |
 | `pve-compute-forgejo-runner-migration` | CT301 on `pve-compute` | `192.168.0.12` | **Stale**: CT301 still runs CI, so it lives elsewhere now |
 | `pve-compute-forgejo-runner` | CT300 on `pve-compute` | `192.168.0.12` | **Stale**: retired runner never removed from state; ID 300 is now `tfstate` on `pve-core` |
-| `pve-core-tfstate` | CT300 on `pve-core` | default `192.168.0.11` | Consistent with docs |
-| `pve-core-garage` | CT209 on `pve-core` | default `192.168.0.11` | Consistent |
-| `pve-core-windmill` | CT210 on `pve-core` | JSON tfvars without the key; default `192.168.0.11` | Consistent |
+| `pve-core-tfstate` | CT300 on `pve-core` | default `192.168.0.11` | **Stale**: guest moved to `pve-lab` (operator, 2026-11-14); guard the address before `pve-core` is reinstalled |
+| `pve-core-garage` | CT209 on `pve-core` | default `192.168.0.11` | **Stale**: guest moved to `pve-lab` (operator, 2026-11-14); guard the address before `pve-core` is reinstalled |
+| `pve-core-windmill` | CT210 on `pve-core` | JSON tfvars without the key; default `192.168.0.11` | **Stale**: guest moved to `pve-lab` (operator, 2026-11-14); guard the address before `pve-core` is reinstalled |
 | `pve-tailscale-routers` | CT306/307 on `pve-k8s-01/02` | `192.168.0.11` | Consistent; nodes exist |
 
 Protections added (repository only, nothing executed against infrastructure): Make refuses

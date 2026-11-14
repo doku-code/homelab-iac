@@ -5,9 +5,9 @@ summary: "Restore one representative guest backup from PBS to an isolated, dispo
 type: task
 status: planned
 priority: high
-milestone: M000
+milestone: M012
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [backup, pbs, recovery]
 depends_on: [TASK-003]
 related: [ARCH-platform]
@@ -20,6 +20,8 @@ evidence: []
 ---
 
 # TASK-004 — Representative PBS restore test
+
+> Roadmap 2026-11-14: moved from M000 to M012.
 
 **Authorization:** LIVE_CHANGE — explicit operator approval of guest, target and network. A task status never authorizes a live change by itself.
 

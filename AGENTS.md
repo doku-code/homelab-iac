@@ -7,8 +7,10 @@ world-readable.
 Read first: [project vision](docs/project-overview.md) (vision, strategy, status, decisions vs
 assumptions — the single authoritative source) and
 [platform architecture](docs/architecture/platform.md) (layers, owners, target layout).
-Decisions: `docs/decisions/`. Current state: `harness status`. First implementation:
-[pve-management bootstrap](docs/investigations/pve-management-bootstrap.md).
+Decisions: `docs/decisions/`. Current state: `harness status`. **Current work, infrastructure that
+exists, where the state lives and the next task: [handoff](docs/handoff.md)** — read it at session start.
+Priority: build working infrastructure incrementally; remote state, backup and DR design, and advanced
+secret management are deliberately postponed (see the handoff).
 
 ## Layer ownership
 
@@ -17,7 +19,9 @@ One owner per concern; never let two tools write the same object.
 - **OpenTofu** (`bpg/proxmox`): infrastructure resources. New roots only; legacy
   `terraform/stacks/*` keep Terraform until migrated (ADR-003).
 - **Ansible**: OS configuration, packages, users, SSH, runners, deployment prerequisites.
-- **Docker Compose**: application topology (k3s + Argo CD later, ADR-006).
+- **k3s + Argo CD**: application topology from the start (ADR-011); Docker Compose only for bootstrap
+  services and documented exceptions. Persistent data on NVMe-backed storage outside k3s via CSI; TrueNAS
+  is the backup destination, never live PVC storage (ADR-012).
 - **Forgejo**: source of truth and CI; **Windmill**: forms/schedules that call versioned
   workflows, never an infrastructure engine or a recovery dependency (ADR-005).
 - **Secrets**: Infisical today, Phase as target runtime store, SOPS + age for bootstrap and
@@ -39,7 +43,8 @@ planning metadata, never authorization.
   private tfvars, recovery material or credential caches. Inspect the staged diff before committing.
 - Nine legacy roots under `terraform/stacks/` hold live state as **untracked local files** beside
   the code: never move, rename, delete or re-init those directories.
-- `pve-infra` and `pve-compute` are retired; `192.168.0.10` is the standalone `pve-management`. Never
+- `pve-infra` and `pve-compute` are retired; `192.168.0.10` is `pve-management` (founding node of the new
+  cluster, ADR-010); `pve-core` is emptied and will be reinstalled (TASK-013). Never
   point legacy automation at it; keep the Make guards (`LEGACY_ENDPOINT_GUARD`, `RETIRED_ROOT`).
 - Infrastructure is applied only from the operator workstation through approval-gated Make targets;
   CT301 never gets Proxmox credentials (ADR-008). Run Make targets that can reach infrastructure

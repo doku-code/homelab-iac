@@ -1,21 +1,21 @@
 ---
 id: M001
-title: "Bootstrap pve-management"
-summary: "Existing infrastructure provisions and configures a management VM on pve-management automatically, with recoverable state and bootstrap secrets."
+title: "Management workstation"
+summary: "Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it."
 type: milestone
 status: active
 priority: critical
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-14
 tags: [bootstrap, pve-management]
-related_tasks: [TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012]
-related_decisions: [ADR-002, ADR-003, ADR-004, ADR-005]
+related_tasks: [TASK-006, TASK-007, TASK-008, TASK-009, TASK-010]
+related_decisions: [ADR-009, ADR-003, ADR-010, ADR-008]
 related: [ARCH-platform, INV-pve-management-bootstrap]
 depends_on: []
 completion_criteria: []
 ---
 
-# M001 — Bootstrap pve-management
+# M001 — Management workstation
 
 ## Objective
 
@@ -23,43 +23,45 @@ Establish the independent management foundation on the fresh pve-management host
 
 Implementation plan: [INV-pve-management-bootstrap](../docs/investigations/pve-management-bootstrap.md).
 
-**Completion criterion:** Existing infrastructure provisions and configures a management VM on pve-management automatically, with recoverable state and bootstrap secrets.
+**Completion criterion:** Existing infrastructure provisions and configures the management workstation
+VM on pve-management from IaC, and the operator works from it.
+
+Re-scoped by the operator on 2026-11-14: the state stays local on the workstation; SOPS bootstrap
+secrets (TASK-011) and the recovery runbook (TASK-012) are deferred to M012. No Forgejo runner on the
+management VM (dedicated runner: M003). The VM is a genuine Ubuntu Desktop installed from the official ISO
+(ADR-009); the first Ubuntu Server-based VM was replaced on 2026-11-14.
 
 ## Scope
 
 In scope:
 
-- Connectivity, scoped Proxmox API token and SSH access
-- Reusable OpenTofu guest module and the management VM root
-- Ansible baseline with the IaC toolchain and a dedicated Forgejo runner
-- SOPS + age bootstrap secrets
-- State management and backups
-- Independent bootstrap/recovery runbook
+- Connectivity, scoped Proxmox API token, TLS trust and SSH access
+- OpenTofu root `terraform/stacks/pve-management-control`: Desktop ISO, VM 100, autoinstall
+- Ansible baseline and `admin_workstation` role: toolchain, Zed, Claude Code, Codex, GNOME Remote Login
+- Local OpenTofu state, handed over from the Mac to the workstation
 
 Out of scope:
 
 - Phase, Windmill and application services
-- Joining pve-management to any cluster
+- Creating the new Proxmox cluster (M002, [ADR-010](../docs/decisions/ADR-010-new-proxmox-cluster-on-pve-management.md))
 
 ## Expected deliverables
 
-- modules/opentofu/proxmox-guest
-- stacks/management/ root
-- Ansible role for the management VM
-- secrets/bootstrap/ with .sops.yaml
-- Bootstrap and recovery runbook
+- `terraform/stacks/pve-management-control` (Desktop ISO + autoinstall)
+- `ansible/playbooks/configure-mgmt-control.yml` and `ansible/roles/admin_workstation`
+- [Handoff](../docs/handoff.md) for sessions on the workstation
 
 ## Dependencies
 
-- M000 inventory of credentials and network facts (can start in parallel for offline code)
+- None
 
 ## Acceptance criteria
 
-- [ ] A plan/apply from the existing runner or a workstation creates the management VM on pve-management
-- [ ] A second run is a no-op (idempotent)
-- [ ] Ansible converges the VM with the toolchain and a registered runner
-- [ ] State and bootstrap secrets are backed up outside pve-management
-- [ ] The runbook has been followed from a workstation at least once
+- [x] A plan/apply from a workstation creates the management VM on pve-management (TASK-008, first install)
+- [ ] The Ubuntu Desktop VM is installed from the official ISO; a second plan is a no-op (TASK-008)
+- [ ] Ansible converges the VM; a second run reports no changes (TASK-009)
+- [ ] Thincast RDP, Zed, Claude Code, Codex, OpenTofu, Ansible, Git and Forgejo access work as `ubuntu` (TASK-009)
+- [ ] The OpenTofu state is handed over to the VM and recognized there (TASK-010)
 
 ## Verification evidence
 
