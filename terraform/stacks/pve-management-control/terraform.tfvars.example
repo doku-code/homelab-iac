@@ -13,12 +13,15 @@ profile = {
   gateway         = "192.168.0.1"
   dns_servers     = ["192.168.0.20"] # AdGuard Home
   cores           = 8                # GNOME admin workstation running Claude Code / Codex (ADR-009)
-  memory          = 10240           # MiB; ~3.5 GiB left for later management VMs after host overhead
+  memory          = 10240            # MiB; ~3.5 GiB left for later management VMs after host overhead
   disk_gb         = 120
 }
 
-image = {
-  # Ubuntu 26.04 LTS (resolute) cloud image, dated release and its SHA256SUMS entry.
-  url    = "https://cloud-images.ubuntu.com/releases/resolute/release-20261016/ubuntu-26.04-server-cloudimg-amd64.img"
-  sha256 = "5645d0318ad21f643ebb1ac4567514620e9893380b07b0201fda163baa5b7eb5"
+desktop_iso = {
+  # Official Ubuntu Desktop 26.04.1 LTS ISO and its entry in https://releases.ubuntu.com/26.04.1/SHA256SUMS.
+  url    = "https://releases.ubuntu.com/26.04.1/ubuntu-26.04.1-desktop-amd64.iso"
+  sha256 = "601e30fbf5d97759367c632e2c33630665039b7e2158fd068403da3ccf1bda1f"
 }
+
+# Address of the workstation that runs `make mgmt-autoinstall-serve` during an installation.
+autoinstall_seed_url = "http://192.168.0.122:8399/"

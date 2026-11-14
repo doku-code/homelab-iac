@@ -1,7 +1,7 @@
 # pve-management-control — management VM `mgmt-control-01`
 
-OpenTofu root (ADR-003) that creates the Ubuntu management VM on the standalone `pve-management`
-host, reusing `terraform/modules/headless-vm`. Configuration is
+OpenTofu root (ADR-003) that creates the operator workstation on the standalone `pve-management` host:
+a regular **Ubuntu Desktop** installed from the official ISO by autoinstall (ADR-009). Configuration is
 `ansible/playbooks/configure-mgmt-control.yml`. Plan, decisions and acceptance tests:
 [INV-pve-management-bootstrap](../../../docs/investigations/pve-management-bootstrap.md).
 
@@ -25,12 +25,20 @@ Runs **only from the operator workstation** (ADR-008). CT301 never receives thes
 | Offline check | `make mgmt-check` | fmt, validate, mocked `tofu test`, Ansible syntax, guard tests |
 | Discovery | `make mgmt-discover MGMT_INPUT_SOURCE=infisical MGMT_DISCOVER_ARGS="--image-datastore … --disk-datastore … --bridge …"` | Read-only GETs: version, standalone status, storages, bridges, used VMIDs, token privileges |
 | Profile | copy `terraform.tfvars.example` to `terraform.tfvars` | Replace every PROPOSED value with discovered/confirmed values |
-| Plan | `make mgmt-plan MGMT_ALLOCATION_REVIEWED=yes MGMT_INPUT_SOURCE=infisical` | Saved plan `mgmt.tfplan` + SHA256; expected: 1 image download, 1 VM, nothing else |
+| Plan | `make mgmt-plan MGMT_ALLOCATION_REVIEWED=yes MGMT_INPUT_SOURCE=infisical` | Saved plan `mgmt.tfplan` + SHA256; first install: 1 ISO download, 1 VM, nothing else |
+| Seed | `make mgmt-autoinstall-serve` (keep running during the install) | Serves the autoinstall rendered from the same variables |
 | Apply | `make mgmt-apply MGMT_APPLY_APPROVED=yes MGMT_PLAN_SHA256=<sha> MGMT_INPUT_SOURCE=infisical` | **Mutates pve-management.** Applies exactly the reviewed plan |
+| Install | Proxmox console of VM 100: confirm the automated installation once | Ubuntu Desktop installs and reboots into the GDM login screen (~15 min) |
 | Backup | `make mgmt-state-backup MGMT_BACKUP_DIR=<off-machine dir> AGE_RECIPIENTS_FILE=<recipients>` | age-encrypted, dated copy of the state |
 | Configure | `make mgmt-configure MGMT_CONFIGURE_APPROVED=yes MGMT_SOURCE_COMMIT=<full sha on the GitHub mirror>` | Ansible baseline, toolchain and admin workstation (prompts for the desktop and RDP passwords, set once, never stored) |
 | Remote access | Thincast → RDP `192.168.0.39:3389` | GNOME Remote Login, two stages (below) |
 | Idempotency | `make mgmt-plan …` again | Must report no changes |
+
+## Reinstalling VM 100
+
+`prevent_destroy` protects the VM. A reinstall with the same VMID is two reviewed plans: set
+`workstation_enabled = false` (the plan removes the old VM, keeps the ISO), apply; set it back to `true`,
+start the seed, plan and apply the new VM. The state then describes the new VM only.
 
 ## Remote login (GNOME Remote Login, ADR-009)
 

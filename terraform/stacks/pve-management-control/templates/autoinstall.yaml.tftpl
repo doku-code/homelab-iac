@@ -1,0 +1,48 @@
+#cloud-config
+# Ubuntu Desktop autoinstall for ${hostname}, rendered by OpenTofu (output autoinstall_user_data).
+# No secret here: the account password is a throwaway hash and is locked at the end of the install;
+# `make mgmt-configure` sets the real password interactively. SSH accepts the operator key only.
+autoinstall:
+  version: 1
+  locale: ${locale}
+  keyboard:
+    layout: ${keyboard_layout}
+  timezone: ${timezone}
+  identity:
+    hostname: ${hostname}
+    username: ${username}
+    realname: ${username}
+    password: "${throwaway_password_hash}"
+  ssh:
+    install-server: true
+    allow-pw: false
+    authorized-keys:
+      - ${ssh_public_key}
+  network:
+    version: 2
+    renderer: NetworkManager
+    ethernets:
+      lan:
+        match:
+          name: "en*"
+        dhcp4: false
+        addresses: [${ipv4}]
+        routes:
+          - to: default
+            via: ${gateway}
+        nameservers:
+          addresses: [${join(", ", dns_servers)}]
+  storage:
+    layout:
+      name: direct
+  packages:
+    - openssh-server
+    - qemu-guest-agent
+  late-commands:
+    # Ansible runs as this user with sudo; lock the throwaway password until mgmt-configure sets one.
+    - echo '${username} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/90-${username}-automation
+    - chmod 0440 /target/etc/sudoers.d/90-${username}-automation
+    - curtin in-target -- passwd -l ${username}
+    # The installed desktop is configured by Ansible, not by cloud-init.
+    - touch /target/etc/cloud/cloud-init.disabled
+  shutdown: reboot

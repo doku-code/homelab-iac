@@ -37,20 +37,49 @@ variable "profile" {
   }
 }
 
-variable "image" {
-  description = "Ubuntu LTS cloud image, pinned by SHA256 from the release SHA256SUMS."
+variable "desktop_iso" {
+  description = "Official Ubuntu Desktop ISO, pinned by SHA256 from the release SHA256SUMS."
   type = object({
     url    = string
     sha256 = string
   })
   validation {
-    condition     = startswith(var.image.url, "https://cloud-images.ubuntu.com/") && can(regex("^[0-9a-f]{64}$", var.image.sha256))
-    error_message = "Use an https://cloud-images.ubuntu.com/ image and its 64-hex SHA256."
+    condition     = can(regex("^https://releases\\.ubuntu\\.com/.+-desktop-amd64\\.iso$", var.desktop_iso.url)) && can(regex("^[0-9a-f]{64}$", var.desktop_iso.sha256))
+    error_message = "Use an https://releases.ubuntu.com/ desktop-amd64 ISO and its 64-hex SHA256."
+  }
+}
+
+variable "autoinstall_seed_url" {
+  description = "NoCloud seed served by `make mgmt-autoinstall-serve` on the operator workstation (trailing slash)."
+  type        = string
+  validation {
+    condition     = can(regex("^http://[0-9.]+:[0-9]+/$", var.autoinstall_seed_url))
+    error_message = "Use http://<workstation IPv4>:<port>/ with a trailing slash."
+  }
+}
+
+variable "workstation_enabled" {
+  description = "false only while a previous VM with the same VMID is removed (two-step reinstall); prevent_destroy still guards this VM."
+  type        = bool
+  default     = true
+}
+
+variable "desktop" {
+  description = "Installer choices for the desktop: locale, keyboard and time zone."
+  type = object({
+    locale          = string
+    keyboard_layout = string
+    timezone        = string
+  })
+  default = {
+    locale          = "fr_CA.UTF-8"
+    keyboard_layout = "ca"
+    timezone        = "America/Toronto"
   }
 }
 
 variable "admin_username" {
-  description = "Cloud-init administrative user."
+  description = "Administrative (desktop) user created by the installer."
   type        = string
   default     = "ubuntu"
 }

@@ -466,7 +466,7 @@ define MGMT_RUN
 endef
 endif
 
-.PHONY: mgmt-check mgmt-discover mgmt-plan mgmt-apply mgmt-configure mgmt-state-backup
+.PHONY: mgmt-check mgmt-discover mgmt-plan mgmt-apply mgmt-configure mgmt-autoinstall-serve mgmt-state-backup
 
 # Offline only: no credentials, no backend, mocked provider.
 mgmt-check:
@@ -503,6 +503,21 @@ mgmt-apply:
 	$(call MGMT_RUN,$(TOFU) -chdir=$(MGMT_DIR) apply -input=false $(MGMT_PLAN))
 	@mv -f "$(MGMT_DIR)/$(MGMT_PLAN)" "$(MGMT_DIR)/mgmt.applied.tfplan"
 	@echo "State updated locally: $(MGMT_DIR)/terraform.tfstate (this workstation only, never in Git)"
+
+# Serves the Ubuntu Desktop autoinstall (NoCloud seed) while VM 100 installs; stop it with Ctrl-C once the
+# installer has started. Run it after the apply that writes the autoinstall_user_data output, before the
+# apply that creates the VM. Nothing secret is served (key-only SSH, locked throwaway password).
+MGMT_SEED_DIR := $(CURDIR)/.local/autoinstall
+MGMT_SEED_BIND ?= 0.0.0.0
+MGMT_SEED_PORT ?= 8399
+mgmt-autoinstall-serve:
+	@set -euo pipefail; umask 077; mkdir -p "$(MGMT_SEED_DIR)"; \
+	$(TOFU) -chdir=$(MGMT_DIR) output -raw autoinstall_user_data > "$(MGMT_SEED_DIR)/user-data"; \
+	cp "$(MGMT_SEED_DIR)/user-data" "$(MGMT_SEED_DIR)/autoinstall.yaml"; \
+	printf 'instance-id: mgmt-control-01-autoinstall\n' > "$(MGMT_SEED_DIR)/meta-data"; : > "$(MGMT_SEED_DIR)/vendor-data"; \
+	chmod 0644 "$(MGMT_SEED_DIR)"/*; chmod 0755 "$(MGMT_SEED_DIR)"; \
+	echo "Serving $(MGMT_SEED_DIR) on $(MGMT_SEED_BIND):$(MGMT_SEED_PORT) (fallback URL for the installer: http://<this host>:$(MGMT_SEED_PORT)/autoinstall.yaml)"; \
+	python3 -m http.server "$(MGMT_SEED_PORT)" --bind "$(MGMT_SEED_BIND)" --directory "$(MGMT_SEED_DIR)"
 
 mgmt-configure:
 	@test "$(MGMT_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of mgmt-control-01 with MGMT_CONFIGURE_APPROVED=yes" >&2; exit 1)
