@@ -82,3 +82,12 @@ resource "proxmox_virtual_environment_vm" "workstation" {
     ignore_changes  = [started]
   }
 }
+
+# The former server cloud image stays on `local` (deleting files needs Datastore.Allocate, which the
+# token deliberately lacks); OpenTofu stops tracking it. Delete it from the Proxmox UI when convenient.
+removed {
+  from = proxmox_download_file.ubuntu
+  lifecycle {
+    destroy = false
+  }
+}
