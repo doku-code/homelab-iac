@@ -1,0 +1,28 @@
+# Managed by the agent harness (v{{harness_version}}). Validates documentation on pull requests.
+# Prerequisites: a Forgejo Actions runner with the `docker` label (or adjust `runs-on`) that can run
+# python:3.12 containers. No secrets are required for validation.
+name: Documentation validation
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+jobs:
+  check:
+    runs-on: docker
+    container:
+      image: python:3.12-slim
+    steps:
+      - name: Install git and node (checkout action needs node)
+        run: DEBIAN_FRONTEND=noninteractive apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git nodejs >/dev/null
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install harness
+        run: {{harness_install}}
+      - name: Validate configuration, documents, indexes and sensitive-data rules
+        run: harness check --no-content-scan
+      - name: Dry-run wiki export
+        run: harness docs export-wiki --out .local/wiki-export --dry-run

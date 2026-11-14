@@ -1,4 +1,5 @@
-# Agent tooling only (AI agent harness CLI). Deliberately separate from
-# requirements-controller.txt: recovery and deployment never depend on it.
-# Install: .venv/bin/python -m pip install -r requirements-agents.txt
-agent-harness @ git+https://git.doku-lab.net/doku-code/agent-harness.git@8ddf06d81f71577aaf7c6ce93839c628270670f8
+# Agent tooling only (AI agent harness CLI), vendored in tools/agent-harness so that CI and
+# recovery workstations need no access to the upstream template repository. Deliberately separate
+# from requirements-controller.txt: deployment and recovery never depend on it.
+# Install from the repository root: .venv/bin/python -m pip install -r requirements-agents.txt
+./tools/agent-harness

@@ -1,0 +1,50 @@
+# Managed by the agent harness (v{{harness_version}}). Publishes approved documentation to the repository wiki.
+# Prerequisites:
+#   - A runner with the `docker` label that can run python:3.12 containers.
+#   - Optional repository secret WIKI_TOKEN: an access token with write access to the repository (Forgejo scope
+#     `write:repository`), e.g. from a dedicated bot account. Without it the job's own token is used.
+# The wiki does not need to be enabled or initialised by hand: `harness docs publish-wiki` enables it and creates
+# the Home page through the API on first run, then pushes the exported pages.
+# Security: this workflow only runs on pushes to main, never for pull requests, so the token is not exposed to
+# untrusted code. Pull requests are validated by harness-docs-validate.yml without secrets.
+name: Wiki publication
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "milestones/**"
+      - "tasks/**"
+      - "history/**"
+      - "harness.yaml"
+      - ".forgejo/workflows/harness-wiki-publish.yml"
+
+jobs:
+  publish:
+    runs-on: docker
+    container:
+      image: python:3.12-slim
+    steps:
+      - name: Install git and node (checkout action needs node)
+        run: DEBIAN_FRONTEND=noninteractive apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git nodejs >/dev/null
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install harness
+        run: {{harness_install}}
+      - name: Export and publish wiki pages
+        env:
+          # Prefer a dedicated WIKI_TOKEN secret; fall back to the job's own token, which has write access to
+          # the repository (and therefore its wiki) on Forgejo.
+          HARNESS_WIKI_TOKEN: ${{ secrets.WIKI_TOKEN || secrets.GITHUB_TOKEN }}
+          HARNESS_WIKI_REMOTE: ${{ github.server_url }}/${{ github.repository }}.wiki.git
+        run: |
+          if [ -z "${HARNESS_WIKI_TOKEN:-}" ]; then
+            echo "No token available (WIKI_TOKEN secret or job token); wiki not published." >&2
+            exit 1
+          fi
+          harness docs index >/dev/null
+          harness docs publish-wiki

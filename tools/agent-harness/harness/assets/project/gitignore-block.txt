@@ -1,0 +1,11 @@
+# Local sensitive and ephemeral artifacts (agent harness convention)
+{{local_dir}}/
+CLAUDE.local.md
+# Common secret-bearing files (keep *.example variants)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.tfstate
+*.tfstate.backup

@@ -7,6 +7,8 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
+# Vendored harness templates contain {{placeholders}}; they are rendered, not parsed, as YAML.
+TEMPLATE_DIRS = ("tools/agent-harness/harness/assets/workflows/",)
 
 
 def main():
@@ -17,6 +19,8 @@ def main():
     for relative in filter(None, paths):
         path = ROOT / relative
         if path.suffix in (".yml", ".yaml"):
+            if relative.startswith(TEMPLATE_DIRS):
+                continue
             list(yaml.safe_load_all(path.read_text()))
             counts["yaml"] += 1
         elif path.suffix == ".py":

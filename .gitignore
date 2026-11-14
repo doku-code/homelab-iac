@@ -93,6 +93,11 @@ temp/
 
 .venv/
 
+# Python build artifacts (e.g. pip installing the vendored tools/agent-harness)
+__pycache__/
+*.egg-info/
+tools/agent-harness/build/
+
 # Defense in depth only: sensitive staging belongs outside synced directories.
 recovery-private/
 *.age

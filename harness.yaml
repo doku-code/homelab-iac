@@ -9,7 +9,7 @@ harness:
   platforms:
   - claude
   - codex
-  # Separate from requirements-controller.txt: recovery never depends on the harness forge.
+  # Installs the copy vendored in tools/agent-harness; separate from requirements-controller.txt.
   harness_install: .venv/bin/python -m pip install -r requirements-agents.txt
 project:
   name: homelab-iac

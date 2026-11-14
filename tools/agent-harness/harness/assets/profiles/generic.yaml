@@ -1,0 +1,15 @@
+name: generic
+title: Generic project
+description: Language-agnostic defaults. Used when no technology-specific profile is detected.
+detect: []
+guidance: |
+  - No technology profile was detected. Verify build and test commands by reading the repository
+    (README, CI workflows, package manifests) before recording them in `harness.yaml`.
+testing: |
+  - Find the project's test framework before writing code (CI workflows, package manifests, existing test directories)
+    and add tests there. If the project has none, propose one in an ADR before adding the first test.
+verification: []
+doc_types: [overview, architecture, decision, guide]
+reference_categories: [apis, tools]
+ignore: []
+structure: []

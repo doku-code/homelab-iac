@@ -1,0 +1,56 @@
+name: infrastructure
+title: Infrastructure project
+description: Infrastructure as code — OpenTofu/Terraform, Ansible, Docker Compose.
+detect:
+  - {glob: "**/*.tf", weight: 10}
+  - {glob: "**/*.tofu", weight: 10}
+  - {glob: ".terraform.lock.hcl", weight: 6}
+  - {glob: "ansible.cfg", weight: 10}
+  - {glob: "**/playbook*.yml", weight: 6}
+  - {glob: "**/playbooks/*.yml", weight: 6}
+  - {glob: "inventory", weight: 4}
+  - {glob: "roles", weight: 4}
+  - {glob: "docker-compose.yml", weight: 8}
+  - {glob: "docker-compose.yaml", weight: 8}
+  - {glob: "compose.yml", weight: 8}
+  - {glob: "compose.yaml", weight: 8}
+  - {glob: "**/Dockerfile", weight: 3}
+  - {glob: "requirements.yml", weight: 3}
+guidance: |
+  - Infrastructure project (OpenTofu / Ansible / Docker Compose). Plan before apply; never apply, destroy or
+    deploy without explicit user authorization, and record the plan output summary as evidence.
+  - State files, inventories with hosts, vault files and `.tfvars` are sensitive: keep real values in `.local/`
+    and commit only `*.example` variants (see `vars.example.yaml` convention).
+  - Document each provider, module, Ansible module or Compose feature that needed research as an
+    `api-reference` / `cli-reference` with the exact provider or module version.
+  - Prefer `tofu validate`, `ansible-lint`, `docker compose config` as fast, side-effect-free checks.
+testing: |
+  - Static checks are the unit tests: `tofu validate` + `tofu fmt -check`, `ansible-lint` / `--syntax-check`,
+    `docker compose config`. Add policy or module tests (e.g. `tofu test`, Molecule) where the project already uses them.
+  - A change to a module or role ships with an updated example/fixture that exercises it and a recorded plan summary.
+verification:
+  - name: tofu-validate
+    run: tofu validate
+    when: ["**/*.tf", "**/*.tofu"]
+    description: Static validation; requires `tofu init` first (no side effects on infrastructure)
+  - name: tofu-fmt
+    run: tofu fmt -check -recursive
+    when: ["**/*.tf", "**/*.tofu"]
+  - name: ansible-lint
+    run: ansible-lint
+    when: ["ansible.cfg", "**/playbook*.yml", ".ansible-lint"]
+  - name: ansible-syntax
+    run: ansible-playbook --syntax-check site.yml
+    when: ["site.yml"]
+  - name: compose-config
+    run: docker compose config --quiet
+    when: ["docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"]
+    description: Validates the Compose file without starting anything
+doc_types: [overview, architecture, decision, deployment, runbook, migration, api-reference, cli-reference, troubleshooting]
+reference_categories: [opentofu-providers, ansible-modules, docker, cloud-apis]
+ignore: [".terraform", "*.tfstate", "*.tfstate.backup", ".ansible", "collections"]
+structure:
+  - "environments/<env>/ — per-environment root modules or inventories"
+  - "modules/ — reusable OpenTofu modules"
+  - "roles/, playbooks/ — Ansible"
+  - "compose.yaml — local or server service definitions"

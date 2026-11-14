@@ -1,0 +1,2 @@
+# Vendored upstream code is kept byte-identical; do not apply whitespace checks to it.
+tools/agent-harness/** -whitespace

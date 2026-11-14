@@ -1,0 +1,38 @@
+name: powershell
+title: PowerShell project
+description: PowerShell modules, scripts and automation (Pester, PSScriptAnalyzer).
+detect:
+  - {glob: "**/*.psd1", weight: 10}
+  - {glob: "**/*.psm1", weight: 8}
+  - {glob: "**/*.ps1", weight: 3}
+  - {glob: "**/*.Tests.ps1", weight: 6}
+  - {glob: "PSScriptAnalyzerSettings.psd1", weight: 4}
+  - {glob: "build.ps1", weight: 3}
+guidance: |
+  - PowerShell project. Target PowerShell 7+ unless the module manifest says otherwise; check
+    `PowerShellVersion` and `CompatiblePSEditions` in the `.psd1` before using newer syntax.
+  - Use approved verbs for function names, comment-based help, and `Set-StrictMode -Version Latest` in scripts.
+  - Tests use Pester (`*.Tests.ps1`); lint with PSScriptAnalyzer. Never pass secrets as plain command-line
+    arguments; use `SecureString`/`PSCredential` or environment-provided values from `.local/`.
+  - Document external modules and cmdlets that needed research as `cli-reference` or `library-reference`.
+testing: |
+  - Framework: Pester. Tests live next to the code as `<Name>.Tests.ps1` (or under `tests/`), one `Describe` per
+    function, `It` blocks phrased as behaviours; mock external cmdlets, never hit real systems in unit tests.
+  - Run `Invoke-Pester -Path <file>` for the new tests first, then the full `Invoke-Pester -CI`.
+verification:
+  - name: pester
+    run: pwsh -NoProfile -Command "Invoke-Pester -CI"
+    when: ["**/*.Tests.ps1"]
+  - name: analyzer
+    run: pwsh -NoProfile -Command "Invoke-ScriptAnalyzer -Path . -Recurse -EnableExit"
+    when: ["PSScriptAnalyzerSettings.psd1", "**/*.psm1", "**/*.ps1"]
+  - name: build-script
+    run: pwsh -NoProfile -File ./build.ps1
+    when: ["build.ps1"]
+doc_types: [overview, architecture, decision, cli-reference, library-reference, runbook, tool]
+reference_categories: [powershell-modules, windows-apis, apis]
+ignore: ["output", "out", "TestResults"]
+structure:
+  - "<Module>/<Module>.psd1 — module manifest"
+  - "<Module>/Public/, Private/ — exported and internal functions"
+  - "tests/ — Pester tests"

@@ -1,0 +1,46 @@
+name: python
+title: Python project
+description: Python packages, applications and tooling (pyproject/setuptools/poetry/uv, pytest).
+detect:
+  - {glob: "pyproject.toml", weight: 10}
+  - {glob: "setup.py", weight: 8}
+  - {glob: "setup.cfg", weight: 4}
+  - {glob: "requirements.txt", weight: 5}
+  - {glob: "requirements/*.txt", weight: 3}
+  - {glob: "Pipfile", weight: 6}
+  - {glob: "poetry.lock", weight: 6}
+  - {glob: "uv.lock", weight: 6}
+  - {glob: "tox.ini", weight: 3}
+  - {glob: "pytest.ini", weight: 3}
+  - {glob: "**/*.py", weight: 2}
+guidance: |
+  - Python project. Prefer the project's own virtual environment (`.venv/`) and `python -m <tool>` invocations
+    so commands work on Windows, Linux and macOS.
+  - Tests live under `tests/`; run the smallest relevant subset first (`python -m pytest tests/<file>`), then the suite.
+  - Keep dependencies minimal; pin them in `pyproject.toml`. Document any new runtime dependency in an ADR if it
+    changes installation requirements.
+testing: |
+  - Framework: pytest. Tests live in `tests/test_<module>.py`; one test function per behaviour, named
+    `test_<behaviour>`; use `tmp_path` and fixtures from `tests/conftest.py` instead of touching the repository.
+  - Run the new tests alone first (`python -m pytest tests/test_<module>.py -q`), then the whole suite.
+verification:
+  - name: tests
+    run: python -m pytest
+    when: ["pytest.ini", "pyproject.toml:pytest", "tests", "test", "tox.ini:pytest", "setup.cfg:pytest"]
+    description: pytest test suite
+  - name: lint
+    run: ruff check .
+    when: ["ruff.toml", ".ruff.toml", "pyproject.toml:[tool.ruff]"]
+  - name: typecheck
+    run: python -m mypy .
+    when: ["mypy.ini", "pyproject.toml:[tool.mypy]"]
+  - name: tox
+    run: tox
+    when: ["tox.ini"]
+doc_types: [overview, architecture, decision, library-reference, api-reference, cli-reference, tool]
+reference_categories: [python-packages, apis, cli-tools]
+ignore: [".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "dist", "build", "*.egg-info"]
+structure:
+  - "pyproject.toml — packaging and tool configuration"
+  - "src/ or <package>/ — importable code"
+  - "tests/ — pytest suite"

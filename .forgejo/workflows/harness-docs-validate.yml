@@ -1,7 +1,7 @@
 # Agent harness documentation validation (harness v0.1.0 template, adapted for homelab-iac).
 # Deliberately diverges from the upstream template: no pull_request trigger, and the same
-# main-only activation gate and runner as validate.yml. Its only secret is a read-only token
-# for the private harness repository; it holds no infrastructure credentials.
+# main-only activation gate and runner as validate.yml. The harness is installed from the copy
+# vendored in tools/agent-harness: no network access to other repositories, no secrets.
 # `harness update` reports this file as locally modified; keep these adaptations when merging.
 name: Documentation validation
 
@@ -29,23 +29,11 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends git python3 python3-venv
 
-      # doku-code/agent-harness is private. A read-only bot (read collaborator on that repository,
-      # token scope read:repository only) fetches it; the header is scoped to that one URL and
-      # passed through the environment, never on a command line or written to disk.
-      - name: Install pinned harness
-        env:
-          HARNESS_READ_USER: ${{ vars.HARNESS_READ_USER }}
-          HARNESS_READ_TOKEN: ${{ secrets.HARNESS_READ_TOKEN }}
+      - name: Install the vendored harness
         run: |
           set -euo pipefail
-          : "${HARNESS_READ_USER:?Set the HARNESS_READ_USER Actions variable (read-only bot account)}"
-          : "${HARNESS_READ_TOKEN:?Set the HARNESS_READ_TOKEN Actions secret (read:repository token)}"
-          auth="$(printf '%s:%s' "$HARNESS_READ_USER" "$HARNESS_READ_TOKEN" | base64 | tr -d '\n')"
           python3 -m venv /tmp/harness-venv
-          GIT_CONFIG_COUNT=1 \
-          GIT_CONFIG_KEY_0="http.https://git.doku-lab.net/doku-code/agent-harness.git.extraHeader" \
-          GIT_CONFIG_VALUE_0="Authorization: Basic ${auth}" \
-            /tmp/harness-venv/bin/python -m pip install -r requirements-agents.txt
+          /tmp/harness-venv/bin/python -m pip install -r requirements-agents.txt
 
       - name: Validate configuration, documents, indexes and sensitive-data rules
         run: /tmp/harness-venv/bin/harness check --no-content-scan

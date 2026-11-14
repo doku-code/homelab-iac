@@ -20,7 +20,8 @@ You are the primary agent: you read the documentation path, pick the task, imple
 
 ## Project notes (homelab-iac)
 
-- The harness CLI lives in the repository environment: run `.venv/bin/harness …` (the SessionStart hook does this).
+- The harness CLI is vendored in `tools/agent-harness` (see its README to update) and installed into the
+  repository environment: run `.venv/bin/harness …` (the SessionStart hook does this).
 - `harness update` reports `.forgejo/workflows/harness-docs-validate.yml` as a conflict on purpose (main-only
   gate, `homelab-iac` runner); keep that adaptation. It also re-creates `harness-wiki-publish.yml`; delete it.
 - Keep delegation light: one coordinating agent, at most 2–4 subagents and only for independent work; no review

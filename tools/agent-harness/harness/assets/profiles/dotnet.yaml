@@ -1,0 +1,38 @@
+name: dotnet
+title: .NET project
+description: C#/.NET solutions and projects (SDK-style csproj, xUnit/NUnit/MSTest).
+detect:
+  - {glob: "*.sln", weight: 10}
+  - {glob: "*.slnx", weight: 10}
+  - {glob: "**/*.csproj", weight: 8}
+  - {glob: "**/*.fsproj", weight: 8}
+  - {glob: "global.json", weight: 4}
+  - {glob: "Directory.Build.props", weight: 4}
+  - {glob: "Directory.Packages.props", weight: 4}
+  - {glob: "**/*.cs", weight: 2}
+guidance: |
+  - .NET project. Use `dotnet` CLI commands from the solution root; `dotnet build` before `dotnet test`.
+  - Respect `global.json` SDK pinning and `Directory.Build.props` conventions; do not add package references
+    without checking `Directory.Packages.props` (central package management) if present.
+  - Record NuGet packages that required research as `library-reference` documents with their version.
+testing: |
+  - Framework: the one used by the existing `*.Tests` projects (xUnit, NUnit or MSTest); add tests to the matching
+    `<Project>.Tests` project, one test class per type under test, `MethodName_Scenario_Expected` naming.
+  - Run `dotnet test --filter` for the new tests first, then `dotnet test` for the solution.
+verification:
+  - name: build
+    run: dotnet build
+    when: ["*.sln", "*.slnx", "**/*.csproj", "**/*.fsproj"]
+  - name: tests
+    run: dotnet test
+    when: ["**/*Tests.csproj", "**/*Test.csproj", "**/*.Tests.csproj", "**/*.Tests/*.csproj", "**/*.UnitTests.csproj"]
+  - name: format
+    run: dotnet format --verify-no-changes
+    when: [".editorconfig"]
+doc_types: [overview, architecture, decision, library-reference, api-reference, deployment]
+reference_categories: [nuget-packages, apis, azure, dotnet-runtime]
+ignore: ["bin", "obj", ".vs", "TestResults", "packages", "artifacts"]
+structure:
+  - "<Solution>.sln — solution file"
+  - "src/<Project>/ — projects"
+  - "tests/<Project>.Tests/ — test projects"
