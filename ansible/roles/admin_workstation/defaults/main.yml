@@ -1,0 +1,74 @@
+---
+# Catalog of the operator's admin workstation (ADR-009). Add a tool by adding one line in the
+# right channel, then rerun `make mgmt-configure`. Channels:
+#   apt      Ubuntu packages (system tools, CLI utilities, Docker, desktop, remote login)
+#   flatpak  GUI applications from Flathub (isolated, updated independently of the OS)
+#   mise     language runtimes and versioned CLIs for the admin user (per-tool versions)
+
+admin_workstation_user: "{{ ansible_user }}"
+
+admin_workstation_apt:
+  # Desktop and remote access
+  - ubuntu-desktop-minimal
+  - gnome-remote-desktop
+  - flatpak
+  - fonts-jetbrains-mono
+  - ufw # restricts RDP to the trusted networks below
+  # Build and language tooling
+  - build-essential
+  - pipx
+  # Git and code tools
+  - git-lfs
+  - gh
+  - lazygit
+  - shellcheck
+  - yamllint
+  # Everyday CLI
+  - acl # lets Ansible become the unprivileged admin user
+  - bat
+  - btop
+  - direnv
+  - fd-find
+  - fzf
+  - htop
+  - jq
+  - ripgrep
+  - tmux
+  - tree
+  # Local containers for development
+  - docker.io
+  - docker-compose-v2
+
+admin_workstation_flatpaks:
+  - dev.zed.Zed # editor
+  - md.obsidian.Obsidian # notes
+  - com.sublimemerge.App # Git GUI (SourceTree is not available on Linux)
+
+# mise registry names; "latest"/"lts" float, exact versions match the repository's pins.
+# Backends (mise registry): node/python/go core; uv, terraform, kubectl, claude, codex aqua (checksummed
+# release binaries); infisical github releases. OpenTofu, the infrastructure tool, comes from the playbook.
+admin_workstation_mise_tools:
+  node: lts
+  python: "3.13"
+  go: latest
+  uv: latest
+  terraform: "1.16.1" # legacy roots only (ADR-003); new roots use OpenTofu
+  kubectl: "1.35.8" # legacy Stage A cluster
+  infisical: latest # Make targets use the Infisical CLI until Phase replaces it
+  claude: latest # Claude Code, native binary
+  codex: latest # OpenAI Codex CLI, native binary
+
+# mise apt repository; the key file is pinned by SHA256 (a key rotation fails explicitly).
+admin_workstation_mise_signing_url: https://mise.jdx.dev/gpg-key.pub
+admin_workstation_mise_signing_sha256: 91c72340c5cc84ae2ba98c1070083feacf789b0a4a3d34b2416147769e475d96
+admin_workstation_mise_repo: https://mise.jdx.dev/deb
+
+# Docker group membership is root-equivalent; acceptable on this single-operator workstation.
+admin_workstation_docker_group: true
+
+# GNOME Remote Login over RDP (Thincast client): system (headless login) mode, not desktop sharing.
+admin_workstation_rdp: true
+admin_workstation_rdp_dir: /var/lib/gnome-remote-desktop
+# Sources allowed to reach RDP (3389/tcp). SSH stays open (key-only) as the independent access path.
+admin_workstation_rdp_allowed_networks:
+  - 192.168.0.0/24

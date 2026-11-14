@@ -52,12 +52,60 @@ def test_discovery_logic():
     partial = dict(full, **{"/vms": {"VM.Audit": 1}})
     assert "VM.Allocate" in discover.missing_privileges(required, partial)["/vms"]
     report = discover.summarize(
-        {"version": "9.1.1"}, [{"type": "node", "name": "pve-management"}],
+        {"version": "9.1.1"}, [{"node": "pve-management", "status": "online"}],
         [{"storage": "local", "type": "dir", "content": "iso,import,vztmpl", "active": 1, "avail": 1},
          {"storage": "local-lvm", "type": "lvmthin", "content": "images,rootdir", "active": 1, "avail": 1}],
         [{"iface": "vmbr0"}], [{"vmid": 101}], "100")
     assert report["standalone"] and report["storages_with_import"] == ["local"] and report["bridges"] == ["vmbr0"]
-    assert not discover.summarize({}, [{"type": "cluster"}], [], [], [], "100")["standalone"]
+    assert not discover.summarize({}, [{"node": "pve-core"}, {"node": "pve-lab"}], [], [], [], "100")["standalone"]
+    test_discovery_main(discover, required)
+
+
+def test_discovery_main(discover, required):
+    """Drive main() against a mocked API: query parameters, refused endpoints and exit codes."""
+    import io
+    import json
+    import urllib.error
+    import urllib.parse
+    from unittest import mock
+
+    full = {path: {priv: 1 for priv in privs} for path, privs in required.items()}
+    seen = []
+
+    def fake_urlopen(request, context=None, timeout=None):
+        assert context is not None and context.verify_mode != 0, "TLS verification must stay enabled"
+        assert request.headers["Authorization"] == f"PVEAPIToken={TOKEN}"
+        url = urllib.parse.urlparse(request.full_url)
+        query = dict(urllib.parse.parse_qsl(url.query))
+        api = url.path.split("/api2/json", 1)[1]
+        seen.append((api, query))
+        if api == "/cluster/status":
+            raise urllib.error.HTTPError(request.full_url, 403, "Permission check failed", {}, None)
+        data = {
+            "/version": {"version": "9.2.26"},
+            "/nodes": [{"node": "pve-management"}],
+            "/nodes/pve-management/storage": [{"storage": "local", "content": "import,iso"}],
+            "/nodes/pve-management/network": [{"iface": "vmbr0"}],
+            "/cluster/resources": [],
+            "/cluster/nextid": "100",
+            "/nodes/pve-management/status": {"cpuinfo": {"model": "Mock CPU", "sockets": 1, "cores": 8, "cpus": 16},
+                                             "memory": {"total": 32 * 1024 ** 3, "free": 30 * 1024 ** 3}},
+            "/access/permissions": {query.get("path"): full.get(query.get("path"), {})},
+        }[api]
+        return io.BytesIO(json.dumps({"data": data}).encode())
+
+    argv = ["pve-discover.py", "--endpoint", "https://pve.invalid:8006/", "--image-datastore", "local",
+            "--disk-datastore", "local-lvm", "--bridge", "vmbr0"]
+    out = io.StringIO()
+    with mock.patch.object(sys, "argv", argv), mock.patch.dict(os.environ, {"PROXMOX_VE_API_TOKEN": TOKEN}), \
+            mock.patch("urllib.request.urlopen", fake_urlopen), mock.patch("sys.stdout", out):
+        assert discover.main() == 0, out.getvalue()
+    report = json.loads(out.getvalue())
+    assert report["standalone"] and report["missing_privileges"] == {} and report["refused_requests"] == {}
+    assert ("/access/permissions", {"path": "/vms"}) in seen
+    assert ("/cluster/status", {}) not in seen, "standalone check must not need Sys.Audit on /"
+    assert report["host"]["cpu_threads"] == 16 and report["host"]["memory_total_gib"] == 32.0
+    assert TOKEN not in out.getvalue()
 
 
 def make_sandbox(base):
@@ -155,11 +203,126 @@ def test_make_guards():
         assert run_make(base, fake, "mgmt-state-backup").returncode != 0
 
 
+# `grdctl --system status` output when stdout is not a TTY (gnome-remote-desktop 50.2, src/grd-ctl.c).
+GRD_FRESH = """Overall:
+\tUnit status: inactive
+RDP:
+\tStatus: disabled
+\tPort: 3389
+\tAuthentication methods: credentials
+\tTLS certificate: (null)
+\tTLS fingerprint: (null)
+\tTLS key: (null)
+\tKerberos keytab: (null)
+\tUsername: (empty)
+\tPassword: (empty)
+"""
+GRD_CONFIGURED = """Overall:
+\tUnit status: active
+RDP:
+\tStatus: enabled
+\tPort: 3389
+\tAuthentication methods: credentials
+\tTLS certificate: /var/lib/gnome-remote-desktop/rdp-tls.crt
+\tTLS fingerprint: 00:11:22:33
+\tTLS key: /var/lib/gnome-remote-desktop/rdp-tls.key
+\tKerberos keytab: (null)
+\tUsername: (hidden)
+\tPassword: (hidden)
+"""
+
+
+def run_role_playbook(directory, plays, *extra):
+    import yaml
+
+    playbook = Path(directory) / "role.yml"
+    playbook.write_text(yaml.safe_dump(plays, sort_keys=False))
+    env = dict(os.environ, ANSIBLE_ROLES_PATH=str(ROOT / "ansible/roles"), ANSIBLE_LOCALHOST_WARNING="false",
+               ANSIBLE_INVENTORY_UNPARSED_WARNING="false", ANSIBLE_NOCOLOR="1")
+    return subprocess.run([str(ROOT / ".venv/bin/ansible-playbook"), "-i", "localhost,", "-c", "local", *extra, str(playbook)],
+                          env=env, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+
+
+def test_admin_workstation_role():
+    """Catalog sanity, secret handling, idempotency guards, and the RDP status logic evaluated by
+    Ansible itself against the real grdctl output format (local asserts only, nothing is changed)."""
+    import re
+    import yaml
+
+    role = ROOT / "ansible/roles/admin_workstation"
+    catalog = yaml.safe_load((role / "defaults/main.yml").read_text())
+    assert all(re.fullmatch(r"[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+){2,}", app) for app in catalog["admin_workstation_flatpaks"])
+    assert re.fullmatch(r"[0-9a-f]{64}", catalog["admin_workstation_mise_signing_sha256"]), "mise key must be pinned"
+    assert len(set(catalog["admin_workstation_apt"])) == len(catalog["admin_workstation_apt"]), "duplicate apt package"
+    assert not any(tool.startswith("npm:") for tool in catalog["admin_workstation_mise_tools"]), "use native backends"
+    assert catalog["admin_workstation_rdp_allowed_networks"], "RDP must be restricted to listed networks"
+    text = (role / "tasks/main.yml").read_text()
+    assert not re.search(r"curl[^\n]*\|\s*(ba)?sh", text), "no piped installers"
+    tasks = yaml.safe_load(text)
+    by_name = {task["name"]: task for task in tasks}
+
+    for task in tasks:
+        body = yaml.safe_dump(task)
+        if "mgmt_desktop_password" in body or "mgmt_rdp_password" in body:
+            command = task.get("ansible.builtin.command")
+            if task["name"].startswith(("Set ", "Install ")):
+                assert task.get("no_log") is True, task["name"]
+            if isinstance(command, dict):
+                assert "password" not in yaml.safe_dump(command.get("argv", [])), f"secret in argv: {task['name']}"
+        command = task.get("ansible.builtin.command")
+        if command is not None:
+            assert "changed_when" in task or (isinstance(command, dict) and "creates" in command), task["name"]
+            argv = command.get("argv", []) if isinstance(command, dict) else []
+            if argv[:1] == ["grdctl"]:
+                assert argv[1] == "--system", f"remote login must use system mode: {task['name']}"
+
+    names = [task["name"] for task in tasks]
+    assert names.index("Keep SSH reachable independently of RDP") < names.index("Deny other incoming traffic and enable the firewall")
+    rdp_rule = by_name["Allow RDP from the trusted management networks only"]["community.general.ufw"]
+    assert rdp_rule["port"] == "3389" and "from_ip" in rdp_rule
+    playbook = yaml.safe_load((ROOT / "ansible/playbooks/configure-mgmt-control.yml").read_text())[0]
+    assert playbook.get("force_handlers") is True, "a rerun must not lose notified handlers"
+
+    def condition(name):
+        when = by_name[name].get("when")
+        parts = when if isinstance(when, list) else [when]
+        return " and ".join(f"({part})" for part in parts)
+
+    def status(output):
+        return {"stdout": output, "stdout_lines": output.splitlines(), "rc": 0}
+
+    cert_task = by_name["Point remote login at the TLS certificate and key"]
+    checks = []
+    for label, output, configured in (("fresh", GRD_FRESH, False), ("configured", GRD_CONFIGURED, True)):
+        expect = (lambda expr: f"not ({expr})") if configured else (lambda expr: f"({expr})")
+        facts = {"admin_workstation_rdp_status": status(output), "admin_workstation_rdp_final": status(output)}
+        for item in cert_task["loop"]:
+            checks.append({"name": f"{label}: TLS {item['action']}", "vars": {**facts, "item": item},
+                           "ansible.builtin.assert": {"that": [expect(condition(cert_task["name"]))]}})
+        for name in ("Set the remote login credentials once", "Enable remote login over RDP"):
+            checks.append({"name": f"{label}: {name}", "vars": facts,
+                           "ansible.builtin.assert": {"that": [expect(condition(name))]}})
+        checks.append({"name": f"{label}: final verification", "vars": facts, "ansible.builtin.assert": {
+            "that": [expect(by_name["Verify the remote login configuration"]["failed_when"])]}})
+        checks.append({"name": f"{label}: rerun without a password", "vars": {**facts, "mgmt_rdp_password": ""},
+                       "ansible.builtin.assert": {"that": [
+                           ("" if configured else "not ") + f"({by_name['Require an RDP password on the first run']['ansible.builtin.assert']['that']})"]}})
+    defaults = {k: v for k, v in catalog.items() if not k.startswith("admin_workstation_user")}
+    with tempfile.TemporaryDirectory(prefix="role-syntax-") as directory:
+        # The role itself is only syntax-checked, never executed here.
+        syntax = run_role_playbook(directory, [{"hosts": "localhost", "gather_facts": False, "roles": ["admin_workstation"]}],
+                                   "--syntax-check")
+        assert syntax.returncode == 0, syntax.stdout + syntax.stderr
+        logic = run_role_playbook(directory, [{"hosts": "localhost", "gather_facts": False, "vars": defaults, "tasks": checks}])
+        assert logic.returncode == 0, logic.stdout + logic.stderr
+
+
 def main():
     test_auth_guard()
     test_discovery_logic()
     test_make_guards()
-    print("PASS: pve-management auth guard, discovery logic and Make guards")
+    test_admin_workstation_role()
+    print("PASS: pve-management auth guard, discovery logic, Make guards and admin workstation role")
 
 
 if __name__ == "__main__":

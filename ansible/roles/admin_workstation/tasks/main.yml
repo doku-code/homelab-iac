@@ -1,0 +1,310 @@
+---
+# Admin workstation (ADR-009): GNOME desktop, developer tooling, remote login over RDP.
+# Secrets: the desktop and RDP passwords come from interactive prompts and reach the guest only on
+# stdin (never in argv or logs, no_log). Each is set once: a rerun never resets an existing credential.
+# Every task is safe to rerun after a partial failure; a second run must report no changes.
+
+- name: Read the admin user's password status
+  ansible.builtin.command:
+    argv: [passwd, --status, "{{ admin_workstation_user }}"]
+  register: admin_workstation_password
+  changed_when: false
+
+- name: Require a desktop password on the first run
+  ansible.builtin.assert:
+    that: admin_workstation_password.stdout.split()[1] == 'P' or (mgmt_desktop_password | default('')) | length > 0
+    fail_msg: The admin user has no password yet; GDM and the second RDP stage need one. Rerun and enter it.
+    quiet: true
+
+- name: Install workstation packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "{{ admin_workstation_apt }}"
+    state: present
+
+# --- Desktop session --------------------------------------------------------------------------
+
+- name: Read the default systemd target
+  ansible.builtin.command:
+    argv: [systemctl, get-default]
+  register: admin_workstation_target
+  changed_when: false
+
+- name: Boot into the graphical target
+  ansible.builtin.command:
+    argv: [systemctl, set-default, graphical.target]
+  changed_when: true
+  when: admin_workstation_target.stdout != 'graphical.target'
+
+# Cloud-init only installs an SSH key; GDM needs a password. Set it once, never overwrite it.
+# SSH stays key-only (sshd drop-in in the playbook), so this password never opens SSH.
+- name: Set the desktop login password when the account has none
+  ansible.builtin.command: chpasswd
+  args:
+    stdin: "{{ admin_workstation_user }}:{{ mgmt_desktop_password }}"
+  no_log: true
+  changed_when: true
+  when: admin_workstation_password.stdout.split()[1] != 'P'
+
+# --- Docker -----------------------------------------------------------------------------------
+
+- name: Let the admin user run Docker
+  ansible.builtin.user:
+    name: "{{ admin_workstation_user }}"
+    groups: [docker]
+    append: true
+  when: admin_workstation_docker_group | bool
+
+# --- Flatpak GUI applications ------------------------------------------------------------------
+# System installation (root, /var/lib/flatpak): shared by every account, needs no user D-Bus session,
+# and is updated by `flatpak update` or GNOME Software. The modules are idempotent (state: present).
+
+- name: Add the Flathub remote
+  community.general.flatpak_remote:
+    name: flathub
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    method: system
+    state: present
+
+- name: Install GUI applications from Flathub
+  community.general.flatpak:
+    name: "{{ admin_workstation_flatpaks }}"
+    remote: flathub
+    method: system
+    state: present
+
+# --- mise: language runtimes and versioned CLIs ---------------------------------------------------
+
+- name: Install the mise apt key (pinned by SHA256)
+  ansible.builtin.get_url:
+    url: "{{ admin_workstation_mise_signing_url }}"
+    dest: /etc/apt/keyrings/mise-archive-keyring.asc
+    checksum: "sha256:{{ admin_workstation_mise_signing_sha256 }}"
+    mode: "0644"
+
+- name: Add the mise apt repository
+  ansible.builtin.deb822_repository:
+    name: mise
+    types: [deb]
+    uris: ["{{ admin_workstation_mise_repo }}"]
+    suites: [stable]
+    components: [main]
+    architectures: [amd64]
+    signed_by: /etc/apt/keyrings/mise-archive-keyring.asc
+
+- name: Install mise
+  ansible.builtin.apt:
+    update_cache: true
+    name: mise
+    state: present
+
+- name: Create the admin user's mise configuration directory
+  ansible.builtin.file:
+    path: "/home/{{ admin_workstation_user }}/.config/mise"
+    state: directory
+    owner: "{{ admin_workstation_user }}"
+    group: "{{ admin_workstation_user }}"
+    mode: "0755"
+
+- name: Declare the admin user's global tools
+  ansible.builtin.copy:
+    dest: "/home/{{ admin_workstation_user }}/.config/mise/config.toml"
+    owner: "{{ admin_workstation_user }}"
+    group: "{{ admin_workstation_user }}"
+    mode: "0644"
+    content: |
+      # Managed by homelab-iac (ansible/roles/admin_workstation). Edit the role catalog instead.
+      [tools]
+      {% for tool, version in admin_workstation_mise_tools.items() %}
+      "{{ tool }}" = "{{ version }}"
+      {% endfor %}
+
+# The mise steps run as the admin user (tools live in ~/.local/share/mise), never as root.
+- name: Find declared tools that are not installed yet
+  become: true
+  become_user: "{{ admin_workstation_user }}"
+  ansible.builtin.command:
+    argv: [mise, install, --dry-run-code]
+    chdir: "/home/{{ admin_workstation_user }}"
+  environment:
+    HOME: "/home/{{ admin_workstation_user }}"
+  register: admin_workstation_mise_missing
+  changed_when: false
+  failed_when: admin_workstation_mise_missing.rc not in [0, 1]
+
+- name: Install the missing tools
+  become: true
+  become_user: "{{ admin_workstation_user }}"
+  ansible.builtin.command:
+    argv: [mise, install, --yes]
+    chdir: "/home/{{ admin_workstation_user }}"
+  environment:
+    HOME: "/home/{{ admin_workstation_user }}"
+  changed_when: true
+  when: admin_workstation_mise_missing.rc == 1
+
+- name: Verify every declared tool is installed
+  become: true
+  become_user: "{{ admin_workstation_user }}"
+  ansible.builtin.command:
+    argv: [mise, install, --dry-run-code]
+    chdir: "/home/{{ admin_workstation_user }}"
+  environment:
+    HOME: "/home/{{ admin_workstation_user }}"
+  changed_when: false
+
+- name: Activate mise in interactive shells
+  ansible.builtin.lineinfile:
+    path: "/home/{{ admin_workstation_user }}/.bashrc"
+    line: 'eval "$(mise activate bash)"'
+    create: true
+    owner: "{{ admin_workstation_user }}"
+    group: "{{ admin_workstation_user }}"
+    mode: "0644"
+
+# --- Firewall: RDP only from trusted networks, SSH always open (key-only) ------------------------
+# Rules are added before the default policy and activation, so enabling never cuts the SSH session.
+
+- name: Keep SSH reachable independently of RDP
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    comment: ssh (key-only, independent access path)
+
+- name: Allow RDP from the trusted management networks only
+  community.general.ufw:
+    rule: allow
+    port: "3389"
+    proto: tcp
+    from_ip: "{{ item }}"
+    comment: rdp (GNOME Remote Login)
+  loop: "{{ admin_workstation_rdp_allowed_networks }}"
+  when: admin_workstation_rdp | bool
+
+- name: Deny other incoming traffic and enable the firewall
+  community.general.ufw:
+    state: enabled
+    default: deny
+    direction: incoming
+
+# --- Remote login over RDP: GNOME Remote Login in system (headless login) mode -------------------
+# `grdctl --system` configures the system daemon (gnome-remote-desktop.service, user
+# gnome-remote-desktop) that serves the GDM login screen; it is not per-user desktop sharing.
+# grdctl --system re-executes itself through pkexec and exits 0 even when the sub-command fails
+# (gnome-remote-desktop 50.2 src/grd-ctl.c), so the result is checked by re-reading the status.
+
+- name: Ensure the remote login service directory exists
+  ansible.builtin.file:
+    path: "{{ admin_workstation_rdp_dir }}"
+    state: directory
+    owner: gnome-remote-desktop
+    group: gnome-remote-desktop
+  when: admin_workstation_rdp | bool
+
+- name: Create a self-signed TLS certificate for remote login
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - req
+      - -x509
+      - -newkey
+      - rsa:4096
+      - -sha256
+      - -days
+      - "3650"
+      - -nodes
+      - -subj
+      - "/CN={{ inventory_hostname }}"
+      - -keyout
+      - "{{ admin_workstation_rdp_dir }}/rdp-tls.key"
+      - -out
+      - "{{ admin_workstation_rdp_dir }}/rdp-tls.crt"
+    creates: "{{ admin_workstation_rdp_dir }}/rdp-tls.crt"
+  when: admin_workstation_rdp | bool
+
+- name: Restrict the remote login TLS files to the gnome-remote-desktop service
+  ansible.builtin.file:
+    path: "{{ admin_workstation_rdp_dir }}/{{ item.name }}"
+    owner: gnome-remote-desktop
+    group: gnome-remote-desktop
+    mode: "{{ item.mode }}"
+  loop:
+    - {name: rdp-tls.key, mode: "0600"}
+    - {name: rdp-tls.crt, mode: "0644"}
+  when: admin_workstation_rdp | bool
+
+- name: Read the remote login status
+  ansible.builtin.command:
+    argv: [grdctl, --system, status]
+  register: admin_workstation_rdp_status
+  changed_when: false
+  when: admin_workstation_rdp | bool
+
+- name: Require an RDP password on the first run
+  ansible.builtin.assert:
+    that: >-
+      admin_workstation_rdp_status.stdout is not search('(Username|Password): \(empty\)')
+      or (mgmt_rdp_password | default('')) | length > 0
+    fail_msg: No RDP credentials are configured yet. Rerun and enter the RDP password.
+    quiet: true
+  when: admin_workstation_rdp | bool
+
+- name: Point remote login at the TLS certificate and key
+  ansible.builtin.command:
+    argv: [grdctl, --system, rdp, "{{ item.action }}", "{{ admin_workstation_rdp_dir }}/{{ item.file }}"]
+  loop:
+    - {action: set-tls-cert, file: rdp-tls.crt, line: TLS certificate}
+    - {action: set-tls-key, file: rdp-tls.key, line: TLS key}
+  changed_when: true
+  notify: Restart gnome-remote-desktop
+  when:
+    - admin_workstation_rdp | bool
+    - "(item.line ~ ': ' ~ admin_workstation_rdp_dir ~ '/' ~ item.file) not in admin_workstation_rdp_status.stdout_lines | map('trim') | list"
+
+# Without arguments grdctl reads the username, then the password, from stdin (no argv exposure).
+- name: Set the remote login credentials once
+  ansible.builtin.command:
+    argv: [grdctl, --system, rdp, set-credentials]
+    stdin: "{{ admin_workstation_user }}\n{{ mgmt_rdp_password }}"
+  no_log: true
+  changed_when: true
+  notify: Restart gnome-remote-desktop
+  when:
+    - admin_workstation_rdp | bool
+    - "admin_workstation_rdp_status.stdout is search('(Username|Password): \\(empty\\)')"
+
+- name: Enable remote login over RDP
+  ansible.builtin.command:
+    argv: [grdctl, --system, rdp, enable]
+  changed_when: true
+  notify: Restart gnome-remote-desktop
+  when:
+    - admin_workstation_rdp | bool
+    - "'Status: enabled' not in admin_workstation_rdp_status.stdout_lines | map('trim') | list"
+
+- name: Verify the remote login configuration
+  ansible.builtin.command:
+    argv: [grdctl, --system, status]
+  register: admin_workstation_rdp_final
+  changed_when: false
+  failed_when: >-
+    admin_workstation_rdp_final.rc != 0
+    or 'Status: enabled' not in admin_workstation_rdp_final.stdout_lines | map('trim') | list
+    or ('TLS certificate: ' ~ admin_workstation_rdp_dir ~ '/rdp-tls.crt') not in admin_workstation_rdp_final.stdout_lines | map('trim') | list
+    or ('TLS key: ' ~ admin_workstation_rdp_dir ~ '/rdp-tls.key') not in admin_workstation_rdp_final.stdout_lines | map('trim') | list
+    or admin_workstation_rdp_final.stdout is search('(Username|Password): \(empty\)')
+  when: admin_workstation_rdp | bool
+
+- name: Run the remote login service
+  ansible.builtin.systemd_service:
+    name: gnome-remote-desktop.service
+    enabled: true
+    state: started
+  when: admin_workstation_rdp | bool
+
+- name: Show the RDP certificate fingerprint to compare in Thincast on first connection
+  ansible.builtin.debug:
+    msg: "{{ admin_workstation_rdp_final.stdout_lines | map('trim') | list | select('match', 'TLS fingerprint:') | list }}"
+  when: admin_workstation_rdp | bool

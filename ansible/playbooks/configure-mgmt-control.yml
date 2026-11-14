@@ -2,17 +2,31 @@
 # Baseline for the management VM (mgmt-control-01) on pve-management. Adapted from
 # configure-recovery-controller.yml: Ubuntu instead of Debian, OpenTofu instead of Terraform.
 # Run through `make mgmt-configure`, which derives the inventory from the OpenTofu outputs.
-# No secrets are handled here; no Forgejo runner is installed in this milestone step.
-- name: Configure the management VM baseline and IaC toolchain
+# The VM is the operator's GNOME admin workstation (ADR-009): the admin_workstation role adds the
+# desktop, developer tooling and RDP remote login. The only secrets are the desktop and RDP passwords,
+# prompted interactively, never logged or stored. No Forgejo runner is installed here.
+- name: Configure the management workstation baseline and IaC toolchain
   hosts: mgmt_control
   become: true
   gather_facts: true
+  # A rerun after a partial failure must not miss a restart that an earlier, failed run notified.
+  force_handlers: true
+  vars_prompt:
+    - name: mgmt_desktop_password
+      prompt: "Linux/desktop password for the admin user (stage 2 of RDP login; required on the first run, ignored once set)"
+      private: true
+      default: ""
+    - name: mgmt_rdp_password
+      prompt: "RDP password (stage 1 of the Thincast login; required on the first run, ignored once set)"
+      private: true
+      default: ""
   vars:
     mgmt_checkout: "/home/{{ ansible_user }}/homelab-iac"
     # Independent code source: recovery must not depend on Forgejo.
     mgmt_source_repo: https://github.com/doku-code/homelab-iac.git
     opentofu_version: "1.13.9"
-    sops_version: "3.10.2" # PROPOSED pin; confirm the current release before the first run
+    sops_version: "3.13.3"
+    mgmt_desktop: true
   pre_tasks:
     - name: Require a reviewed source and a compatible OS
       ansible.builtin.assert:
@@ -102,6 +116,11 @@
     - name: Show toolchain versions
       ansible.builtin.debug:
         var: mgmt_tool_versions.stdout_lines
+
+    - name: Configure the admin workstation (desktop, developer tools, RDP)
+      ansible.builtin.include_role:
+        name: admin_workstation
+      when: mgmt_desktop | bool
 
   handlers:
     - name: Validate and reload SSH
