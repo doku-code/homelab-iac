@@ -24,7 +24,7 @@ resource "proxmox_virtual_environment_vm" "this" {
   }
   cpu {
     cores = var.profile.cores
-    type  = "x86-64-v2-AES"
+    type  = var.cpu_type
   }
   memory {
     dedicated = var.profile.memory
@@ -34,6 +34,8 @@ resource "proxmox_virtual_environment_vm" "this" {
     interface    = "scsi0"
     import_from  = var.image_id
     size         = var.profile.disk_gb
+    discard      = var.disk_discard
+    ssd          = var.disk_ssd
   }
   network_device {
     bridge   = var.profile.bridge

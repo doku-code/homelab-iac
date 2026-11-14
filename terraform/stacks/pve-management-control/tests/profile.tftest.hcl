@@ -38,6 +38,8 @@ run "management_vm_contract" {
       module.control.vm.vm_id == 990 && module.control.vm.started && module.control.vm.on_boot &&
       module.control.vm.cpu[0].cores == 2 && module.control.vm.memory[0].dedicated == 4096 &&
       module.control.vm.disk[0].size == 40 && module.control.vm.disk[0].datastore_id == "mock-disks" &&
+      module.control.vm.disk[0].discard == "on" && module.control.vm.disk[0].ssd &&
+      module.control.vm.cpu[0].type == "host" &&
       module.control.vm.network_device[0].bridge == "mock-bridge" &&
       length(module.control.vm.hostpci) == 0 && length(module.control.vm.usb) == 0
     )

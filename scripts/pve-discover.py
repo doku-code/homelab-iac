@@ -48,11 +48,14 @@ def missing_privileges(required, effective):
     return missing
 
 
-def summarize(version, cluster_status, storages, bridges, resources, next_id):
-    clustered = any(entry.get("type") == "cluster" for entry in cluster_status)
+def summarize(version, nodes, storages, bridges, resources, next_id):
+    # /cluster/status needs Sys.Audit on "/", which the least-privilege token does not have;
+    # the node list it can see is enough to tell a standalone host from a cluster member.
+    node_names = sorted(n.get("node") for n in nodes)
     return {
         "pve_version": version.get("version"),
-        "standalone": not clustered,
+        "visible_nodes": node_names,
+        "standalone": len(node_names) == 1,
         "storages": sorted((s["storage"], s.get("type"), s.get("content", ""), s.get("active"), s.get("avail"))
                            for s in storages),
         "storages_with_import": sorted(s["storage"] for s in storages if "import" in s.get("content", "").split(",")),
@@ -62,14 +65,29 @@ def summarize(version, cluster_status, storages, bridges, resources, next_id):
     }
 
 
+def capacity(status):
+    """Host CPU and memory from /nodes/<node>/status (needs Sys.Audit on the node)."""
+    cpu = status.get("cpuinfo") or {}
+    memory = status.get("memory") or {}
+    gib = 1024 ** 3
+    return {
+        "cpu_model": cpu.get("model"),
+        "cpu_sockets": cpu.get("sockets"),
+        "cpu_cores": cpu.get("cores"),
+        "cpu_threads": cpu.get("cpus"),
+        "memory_total_gib": round(memory.get("total", 0) / gib, 1),
+        "memory_free_gib": round(memory.get("free", 0) / gib, 1),
+    }
+
+
 class Client:
     def __init__(self, endpoint, token, cafile=None):
         self.base = endpoint.rstrip("/") + "/api2/json"
         self.headers = {"Authorization": f"PVEAPIToken={token}"}
         self.context = ssl.create_default_context(cafile=cafile)
 
-    def get(self, path, **params):
-        url = self.base + path + (("?" + urllib.parse.urlencode(params)) if params else "")
+    def get(self, api_path, **params):
+        url = self.base + api_path + (("?" + urllib.parse.urlencode(params)) if params else "")
         request = urllib.request.Request(url, headers=self.headers, method="GET")
         with urllib.request.urlopen(request, context=self.context, timeout=20) as response:
             return json.load(response)["data"]
@@ -85,16 +103,23 @@ def main():
     parser.add_argument("--cafile", default=os.environ.get("PVE_CA_FILE") or None)
     args = parser.parse_args()
     client = Client(args.endpoint, os.environ["PROXMOX_VE_API_TOKEN"], args.cafile)
+    refused = {}
+
+    def read(api_path, default, **params):
+        try:
+            return client.get(api_path, **params)
+        except urllib.error.HTTPError as error:
+            refused[api_path + (f"?path={params['path']}" if "path" in params else "")] = f"HTTP {error.code} {error.reason}"
+            return default
+
     try:
-        report = summarize(client.get("/version"), client.get("/cluster/status"),
-                           client.get(f"/nodes/{args.node}/storage"),
-                           client.get(f"/nodes/{args.node}/network", type="any_bridge"),
-                           client.get("/cluster/resources", type="vm"), client.get("/cluster/nextid"))
+        report = summarize(read("/version", {}), read("/nodes", []),
+                           read(f"/nodes/{args.node}/storage", []),
+                           read(f"/nodes/{args.node}/network", [], type="any_bridge"),
+                           read("/cluster/resources", [], type="vm"), read("/cluster/nextid", None))
+        report["host"] = capacity(read(f"/nodes/{args.node}/status", {}))
         required = required_privileges(args.node, args.image_datastore, args.disk_datastore, args.bridge)
-        effective = {path: client.get("/access/permissions", path=path).get(path, {}) for path in required}
-    except urllib.error.HTTPError as error:
-        print(f"API request refused: HTTP {error.code} {error.reason}", file=sys.stderr)
-        return 1
+        effective = {path: (read("/access/permissions", {}, path=path) or {}).get(path, {}) for path in required}
     except urllib.error.URLError as error:
         if isinstance(error.reason, ssl.SSLError):
             print(f"TLS verification failed ({error.reason}); trust the PVE CA or use --cafile.", file=sys.stderr)
@@ -102,8 +127,9 @@ def main():
             print(f"Cannot reach the API: {error.reason}", file=sys.stderr)
         return 1
     report["missing_privileges"] = missing_privileges(required, effective)
+    report["refused_requests"] = refused
     print(json.dumps(report, indent=2, default=str))
-    return 1 if report["missing_privileges"] or not report["standalone"] else 0
+    return 1 if report["missing_privileges"] or refused or not report["standalone"] else 0
 
 
 if __name__ == "__main__":

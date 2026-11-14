@@ -25,4 +25,8 @@ module "control" {
   ssh_public_key = coalesce(var.ssh_public_key, file("${path.module}/../../../keys/doku-lab-admin.pub"))
   started        = true
   on_boot        = true
+  disk_discard   = "on" # return deleted guest blocks to the local-lvm thin pool
+  disk_ssd       = true
+  # Standalone host, no live migration: expose AVX2 for software rendering (GNOME headless, RDP, Zed).
+  cpu_type = "host"
 }

@@ -1,24 +1,24 @@
-# Copy to terraform.tfvars (git-ignored) and replace every PROPOSED value with a value confirmed
-# by `make mgmt-discover`. Nothing here is a verified fact about pve-management yet.
-proxmox_endpoint = "https://192.168.0.10:8006/" # confirmed: pve-management address (TLS name must match the certificate)
+# Copy to terraform.tfvars (git-ignored). Values confirmed on 2026-11-14 by `make mgmt-discover`
+# (PVE 9.2.26, standalone, i5-10500T 6C/12T, 15.3 GiB RAM) and by the operator.
+proxmox_endpoint = "https://192.168.0.10:8006/" # pve-management; TLS verified against its own CA
 
 profile = {
-  node            = "pve-management" # confirmed hostname
-  vm_id           = 100              # PROPOSED: first free VMID on a fresh host
+  node            = "pve-management"
+  vm_id           = 100 # free on discovery
   name            = "mgmt-control-01"
-  image_datastore = "local"          # PROPOSED: needs the "import" content type enabled
-  disk_datastore  = "local-lvm"      # PROPOSED: default thin pool on a fresh install
-  bridge          = "vmbr0"          # PROPOSED: default bridge
-  ipv4            = "192.168.0.X/24" # PROPOSED: reserve a static address outside the DHCP pool
-  gateway         = "192.168.0.1"    # PROPOSED: confirm against pfSense
-  dns_servers     = ["192.168.0.20"] # PROPOSED: AdGuard address used by legacy guests
-  cores           = 2                # PROPOSED
-  memory          = 4096             # PROPOSED (MiB)
-  disk_gb         = 40               # PROPOSED
+  image_datastore = "local"     # dir, has the "import" content type
+  disk_datastore  = "local-lvm" # lvmthin, ~141 GiB free
+  bridge          = "vmbr0"
+  ipv4            = "192.168.0.39/24" # static, outside the pfSense DHCP pool (operator)
+  gateway         = "192.168.0.1"
+  dns_servers     = ["192.168.0.20"] # AdGuard Home
+  cores           = 8                # GNOME admin workstation running Claude Code / Codex (ADR-009)
+  memory          = 10240           # MiB; ~3.5 GiB left for later management VMs after host overhead
+  disk_gb         = 120
 }
 
 image = {
-  # PROPOSED: Ubuntu 24.04 LTS (noble). Pin a dated release directory and its SHA256SUMS entry.
-  url    = "https://cloud-images.ubuntu.com/releases/noble/release-YYYYMMDD/ubuntu-24.04-server-cloudimg-amd64.img"
-  sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+  # Ubuntu 26.04 LTS (resolute) cloud image, dated release and its SHA256SUMS entry.
+  url    = "https://cloud-images.ubuntu.com/releases/resolute/release-20261016/ubuntu-26.04-server-cloudimg-amd64.img"
+  sha256 = "5645d0318ad21f643ebb1ac4567514620e9893380b07b0201fda163baa5b7eb5"
 }
