@@ -252,11 +252,12 @@
     - admin_workstation_rdp | bool
     - "(item.line ~ ': ' ~ admin_workstation_rdp_dir ~ '/' ~ item.file) not in admin_workstation_rdp_status.stdout_lines | map('trim') | list"
 
-# Without arguments grdctl reads the username, then the password, from stdin (no argv exposure).
+# grdctl prompts for the password on a terminal only (a plain pipe stores an empty one), so `script`
+# gives it a pseudo-terminal fed from stdin: the password never appears in argv or logs.
 - name: Set the remote login credentials once
   ansible.builtin.command:
-    argv: [grdctl, --system, rdp, set-credentials]
-    stdin: "{{ admin_workstation_user }}\n{{ mgmt_rdp_password }}"
+    argv: [script, --quiet, --return, --command, "grdctl --system rdp set-credentials {{ admin_workstation_user }}", /dev/null]
+    stdin: "{{ mgmt_rdp_password }}"
   no_log: true
   changed_when: true
   notify: Restart gnome-remote-desktop
@@ -318,7 +319,7 @@
          if admin_workstation_password_final.stdout.split()[1] != 'P' else '' }}
       {{ 'RDP password: sudo grdctl --system rdp set-credentials ' ~ admin_workstation_user
          ~ ' && sudo systemctl restart gnome-remote-desktop.service'
-         if admin_workstation_rdp | bool and admin_workstation_rdp_final.stdout is search('(Username|Password): \\(empty\\)') else '' }}
+         if admin_workstation_rdp | bool and admin_workstation_rdp_final.stdout is search('(Username|Password): \(empty\)') else '' }}
   when: >-
     admin_workstation_password_final.stdout.split()[1] != 'P'
     or (admin_workstation_rdp | bool and admin_workstation_rdp_final.stdout is search('(Username|Password): \(empty\)'))

@@ -318,6 +318,10 @@ def test_admin_workstation_role():
         checks.append({"name": f"{label}: report unset credentials", "vars": {**facts,
                        "admin_workstation_password_final": password},
                        "ansible.builtin.assert": {"that": [expect(report)]}})
+        # The report names the RDP command whenever the RDP credentials are unset.
+        checks.append({"name": f"{label}: report text", "vars": {**facts, "admin_workstation_password_final": password,
+                       "admin_workstation_user": "ubuntu", "report_msg": by_name["Report credentials that are still unset"]["ansible.builtin.debug"]["msg"]},
+                       "ansible.builtin.assert": {"that": [expect("report_msg is search('rdp set-credentials')")]}})
     defaults = {k: v for k, v in catalog.items() if not k.startswith("admin_workstation_user")}
     with tempfile.TemporaryDirectory(prefix="role-syntax-") as directory:
         # The role itself is only syntax-checked, never executed here.
