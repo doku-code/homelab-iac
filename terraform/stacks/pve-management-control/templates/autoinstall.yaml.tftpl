@@ -1,7 +1,9 @@
 #cloud-config
 # Ubuntu Desktop autoinstall for ${hostname}, rendered by OpenTofu (output autoinstall_user_data).
-# No secret here: the account password is a throwaway hash and is locked at the end of the install;
-# `make mgmt-configure` sets the real password interactively. SSH accepts the operator key only.
+# The password hash is a placeholder: `make mgmt-autoinstall-serve` replaces it with the sha512-crypt
+# hash of .local/mgmt-control/ubuntu-password, so neither the state nor Git ever holds it.
+# SSH accepts the operator key only. Cloud-init is disabled on the installed system, so the key and the
+# sshd drop-in are written by late-commands, not left to cloud-init's first boot.
 autoinstall:
   version: 1
   locale: ${locale}
@@ -12,7 +14,7 @@ autoinstall:
     hostname: ${hostname}
     username: ${username}
     realname: ${username}
-    password: "${throwaway_password_hash}"
+    password: "${password_hash}"
   ssh:
     install-server: true
     allow-pw: false
@@ -39,10 +41,15 @@ autoinstall:
     - openssh-server
     - qemu-guest-agent
   late-commands:
-    # Ansible runs as this user with sudo; lock the throwaway password until mgmt-configure sets one.
+    # Ansible runs as this user with sudo.
     - echo '${username} ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/90-${username}-automation
     - chmod 0440 /target/etc/sudoers.d/90-${username}-automation
-    - curtin in-target -- passwd -l ${username}
+    # Operator key and key-only SSH, independent of cloud-init (fails the install if the user is missing).
+    - curtin in-target -- install -d -m 0700 -o ${username} -g ${username} /home/${username}/.ssh
+    - printf '%s\n' '${ssh_public_key}' > /target/home/${username}/.ssh/authorized_keys
+    - curtin in-target -- chown ${username}:${username} /home/${username}/.ssh/authorized_keys
+    - chmod 0600 /target/home/${username}/.ssh/authorized_keys
+    - printf '%s\n' '# Managed by homelab-iac (configure-mgmt-control.yml)' 'PasswordAuthentication no' 'KbdInteractiveAuthentication no' 'PermitRootLogin no' > /target/etc/ssh/sshd_config.d/10-homelab-hardening.conf
     # The installed desktop is configured by Ansible, not by cloud-init.
     - touch /target/etc/cloud/cloud-init.disabled
   shutdown: reboot

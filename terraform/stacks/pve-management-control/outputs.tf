@@ -34,7 +34,7 @@ output "autoinstall_user_data" {
     gateway         = var.profile.gateway
     dns_servers     = var.profile.dns_servers
     ssh_public_key  = trimspace(coalesce(var.ssh_public_key, file("${path.module}/../../../keys/doku-lab-admin.pub")))
-    # sha512-crypt of 32 random bytes that nobody knows; the account is locked after install anyway.
-    throwaway_password_hash = "$6$n1VNM.0dGkZlzjya$NsjDMV781NPEZL6gyAM/lpPD1JTUZ8NQ9eAgYfP5Qmdzd353/ZeChbKnGNkI77XFQDiU3XtZpmGmIOcOR7XY4."
+    # Filled in by `make mgmt-autoinstall-serve` from .local/mgmt-control/ubuntu-password.
+    password_hash = "@MGMT_PASSWORD_HASH@"
   })
 }

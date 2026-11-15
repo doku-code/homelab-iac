@@ -73,10 +73,13 @@ run "management_vm_contract" {
       strcontains(output.autoinstall_user_data, "hostname: mgmt-control-01") &&
       strcontains(output.autoinstall_user_data, "addresses: [192.0.2.50/24]") &&
       strcontains(output.autoinstall_user_data, trimspace(file("../../../keys/doku-lab-admin.pub"))) &&
-      strcontains(output.autoinstall_user_data, "passwd -l ubuntu") &&
+      strcontains(output.autoinstall_user_data, "password: \"@MGMT_PASSWORD_HASH@\"") &&
+      strcontains(output.autoinstall_user_data, "/target/home/ubuntu/.ssh/authorized_keys") &&
+      strcontains(output.autoinstall_user_data, "PasswordAuthentication no") &&
+      !strcontains(output.autoinstall_user_data, "passwd -l") &&
       strcontains(output.autoinstall_user_data, "allow-pw: false")
     )
-    error_message = "Autoinstall must carry the allocation, the operator key, key-only SSH and a locked password."
+    error_message = "Autoinstall must carry the allocation, the operator key, key-only SSH written without cloud-init and a password placeholder."
   }
   assert {
     condition     = output.address == "192.0.2.50" && output.ansible_inventory.all.children.mgmt_control.hosts["mgmt-control-01"].ansible_user == "ubuntu"

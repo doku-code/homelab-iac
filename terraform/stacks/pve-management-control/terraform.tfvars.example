@@ -24,4 +24,4 @@ desktop_iso = {
 }
 
 # Address of the workstation that runs `make mgmt-autoinstall-serve` during an installation.
-autoinstall_seed_url = "http://192.168.0.122:8399/"
+autoinstall_seed_url = "http://192.168.0.126:8399/"

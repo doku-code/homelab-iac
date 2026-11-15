@@ -506,13 +506,24 @@ mgmt-apply:
 
 # Serves the Ubuntu Desktop autoinstall (NoCloud seed) while VM 100 installs; stop it with Ctrl-C once the
 # installer has started. Run it after the apply that writes the autoinstall_user_data output, before the
-# apply that creates the VM. Nothing secret is served (key-only SSH, locked throwaway password).
+# apply that creates the VM. The account password is read from $(MGMT_SECRETS_DIR)/ubuntu-password and
+# served only as a sha512-crypt hash, on the LAN, while the installer runs: stop the server afterwards.
+MGMT_SECRETS_DIR := $(CURDIR)/.local/mgmt-control
 MGMT_SEED_DIR := $(CURDIR)/.local/autoinstall
 MGMT_SEED_BIND ?= 0.0.0.0
 MGMT_SEED_PORT ?= 8399
+# poweroff for an in-place reinstall (ISO booted first): the VM stops at the end so the boot order can be
+# put back to the disk before it starts again; reboot for a new, empty VM.
+MGMT_SEED_SHUTDOWN ?= reboot
 mgmt-autoinstall-serve:
-	@set -euo pipefail; umask 077; mkdir -p "$(MGMT_SEED_DIR)"; \
-	$(TOFU) -chdir=$(MGMT_DIR) output -raw autoinstall_user_data > "$(MGMT_SEED_DIR)/user-data"; \
+	@set -euo pipefail; umask 077; mkdir -p "$(MGMT_SEED_DIR)"; pw="$(MGMT_SECRETS_DIR)/ubuntu-password"; \
+	test -s "$$pw" || { echo "Write the ubuntu account password to $$pw first (one line, mode 0600)" >&2; exit 1; }; \
+	hash="$$(head -n 1 "$$pw" | tr -d '\n' | openssl passwd -6 -stdin)"; \
+	case "$$hash" in '$$6$$'*) ;; *) echo "openssl passwd -6 failed" >&2; exit 1;; esac; \
+	case "$(MGMT_SEED_SHUTDOWN)" in reboot|poweroff) ;; *) echo "MGMT_SEED_SHUTDOWN must be reboot or poweroff" >&2; exit 1;; esac; \
+	$(TOFU) -chdir=$(MGMT_DIR) output -raw autoinstall_user_data \
+	| sed -e "s|@MGMT_PASSWORD_HASH@|$$hash|" -e "s|^  shutdown: reboot$$|  shutdown: $(MGMT_SEED_SHUTDOWN)|" > "$(MGMT_SEED_DIR)/user-data"; \
+	grep -qF "password: \"$$hash\"" "$(MGMT_SEED_DIR)/user-data" || { echo "The autoinstall_user_data output has no password placeholder: run make mgmt-plan/mgmt-apply to refresh it" >&2; exit 1; }; \
 	cp "$(MGMT_SEED_DIR)/user-data" "$(MGMT_SEED_DIR)/autoinstall.yaml"; \
 	printf 'instance-id: mgmt-control-01-autoinstall\n' > "$(MGMT_SEED_DIR)/meta-data"; : > "$(MGMT_SEED_DIR)/vendor-data"; \
 	chmod 0644 "$(MGMT_SEED_DIR)"/*; chmod 0755 "$(MGMT_SEED_DIR)"; \
@@ -526,7 +537,7 @@ mgmt-configure:
 	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/mgmt-control-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
 	$(TOFU) -chdir=$(MGMT_DIR) output -json ansible_inventory > "$$inventory"; \
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-mgmt-control.yml \
-	--diff -e mgmt_source_commit="$(MGMT_SOURCE_COMMIT)"
+	--diff -e mgmt_source_commit="$(MGMT_SOURCE_COMMIT)" -e mgmt_secrets_dir="$(MGMT_SECRETS_DIR)"
 
 # Encrypted, dated off-machine copy of the local state (age public recipients only).
 mgmt-state-backup:

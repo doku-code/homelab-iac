@@ -61,7 +61,8 @@ Provision the management VM declaratively and idempotently.
 | Readiness pass: CPU type `host`, 10 GiB proposed; discovery re-run (VMID 100 free, no missing privileges); `make mgmt-plan` | Plan: 2 to add (image download + VM 100), 0 change, 0 destroy; saved plan SHA256 `32cc53fb…4815b` | `make mgmt-check`, `tests/mgmt-control.py` | 2026-11-14 |
 | `make mgmt-apply` of that plan (operator approval) | Apply complete: 2 added, 0 changed, 0 destroyed; image download 32 s; VM 100 created in 15m10s (only warning: guest agent not yet installed). SSH key login works; Ubuntu 26.04.1, kernel 7.0.0-38, 8 vCPU with AVX2, 10 GiB, 120 GiB disk, DNS 192.168.0.20; cloud-init done (only a deprecation notice from the Proxmox-generated config). State local and git-ignored | SSH checks | 2026-11-14 |
 | Re-plan after apply | No changes, infrastructure matches the configuration (refresh waits ~15 min for the guest agent until `mgmt-configure` installs it) | `make mgmt-plan` | 2026-11-14 |
-| Reviewed plan on pve-management | not verified (next step: `make mgmt-plan`) | — | — |
+| Desktop reinstall in place (operator request; first Desktop install had no SSH key because cloud-init was disabled) | Output-only apply, then seed URL update (0 added, 1 changed, 0 destroyed); ISO booted first, autoinstall 20:47→21:08, poweroff, disk boot restored. Ubuntu 26.04.1 LTS, 192.168.0.39/24, SSH key login works, password login refused, `sudo -n` ok, password status P, GDM active | `make mgmt-apply`, SSH checks | 2026-11-14 |
+| Re-plan after the reinstall | No changes, infrastructure matches the configuration | `make mgmt-plan` | 2026-11-14 |
 
 ## Completion summary
 

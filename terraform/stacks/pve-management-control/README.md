@@ -26,19 +26,30 @@ Runs **only from the operator workstation** (ADR-008). CT301 never receives thes
 | Discovery | `make mgmt-discover MGMT_INPUT_SOURCE=infisical MGMT_DISCOVER_ARGS="--image-datastore … --disk-datastore … --bridge …"` | Read-only GETs: version, standalone status, storages, bridges, used VMIDs, token privileges |
 | Profile | copy `terraform.tfvars.example` to `terraform.tfvars` | Replace every PROPOSED value with discovered/confirmed values |
 | Plan | `make mgmt-plan MGMT_ALLOCATION_REVIEWED=yes MGMT_INPUT_SOURCE=infisical` | Saved plan `mgmt.tfplan` + SHA256; first install: 1 ISO download, 1 VM, nothing else |
-| Seed | `make mgmt-autoinstall-serve` (keep running during the install) | Serves the autoinstall rendered from the same variables |
+| Passwords | write `.local/mgmt-control/ubuntu-password` and `.local/mgmt-control/rdp-password` (one line each, mode 0600, git-ignored) | Linux account (console, GDM, RDP stage 2, sudo) and RDP stage 1 |
+| Seed | `make mgmt-autoinstall-serve MGMT_SEED_BIND=<this host's LAN IP>` (keep running during the install; it must match `autoinstall_seed_url`) | Serves the autoinstall rendered from the same variables, with the sha512-crypt hash of the account password; stop it after the install |
 | Apply | `make mgmt-apply MGMT_APPLY_APPROVED=yes MGMT_PLAN_SHA256=<sha> MGMT_INPUT_SOURCE=infisical` | **Mutates pve-management.** Applies exactly the reviewed plan |
 | Install | Proxmox console of VM 100: confirm the automated installation once | Ubuntu Desktop installs and reboots into the GDM login screen (~15 min) |
 | Backup | `make mgmt-state-backup MGMT_BACKUP_DIR=<off-machine dir> AGE_RECIPIENTS_FILE=<recipients>` | age-encrypted, dated copy of the state |
-| Configure | `make mgmt-configure MGMT_CONFIGURE_APPROVED=yes MGMT_SOURCE_COMMIT=<full sha on the GitHub mirror>` | Ansible baseline, toolchain and admin workstation (prompts for the desktop and RDP passwords, set once, never stored) |
+| Configure | `make mgmt-configure MGMT_CONFIGURE_APPROVED=yes MGMT_SOURCE_COMMIT=<full sha on the GitHub mirror>` | Ansible baseline, toolchain and admin workstation (reads both password files on the controller, sets each once, never logs them) |
 | Remote access | Thincast → RDP `192.168.0.39:3389` | GNOME Remote Login, two stages (below) |
 | Idempotency | `make mgmt-plan …` again | Must report no changes |
 
 ## Reinstalling VM 100
 
-`prevent_destroy` protects the VM. A reinstall with the same VMID is two reviewed plans: set
-`workstation_enabled = false` (the plan removes the old VM, keeps the ISO), apply; set it back to `true`,
-start the seed, plan and apply the new VM. The state then describes the new VM only.
+`prevent_destroy` protects the VM, so a reinstall keeps the VM and its state and wipes the disk in place:
+
+1. Write the password files; plan/apply if the template or `autoinstall_seed_url` changed (the seed is
+   read from the `autoinstall_user_data` output, which only an apply refreshes).
+2. `make mgmt-autoinstall-serve MGMT_SEED_BIND=<LAN IP> MGMT_SEED_SHUTDOWN=poweroff`.
+3. With the token (`VM.Config.Options`, `VM.PowerMgmt`): set `boot=order=ide2;scsi0`, stop and start
+   VM 100 (a cold start applies the boot order); confirm the installation on the console. The autoinstall
+   erases the disk.
+4. When the VM has powered off: set `boot=order=scsi0;ide2`, start it, check SSH, stop the seed server.
+5. `make mgmt-plan` must report no changes; then `mgmt-configure`.
+
+The SSH key and the keys-only sshd drop-in are written by late-commands: cloud-init is disabled on the
+installed system and never applies the installer's SSH settings.
 
 ## Remote login (GNOME Remote Login, ADR-009)
 

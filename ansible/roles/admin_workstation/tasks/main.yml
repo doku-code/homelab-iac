@@ -1,8 +1,8 @@
 ---
 # Admin workstation (ADR-009): GNOME desktop, developer tooling, remote login over RDP.
-# Secrets: the desktop and RDP passwords come from interactive prompts and reach the guest only on
+# Secrets: the desktop and RDP passwords come from .local files on the controller and reach the guest only on
 # stdin (never in argv or logs, no_log). Each is set once: a rerun never resets an existing credential.
-# A non-interactive run (no prompts) installs everything and reports which credential is still unset;
+# A run without those files installs everything and reports which credential is still unset;
 # the operator then sets it on the guest itself (command printed at the end).
 # Every task is safe to rerun after a partial failure; a second run must report no changes.
 
