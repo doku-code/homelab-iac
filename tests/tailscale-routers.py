@@ -72,7 +72,9 @@ def main():
     for target in ["tailscale-apply", "tailscale-configure"]:
         result = subprocess.run(["make", target], cwd=ROOT, capture_output=True, text=True,
                                 env={"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]})
-        assert result.returncode != 0 and "approve" in result.stdout.lower(), result.stdout
+        # Refused for lack of approval, or earlier by the guard when the private tfvars point at the new cluster.
+        refused = "approve" in result.stdout.lower() or "new-cluster address" in result.stderr
+        assert result.returncode != 0 and refused, result.stdout + result.stderr
     with tempfile.TemporaryDirectory(prefix="tailscale-offline-") as directory:
         base = Path(directory)
         bin_dir = base / "bin"
