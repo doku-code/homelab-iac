@@ -159,9 +159,16 @@ def test_make_guards():
         result = run_make(base, fake, "windmill-plan")
         assert result.returncode != 0 and "retired host address" in result.stderr, result.stderr
         assert calls(base) == ""
-        # A legacy root on the current cluster API is not blocked by the guard.
+        # Every new-cluster address is refused (pve-core .11, pve-infra .12, new pve-lab .16).
+        for host in ("11", "12", "16"):
+            (base / "terraform/stacks/pve-core-windmill/terraform.tfvars.json").write_text(
+                '{"proxmox_endpoint": "https://192.168.0.%s:8006/"}' % host)
+            result = run_make(base, fake, "windmill-plan")
+            assert result.returncode != 0 and "new-cluster address" in result.stderr, (host, result.stderr)
+            assert calls(base) == ""
+        # A legacy root on the old environment (192.168.0.14) is not blocked by the guard.
         (base / "terraform/stacks/pve-core-windmill/terraform.tfvars.json").write_text(
-            '{"proxmox_endpoint": "https://192.168.0.11:8006/"}')
+            '{"proxmox_endpoint": "https://192.168.0.14:8006/"}')
         run_make(base, fake, "windmill-plan")
         assert "terraform -chdir=terraform/stacks/pve-core-windmill init" in calls(base)
         (base / "calls.log").unlink()

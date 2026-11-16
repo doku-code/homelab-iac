@@ -26,12 +26,13 @@ define INFISICAL_RUN
 		--env "$(INFISICAL_ENV)" -- $(1)
 endef
 
-# Retired hosts (2026-11-12): pve-infra (192.168.0.10) and pve-compute (192.168.0.12) no longer
-# exist; 192.168.0.10 is now the standalone pve-management host. Legacy roots must never reach it.
-RETIRED_ENDPOINT_RE := //192\.168\.0\.(10|12)[:/]
+# Legacy roots must never reach the NEW cluster (2026-11-16): pve-management .10, pve-core .11,
+# pve-infra .12 and the new pve-lab .16 are fresh installs that reuse old names and addresses. The old,
+# independent environment is reachable only at 192.168.0.14 (old pve-lab).
+RETIRED_ENDPOINT_RE := //192\.168\.0\.(10|11|12|16)[:/]
 define LEGACY_ENDPOINT_GUARD
 	@if cat "$(1)/terraform.tfvars" "$(1)/terraform.tfvars.json" 2>/dev/null | grep -Eq '"?proxmox_endpoint"?[[:space:]]*[=:].*$(RETIRED_ENDPOINT_RE)'; then \
-		echo "$(1): proxmox_endpoint targets a retired host address; 192.168.0.10 is now pve-management. Point the private tfvars at the legacy cluster API first." >&2; exit 1; fi
+		echo "$(1): proxmox_endpoint targets a new-cluster address (192.168.0.10/.11/.12/.16), not a retired host address it once was. Legacy roots may only use the old environment at 192.168.0.14." >&2; exit 1; fi
 endef
 define RETIRED_ROOT
 	@echo "$(1) records resources on the retired pve-compute host; its local state is stale and under review (docs/investigations/legacy-inventory.md). Live Terraform operations are refused." >&2; exit 1

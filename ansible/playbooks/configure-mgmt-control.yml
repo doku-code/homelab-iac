@@ -63,6 +63,17 @@
         state: started
         enabled: true
 
+    # The operator key and the workstation's own key (it runs mgmt-configure against itself).
+    - name: Authorize the admin SSH keys for the admin user
+      ansible.builtin.lineinfile:
+        path: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+        line: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/../../keys/' ~ item) }}"
+        create: true
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+      loop: [doku-lab-admin.pub, mgmt-control-01.pub]
+
     - name: Harden SSH (keys only, no root login)
       ansible.builtin.copy:
         dest: /etc/ssh/sshd_config.d/10-homelab-hardening.conf

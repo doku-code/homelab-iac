@@ -45,7 +45,7 @@ admin_workstation_flatpaks:
   - com.sublimemerge.App # Git GUI (SourceTree is not available on Linux)
 
 # mise registry names; "latest"/"lts" float, exact versions match the repository's pins.
-# Backends (mise registry): node/python/go core; uv, terraform, kubectl, claude, codex aqua (checksummed
+# Backends (mise registry): node/python/go core; uv, terraform, kubectl, helm, claude, codex aqua (checksummed
 # release binaries); infisical github releases. OpenTofu, the infrastructure tool, comes from the playbook.
 admin_workstation_mise_tools:
   node: lts
@@ -54,6 +54,7 @@ admin_workstation_mise_tools:
   uv: latest
   terraform: "1.16.1" # legacy roots only (ADR-003); new roots use OpenTofu
   kubectl: "1.35.8" # legacy Stage A cluster
+  helm: latest # charts for k3s (Headlamp, Argo CD, operators)
   infisical: latest # Make targets use the Infisical CLI until Phase replaces it
   claude: latest # Claude Code, native binary
   codex: latest # OpenAI Codex CLI, native binary
