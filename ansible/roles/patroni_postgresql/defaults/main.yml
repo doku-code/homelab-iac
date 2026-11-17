@@ -1,0 +1,63 @@
+---
+# Shared PostgreSQL platform (M007, ADR-015): PostgreSQL 17 + Patroni + etcd + vip-manager from Debian 13.
+patroni_scope: doku-pg
+patroni_namespace: /service/
+patroni_postgresql_version: 17
+patroni_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
+patroni_data_mount: /var/lib/postgresql
+patroni_data_dir: "{{ patroni_data_mount }}/{{ patroni_postgresql_version }}/{{ patroni_scope }}"
+patroni_etcd_data_dir: /var/lib/etcd/{{ patroni_scope }}
+
+# Address applications connect to; follows the primary. Set by the inventory (terraform/stacks/postgresql).
+patroni_virtual_ip: 192.168.0.60
+patroni_failover_priority: 1
+
+# Members: every host of the inventory group. Clients: the k3s node range .40-.49 (pods leave their node
+# with the node address). Nobody else reaches 5432.
+patroni_group: postgresql
+patroni_members: "{{ groups[patroni_group] | sort }}"
+patroni_member_addresses: "{{ patroni_members | map('extract', hostvars, 'ansible_host') | list }}"
+patroni_clients: [192.168.0.40/29, 192.168.0.48/31]
+patroni_etcd_endpoints: "{{ patroni_member_addresses | map('regex_replace', '^(.*)$', 'http://\\1:2379') | join(',') }}"
+patroni_etcd_initial_cluster: "{% for member in patroni_members %}{{ member }}=http://{{ hostvars[member].ansible_host }}:2380{{ ',' if not loop.last }}{% endfor %}"
+
+# Credentials come from the environment only (secret store path /postgresql), never from Git.
+patroni_superuser_password: "{{ lookup('ansible.builtin.env', 'PG_SUPERUSER_PASSWORD') }}"
+patroni_replication_password: "{{ lookup('ansible.builtin.env', 'PG_REPLICATION_PASSWORD') }}"
+patroni_rewind_password: "{{ lookup('ansible.builtin.env', 'PG_REWIND_PASSWORD') }}"
+patroni_restapi_password: "{{ lookup('ansible.builtin.env', 'PG_RESTAPI_PASSWORD') }}"
+
+# Cluster-wide settings, stored in etcd and applied on every run (`patronictl edit-config --replace`).
+# quorum: a commit waits for one of the two standbys, so a failover loses no acknowledged transaction;
+# with both standbys down the primary keeps accepting writes.
+patroni_dcs:
+  ttl: 30
+  loop_wait: 10
+  retry_timeout: 10
+  maximum_lag_on_failover: 1048576
+  failsafe_mode: true
+  synchronous_mode: quorum
+  synchronous_node_count: 1
+  postgresql:
+    use_pg_rewind: true
+    use_slots: true
+    parameters:
+      max_connections: 200
+      password_encryption: scram-sha-256
+      ssl: "on"
+      ssl_cert_file: /etc/ssl/certs/ssl-cert-snakeoil.pem
+      ssl_key_file: /etc/ssl/private/ssl-cert-snakeoil.key
+      wal_level: replica
+      hot_standby: "on"
+      wal_keep_size: 1GB
+      max_wal_senders: 10
+      max_replication_slots: 10
+      shared_preload_libraries: pg_stat_statements
+      log_min_duration_statement: 1000
+      log_checkpoints: "on"
+      log_lock_waits: "on"
+
+# Applications: one database and one login role of the same name each (ansible/vars/postgresql-apps.yml).
+# The password of application "phase" comes from PG_APP_PHASE_PASSWORD. Nothing is ever dropped here.
+postgresql_apps: []
+postgresql_app_group: app

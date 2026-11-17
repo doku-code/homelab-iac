@@ -1,0 +1,66 @@
+# Managed by Ansible (role patroni_postgresql). Contains credentials: 0600 postgres.
+scope: {{ patroni_scope }}
+namespace: {{ patroni_namespace }}
+name: {{ inventory_hostname }}
+
+restapi:
+  listen: {{ ansible_host }}:8008
+  connect_address: {{ ansible_host }}:8008
+  authentication:
+    username: patroni
+    password: "{{ patroni_restapi_password }}"
+
+etcd3:
+  hosts:
+{% for address in patroni_member_addresses %}
+    - {{ address }}:2379
+{% endfor %}
+
+bootstrap:
+  dcs:
+    {{ patroni_dcs | to_nice_yaml(indent=2) | indent(4) }}
+  initdb:
+    - encoding: UTF8
+    - locale: C.UTF-8
+    - data-checksums
+
+postgresql:
+  listen: "*:5432"
+  connect_address: {{ ansible_host }}:5432
+  use_unix_socket: true
+  data_dir: {{ patroni_data_dir }}
+  bin_dir: /usr/lib/postgresql/{{ patroni_postgresql_version }}/bin
+  pgpass: {{ patroni_data_mount }}/.pgpass-patroni
+  authentication:
+    superuser:
+      username: postgres
+      password: "{{ patroni_superuser_password }}"
+    replication:
+      username: replicator
+      password: "{{ patroni_replication_password }}"
+    rewind:
+      username: rewinder
+      password: "{{ patroni_rewind_password }}"
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+    shared_buffers: {{ (ansible_facts.memtotal_mb * 0.25) | int }}MB
+    effective_cache_size: {{ (ansible_facts.memtotal_mb * 0.6) | int }}MB
+    logging_collector: "on"
+    log_directory: /var/log/postgresql
+    log_filename: postgresql-{{ patroni_postgresql_version }}-{{ patroni_scope }}.log
+  # The superuser is reachable through the local socket only. Members replicate and rewind over TLS.
+  # Applications: members of the group role "{{ postgresql_app_group }}", from the k3s nodes, over TLS,
+  # and only to the database named like their role.
+  pg_hba:
+    - local all all peer
+{% for address in patroni_member_addresses %}
+    - hostssl replication replicator {{ address }}/32 scram-sha-256
+    - hostssl postgres rewinder {{ address }}/32 scram-sha-256
+{% endfor %}
+{% for client in patroni_clients %}
+    - hostssl sameuser +{{ postgresql_app_group }} {{ client }} scram-sha-256
+{% endfor %}
+
+tags:
+  failover_priority: {{ patroni_failover_priority }}
+  clonefrom: true

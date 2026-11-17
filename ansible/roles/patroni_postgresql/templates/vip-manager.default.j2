@@ -1,0 +1,9 @@
+# Managed by Ansible (role patroni_postgresql). The virtual IP is added on the member whose name is in
+# Patroni's leader key and removed everywhere else.
+VIP_IP={{ patroni_virtual_ip }}
+VIP_MASK=24
+VIP_IFACE={{ ansible_facts.default_ipv4.interface }}
+VIP_KEY={{ patroni_namespace }}{{ patroni_scope }}/leader
+VIP_HOST={{ inventory_hostname }}
+VIP_TYPE=etcd
+VIP_ENDPOINT={{ patroni_etcd_endpoints }}

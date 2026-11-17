@@ -6,11 +6,11 @@ type: decision
 status: accepted
 importance: 5
 created: 2026-11-14
-updated: 2026-11-14
+updated: 2026-11-17
 tags: [decision, postgresql, patroni, database]
 component: database
 topics: [postgresql, patroni, zalando, database, replication]
-related: [ARCH-platform, ADR-011, ADR-012, ADR-004]
+related: [ARCH-platform, ADR-011, ADR-012, ADR-004, ADR-015]
 related_tasks: []
 related_milestones: [M007, M011]
 supersedes: []
@@ -18,6 +18,10 @@ superseded_by: []
 ---
 
 # ADR-013: Central PostgreSQL with Patroni
+
+> **Changed by [ADR-015](ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md) (2026-11-17):** the
+> platform runs on three Patroni VMs **outside** k3s, not on k3s with the Zalando operator. The rest of this
+> record (one shared platform, one database and role per application) still holds.
 
 ## Context
 

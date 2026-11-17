@@ -1,0 +1,234 @@
+---
+- name: Require Debian 13 and three members
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.distribution == 'Debian'
+      - ansible_facts.distribution_major_version == '13'
+      - patroni_members | length == 3
+      - patroni_virtual_ip not in patroni_member_addresses
+    fail_msg: The PostgreSQL platform is three Debian 13 VMs from terraform/stacks/postgresql.
+
+- name: Require the cluster credentials from the environment
+  ansible.builtin.assert:
+    that:
+      - patroni_superuser_password | length >= 32
+      - patroni_replication_password | length >= 32
+      - patroni_rewind_password | length >= 32
+      - patroni_restapi_password | length >= 32
+      - "[patroni_superuser_password, patroni_replication_password, patroni_rewind_password, patroni_restapi_password] | unique | length == 4"
+    fail_msg: Set PG_SUPERUSER_PASSWORD, PG_REPLICATION_PASSWORD, PG_REWIND_PASSWORD and PG_RESTAPI_PASSWORD (secret store path /postgresql).
+  no_log: true
+
+- name: Check the data disk
+  ansible.builtin.stat:
+    path: "{{ patroni_data_device }}"
+  register: patroni_data_disk
+
+- name: Refuse to continue without the data disk
+  ansible.builtin.assert:
+    that: patroni_data_disk.stat.exists
+    fail_msg: "{{ patroni_data_device }} is missing: the database never lives on the OS disk."
+
+- name: Install the firewall and filesystem tools
+  ansible.builtin.apt:
+    name: [nftables, e2fsprogs, acl]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Allow etcd, Patroni and PostgreSQL for the members and PostgreSQL for the k3s nodes only
+  ansible.builtin.template:
+    src: firewall.nft.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0755"
+    validate: /usr/sbin/nft -c -f %s
+  notify: Reload firewall
+
+- name: Enable the firewall
+  ansible.builtin.systemd_service:
+    name: nftables
+    enabled: true
+    state: started
+
+# Creates the filesystem only on an empty device; an existing one is only grown (never re-formatted).
+- name: Create or grow the data filesystem
+  community.general.filesystem:
+    dev: "{{ patroni_data_device }}"
+    fstype: ext4
+    resizefs: true
+    force: false
+
+- name: Mount the data filesystem
+  ansible.posix.mount:
+    path: "{{ patroni_data_mount }}"
+    src: "{{ patroni_data_device }}"
+    fstype: ext4
+    opts: defaults,noatime,discard
+    state: mounted
+
+# Patroni creates the database cluster; the Debian package must not create its own "main".
+- name: Create the postgresql-common configuration directory
+  ansible.builtin.file:
+    path: /etc/postgresql-common
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Keep the Debian package from creating its own database cluster
+  ansible.builtin.copy:
+    dest: /etc/postgresql-common/createcluster.conf
+    content: |
+      # Managed by Ansible (role patroni_postgresql): Patroni owns the only cluster.
+      create_main_cluster = false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Check whether this VM already is an etcd member
+  ansible.builtin.stat:
+    path: "{{ patroni_etcd_data_dir }}"
+  register: patroni_etcd_member
+
+- name: Install PostgreSQL, Patroni, etcd and vip-manager from Debian
+  ansible.builtin.apt:
+    name:
+      - "postgresql-{{ patroni_postgresql_version }}"
+      - patroni
+      - etcd-server
+      - etcd-client
+      - vip-manager2
+      - python3-psycopg2
+      - python3-etcd # Patroni's etcd3 support imports it; apt may satisfy the dependency with python3-consul instead
+    state: present
+    install_recommends: false
+
+- name: Give the data filesystem to PostgreSQL
+  ansible.builtin.file:
+    path: "{{ patroni_data_mount }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0755"
+
+# etcd: the package starts a throw-away single member in /var/lib/etcd/default; the real three-member
+# cluster uses its own directory, so that member is simply replaced and removed.
+- name: Configure the etcd member
+  ansible.builtin.template:
+    src: etcd.default.j2
+    dest: /etc/default/etcd
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart etcd
+
+- name: Form the etcd cluster (first run, all members together)
+  ansible.builtin.systemd_service:
+    name: etcd
+    enabled: true
+    state: restarted
+    no_block: true
+  when: not patroni_etcd_member.stat.exists
+
+- name: Keep etcd enabled and running
+  ansible.builtin.systemd_service:
+    name: etcd
+    enabled: true
+    state: started
+  when: patroni_etcd_member.stat.exists
+
+- name: Wait for a healthy etcd cluster
+  ansible.builtin.command:
+    argv: [etcdctl, --endpoints, "{{ patroni_etcd_endpoints }}", endpoint, health]
+  register: patroni_etcd_health
+  changed_when: false
+  retries: 30
+  delay: 4
+  until: patroni_etcd_health.rc == 0
+
+- name: Remove the package's throw-away etcd member
+  ansible.builtin.file:
+    path: /var/lib/etcd/default
+    state: absent
+
+- name: Configure the virtual IP manager
+  ansible.builtin.template:
+    src: vip-manager.default.j2
+    dest: /etc/default/vip-manager
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart vip-manager
+
+- name: Enable the virtual IP manager
+  ansible.builtin.systemd_service:
+    name: vip-manager
+    enabled: true
+    state: started
+
+- name: Write the cluster-wide Patroni settings
+  ansible.builtin.template:
+    src: dcs.yml.j2
+    dest: /etc/patroni/dcs.yml
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Read the Patroni service state
+  ansible.builtin.systemd_service:
+    name: patroni
+  register: patroni_was_running
+
+- name: Write the Patroni configuration (credentials)
+  ansible.builtin.template:
+    src: patroni.yml.j2
+    dest: /etc/patroni/config.yml
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  no_log: true
+  notify: Reload Patroni
+
+- name: Enable and start Patroni
+  ansible.builtin.systemd_service:
+    name: patroni
+    enabled: true
+    state: started
+
+- name: Apply changed settings before checking the cluster
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait until PostgreSQL runs under Patroni on this member
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:8008/health"
+    status_code: 200
+  register: patroni_health
+  retries: 60
+  delay: 5
+  until: patroni_health.status == 200
+
+- name: Wait for a primary
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:8008/cluster"
+    return_content: true
+  register: patroni_cluster
+  retries: 30
+  delay: 4
+  until: patroni_cluster.json.members | selectattr('role', 'equalto', 'leader') | selectattr('state', 'equalto', 'running') | list | length == 1
+
+- name: Apply the cluster-wide Patroni settings
+  ansible.builtin.command:
+    argv: [patronictl, -c, /etc/patroni/config.yml, edit-config, --replace, /etc/patroni/dcs.yml, --force]
+  become: true
+  become_user: postgres
+  register: patroni_edit_config
+  changed_when: "'Not changed' not in patroni_edit_config.stdout"
+  run_once: true
+
+- name: Create application roles and databases on the primary
+  ansible.builtin.include_tasks: apps.yml
+  when:
+    - postgresql_apps | length > 0
+    - (patroni_cluster.json.members | selectattr('role', 'equalto', 'leader') | first).name == inventory_hostname

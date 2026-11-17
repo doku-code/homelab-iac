@@ -50,7 +50,7 @@ flowchart TB
   end
   subgraph k8s["k3s compute (ADR-011)"]
     csi["CSI drivers → StorageClasses → PVCs"]
-    pg["PostgreSQL + Patroni (ADR-013)"]
+    pg["PostgreSQL + Patroni, 3 VMs outside k3s (ADR-015)"]
     apps["Phase, Windmill, Authentik, applications"]
     argo["Argo CD"]
     hl["Headlamp"]
@@ -87,7 +87,7 @@ Each layer has one owner; a tool never writes objects another layer owns.
 | 2 | Kubernetes compute | k3s, embedded etcd ([ADR-011](../decisions/ADR-011-k3s-first-argocd-headlamp.md)) | Workload scheduling | Hold persistent data on its VM disks |
 | 3 | Persistent storage | NVMe-backed service external to k3s; Ceph later ([ADR-012](../decisions/ADR-012-external-nvme-storage-truenas-backups.md)) | Volumes, their failure domain | Depend on the k3s cluster it serves |
 | 4 | CSI integration | CSI driver of the chosen backend; StorageClasses (`nvme-block`, `nvme-shared`, later `ceph-rbd`, `cephfs`) | Dynamic PVC provisioning | Exist for a backend that does not support it |
-| 5 | Central database | PostgreSQL + Patroni, Zalando operator pending validation ([ADR-013](../decisions/ADR-013-central-postgresql-patroni.md)) | Per-application databases, roles, replication | Bootstrap k3s, store data on TrueNAS |
+| 5 | Central database | PostgreSQL 17 + Patroni on three VMs outside k3s, virtual IP 192.168.0.60 ([ADR-015](../decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md), [ADR-013](../decisions/ADR-013-central-postgresql-patroni.md)) | Per-application databases, roles, replication | Bootstrap k3s, store data on TrueNAS |
 | 6 | Applications | Phase ([ADR-004](../decisions/ADR-004-secrets-phase-runtime-sops-bootstrap.md)), Windmill, Authentik, migrated services; Compose only for bootstrap exceptions | Their configuration | — |
 | 7 | Management tools | Headlamp (UI), Argo CD (GitOps), Windmill (workflows, [ADR-005](../decisions/ADR-005-windmill-service-catalog.md)), Forgejo + dedicated runner ([ADR-014](../decisions/ADR-014-dedicated-forgejo-deployment-runner.md)), workstation `mgmt-control-01` ([ADR-009](../decisions/ADR-009-management-vm-gnome-admin-workstation.md)) | Inspect / reconcile / automate / execute | Duplicate each other or OpenTofu/Ansible |
 | 8 | Backup storage | TrueNAS SCALE (and PBS for guests) | Storage, VM, database and application backups | Provide live PVCs (no TrueNAS CSI/NFS/iSCSI for applications) |
@@ -103,9 +103,9 @@ Verified facts: [INV-new-proxmox-cluster-inventory](../investigations/new-proxmo
 | Host | Now | Target |
 |------|-----|--------|
 | `pve-management` 192.168.0.10 | New cluster; i5-10500T, 16 GB; runs `mgmt-control-01` (VM 100) | Management node: workstation |
-| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe | Bootstrap deployment runner `deploy-runner-01` (VM 302, ADR-014), shared storage `storage-01` (VM 350, NFS for k3s user data, M006), later a k3s node |
-| `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD; empty | Lightweight services |
-| `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE | First k3s server `k3s-server-01` (VM 310, .40, M004) |
+| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe | Bootstrap deployment runner `deploy-runner-01` (VM 302, ADR-014), shared storage `storage-01` (VM 350, NFS for k3s user data, M006), PostgreSQL member `pg-01` (VM 361, M007), later a k3s node |
+| `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD | PostgreSQL member `pg-03` (VM 363, small, M007); lightweight services |
+| `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE | First k3s server `k3s-server-01` (VM 310, .40, M004); PostgreSQL member `pg-02` (VM 362, M007) |
 | `pve-lab` **192.168.0.14** | **Old environment**, independent; Ryzen 9 9950X3D; runs the legacy services | Emptied (M010), reinstalled as `pve-compute`, joined |
 | `pve-k8s-01/02` | Legacy | Reclaimed after migration |
 | TrueNAS SCALE | Serves Forgejo and datasets | Backup destination; current apps stay until replaced |

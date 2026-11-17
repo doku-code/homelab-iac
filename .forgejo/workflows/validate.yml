@@ -168,6 +168,10 @@ jobs:
       - name: Validate OpenTofu root terraform/stacks/storage, NFS role and StorageClass offline
         run: make storage-check
 
+      # Offline only: mocked provider, rendered templates, fake tools; synthetic credentials.
+      - name: Validate OpenTofu root terraform/stacks/postgresql, Patroni role and access rules offline
+        run: make postgresql-check
+
       - name: Validate monitoring Compose configuration
         run: docker-compose -f services/monitoring/compose.yml config --quiet
 

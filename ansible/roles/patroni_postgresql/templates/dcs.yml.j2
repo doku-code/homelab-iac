@@ -1,0 +1,3 @@
+# Managed by Ansible (role patroni_postgresql): cluster-wide Patroni settings, applied with
+# `patronictl edit-config --replace`. No secrets.
+{{ patroni_dcs | to_nice_yaml(indent=2) }}

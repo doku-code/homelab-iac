@@ -1,0 +1,25 @@
+---
+- name: Reload firewall
+  ansible.builtin.systemd_service:
+    name: nftables
+    state: restarted
+
+# One member at a time, and never on the run that forms the cluster (the first start does that).
+- name: Restart etcd
+  ansible.builtin.systemd_service:
+    name: etcd
+    state: restarted
+  throttle: 1
+  when: patroni_etcd_member.stat.exists
+
+- name: Restart vip-manager
+  ansible.builtin.systemd_service:
+    name: vip-manager
+    state: restarted
+
+# SIGHUP: Patroni re-reads its file and reloads PostgreSQL; no restart, no failover.
+- name: Reload Patroni
+  ansible.builtin.systemd_service:
+    name: patroni
+    state: reloaded
+  when: patroni_was_running.status.ActiveState == 'active'

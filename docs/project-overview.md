@@ -129,7 +129,7 @@ new cluster `doku-lab` on `pve-management`, `pve-core`, `pve-infra` and the new 
 platform, Headlamp as Kubernetes UI, Argo CD for GitOps, Windmill for operational automation (ADR-011,
 ADR-005); Forgejo as source of truth with a dedicated deployment runner (ADR-014); persistent data
 outside the k3s cluster on the physical hosts' NVMe, TrueNAS as backup destination, Ceph as future
-distributed storage (ADR-012); PostgreSQL with Patroni (ADR-013); Phase replacing Infisical (ADR-004);
+distributed storage (ADR-012); PostgreSQL with Patroni on three VMs outside k3s (ADR-013, ADR-015); Phase replacing Infisical (ADR-004);
 the management workstation (ADR-009); local OpenTofu state for now; incremental progress over premature
 complexity.
 
@@ -138,7 +138,7 @@ complexity.
 | Initial external storage implementation, protocol and CSI driver; need for a storage VM | M006 |
 | First k3s VM sizing and placement (proposal in the inventory); ingress | M004 |
 | Ceph timing, networking, quorum and OSD topology | M011 |
-| PostgreSQL operator version, Patroni replication mode, storage performance needs | M007 |
+| ~~PostgreSQL operator version, Patroni replication mode~~ decided: three Patroni VMs outside k3s, quorum-synchronous (ADR-015) | M007 done |
 | Phase self-hosted compatibility (licence, chart, external PostgreSQL, Authentik) | M008 |
 | Backup implementation details | M012 |
 | Remaining application migration order | M010 |

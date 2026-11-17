@@ -1,0 +1,76 @@
+---
+# Runs on the current primary only, through the local socket as the postgres OS user. One database and
+# one login role of the same name per application; nothing is dropped.
+- name: Validate the application list and its passwords
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z][a-z0-9_]{1,30}$')
+      - item.name not in ['postgres', 'replicator', 'rewinder', 'template0', 'template1', postgresql_app_group]
+      - lookup('ansible.builtin.env', 'PG_APP_' + (item.name | upper) + '_PASSWORD') | length >= 32
+    fail_msg: "Application {{ item.name }}: use a lowercase name and set PG_APP_{{ item.name | upper }}_PASSWORD (>= 32 characters)."
+  loop: "{{ postgresql_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true
+
+- name: Create the group role that marks application logins
+  community.postgresql.postgresql_user:
+    login_unix_socket: /var/run/postgresql
+    login_db: postgres
+    name: "{{ postgresql_app_group }}"
+    role_attr_flags: NOLOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOREPLICATION
+  become: true
+  become_user: postgres
+
+- name: Create the application roles
+  community.postgresql.postgresql_user:
+    login_unix_socket: /var/run/postgresql
+    login_db: postgres
+    name: "{{ item.name }}"
+    password: "{{ lookup('ansible.builtin.env', 'PG_APP_' + (item.name | upper) + '_PASSWORD') }}"
+    role_attr_flags: LOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOREPLICATION
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true
+
+- name: Mark the application roles as application logins
+  community.postgresql.postgresql_membership:
+    login_unix_socket: /var/run/postgresql
+    login_db: postgres
+    groups: ["{{ postgresql_app_group }}"]
+    target_roles: ["{{ item.name }}"]
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create the application databases
+  community.postgresql.postgresql_db:
+    login_unix_socket: /var/run/postgresql
+    name: "{{ item.name }}"
+    owner: "{{ item.name }}"
+    encoding: UTF8
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Close each application database to every other role
+  community.postgresql.postgresql_privs:
+    login_unix_socket: /var/run/postgresql
+    login_db: "{{ item.name }}"
+    type: database
+    objs: "{{ item.name }}"
+    privs: CONNECT,TEMPORARY
+    roles: PUBLIC
+    state: absent
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_apps }}"
+  loop_control:
+    label: "{{ item.name }}"

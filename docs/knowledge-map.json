@@ -837,6 +837,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-015",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -942,6 +946,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-015",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -992,6 +1000,10 @@
         {
           "from": "TASK-017",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-018",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1038,7 +1050,8 @@
           "ARCH-platform",
           "ADR-011",
           "ADR-012",
-          "ADR-004"
+          "ADR-004",
+          "ADR-015"
         ],
         "related_milestones": [
           "M007",
@@ -1048,6 +1061,10 @@
       "backrefs": [
         {
           "from": "ADR-012",
+          "field": "related"
+        },
+        {
+          "from": "ADR-015",
           "field": "related"
         },
         {
@@ -1068,6 +1085,10 @@
         },
         {
           "from": "M011",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-018",
           "field": "related_decisions"
         }
       ]
@@ -1149,6 +1170,75 @@
         },
         {
           "from": "TASK-014",
+          "field": "related_decisions"
+        }
+      ]
+    },
+    {
+      "id": "ADR-015",
+      "title": "PostgreSQL runs on three Patroni VMs outside k3s",
+      "summary": "Operator decision 2026-11-17: the shared PostgreSQL platform is three Patroni VMs outside k3s with etcd and a virtual IP, not an operator inside k3s.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [
+        "postgresql",
+        "patroni",
+        "etcd",
+        "database",
+        "replication",
+        "failover"
+      ],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "accepted",
+      "path": "docs/decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md",
+      "tags": [
+        "decision",
+        "postgresql",
+        "patroni",
+        "database"
+      ],
+      "component": "database",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "ADR-015: PostgreSQL runs on three Patroni VMs outside k3s",
+        "Context",
+        "Decision",
+        "Alternatives considered",
+        "Consequences"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "ADR-013",
+          "ADR-012",
+          "ADR-011"
+        ],
+        "related_tasks": [
+          "TASK-018"
+        ],
+        "related_milestones": [
+          "M007"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-013",
+          "field": "related"
+        },
+        {
+          "from": "M007",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-018",
           "field": "related_decisions"
         }
       ]
@@ -1285,6 +1375,10 @@
         },
         {
           "from": "ADR-014",
+          "field": "related"
+        },
+        {
+          "from": "ADR-015",
           "field": "related"
         },
         {
@@ -1425,6 +1519,10 @@
         },
         {
           "from": "TASK-017",
+          "field": "related"
+        },
+        {
+          "from": "TASK-018",
           "field": "related"
         }
       ]
@@ -1647,6 +1745,10 @@
         {
           "from": "TASK-017",
           "field": "related"
+        },
+        {
+          "from": "TASK-018",
+          "field": "related"
         }
       ]
     },
@@ -1866,6 +1968,10 @@
         },
         {
           "from": "TASK-017",
+          "field": "related"
+        },
+        {
+          "from": "TASK-018",
           "field": "related"
         }
       ]
@@ -2521,7 +2627,7 @@
     {
       "id": "M007",
       "title": "PostgreSQL platform",
-      "summary": "The selected PostgreSQL operator runs a Patroni-managed primary on external NVMe-backed storage, with per-application databases and roles.",
+      "summary": "PostgreSQL 17 runs on three Patroni VMs outside k3s (one per Proxmox host) with automatic failover and a virtual IP; per-application databases and roles.",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -2530,7 +2636,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "completed",
       "path": "milestones/M007-postgresql-platform.md",
       "tags": [
         "roadmap"
@@ -2556,7 +2662,11 @@
           "ARCH-platform",
           "DOC-project-overview"
         ],
+        "related_tasks": [
+          "TASK-018"
+        ],
         "related_decisions": [
+          "ADR-015",
           "ADR-013",
           "ADR-012"
         ],
@@ -2574,8 +2684,16 @@
           "field": "related_milestones"
         },
         {
+          "from": "ADR-015",
+          "field": "related_milestones"
+        },
+        {
           "from": "M008",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-018",
+          "field": "milestone"
         }
       ]
     },
@@ -4100,6 +4218,81 @@
           "field": "related_tasks"
         }
       ]
+    },
+    {
+      "id": "TASK-018",
+      "title": "PostgreSQL platform: three Patroni VMs outside k3s with a virtual IP",
+      "summary": "Three Debian 13 VMs (pg-01..03 on pve-core, pve-lab, pve-infra) run PostgreSQL 17 under Patroni with etcd and a virtual IP; per-application databases and roles.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "completed",
+      "path": "tasks/TASK-018-postgresql-platform-three-patroni-vms-outside-k3s-with-a-vir.md",
+      "tags": [
+        "postgresql",
+        "patroni",
+        "etcd",
+        "opentofu",
+        "ansible"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": "M007",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-018 — PostgreSQL platform: three Patroni VMs outside k3s with a virtual IP",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "INV-new-proxmox-cluster-inventory",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-015",
+          "ADR-013",
+          "ADR-012"
+        ],
+        "related_implementations": [
+          "terraform/stacks/postgresql",
+          "ansible/roles/patroni_postgresql",
+          "ansible/playbooks/configure-postgresql.yml",
+          "ansible/vars/postgresql-apps.yml",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/postgresql.py",
+          "terraform/stacks/postgresql/tests/postgresql.tftest.hcl"
+        ],
+        "milestone": [
+          "M007"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-015",
+          "field": "related_tasks"
+        },
+        {
+          "from": "M007",
+          "field": "related_tasks"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -4120,7 +4313,8 @@
       "ADR-011",
       "ADR-012",
       "ADR-013",
-      "ADR-014"
+      "ADR-014",
+      "ADR-015"
     ],
     "guide": [
       "GUIDE-handoff"
@@ -4165,7 +4359,8 @@
       "TASK-014",
       "TASK-015",
       "TASK-016",
-      "TASK-017"
+      "TASK-017",
+      "TASK-018"
     ]
   },
   "by_tag": {
@@ -4180,7 +4375,8 @@
       "TASK-009",
       "TASK-014",
       "TASK-015",
-      "TASK-017"
+      "TASK-017",
+      "TASK-018"
     ],
     "architecture": [
       "ARCH-platform"
@@ -4227,7 +4423,8 @@
       "ADR-012"
     ],
     "database": [
-      "ADR-013"
+      "ADR-013",
+      "ADR-015"
     ],
     "decision": [
       "ADR-001",
@@ -4243,7 +4440,8 @@
       "ADR-011",
       "ADR-012",
       "ADR-013",
-      "ADR-014"
+      "ADR-014",
+      "ADR-015"
     ],
     "dependencies": [
       "TASK-003"
@@ -4253,6 +4451,9 @@
     ],
     "desktop": [
       "ADR-009"
+    ],
+    "etcd": [
+      "TASK-018"
     ],
     "flux": [
       "ADR-006"
@@ -4339,13 +4540,16 @@
       "TASK-008",
       "TASK-014",
       "TASK-015",
-      "TASK-017"
+      "TASK-017",
+      "TASK-018"
     ],
     "overview": [
       "DOC-project-overview"
     ],
     "patroni": [
-      "ADR-013"
+      "ADR-013",
+      "ADR-015",
+      "TASK-018"
     ],
     "pbs": [
       "TASK-004"
@@ -4364,7 +4568,9 @@
       "ARCH-platform"
     ],
     "postgresql": [
-      "ADR-013"
+      "ADR-013",
+      "ADR-015",
+      "TASK-018"
     ],
     "proxmox": [
       "ADR-002",

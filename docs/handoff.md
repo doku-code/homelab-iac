@@ -104,8 +104,16 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   `storage-01` (VM 350, 192.168.0.50, pve-core) exports NFS to the k3s nodes; **user data uses
   `storageClassName: nvme-shared`** (Retain), app data may use the default `local-path`. One host, one disk,
   no backup yet. After a k3s rebuild: `make storage-csi-deploy` and `make headlamp-deploy`.
-- **Operator roadmap (2026-11-17), remaining, in order:** PostgreSQL (3 replicas with failover, outside k3s, shared by all apps) →
-  Phase (migrate every Infisical key, then shut Infisical down) → lean Grafana/Prometheus/Loki/Alloy.
+- **M007 completed** 2026-11-17 ([TASK-018](../tasks/TASK-018-postgresql-platform-three-patroni-vms-outside-k3s-with-a-vir.md),
+  [ADR-015](decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md)): shared PostgreSQL 17 on
+  `pg-01` (VM 361, .61, pve-core), `pg-02` (VM 362, .62, pve-lab), `pg-03` (VM 363, .63, pve-infra) under
+  Patroni with automatic failover. **Applications connect to `192.168.0.60:5432` with `sslmode=require`**,
+  from the k3s nodes only. New application database: add the name to `ansible/vars/postgresql-apps.yml`,
+  store `PG_APP_<NAME>_PASSWORD` in the secret store path `/postgresql`, run `make postgresql-configure`.
+  State of the cluster: `make postgresql-status`. No database backups yet (M012).
+- **Operator roadmap (2026-11-17), remaining, in order:** Phase (uses the shared PostgreSQL; migrate every
+  Infisical key, then shut Infisical down — ask the operator before the shutdown) → lean
+  Grafana/Prometheus/Loki/Alloy.
 
 ## Commands
 

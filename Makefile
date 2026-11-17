@@ -780,3 +780,72 @@ storage-csi-deploy:
 	@test "$(STORAGE_CSI_DEPLOY_APPROVED)" = yes || (echo "Approve the CSI deployment with STORAGE_CSI_DEPLOY_APPROVED=yes" >&2; exit 1)
 	helm upgrade --install csi-driver-nfs csi-driver-nfs --repo $(STORAGE_CSI_REPO) --version $(STORAGE_CSI_CHART_VERSION) --namespace kube-system -f services/storage/values.yaml --kube-context doku-lab --wait --timeout 5m
 	kubectl --context doku-lab apply -f services/storage/storageclass.yaml
+
+# ─────────────────────────────────────────────
+# Shared PostgreSQL platform (M007, ADR-015): pg-01..03, one per Proxmox host, outside k3s. PostgreSQL 17
+# under Patroni with etcd and a virtual IP (192.168.0.60). Same gates as the other workstation roots.
+# The VMs hold data: prevent_destroy, no replace target.
+# ─────────────────────────────────────────────
+
+POSTGRESQL_DIR := terraform/stacks/postgresql
+POSTGRESQL_PLAN := postgresql.tfplan
+
+.PHONY: postgresql-check postgresql-plan postgresql-apply postgresql-hostkeys postgresql-configure postgresql-status
+
+# Offline only: no credentials, no backend, mocked provider.
+postgresql-check:
+	@set -euo pipefail; d="$(DEPLOY_RUNNER_CHECK_DATA)/postgresql"; mkdir -p "$$d"; \
+	$(TOFU) -chdir=$(POSTGRESQL_DIR) fmt -check -recursive; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(POSTGRESQL_DIR) init -backend=false -input=false -lockfile=readonly -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(POSTGRESQL_DIR) validate -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(POSTGRESQL_DIR) test -no-color | tail -n 1
+	$(ANSIBLE) ansible/playbooks/configure-postgresql.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(VENV)/bin/python tests/postgresql.py
+
+postgresql-plan:
+	@test "$(POSTGRESQL_ALLOCATION_REVIEWED)" = yes || (echo "Confirm the allocation in $(POSTGRESQL_DIR)/terraform.tfvars, then set POSTGRESQL_ALLOCATION_REVIEWED=yes" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@test -f "$(POSTGRESQL_DIR)/terraform.tfvars" || (echo "Create the private $(POSTGRESQL_DIR)/terraform.tfvars from terraform.tfvars.example" >&2; exit 1)
+	@test -f "$(POSTGRESQL_DIR)/terraform.tfstate" || test "$(POSTGRESQL_NEW_STATE)" = yes || (echo "No $(POSTGRESQL_DIR)/terraform.tfstate here. Only the first creation starts from an empty state (POSTGRESQL_NEW_STATE=yes); otherwise copy the state from the workstation that holds it." >&2; exit 1)
+	@test ! -e "$(POSTGRESQL_DIR)/$(POSTGRESQL_PLAN)" || mv -f "$(POSTGRESQL_DIR)/$(POSTGRESQL_PLAN)" "$(POSTGRESQL_DIR)/postgresql.previous.tfplan"
+	$(TOFU) -chdir=$(POSTGRESQL_DIR) init -input=false -lockfile=readonly
+	$(call MGMT_RUN,$(TOFU) -chdir=$(POSTGRESQL_DIR) plan -input=false -out=$(POSTGRESQL_PLAN))
+	@shasum -a 256 "$(POSTGRESQL_DIR)/$(POSTGRESQL_PLAN)"
+
+# Mutates the doku-lab cluster (pg-01..03): only with explicit approval of the exact saved plan.
+postgresql-apply:
+	@test "$(POSTGRESQL_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: POSTGRESQL_APPLY_APPROVED=yes" >&2; exit 1)
+	@test -n "$(POSTGRESQL_PLAN_SHA256)" || (echo "Supply POSTGRESQL_PLAN_SHA256 as printed by make postgresql-plan" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@printf '%s  %s\n' '$(POSTGRESQL_PLAN_SHA256)' '$(POSTGRESQL_DIR)/$(POSTGRESQL_PLAN)' | shasum -a 256 -c
+	$(call MGMT_RUN,$(TOFU) -chdir=$(POSTGRESQL_DIR) apply -input=false $(POSTGRESQL_PLAN))
+	@mv -f "$(POSTGRESQL_DIR)/$(POSTGRESQL_PLAN)" "$(POSTGRESQL_DIR)/postgresql.applied.tfplan"
+	@chmod 0600 "$(POSTGRESQL_DIR)/terraform.tfstate"
+	@echo "State updated locally: $(POSTGRESQL_DIR)/terraform.tfstate (this workstation only, never in Git)"
+
+postgresql-hostkeys:
+	@set -euo pipefail; \
+	$(TOFU) -chdir=$(POSTGRESQL_DIR) output -json ansible_inventory | \
+	jq -r '{"pve-core":"192.168.0.11","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.postgresql.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
+
+# Configures etcd, Patroni, the virtual IP and the application databases. Credentials come from the
+# environment only, e.g.
+#   infisical run --silent --env dev --path /postgresql -- make postgresql-configure POSTGRESQL_CONFIGURE_APPROVED=yes
+postgresql-configure:
+	@test "$(POSTGRESQL_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of the PostgreSQL members with POSTGRESQL_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@test -n "$${PG_SUPERUSER_PASSWORD:-}" || { echo "Set PG_SUPERUSER_PASSWORD and the other PG_* credentials in the environment (secret store path /postgresql)" >&2; exit 1; }
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/postgresql-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
+	$(TOFU) -chdir=$(POSTGRESQL_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-postgresql.yml --diff
+
+# Read-only: members, roles, replication lag, and which member holds the virtual IP.
+postgresql-status:
+	@set -euo pipefail; \
+	$(TOFU) -chdir=$(POSTGRESQL_DIR) output -json ansible_inventory | \
+	jq -r '.all.children.postgresql as $$g | $$g.hosts | to_entries[] | "\(.key) \(.value.ansible_user)@\(.value.ansible_host) \($$g.vars.patroni_virtual_ip)"' | \
+	{ listed=no; while read -r name target vip; do \
+	  if [ "$$listed" = no ] && ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$$target" 'sudo -u postgres patronictl -c /etc/patroni/config.yml list' 2>/dev/null; then listed=yes; fi; \
+	  ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$$target" "ip -4 -o addr show | grep -q ' $$vip/' && echo 'virtual IP $$vip: $$name' || true" 2>/dev/null || echo "$$name: unreachable"; \
+	done; }

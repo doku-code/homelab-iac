@@ -1,0 +1,15 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (role patroni_postgresql). Own table only: etcd (2379, 2380) and the Patroni API (8008)
+# for the members, PostgreSQL (5432) for the members and the k3s nodes, nobody else.
+table inet postgresql
+delete table inet postgresql
+table inet postgresql {
+  chain input {
+    type filter hook input priority 0; policy accept;
+    iifname "lo" accept
+    ct state established,related accept
+    ip saddr { {{ patroni_member_addresses | join(', ') }} } tcp dport { 2379, 2380, 5432, 8008 } accept
+    ip saddr { {{ patroni_clients | join(', ') }} } tcp dport 5432 accept
+    tcp dport { 2379, 2380, 5432, 8008 } drop
+  }
+}

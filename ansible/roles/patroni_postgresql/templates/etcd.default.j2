@@ -1,0 +1,12 @@
+# Managed by Ansible (role patroni_postgresql). Patroni's consensus store: one member per PostgreSQL VM.
+ETCD_NAME={{ inventory_hostname }}
+ETCD_DATA_DIR={{ patroni_etcd_data_dir }}
+ETCD_LISTEN_PEER_URLS=http://{{ ansible_host }}:2380
+ETCD_LISTEN_CLIENT_URLS=http://{{ ansible_host }}:2379,http://127.0.0.1:2379
+ETCD_INITIAL_ADVERTISE_PEER_URLS=http://{{ ansible_host }}:2380
+ETCD_ADVERTISE_CLIENT_URLS=http://{{ ansible_host }}:2379
+ETCD_INITIAL_CLUSTER={{ patroni_etcd_initial_cluster }}
+ETCD_INITIAL_CLUSTER_TOKEN={{ patroni_scope }}
+ETCD_INITIAL_CLUSTER_STATE=new
+ETCD_AUTO_COMPACTION_MODE=periodic
+ETCD_AUTO_COMPACTION_RETENTION=1h
