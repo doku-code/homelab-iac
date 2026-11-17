@@ -358,6 +358,17 @@ def test_make_guards():
         assert ssh_log.rstrip().endswith(sha)
 
 
+def test_runner_roots():
+    """Roots the runner applies with its pool-scoped token must stay creatable under that token."""
+    defaults = yaml.safe_load((ROLE / "defaults/main.yml").read_text())
+    for root in defaults["deploy_runner_roots"]:
+        source = "\n".join(p.read_text() for p in (ROOT / "terraform/stacks" / root).glob("*.tf"))
+        assert 'pool_id' in source, f"{root}: guests must be placed in the runner's pool"
+        # Proxmox checks tag permissions on /vms/<id> without the pool (GuestHelpers::assert_tag_permissions):
+        # a tagged guest fails with 403 VM.Config.Options (Forgejo run 88, 2026-11-17).
+        assert not re.search(r"^\s*tags\s*=", source, re.M), f"{root}: no tags on runner-created guests"
+
+
 def main():
     wrapper = load_wrapper()
     test_wrapper_validation(wrapper)
@@ -366,6 +377,7 @@ def main():
     test_role()
     test_workflows()
     test_make_guards()
+    test_runner_roots()
     print("PASS: deploy runner wrapper (main-only, exact plan), role credentials, workflow boundary, Make guards")
 
 

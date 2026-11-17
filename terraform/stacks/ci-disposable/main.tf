@@ -6,12 +6,13 @@ provider "proxmox" {
 }
 
 resource "proxmox_virtual_environment_vm" "probe" {
-  node_name           = var.node
-  vm_id               = var.vm_id
-  name                = "ci-disposable-${var.vm_id}"
-  description         = "Disposable CI probe. Managed by the deployment runner (homelab-iac terraform/stacks/ci-disposable); safe to destroy."
-  pool_id             = var.pool
-  tags                = ["terraform", "ci-disposable"]
+  node_name   = var.node
+  vm_id       = var.vm_id
+  name        = "ci-disposable-${var.vm_id}"
+  description = "Disposable CI probe. Managed by the deployment runner (homelab-iac terraform/stacks/ci-disposable); safe to destroy."
+  pool_id     = var.pool
+  # No tags: Proxmox checks tag permissions on /vms/<id> without the pool (GuestHelpers::assert_tag_permissions),
+  # so a pool-scoped token cannot create a tagged guest. The pool, name and description identify the probe.
   started             = false
   on_boot             = false
   reboot_after_update = false
