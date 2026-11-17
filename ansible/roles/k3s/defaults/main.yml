@@ -1,0 +1,17 @@
+---
+# k3s on doku-lab (ADR-011, M004). Same verified pin as the legacy Stage A role (ansible/vars/k3s-stage-a.yml).
+k3s_version: v1.35.8+k3s1
+k3s_sha256: 12f81c9bb5b71e098a4f7a2d187e350902a9339a6c3d5e56c20a03f7a417e07f
+
+# Shared cluster secret: from the controller environment (Infisical dev:/k3s K3S_TOKEN), never from Git.
+k3s_token: "{{ lookup('ansible.builtin.env', 'K3S_TOKEN') }}"
+
+# The first server (OpenTofu output k3s_init_node) initialises embedded etcd; later servers join it.
+k3s_init_node: "{{ groups['k3s_cluster'] | sort | first }}"
+k3s_role: server
+k3s_api_url: "https://{{ hostvars[k3s_init_node].ansible_host }}:6443"
+
+# Ingress and load balancing (M004 decision): keep the bundled Traefik and ServiceLB for now.
+k3s_disable: []
+k3s_cluster_cidr: 10.42.0.0/16
+k3s_service_cidr: 10.43.0.0/16

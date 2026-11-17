@@ -1,0 +1,83 @@
+---
+# k3s cluster on doku-lab (ADR-011, M004). Run through `make k3s-cluster-configure` from the operator
+# workstation: the inventory comes from the OpenTofu outputs of terraform/stacks/k3s, the cluster token from
+# the controller environment (Infisical dev:/k3s K3S_TOKEN). Servers converge one at a time, the
+# cluster-init server first.
+- name: Configure k3s nodes
+  hosts: k3s_cluster
+  become: true
+  gather_facts: true
+  serial: 1
+  order: sorted
+  any_errors_fatal: true
+  force_handlers: true
+  vars:
+    stage_a_hostname: "{{ inventory_hostname }}"
+  pre_tasks:
+    - name: Converge the cluster-init server first
+      ansible.builtin.assert:
+        that:
+          - k3s_init_node in groups['k3s_cluster']
+          - k3s_init_node == (groups['k3s_cluster'] | sort | first)
+      run_once: true
+  roles:
+    - headless_baseline
+    - k3s
+  tasks:
+    - name: Keep SSH key-only and without root login
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/10-homelab.conf
+        content: |
+          # Managed by Ansible (configure-k3s.yml)
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PermitRootLogin no
+        owner: root
+        group: root
+        mode: "0644"
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Reload SSH
+  handlers:
+    - name: Reload SSH
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: reloaded
+
+- name: Hand the admin kubeconfig to the operator workstation
+  hosts: k3s_cluster
+  become: true
+  gather_facts: false
+  vars:
+    k3s_kubeconfig_dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.kube/config"
+    k3s_kubeconfig_context: doku-lab
+  tasks:
+    - name: Only the cluster-init server hands out the kubeconfig
+      ansible.builtin.meta: end_host
+      when: inventory_hostname != k3s_init_node
+
+    - name: Read the admin kubeconfig from the cluster-init server
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: k3s_admin_kubeconfig
+      no_log: true
+
+    - name: Create the workstation kube directory
+      ansible.builtin.file:
+        path: "{{ k3s_kubeconfig_dest | dirname }}"
+        state: directory
+        mode: "0700"
+      delegate_to: localhost
+      become: false
+
+    - name: Write the admin kubeconfig on the workstation (API by IP, context doku-lab)
+      ansible.builtin.copy:
+        dest: "{{ k3s_kubeconfig_dest }}"
+        content: >-
+          {{ (k3s_admin_kubeconfig.content | b64decode)
+             | replace('https://127.0.0.1:6443', 'https://' + ansible_host + ':6443')
+             | regex_replace('(?m)^(\s*(name|cluster|user|current-context):\s*)default$', '\g<1>' + k3s_kubeconfig_context) }}
+        mode: "0600"
+      delegate_to: localhost
+      become: false
+      no_log: true
+      diff: false

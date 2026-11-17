@@ -1,0 +1,24 @@
+# Managed by Ansible (role k3s).
+[Unit]
+Description=k3s {{ k3s_role }} ({{ k3s_version }})
+Documentation=https://docs.k3s.io
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type={{ 'notify' if k3s_role == 'server' else 'exec' }}
+ExecStartPre=-/sbin/modprobe br_netfilter
+ExecStartPre=-/sbin/modprobe overlay
+ExecStart=/usr/local/bin/k3s {{ 'server' if k3s_role == 'server' else 'agent' }} --config /etc/rancher/k3s/config.yaml
+KillMode=process
+Delegate=yes
+LimitNOFILE=1048576
+LimitNPROC=infinity
+LimitCORE=infinity
+TasksMax=infinity
+TimeoutStartSec=0
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

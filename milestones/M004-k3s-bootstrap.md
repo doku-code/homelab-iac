@@ -3,12 +3,12 @@ id: M004
 title: "k3s bootstrap"
 summary: "The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl."
 type: milestone
-status: planned
+status: active
 priority: high
 created: 2026-11-12
-updated: 2026-11-16
+updated: 2026-11-17
 tags: [roadmap]
-related_tasks: []
+related_tasks: [TASK-015]
 related_decisions: [ADR-011]
 related: [ARCH-platform, DOC-project-overview, INV-new-proxmox-cluster-inventory]
 depends_on: [M002]

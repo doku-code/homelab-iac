@@ -20,7 +20,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ID | Status | Priority | Title | Tasks | Summary |
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
-| M004 | planned | high | [k3s bootstrap](../milestones/M004-k3s-bootstrap.md) | none | The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl. |
+| M004 | active | high | [k3s bootstrap](../milestones/M004-k3s-bootstrap.md) | in-progress: 1 | The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl. |
 | M005 | planned | high | [Headlamp](../milestones/M005-headlamp.md) | none | Headlamp is deployed with its official Helm chart, RBAC-based authentication and network restriction, and shows nodes, workloads, storage objects, events and logs. |
 | M006 | planned | high | [External NVMe-backed storage](../milestones/M006-external-nvme-storage.md) | none | Kubernetes provisions PVCs through CSI from an NVMe-backed storage service outside k3s; data survives pod and k3s VM replacement; the failure domain is documented. |
 | M007 | planned | high | [PostgreSQL platform](../milestones/M007-postgresql-platform.md) | none | The selected PostgreSQL operator runs a Patroni-managed primary on external NVMe-backed storage, with per-application databases and roles. |
@@ -39,6 +39,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 |----|--------|----------|-----------|-------|---------|
 | TASK-001 | in-progress | critical | M000 | [Reset repository to the agent harness and record the rebuild direction](../tasks/TASK-001-repository-reset-and-alignment.md) | Install the agent harness, archive the legacy Codex workflow, and document vision, architecture, decisions and roadmap. |
 | TASK-006 | in-progress | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](../tasks/TASK-006-target-layout-and-service-contract.md) | Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check). |
+| TASK-015 | in-progress | high | M004 | [k3s cluster on doku-lab: first server on pve-lab](../tasks/TASK-015-k3s-cluster-on-doku-lab-first-server-on-pve-lab.md) | terraform/stacks/k3s VMs (for_each, rebuildable), k3s role with embedded etcd, token in Infisical /k3s, host keys pinned out-of-band, workstation kubeconfig (ADR-011). |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -103,7 +104,7 @@ _No commit records. Generate with `harness history sync`._
 
 - **access**: TASK-007
 - **age**: ADR-004, TASK-011
-- **ansible**: TASK-009, TASK-014
+- **ansible**: TASK-009, TASK-014, TASK-015
 - **architecture**: ARCH-platform
 - **archive**: ADR-007
 - **argocd**: ADR-006, ADR-011
@@ -131,7 +132,7 @@ _No commit records. Generate with `harness history sync`._
 - **infisical**: ADR-004
 - **inventory**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, TASK-002, TASK-003
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
-- **k3s**: ADR-006, ADR-011
+- **k3s**: ADR-006, ADR-011, TASK-015
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
 - **legacy**: ADR-007, INV-legacy-inventory
@@ -140,7 +141,7 @@ _No commit records. Generate with `harness history sync`._
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, TASK-005
 - **nvme**: ADR-012
-- **opentofu**: ADR-003, TASK-006, TASK-008, TASK-014
+- **opentofu**: ADR-003, TASK-006, TASK-008, TASK-014, TASK-015
 - **overview**: DOC-project-overview
 - **patroni**: ADR-013
 - **pbs**: TASK-004

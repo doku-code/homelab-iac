@@ -625,3 +625,66 @@ deploy-runner-approve:
 	@printf '%s' "$(DEPLOY_PLAN_SHA256)" | grep -Eq '^[0-9a-f]{64}$$' || (echo "Set DEPLOY_PLAN_SHA256 to the PLAN_SHA256 shown by make deploy-runner-review" >&2; exit 1)
 	printf '%s\n' "$(DEPLOY_PLAN_SHA256)" | $(DEPLOY_RUNNER_SSH) "sudo -n sh -c 'umask 022; cat > /etc/homelab-deploy/approvals/$(DEPLOY_ROOT).sha256'"
 	@echo "Approved $(DEPLOY_PLAN_SHA256) for $(DEPLOY_ROOT); dispatch Deploy → apply with this SHA256."
+
+# ─────────────────────────────────────────────
+# k3s cluster on doku-lab (M004, ADR-011, OpenTofu + Ansible)
+# VMs from terraform/stacks/k3s, applied from the operator workstation with the same token and gates as
+# mgmt-*; k3s from ansible/playbooks/configure-k3s.yml with K3S_TOKEN from Infisical dev:/k3s.
+# Rebuild one node from IaC: k3s-cluster-plan K3S_CLUSTER_REPLACE=<name>, apply, hostkeys, configure.
+# ─────────────────────────────────────────────
+
+K3S_CLUSTER_DIR := terraform/stacks/k3s
+K3S_CLUSTER_PLAN := k3s.tfplan
+K3S_CLUSTER_REPLACE ?=
+
+.PHONY: k3s-cluster-check k3s-cluster-plan k3s-cluster-apply k3s-cluster-hostkeys k3s-cluster-configure
+
+# Offline only: no credentials, no backend, mocked provider.
+k3s-cluster-check:
+	@set -euo pipefail; d="$(DEPLOY_RUNNER_CHECK_DATA)/k3s"; mkdir -p "$$d"; \
+	$(TOFU) -chdir=$(K3S_CLUSTER_DIR) fmt -check -recursive; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(K3S_CLUSTER_DIR) init -backend=false -input=false -lockfile=readonly -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(K3S_CLUSTER_DIR) validate -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(K3S_CLUSTER_DIR) test -no-color | tail -n 1
+	$(ANSIBLE) ansible/playbooks/configure-k3s.yml --syntax-check -i ansible/inventories/homelab.yml
+	bash -n scripts/pin-guest-hostkey.sh
+	$(VENV)/bin/python tests/k3s-cluster.py
+
+k3s-cluster-plan:
+	@test "$(K3S_CLUSTER_ALLOCATION_REVIEWED)" = yes || (echo "Confirm the allocation in $(K3S_CLUSTER_DIR)/terraform.tfvars, then set K3S_CLUSTER_ALLOCATION_REVIEWED=yes" >&2; exit 1)
+	@test -z "$(K3S_CLUSTER_REPLACE)" || printf '%s' "$(K3S_CLUSTER_REPLACE)" | grep -Eq '^k3s-(server|agent)-[0-9]{2}$$' || (echo "K3S_CLUSTER_REPLACE must name one k3s VM, e.g. k3s-server-01" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@test -f "$(K3S_CLUSTER_DIR)/terraform.tfvars" || (echo "Create the private $(K3S_CLUSTER_DIR)/terraform.tfvars from terraform.tfvars.example" >&2; exit 1)
+	@test -f "$(K3S_CLUSTER_DIR)/terraform.tfstate" || test "$(K3S_CLUSTER_NEW_STATE)" = yes || (echo "No $(K3S_CLUSTER_DIR)/terraform.tfstate here. Only the first creation starts from an empty state (K3S_CLUSTER_NEW_STATE=yes); otherwise copy the state from the workstation that holds it." >&2; exit 1)
+	@test ! -e "$(K3S_CLUSTER_DIR)/$(K3S_CLUSTER_PLAN)" || mv -f "$(K3S_CLUSTER_DIR)/$(K3S_CLUSTER_PLAN)" "$(K3S_CLUSTER_DIR)/k3s.previous.tfplan"
+	$(TOFU) -chdir=$(K3S_CLUSTER_DIR) init -input=false -lockfile=readonly
+	$(call MGMT_RUN,$(TOFU) -chdir=$(K3S_CLUSTER_DIR) plan -input=false -out=$(K3S_CLUSTER_PLAN) $(if $(K3S_CLUSTER_REPLACE),'-replace=proxmox_virtual_environment_vm.node["$(K3S_CLUSTER_REPLACE)"]'))
+	@shasum -a 256 "$(K3S_CLUSTER_DIR)/$(K3S_CLUSTER_PLAN)"
+
+# Mutates the doku-lab cluster (k3s VMs): only with explicit approval of the exact saved plan.
+k3s-cluster-apply:
+	@test "$(K3S_CLUSTER_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: K3S_CLUSTER_APPLY_APPROVED=yes" >&2; exit 1)
+	@test -n "$(K3S_CLUSTER_PLAN_SHA256)" || (echo "Supply K3S_CLUSTER_PLAN_SHA256 as printed by make k3s-cluster-plan" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@printf '%s  %s\n' '$(K3S_CLUSTER_PLAN_SHA256)' '$(K3S_CLUSTER_DIR)/$(K3S_CLUSTER_PLAN)' | shasum -a 256 -c
+	$(call MGMT_RUN,$(TOFU) -chdir=$(K3S_CLUSTER_DIR) apply -input=false $(K3S_CLUSTER_PLAN))
+	@mv -f "$(K3S_CLUSTER_DIR)/$(K3S_CLUSTER_PLAN)" "$(K3S_CLUSTER_DIR)/k3s.applied.tfplan"
+	@chmod 0600 "$(K3S_CLUSTER_DIR)/terraform.tfstate"
+	@echo "State updated locally: $(K3S_CLUSTER_DIR)/terraform.tfstate (this workstation only, never in Git)"
+
+# Pins each k3s VM's SSH host key once the network and the VM's own disk agree (new or rebuilt VMs).
+k3s-cluster-hostkeys:
+	@set -euo pipefail; \
+	$(TOFU) -chdir=$(K3S_CLUSTER_DIR) output -json ansible_inventory | \
+	jq -r '{"pve-management":"192.168.0.10","pve-core":"192.168.0.11","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.k3s_cluster.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
+
+# Configures k3s. The token comes from the environment only, e.g.
+#   infisical run --silent --env dev --path /k3s -- make k3s-cluster-configure K3S_CLUSTER_CONFIGURE_APPROVED=yes
+k3s-cluster-configure:
+	@test "$(K3S_CLUSTER_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of the k3s nodes with K3S_CLUSTER_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@test -n "$${K3S_TOKEN:-}" || { echo "Set K3S_TOKEN in the environment (Infisical dev:/k3s)" >&2; exit 1; }
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/k3s-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
+	$(TOFU) -chdir=$(K3S_CLUSTER_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-k3s.yml --diff

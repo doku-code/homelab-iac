@@ -228,6 +228,10 @@
         {
           "from": "TASK-014",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-015",
+          "field": "related_decisions"
         }
       ]
     },
@@ -580,6 +584,10 @@
         {
           "from": "TASK-014",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-015",
+          "field": "related_decisions"
         }
       ]
     },
@@ -851,6 +859,10 @@
         {
           "from": "M010",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-015",
+          "field": "related_decisions"
         }
       ]
     },
@@ -963,6 +975,10 @@
         },
         {
           "from": "TASK-013",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-015",
           "field": "related_decisions"
         }
       ]
@@ -1386,6 +1402,10 @@
         {
           "from": "TASK-014",
           "field": "related"
+        },
+        {
+          "from": "TASK-015",
+          "field": "related"
         }
       ]
     },
@@ -1594,6 +1614,10 @@
         },
         {
           "from": "TASK-014",
+          "field": "related"
+        },
+        {
+          "from": "TASK-015",
           "field": "related"
         }
       ]
@@ -1806,6 +1830,10 @@
         },
         {
           "from": "TASK-014",
+          "field": "related"
+        },
+        {
+          "from": "TASK-015",
           "field": "related"
         }
       ]
@@ -2259,7 +2287,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "active",
       "path": "milestones/M004-k3s-bootstrap.md",
       "tags": [
         "roadmap"
@@ -2286,6 +2314,9 @@
           "DOC-project-overview",
           "INV-new-proxmox-cluster-inventory"
         ],
+        "related_tasks": [
+          "TASK-015"
+        ],
         "related_decisions": [
           "ADR-011"
         ],
@@ -2309,6 +2340,10 @@
         {
           "from": "M006",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-015",
+          "field": "milestone"
         }
       ]
     },
@@ -3816,6 +3851,76 @@
           "field": "related_tasks"
         }
       ]
+    },
+    {
+      "id": "TASK-015",
+      "title": "k3s cluster on doku-lab: first server on pve-lab",
+      "summary": "terraform/stacks/k3s VMs (for_each, rebuildable), k3s role with embedded etcd, token in Infisical /k3s, host keys pinned out-of-band, workstation kubeconfig (ADR-011).",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-015-k3s-cluster-on-doku-lab-first-server-on-pve-lab.md",
+      "tags": [
+        "k3s",
+        "opentofu",
+        "ansible"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": "M004",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-015 — k3s cluster on doku-lab: first server on pve-lab",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "INV-new-proxmox-cluster-inventory",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-011",
+          "ADR-012",
+          "ADR-008",
+          "ADR-003"
+        ],
+        "related_implementations": [
+          "terraform/stacks/k3s",
+          "ansible/roles/k3s",
+          "ansible/playbooks/configure-k3s.yml",
+          "scripts/pin-guest-hostkey.sh",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/k3s-cluster.py",
+          "terraform/stacks/k3s/tests/k3s.tftest.hcl"
+        ],
+        "milestone": [
+          "M004"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M004",
+          "field": "related_tasks"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -3878,7 +3983,8 @@
       "TASK-011",
       "TASK-012",
       "TASK-013",
-      "TASK-014"
+      "TASK-014",
+      "TASK-015"
     ]
   },
   "by_tag": {
@@ -3891,7 +3997,8 @@
     ],
     "ansible": [
       "TASK-009",
-      "TASK-014"
+      "TASK-014",
+      "TASK-015"
     ],
     "architecture": [
       "ARCH-platform"
@@ -4007,7 +4114,8 @@
     ],
     "k3s": [
       "ADR-006",
-      "ADR-011"
+      "ADR-011",
+      "TASK-015"
     ],
     "kubernetes": [
       "ADR-006",
@@ -4041,7 +4149,8 @@
       "ADR-003",
       "TASK-006",
       "TASK-008",
-      "TASK-014"
+      "TASK-014",
+      "TASK-015"
     ],
     "overview": [
       "DOC-project-overview"
