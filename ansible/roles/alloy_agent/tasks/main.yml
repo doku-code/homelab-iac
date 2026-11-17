@@ -1,0 +1,116 @@
+---
+- name: Create the apt keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the Grafana apt key (pinned by SHA256)
+  ansible.builtin.get_url:
+    url: "{{ alloy_agent_apt_key_url }}"
+    dest: /etc/apt/keyrings/grafana.asc
+    checksum: "sha256:{{ alloy_agent_apt_key_sha256 }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Add the Grafana apt repository
+  ansible.builtin.deb822_repository:
+    name: grafana
+    types: [deb]
+    uris: https://apt.grafana.com
+    suites: [stable]
+    components: [main]
+    signed_by: /etc/apt/keyrings/grafana.asc
+
+- name: Install the pinned Alloy package
+  ansible.builtin.apt:
+    name: "alloy={{ alloy_agent_version }}"
+    state: present
+    update_cache: true
+    allow_downgrade: true
+
+- name: Keep unattended upgrades from moving Alloy off the pinned version
+  ansible.builtin.dpkg_selections:
+    name: alloy
+    selection: hold
+
+- name: Let Alloy read the systemd journal
+  ansible.builtin.user:
+    name: alloy
+    groups: [systemd-journal, adm]
+    append: true
+  notify: Restart Alloy
+
+- name: Resolve the ingestion names without DNS
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\s{{ item | regex_escape }}$'
+    line: "{{ alloy_agent_ingest_address }} {{ item }}"
+  loop:
+    - "{{ alloy_agent_metrics_host }}"
+    - "{{ alloy_agent_logs_host }}"
+
+- name: Run Alloy without usage reporting
+  ansible.builtin.copy:
+    dest: /etc/default/alloy
+    content: |
+      # Managed by Ansible (role alloy_agent)
+      CONFIG_FILE="/etc/alloy/config.alloy"
+      CUSTOM_ARGS="--disable-reporting"
+      RESTART_ON_UPGRADE=true
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Alloy
+
+- name: Find the PostgreSQL primary
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:8008/primary"
+    status_code: [200, 503]
+  register: alloy_agent_patroni_primary
+  when: alloy_agent_postgresql | bool
+
+# On the primary only (replicas receive the role by replication). Login without a password: only the local
+# socket accepts it (peer authentication for the OS user alloy); pg_monitor is read-only statistics access.
+- name: Create the read-only monitoring role
+  community.postgresql.postgresql_user:
+    login_unix_socket: /var/run/postgresql
+    login_db: postgres
+    name: "{{ alloy_agent_postgresql_role }}"
+    role_attr_flags: LOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOREPLICATION
+  become: true
+  become_user: postgres
+  when:
+    - alloy_agent_postgresql | bool
+    - alloy_agent_patroni_primary.status == 200
+
+- name: Grant the monitoring role read access to statistics
+  community.postgresql.postgresql_membership:
+    login_unix_socket: /var/run/postgresql
+    login_db: postgres
+    groups: [pg_monitor]
+    target_roles: ["{{ alloy_agent_postgresql_role }}"]
+  become: true
+  become_user: postgres
+  when:
+    - alloy_agent_postgresql | bool
+    - alloy_agent_patroni_primary.status == 200
+
+- name: Write the Alloy configuration
+  ansible.builtin.template:
+    src: config.alloy.j2
+    dest: /etc/alloy/config.alloy
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/bin/alloy fmt %s
+  notify: Restart Alloy
+
+- name: Enable and start Alloy
+  ansible.builtin.systemd_service:
+    name: alloy
+    enabled: true
+    state: started

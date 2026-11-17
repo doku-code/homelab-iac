@@ -77,6 +77,11 @@ verification:
     detected: false
     verified: true
     description: Renders the pinned Phase chart and tests scripts/secrets.py with fake stores (workstation only; needs helm, the chart download and age)
+  - name: observability-check
+    run: make observability-check
+    detected: false
+    verified: true
+    description: Renders the four pinned observability charts, checks allow-lists against dashboard and alert queries, routes and agent templates (workstation only; needs helm and the chart downloads)
   - name: headlamp-check
     run: make headlamp-check
     detected: false

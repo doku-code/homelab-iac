@@ -1,0 +1,61 @@
+# Loki (lean observability, TASK-020): one process, files on the node, seven days of logs. No caches, no
+# canary, no gateway: at this size they only cost memory.
+deploymentMode: SingleBinary
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2026-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  limits_config:
+    retention_period: 168h
+    ingestion_rate_mb: 8
+    ingestion_burst_size_mb: 16
+    max_global_streams_per_user: 5000
+  compactor:
+    retention_enabled: true
+    delete_request_store: filesystem
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path # logs are rebuildable runtime data, not user data
+  resources:
+    requests: {cpu: 50m, memory: 256Mi}
+    limits: {cpu: 1000m, memory: 768Mi}
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+lokiCanary:
+  enabled: false
+test:
+  enabled: false
+gateway:
+  enabled: false
+minio:
+  enabled: false
+monitoring:
+  selfMonitoring:
+    enabled: false
+    grafanaAgent:
+      installOperator: false
+sidecar:
+  rules:
+    enabled: false

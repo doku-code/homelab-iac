@@ -1,0 +1,10 @@
+---
+# Alloy on every managed VM (lean observability, TASK-020). Run through `make observability-agents` from the
+# operator workstation; the inventories come from the OpenTofu outputs of the k3s, postgresql, storage and
+# deploy-runner roots. No secrets involved.
+- name: Install and configure the Alloy agent on the managed VMs
+  hosts: k3s_cluster:postgresql:storage:deploy_runner
+  become: true
+  gather_facts: true
+  roles:
+    - alloy_agent

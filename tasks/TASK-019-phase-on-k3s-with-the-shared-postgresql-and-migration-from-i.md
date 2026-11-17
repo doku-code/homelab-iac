@@ -58,13 +58,15 @@ shut down (operator direction 2026-11-17; the shutdown itself needs the operator
 
 ## Inventory (Infisical project Homelab-IaC, environment `dev`; `staging` and `prod` are empty)
 
-36 keys, all to be copied to the Phase app `homelab-iac`, environment Development, same paths.
+38 keys (36 at the first inventory, plus the two Grafana passwords), all to be copied to the Phase app `homelab-iac`,
+environment Development, same paths.
 
 | Path | Keys | Used by | State |
 |------|------|---------|-------|
 | `/` | 10 (Proxmox tokens of the legacy roots, PVE exporter, Grafana admin, Discord webhook) | legacy roots and the legacy monitoring Compose | to copy |
 | `/pve-management` | 1 | every new OpenTofu root (workstation) | to copy; bootstrap |
-| `/postgresql` | 5 | `make postgresql-configure`, Phase's database password | to copy; bootstrap |
+| `/postgresql` | 6 | `make postgresql-configure`, database passwords of Phase and Grafana | to copy; bootstrap |
+| `/monitoring` | 1 | `make observability-deploy` (Grafana admin) | to copy |
 | `/k3s` | 1 | `make k3s-cluster-configure` | to copy; bootstrap |
 | `/phase` | 3 | `make phase-deploy` | to copy; bootstrap |
 | `/headlamp` | 1 | operator login; written by `make headlamp-token` (now through `scripts/secrets.py set`) | to copy |

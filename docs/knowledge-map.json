@@ -883,6 +883,10 @@
         {
           "from": "TASK-019",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-020",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1256,6 +1260,10 @@
         {
           "from": "TASK-019",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-020",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1544,6 +1552,10 @@
         {
           "from": "TASK-019",
           "field": "related"
+        },
+        {
+          "from": "TASK-020",
+          "field": "related"
         }
       ]
     },
@@ -1772,6 +1784,10 @@
         },
         {
           "from": "TASK-019",
+          "field": "related"
+        },
+        {
+          "from": "TASK-020",
           "field": "related"
         }
       ]
@@ -2912,6 +2928,10 @@
         },
         {
           "from": "TASK-005",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-020",
           "field": "milestone"
         }
       ]
@@ -4327,6 +4347,10 @@
         {
           "from": "TASK-019",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-020",
+          "field": "depends_on"
         }
       ]
     },
@@ -4403,6 +4427,72 @@
           "field": "related_tasks"
         }
       ]
+    },
+    {
+      "id": "TASK-020",
+      "title": "Lean observability: Prometheus, Loki, Grafana and Alloy",
+      "summary": "Prometheus, Loki and Grafana on k3s; Alloy collects a small allow-list of metrics and logs from the cluster and from every VM; Grafana state on the shared PostgreSQL.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "completed",
+      "path": "tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md",
+      "tags": [
+        "observability",
+        "prometheus",
+        "loki",
+        "grafana",
+        "alloy"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-020 — Lean observability: Prometheus, Loki, Grafana and Alloy",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-011",
+          "ADR-015"
+        ],
+        "depends_on": [
+          "TASK-018"
+        ],
+        "related_implementations": [
+          "services/observability",
+          "ansible/roles/alloy_agent",
+          "ansible/playbooks/configure-observability-agents.yml",
+          "ansible/vars/postgresql-apps.yml",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/observability.py"
+        ],
+        "milestone": [
+          "M010"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -4471,7 +4561,8 @@
       "TASK-016",
       "TASK-017",
       "TASK-018",
-      "TASK-019"
+      "TASK-019",
+      "TASK-020"
     ]
   },
   "by_tag": {
@@ -4481,6 +4572,9 @@
     "age": [
       "ADR-004",
       "TASK-011"
+    ],
+    "alloy": [
+      "TASK-020"
     ],
     "ansible": [
       "TASK-009",
@@ -4576,6 +4670,9 @@
     "gitops": [
       "ADR-005"
     ],
+    "grafana": [
+      "TASK-020"
+    ],
     "guide": [
       "GUIDE-handoff"
     ],
@@ -4627,6 +4724,9 @@
       "ADR-007",
       "INV-legacy-inventory"
     ],
+    "loki": [
+      "TASK-020"
+    ],
     "m002": [
       "TASK-013"
     ],
@@ -4647,6 +4747,9 @@
     ],
     "nvme": [
       "ADR-012"
+    ],
+    "observability": [
+      "TASK-020"
     ],
     "opentofu": [
       "ADR-003",
@@ -4686,6 +4789,9 @@
       "ADR-013",
       "ADR-015",
       "TASK-018"
+    ],
+    "prometheus": [
+      "TASK-020"
     ],
     "proxmox": [
       "ADR-002",

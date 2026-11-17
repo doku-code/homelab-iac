@@ -22,7 +22,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
 | M008 | active | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
 | M009 | planned | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | none | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
-| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
+| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](../milestones/M012-backups-and-finalization.md) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
 | M001 | completed | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 4, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
@@ -56,6 +56,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-016 | completed | high | M005 | [Headlamp on k3s with LAN-only ingress and token login](../tasks/TASK-016-headlamp-on-k3s-with-lan-only-ingress-and-token-login.md) | Official chart 0.46.0, no cluster rights for the app, admin ServiceAccount token in Infisical dev:/headlamp, HTTPS ingress limited to 192.168.0.0/24. |
 | TASK-017 | completed | high | M006 | [Shared NFS storage VM on pve-core and nvme-shared StorageClass](../tasks/TASK-017-shared-nfs-storage-vm-on-pve-core-and-nvme-shared-storagecla.md) | storage-01 (VM 350, .50, 300 GiB data disk) exports NFSv4 to the k3s nodes only; csi-driver-nfs 4.13.6 with a Retain class for user data; app data stays on local-path. |
 | TASK-018 | completed | high | M007 | [PostgreSQL platform: three Patroni VMs outside k3s with a virtual IP](../tasks/TASK-018-postgresql-platform-three-patroni-vms-outside-k3s-with-a-vir.md) | Three Debian 13 VMs (pg-01..03 on pve-core, pve-lab, pve-infra) run PostgreSQL 17 under Patroni with etcd and a virtual IP; per-application databases and roles. |
+| TASK-020 | completed | medium | M010 | [Lean observability: Prometheus, Loki, Grafana and Alloy](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md) | Prometheus, Loki and Grafana on k3s; Alloy collects a small allow-list of metrics and logs from the cluster and from every VM; Grafana state on the shared PostgreSQL. |
 
 ## Decisions
 
@@ -109,6 +110,7 @@ _No commit records. Generate with `harness history sync`._
 
 - **access**: TASK-007
 - **age**: ADR-004, TASK-011
+- **alloy**: TASK-020
 - **ansible**: TASK-009, TASK-014, TASK-015, TASK-017, TASK-018
 - **architecture**: ARCH-platform
 - **archive**: ADR-007
@@ -130,6 +132,7 @@ _No commit records. Generate with `harness history sync`._
 - **flux**: ADR-006
 - **forgejo**: ADR-014, TASK-014
 - **gitops**: ADR-005
+- **grafana**: TASK-020
 - **guide**: GUIDE-handoff
 - **handoff**: GUIDE-handoff
 - **hardware**: INV-new-proxmox-cluster-inventory
@@ -142,12 +145,14 @@ _No commit records. Generate with `harness history sync`._
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
 - **legacy**: ADR-007, INV-legacy-inventory
+- **loki**: TASK-020
 - **m002**: TASK-013
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, TASK-005, TASK-019
 - **nfs**: TASK-017
 - **nvme**: ADR-012
+- **observability**: TASK-020
 - **opentofu**: ADR-003, TASK-006, TASK-008, TASK-014, TASK-015, TASK-017, TASK-018
 - **overview**: DOC-project-overview
 - **patroni**: ADR-013, ADR-015, TASK-018
@@ -157,6 +162,7 @@ _No commit records. Generate with `harness history sync`._
 - **planning**: M000, TASK-005
 - **platform**: ARCH-platform
 - **postgresql**: ADR-013, ADR-015, TASK-018
+- **prometheus**: TASK-020
 - **proxmox**: ADR-002, ADR-010, INV-new-proxmox-cluster-inventory, TASK-002, TASK-013
 - **pve-core**: ADR-010, TASK-013
 - **pve-management**: ADR-009, ADR-010, GUIDE-handoff, INV-pve-management-bootstrap, M001, TASK-007, TASK-008

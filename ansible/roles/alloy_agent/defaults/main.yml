@@ -1,0 +1,34 @@
+---
+# Alloy on a VM (lean observability, TASK-020): host metrics from a short list of collectors and the systemd
+# journal, pushed to Prometheus and Loki on k3s. On PostgreSQL members also database and Patroni metrics.
+alloy_agent_version: "1.22.0-1"
+alloy_agent_apt_key_url: https://apt.grafana.com/gpg.key
+alloy_agent_apt_key_sha256: 3d4029689bc7e4444ec00abafa07f21e9c812b41f1123ab5bbe6f8c3e3f7ff8c
+
+# Ingestion endpoints behind Traefik on the first k3s server; pinned in /etc/hosts so that shipping metrics
+# does not depend on DNS. The certificate is Traefik's self-signed one until the platform has a trusted one.
+alloy_agent_ingest_address: 192.168.0.40
+alloy_agent_metrics_host: metrics.192.168.0.40.sslip.io
+alloy_agent_logs_host: logs.192.168.0.40.sslip.io
+alloy_agent_tls_verify: false
+
+alloy_agent_scrape_interval: 60s
+# node_exporter collectors that answer "is this host healthy": nothing per-process, no hardware sensors.
+alloy_agent_collectors: [cpu, meminfo, filesystem, diskstats, netdev, loadavg, pressure, uname, time]
+
+alloy_agent_postgresql: "{{ 'postgresql' in group_names }}"
+alloy_agent_postgresql_role: alloy
+# Metric names kept from the PostgreSQL exporter (regular expressions, joined with |).
+alloy_agent_postgresql_metrics:
+  - pg_up
+  - pg_replication_lag_seconds
+  - pg_replication_is_replica
+  - pg_stat_activity_count
+  - pg_stat_activity_max_tx_duration
+  - pg_database_size_bytes
+  - pg_stat_database_(xact_commit|xact_rollback|deadlocks|temp_bytes|blks_read|blks_hit|numbackends)
+  - pg_locks_count
+  - pg_settings_max_connections
+  - pg_stat_bgwriter_checkpoints_(timed|req)_total
+  - pg_stat_checkpointer_(num_timed|num_requested)_total
+  - pg_database_wraparound_age_datfrozenxid_seconds

@@ -868,6 +868,55 @@ postgresql-configure:
 	$(TOFU) -chdir=$(POSTGRESQL_DIR) output -json ansible_inventory > "$$inventory"; \
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-postgresql.yml --diff
 
+# ─────────────────────────────────────────────
+# Lean observability (TASK-020): Prometheus, Loki and Grafana on k3s, Alloy as the only collector (one in
+# the cluster, one on every VM). Official charts, pinned; deployed from the workstation until Argo CD (M009).
+# ─────────────────────────────────────────────
+
+OBS_DIR := services/observability
+OBS_KUBE := --kube-context doku-lab --namespace monitoring
+OBS_PROMETHEUS_CHART := 29.47.2
+OBS_LOKI_CHART := 7.6.0
+OBS_ALLOY_CHART := 1.16.0
+OBS_GRAFANA_CHART := 14.5.0
+OBS_PROMETHEUS_REPO := https://prometheus-community.github.io/helm-charts
+OBS_GRAFANA_LABS_REPO := https://grafana.github.io/helm-charts
+OBS_GRAFANA_REPO := https://grafana-community.github.io/helm-charts
+OBS_AGENT_ROOTS := k3s postgresql storage deploy-runner
+
+.PHONY: observability-check observability-deploy observability-agents
+
+# Offline: renders the pinned charts with our values, checks the allow-lists and routes (needs the chart downloads).
+observability-check:
+	$(ANSIBLE) ansible/playbooks/configure-observability-agents.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(VENV)/bin/python tests/observability.py
+
+# Grafana's two passwords come from the environment only (store paths /monitoring and /postgresql).
+observability-deploy:
+	@test "$(OBSERVABILITY_DEPLOY_APPROVED)" = yes || (echo "Approve the observability deployment with OBSERVABILITY_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@for v in GRAFANA_ADMIN_PASSWORD PG_APP_GRAFANA_PASSWORD; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /monitoring and /postgresql)" >&2; exit 1; }; done
+	kubectl --context doku-lab apply -f $(OBS_DIR)/access.yaml
+	@set -euo pipefail; k="kubectl --context doku-lab -n monitoring"; \
+	$$k create secret generic grafana-admin --dry-run=client -o yaml --from-env-file=<(printf 'admin-user=admin\nadmin-password=%s\n' "$$GRAFANA_ADMIN_PASSWORD") | $$k apply -f - >/dev/null; \
+	$$k create secret generic grafana-db --dry-run=client -o yaml --from-env-file=<(printf 'password=%s\n' "$$PG_APP_GRAFANA_PASSWORD") | $$k apply -f - >/dev/null; \
+	$$k create configmap alloy-config --dry-run=client -o yaml --from-file=config.alloy=$(OBS_DIR)/cluster.alloy | $$k apply -f - >/dev/null; \
+	$$k create configmap grafana-dashboards --dry-run=client -o yaml --from-file=$(OBS_DIR)/dashboards/ | $$k apply -f - >/dev/null; \
+	echo "secrets and configuration applied"
+	helm upgrade --install prometheus prometheus --repo $(OBS_PROMETHEUS_REPO) --version $(OBS_PROMETHEUS_CHART) -f $(OBS_DIR)/prometheus.yaml $(OBS_KUBE) --wait --timeout 10m
+	helm upgrade --install loki loki --repo $(OBS_GRAFANA_LABS_REPO) --version $(OBS_LOKI_CHART) -f $(OBS_DIR)/loki.yaml $(OBS_KUBE) --wait --timeout 10m
+	helm upgrade --install alloy alloy --repo $(OBS_GRAFANA_LABS_REPO) --version $(OBS_ALLOY_CHART) -f $(OBS_DIR)/alloy.yaml $(OBS_KUBE) --wait --timeout 10m
+	helm upgrade --install grafana grafana --repo $(OBS_GRAFANA_REPO) --version $(OBS_GRAFANA_CHART) -f $(OBS_DIR)/grafana.yaml $(OBS_KUBE) --wait --timeout 10m
+
+# Installs and configures Alloy on every VM of the listed roots (inventories from their OpenTofu outputs).
+# On the PostgreSQL members it also creates the read-only monitoring role, through the local socket.
+observability-agents:
+	@test "$(OBSERVABILITY_AGENTS_APPROVED)" = yes || (echo "Approve the agent configuration with OBSERVABILITY_AGENTS_APPROVED=yes" >&2; exit 1)
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	@set -euo pipefail; umask 077; mkdir -p "$(CURDIR)/.local"; args=(); \
+	for root in $(OBS_AGENT_ROOTS); do inventory="$(CURDIR)/.local/$$root-inventory.json"; \
+	  $(TOFU) -chdir=terraform/stacks/$$root output -json ansible_inventory > "$$inventory"; args+=(-i "$$inventory"); done; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) "$${args[@]}" ansible/playbooks/configure-observability-agents.yml --diff
+
 # Read-only: members, roles, replication lag, and which member holds the virtual IP.
 postgresql-status:
 	@set -euo pipefail; \

@@ -1,0 +1,66 @@
+# Grafana (lean observability, TASK-020). Users, folders and edited dashboards live in database "grafana" on
+# the shared PostgreSQL (ADR-015), so the pod holds no state. Data sources and the overview dashboard are
+# provisioned from Git.
+replicas: 1
+admin:
+  existingSecret: grafana-admin
+  userKey: admin-user
+  passwordKey: admin-password
+envValueFrom:
+  GF_DATABASE_PASSWORD:
+    secretKeyRef:
+      name: grafana-db
+      key: password
+persistence:
+  enabled: false
+testFramework:
+  enabled: false
+ingress:
+  enabled: false # Traefik routes are in services/observability/access.yaml
+grafana.ini:
+  server:
+    root_url: https://grafana.192.168.0.40.sslip.io/
+  database:
+    type: postgres
+    host: 192.168.0.60:5432
+    name: grafana
+    user: grafana
+    ssl_mode: require
+  analytics:
+    reporting_enabled: false
+    check_for_updates: false
+    check_for_plugin_updates: false
+  users:
+    allow_sign_up: false
+  news:
+    news_feed_enabled: false
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus
+        url: http://prometheus-server.monitoring.svc
+        isDefault: true
+        jsonData:
+          timeInterval: 60s
+      - name: Loki
+        type: loki
+        uid: loki
+        url: http://loki.monitoring.svc:3100
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: homelab
+        folder: Homelab
+        type: file
+        disableDeletion: true
+        options:
+          path: /var/lib/grafana/dashboards/homelab
+dashboardsConfigMaps:
+  homelab: grafana-dashboards
+resources:
+  requests: {cpu: 50m, memory: 192Mi}
+  limits: {cpu: 1000m, memory: 512Mi}

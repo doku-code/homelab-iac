@@ -1,0 +1,124 @@
+// Managed by Ansible (role alloy_agent). Host metrics and journal of {{ inventory_hostname }}.
+
+prometheus.remote_write "default" {
+  external_labels = {cluster = "doku-lab"}
+
+  endpoint {
+    url = "https://{{ alloy_agent_metrics_host }}/api/v1/write"
+
+    tls_config {
+      insecure_skip_verify = {{ (not alloy_agent_tls_verify) | lower }}
+    }
+  }
+}
+
+loki.write "default" {
+  external_labels = {cluster = "doku-lab"}
+
+  endpoint {
+    url = "https://{{ alloy_agent_logs_host }}/loki/api/v1/push"
+
+    tls_config {
+      insecure_skip_verify = {{ (not alloy_agent_tls_verify) | lower }}
+    }
+  }
+}
+
+// Every series carries the VM's name instead of a local address.
+prometheus.relabel "host" {
+  forward_to = [prometheus.remote_write.default.receiver]
+
+  rule {
+    target_label = "instance"
+    replacement  = "{{ inventory_hostname }}"
+  }
+}
+
+prometheus.exporter.unix "host" {
+  set_collectors = {{ alloy_agent_collectors | to_json }}
+
+  filesystem {
+    fs_types_exclude     = "^(tmpfs|devtmpfs|overlay|squashfs|proc|sysfs|cgroup2?|nsfs|nfs4?|efivarfs|vfat|ramfs|autofs|tracefs|debugfs|securityfs|pstore|bpf|configfs|fusectl|mqueue|hugetlbfs|devpts|binfmt_misc)$"
+    mount_points_exclude = "^/(dev|proc|sys|run|var/lib/(kubelet|rancher|containerd)/.+)($|/)"
+  }
+
+  netdev {
+    device_exclude = "^(lo|veth.*|cni.*|flannel.*|kube-ipvs.*)$"
+  }
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  job_name        = "node"
+  scrape_interval = "{{ alloy_agent_scrape_interval }}"
+  forward_to      = [prometheus.relabel.host.receiver]
+}
+{% if alloy_agent_postgresql | bool %}
+
+// PostgreSQL through the local socket as the read-only role "{{ alloy_agent_postgresql_role }}" (peer authentication, no password).
+prometheus.exporter.postgres "local" {
+  data_source_names = ["postgresql:///postgres?host=/var/run/postgresql&user={{ alloy_agent_postgresql_role }}&sslmode=disable"]
+}
+
+prometheus.scrape "postgres" {
+  targets         = prometheus.exporter.postgres.local.targets
+  job_name        = "postgres"
+  scrape_interval = "{{ alloy_agent_scrape_interval }}"
+  forward_to      = [prometheus.relabel.postgres.receiver]
+}
+
+// The exporter offers about 600 series per member (every setting, every statistics column). Keep the few
+// that answer: is it up, how far behind, how busy, how big, is something stuck.
+prometheus.relabel "postgres" {
+  forward_to = [prometheus.relabel.host.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "{{ alloy_agent_postgresql_metrics | join('|') }}"
+    action        = "keep"
+  }
+}
+
+// Patroni: role, timeline, replication state of this member.
+prometheus.scrape "patroni" {
+  targets         = [{"__address__" = "{{ ansible_host }}:8008"}]
+  job_name        = "patroni"
+  scrape_interval = "{{ alloy_agent_scrape_interval }}"
+  forward_to      = [prometheus.relabel.host.receiver]
+}
+{% endif %}
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "level"
+  }
+}
+
+loki.source.journal "journal" {
+  max_age       = "12h"
+  relabel_rules = loki.relabel.journal.rules
+  labels        = {job = "journal", instance = "{{ inventory_hostname }}"}
+  forward_to    = [loki.process.journal.receiver]
+}
+
+// Drop debug lines and Patroni's ten-second heartbeat ("no action. I am ..."): volume without information.
+loki.process "journal" {
+  forward_to = [loki.write.default.receiver]
+
+  stage.drop {
+    source = "level"
+    value  = "debug"
+  }
+
+  stage.drop {
+    expression = "no action\\. I am"
+  }
+}

@@ -4,3 +4,4 @@
 # (secret store path /postgresql). Removing an entry never drops anything.
 postgresql_apps:
   - name: phase # Phase Console (M008)
+  - name: grafana # Grafana users, folders and edited dashboards (TASK-020)

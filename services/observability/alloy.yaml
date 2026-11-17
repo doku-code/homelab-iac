@@ -1,0 +1,31 @@
+# Alloy inside the cluster (lean observability, TASK-020): one small collector that reads everything through
+# the Kubernetes API (no host mounts, no DaemonSet). Host metrics and journals come from Alloy on each VM
+# (ansible/roles/alloy_agent).
+controller:
+  type: deployment
+  replicas: 1
+alloy:
+  configMap:
+    create: false
+    name: alloy-config
+    key: config.alloy
+  resources:
+    requests: {cpu: 25m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+configReloader:
+  resources:
+    requests: {cpu: 5m, memory: 16Mi}
+    limits: {cpu: 50m, memory: 48Mi}
+# Least privilege: discover nodes and pods, read pod logs, read kubelet metrics. No nodes/proxy (that right
+# reaches the whole kubelet API), none of the chart's default rules for operators that are not installed.
+rbac:
+  rules:
+    - apiGroups: [""]
+      resources: [nodes, pods, namespaces]
+      verbs: [get, list, watch]
+    - apiGroups: [""]
+      resources: [pods/log]
+      verbs: [get, list, watch]
+    - apiGroups: [""]
+      resources: [nodes/metrics]
+      verbs: [get]

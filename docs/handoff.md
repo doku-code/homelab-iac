@@ -119,7 +119,12 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   kit, create the app `homelab-iac`, run `phase auth` on the workstation; provide an age public key for the
   recovery copy of the bootstrap secrets. Then: migrate, verify, switch the store, and only after the
   operator's confirmation shut Infisical down.
-- **Operator roadmap (2026-11-17), remaining after Phase:** lean Grafana/Prometheus/Loki/Alloy.
+- **Observability deployed** 2026-11-17 ([TASK-020](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md)):
+  Grafana at `https://grafana.192.168.0.40.sslip.io/` (LAN only; `admin` with `GRAFANA_ADMIN_PASSWORD` from
+  store path `/monitoring`), dashboard "Homelab overview". Prometheus and Loki on k3s; Alloy in the cluster
+  and on every VM, allow-listed metrics only (about 2,200 series). Redeploy: `make observability-deploy`;
+  new VM: `make observability-agents`. Alerts are evaluated but not delivered anywhere yet.
+- **Operator roadmap (2026-11-17):** all items are deployed; what remains is the Phase cutover above.
 
 ## Commands
 
