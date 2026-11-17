@@ -2,8 +2,8 @@
 # Alloy on a VM (lean observability, TASK-020): host metrics from a short list of collectors and the systemd
 # journal, pushed to Prometheus and Loki on k3s. On PostgreSQL members also database and Patroni metrics.
 alloy_agent_version: "1.22.0-1"
-alloy_agent_apt_key_url: https://apt.grafana.com/gpg.key
-alloy_agent_apt_key_sha256: 3d4029689bc7e4444ec00abafa07f21e9c812b41f1123ab5bbe6f8c3e3f7ff8c
+alloy_agent_apt_signing_url: https://apt.grafana.com/gpg.key
+alloy_agent_apt_signing_sha256: 3d4029689bc7e4444ec00abafa07f21e9c812b41f1123ab5bbe6f8c3e3f7ff8c
 
 # Ingestion endpoints behind Traefik on the first k3s server; pinned in /etc/hosts so that shipping metrics
 # does not depend on DNS. The certificate is Traefik's self-signed one until the platform has a trusted one.

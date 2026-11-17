@@ -9,9 +9,9 @@
 
 - name: Install the Grafana apt key (pinned by SHA256)
   ansible.builtin.get_url:
-    url: "{{ alloy_agent_apt_key_url }}"
+    url: "{{ alloy_agent_apt_signing_url }}"
     dest: /etc/apt/keyrings/grafana.asc
-    checksum: "sha256:{{ alloy_agent_apt_key_sha256 }}"
+    checksum: "sha256:{{ alloy_agent_apt_signing_sha256 }}"
     owner: root
     group: root
     mode: "0644"

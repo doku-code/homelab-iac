@@ -1,3 +1,6 @@
 # Reviewed false positives only (gitleaks fingerprint: commit:file:rule:line).
 # scripts/windmill-plan.py:58 passes the secret NAME "PROXMOX_ROOT_PASSWORD" to Infisical; no value.
 915333c2858bcb37e27e7870310820b8f6ea09d3:scripts/windmill-plan.py:generic-api-key:58
+# ansible/roles/alloy_agent/defaults/main.yml:6 was the SHA256 checksum of Grafana's public apt signing key (no secret); the
+# variable name contained "key". Renamed afterwards to alloy_agent_apt_signing_sha256.
+23c6d1b95023ea0e11d34fdc21372671a1796305:ansible/roles/alloy_agent/defaults/main.yml:generic-api-key:6

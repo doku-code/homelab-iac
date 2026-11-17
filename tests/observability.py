@@ -116,7 +116,7 @@ def main():
 
     # Agent on the VMs: pinned package and key, short collector list, PostgreSQL part only on the members.
     defaults = yaml.safe_load((ROLE / "defaults/main.yml").read_text())
-    assert re.fullmatch(r"\d+\.\d+\.\d+-\d+", defaults["alloy_agent_version"]) and re.fullmatch(r"[0-9a-f]{64}", defaults["alloy_agent_apt_key_sha256"])
+    assert re.fullmatch(r"\d+\.\d+\.\d+-\d+", defaults["alloy_agent_version"]) and re.fullmatch(r"[0-9a-f]{64}", defaults["alloy_agent_apt_signing_sha256"])
     assert len(defaults["alloy_agent_collectors"]) <= 10 and "processes" not in defaults["alloy_agent_collectors"]
     plain, member = render_agent("storage-01"), render_agent("pg-01")
     assert "prometheus.exporter.postgres" not in plain and "patroni" not in plain
