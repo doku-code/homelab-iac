@@ -49,7 +49,9 @@ use IPs**. The new nodes have no DNS records.
 - SSH from the workstation: its own key `~/.ssh/id_ed25519` (public part `keys/mgmt-control-01.pub`) logs in
   as `ubuntu` on itself and as `root` on the four new nodes (cluster-wide `authorized_keys`). Not on `.14`.
 - Repository: `~/homelab-iac`, branch `main`, `origin` = Forgejo `https://git.doku-lab.net/Homelab/homelab-iac.git`,
-  `github` = push mirror (used by `mgmt-configure` as an independent source).
+  `github` = push mirror (used by `mgmt-configure` as an independent source). The Forgejo wiki is generated
+  from `README.md` (Home), `docs/`, `milestones/`, `tasks/` and `history/` with a `_Sidebar` by
+  `harness-wiki-publish.yml` on each push to `main`: never edit wiki pages by hand.
 - Tools for `ubuntu` (interactive shells, via mise): Node, Python, Go, uv, Terraform, kubectl, Helm,
   Infisical CLI, Claude Code, Codex; plus OpenTofu, SOPS, age, Docker, Git, `.venv` with Ansible and the
   harness. Zed, Obsidian, Sublime Merge in the GNOME app grid. The PVE root CA is trusted system-wide.

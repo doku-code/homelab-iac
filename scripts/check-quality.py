@@ -59,6 +59,23 @@ def main():
         assert str(root.parent.relative_to(ROOT)) in source, root.parent
     assert "tests/tfstate-backups.py" in source
     assert "tests/runner-connections.py" in source
+
+    # Wiki publication: same main-only gate and runner; only the job's own token, only in the publish step.
+    source = (ROOT / ".forgejo/workflows/harness-wiki-publish.yml").read_text()
+    workflow = yaml.load(source, Loader=yaml.BaseLoader)
+    assert set(workflow["on"]) == {"push", "workflow_dispatch"}
+    assert workflow["on"]["push"]["branches"] == ["main"]
+    assert "permissions" not in workflow
+    job = workflow["jobs"]["publish"]
+    assert job["if"] == "forgejo.ref == 'refs/heads/main' && vars.CI_QUALITY_APPROVED == 'true'"
+    assert job["runs-on"] == "homelab-iac"
+    assert "container" not in job and "services" not in job
+    assert "secrets." not in source and "PROXMOX" not in source and "homelab-deploy" not in source
+    assert job["steps"][0]["with"] == {"persist-credentials": "false", "fetch-depth": "0"}
+    assert "-r requirements-agents.txt" in source
+    token_steps = [s for s in job["steps"] if "forgejo.token" in str(s)]
+    assert len(token_steps) == 1 and "forgejo.token" not in token_steps[0]["run"]
+    assert token_steps[0]["env"]["HARNESS_WIKI_TOKEN"] == "${{ forgejo.token }}"
     print(f"PASS: {counts}; main-only activation gate and workflow configuration guards")
 
 

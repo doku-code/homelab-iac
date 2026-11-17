@@ -97,8 +97,9 @@ history:
   - HEAD
   limit: 50
   skip_history_only_commits: true
-# Wiki publication is intentionally not installed; `harness update` re-creates
-# .forgejo/workflows/harness-wiki-publish.yml, delete it again (see TASK-001).
+# Wiki publication (operator decision 2026-11-17): .forgejo/workflows/harness-wiki-publish.yml is the
+# adapted template (main-only gate, homelab-iac runner, vendored harness, job token only); keep the
+# adaptations when `harness update` reports it as a conflict.
 wiki:
   home_title: homelab-iac documentation
   include:

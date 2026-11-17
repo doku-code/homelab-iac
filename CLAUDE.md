@@ -22,8 +22,9 @@ You are the primary agent: you read the documentation path, pick the task, imple
 
 - The harness CLI is vendored in `tools/agent-harness` (see its README to update) and installed into the
   repository environment: run `.venv/bin/harness …` (the SessionStart hook does this).
-- `harness update` reports `.forgejo/workflows/harness-docs-validate.yml` as a conflict on purpose (main-only
-  gate, `homelab-iac` runner); keep that adaptation. It also re-creates `harness-wiki-publish.yml`; delete it.
+- `harness update` reports `.forgejo/workflows/harness-docs-validate.yml` and `harness-wiki-publish.yml` as
+  conflicts on purpose (main-only gate, `homelab-iac` runner, vendored harness, job token only); keep those
+  adaptations. The Forgejo wiki is generated from the repository: edit the docs, never the wiki.
 - Keep delegation light: one coordinating agent, at most 2–4 subagents and only for independent work; no review
   or report ceremony that does not change a decision.
 - Primary workstation: `mgmt-control-01` (Ubuntu, `~/homelab-iac`). Read `docs/handoff.md` first; its

@@ -1,0 +1,63 @@
+# Agent harness wiki publication (harness v0.1.0 template, adapted for homelab-iac; operator decision
+# 2026-11-17). Publishes README.md as Home, docs/, milestones/, tasks/ and history/ as pages, plus the
+# generated _Sidebar and _Footer, to the repository wiki (Homelab/homelab-iac.wiki.git).
+# Deliberately diverges from the upstream template:
+#   - same main-only activation gate and `homelab-iac` runner (CT301) as validate.yml, no pull_request trigger;
+#   - the harness is installed from the copy vendored in tools/agent-harness (no other repository fetched);
+#   - only the job's own short-lived token is used (no long-lived WIKI_TOKEN secret on CT301); it is passed to
+#     git through the environment by the harness, never in a URL or on the command line;
+#   - no Proxmox or deployment credentials (CT301 never gets them, ADR-008).
+# The wiki pages are generated: edit the repository, never the wiki. `harness update` reports this file as
+# locally modified; keep these adaptations when merging.
+name: Wiki publication
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "milestones/**"
+      - "tasks/**"
+      - "history/**"
+      - "harness.yaml"
+      - "tools/agent-harness/**"
+      - ".forgejo/workflows/harness-wiki-publish.yml"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    # Activation gate, not isolation: the runner trust boundary is unchanged.
+    if: forgejo.ref == 'refs/heads/main' && vars.CI_QUALITY_APPROVED == 'true'
+    runs-on: homelab-iac
+
+    steps:
+      - name: Check out repository
+        uses: https://code.forgejo.org/actions/checkout@v6.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install Python
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends git python3 python3-venv
+
+      - name: Install the vendored harness
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/harness-venv
+          /tmp/harness-venv/bin/python -m pip install -r requirements-agents.txt
+
+      - name: Validate documents before publishing
+        run: /tmp/harness-venv/bin/harness check --no-content-scan
+
+      - name: Export and publish wiki pages
+        env:
+          HARNESS_WIKI_TOKEN: ${{ forgejo.token }}
+          HARNESS_WIKI_REMOTE: ${{ forgejo.server_url }}/${{ forgejo.repository }}.wiki.git
+        run: |
+          set -euo pipefail
+          /tmp/harness-venv/bin/harness docs index >/dev/null
+          /tmp/harness-venv/bin/harness docs publish-wiki

@@ -36,7 +36,8 @@ Make the repository a clean, harness-managed starting point whose docs carry the
 ## Acceptance criteria
 
 - [ ] Harness installed (skills, agents, settings, managed blocks) and pinned in requirements-agents.txt
-- [ ] CI docs validation follows the main-only activation gate; no wiki publication
+- [ ] CI docs validation follows the main-only activation gate; wiki publication (operator decision 2026-11-17,
+  replacing "no wiki publication") uses the same gate, the `homelab-iac` runner and only the job token
 - [ ] Legacy docs/tasks/roadmap/AGENTS archived with working links
 - [ ] Overview, architecture, ADR-001..007, legacy inventory, milestones M000-M008 and first tasks written
 - [ ] harness check and the offline verification commands pass
@@ -71,5 +72,4 @@ Make the repository a clean, harness-managed starting point whose docs carry the
 ## Completion summary
 
 _Not completed._ Repository work done and locally verified; pending operator review, commits and the first CI run.
-Notes: `harness update` re-creates `harness-wiki-publish.yml` (delete it) and reports the adapted docs workflow as a
-conflict (keep it). Codex WIP is in `stash@{0}`; drop it once nothing there is wanted.
+Notes: `harness update` reports the adapted docs and wiki workflows as conflicts (keep both adaptations). Codex WIP is in `stash@{0}`; drop it once nothing there is wanted.

@@ -224,6 +224,10 @@
         {
           "from": "TASK-013",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-014",
+          "field": "related_decisions"
         }
       ]
     },
@@ -571,6 +575,10 @@
         },
         {
           "from": "TASK-012",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-014",
           "field": "related_decisions"
         }
       ]
@@ -1110,6 +1118,10 @@
         {
           "from": "M009",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-014",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1370,6 +1382,10 @@
         {
           "from": "TASK-013",
           "field": "related"
+        },
+        {
+          "from": "TASK-014",
+          "field": "related"
         }
       ]
     },
@@ -1574,6 +1590,10 @@
         },
         {
           "from": "TASK-013",
+          "field": "related"
+        },
+        {
+          "from": "TASK-014",
           "field": "related"
         }
       ]
@@ -1783,6 +1803,10 @@
         {
           "from": "TASK-013",
           "field": "related"
+        },
+        {
+          "from": "TASK-014",
+          "field": "related"
         }
       ]
     },
@@ -1965,7 +1989,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "active",
+      "status": "completed",
       "path": "milestones/M001-bootstrap-pve-management.md",
       "tags": [
         "bootstrap",
@@ -2158,7 +2182,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "active",
       "path": "milestones/M003-deployment-runner.md",
       "tags": [
         "roadmap"
@@ -2184,6 +2208,9 @@
           "ARCH-platform",
           "DOC-project-overview",
           "INV-new-proxmox-cluster-inventory"
+        ],
+        "related_tasks": [
+          "TASK-014"
         ],
         "related_decisions": [
           "ADR-014",
@@ -2213,6 +2240,10 @@
         {
           "from": "INV-new-proxmox-cluster-inventory",
           "field": "related"
+        },
+        {
+          "from": "TASK-014",
+          "field": "milestone"
         }
       ]
     },
@@ -3360,7 +3391,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-009-management-vm-ansible-baseline.md",
       "tags": [
         "ansible",
@@ -3392,6 +3423,10 @@
         "depends_on": [
           "TASK-008",
           "TASK-011"
+        ],
+        "related_implementations": [
+          "ansible/playbooks/configure-mgmt-control.yml",
+          "ansible/roles/admin_workstation"
         ],
         "related_tests": [
           "tests/mgmt-control.py"
@@ -3708,6 +3743,79 @@
           "field": "related_tasks"
         }
       ]
+    },
+    {
+      "id": "TASK-014",
+      "title": "Bootstrap deployment runner VM on pve-core",
+      "summary": "Runner VM deploy-runner-01 (VMID 302, .32) on pve-core via headless-vm, deploy_runner role, main-only wrapper, approval-gated dispatch workflow and a disposable proof root (ADR-014).",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-014-bootstrap-deployment-runner-vm.md",
+      "tags": [
+        "runner",
+        "forgejo",
+        "opentofu",
+        "ansible",
+        "ci"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": "M003",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-014 — Bootstrap deployment runner VM on pve-core",
+        "Goal",
+        "Context",
+        "Design (operator decisions 2026-11-17)",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "INV-new-proxmox-cluster-inventory",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-014",
+          "ADR-008",
+          "ADR-003"
+        ],
+        "related_implementations": [
+          "terraform/stacks/deploy-runner",
+          "terraform/stacks/ci-disposable",
+          "ansible/roles/deploy_runner",
+          "ansible/playbooks/configure-deploy-runner.yml",
+          ".forgejo/workflows/deploy.yml",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/deploy-runner.py",
+          "terraform/stacks/deploy-runner/tests/runner.tftest.hcl",
+          "terraform/stacks/ci-disposable/tests/probe.tftest.hcl"
+        ],
+        "milestone": [
+          "M003"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M003",
+          "field": "related_tasks"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -3769,7 +3877,8 @@
       "TASK-010",
       "TASK-011",
       "TASK-012",
-      "TASK-013"
+      "TASK-013",
+      "TASK-014"
     ]
   },
   "by_tag": {
@@ -3781,7 +3890,8 @@
       "TASK-011"
     ],
     "ansible": [
-      "TASK-009"
+      "TASK-009",
+      "TASK-014"
     ],
     "architecture": [
       "ARCH-platform"
@@ -3810,7 +3920,8 @@
     ],
     "ci": [
       "ADR-008",
-      "ADR-014"
+      "ADR-014",
+      "TASK-014"
     ],
     "cluster": [
       "ADR-010",
@@ -3858,7 +3969,8 @@
       "ADR-006"
     ],
     "forgejo": [
-      "ADR-014"
+      "ADR-014",
+      "TASK-014"
     ],
     "gitops": [
       "ADR-005"
@@ -3928,7 +4040,8 @@
     "opentofu": [
       "ADR-003",
       "TASK-006",
-      "TASK-008"
+      "TASK-008",
+      "TASK-014"
     ],
     "overview": [
       "DOC-project-overview"
@@ -4005,7 +4118,8 @@
     "runner": [
       "ADR-008",
       "ADR-014",
-      "TASK-009"
+      "TASK-009",
+      "TASK-014"
     ],
     "secrets": [
       "ADR-004",
