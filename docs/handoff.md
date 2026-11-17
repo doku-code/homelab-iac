@@ -74,14 +74,14 @@ use IPs**. The new nodes have no DNS records.
 
 These need the operator at the keyboard (logins, tokens); do them once, in this order:
 
-1. `claude` and `codex`: log in when prompted.
+1. `claude`: log in when prompted (Codex is installed but not used).
 2. `infisical login` (choose the self-hosted domain above). Done 2026-11-17.
 3. Prove state continuity with your own session (done 2026-11-17: No changes):
    `infisical run --silent --env dev --path /pve-management -- make mgmt-plan MGMT_INPUT_SOURCE=env MGMT_ALLOCATION_REVIEWED=yes`
    must report **No changes**.
-4. Forgejo push access: create a personal access token in Forgejo (scope `write:repository`), then
-   `git config --global credential.helper store`; the first `git push` asks for the user and the
-   token and stores them in `~/.git-credentials` (0600).
+4. Forgejo push access (done 2026-11-17): a Forgejo personal access token in the credential store
+   (`git config --global credential.helper store`, `~/.git-credentials` 0600); Make and agents reuse it for
+   pushes and Forgejo API calls (runner registration, dispatches).
 
 ## Current and next work
 
