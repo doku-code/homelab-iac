@@ -1,0 +1,54 @@
+# Applied by `make phase-deploy`. Namespace, network restriction and the Traefik routes that replace the
+# chart's ingress-nginx Ingress: /service/* goes to the backend without the prefix, the rest to the frontend.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: phase
+---
+# Only the administration LAN may reach Phase. Needs the real client address: the k3s role sets
+# externalTrafficPolicy: Local on Traefik (ansible/roles/k3s/templates/traefik-config.yaml.j2).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-lan
+  namespace: phase
+spec:
+  ipAllowList:
+    sourceRange:
+      - 192.168.0.0/24
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-service
+  namespace: phase
+spec:
+  stripPrefix:
+    prefixes:
+      - /service
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: phase-console
+  namespace: phase
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`phase.192.168.0.40.sslip.io`) && (Path(`/service`) || PathPrefix(`/service/`))
+      middlewares:
+        - name: admin-lan
+        - name: strip-service
+      services:
+        - name: phase-console-backend
+          port: 8000
+    - kind: Rule
+      match: Host(`phase.192.168.0.40.sslip.io`)
+      middlewares:
+        - name: admin-lan
+      services:
+        - name: phase-console-frontend
+          port: 3000
+  tls: {}

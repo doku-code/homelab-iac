@@ -711,13 +711,41 @@ headlamp-deploy:
 	helm upgrade --install $(HEADLAMP_HELM_ARGS) $(HEADLAMP_KUBE) --wait --timeout 5m
 	kubectl --context doku-lab -n headlamp rollout status deployment/headlamp --timeout=120s
 
-# Copies the admin login token into Infisical dev:/headlamp (HEADLAMP_ADMIN_TOKEN) without printing it.
+# Copies the admin login token into the active secret store, path /headlamp (HEADLAMP_ADMIN_TOKEN), without
+# printing it; scripts/secrets.py reads it back and compares.
 headlamp-token:
-	@set -euo pipefail; umask 077; f="$(CURDIR)/.local/headlamp.env"; mkdir -p "$(CURDIR)/.local"; trap 'rm -f "$$f"' EXIT; \
-	printf 'HEADLAMP_ADMIN_TOKEN=%s\n' "$$(kubectl --context doku-lab -n headlamp get secret headlamp-admin-token -o jsonpath='{.data.token}' | base64 -d)" > "$$f"; \
-	infisical secrets folders create --name headlamp --path / --env dev --silent >/dev/null 2>&1 || true; \
-	infisical secrets set --env dev --path /headlamp --file "$$f" --silent >/dev/null; \
-	echo "Stored HEADLAMP_ADMIN_TOKEN in Infisical dev:/headlamp"
+	@set -euo pipefail; printf 'HEADLAMP_ADMIN_TOKEN=%s\n' "$$(kubectl --context doku-lab -n headlamp get secret headlamp-admin-token -o jsonpath='{.data.token}' | base64 -d)" \
+	  | $(VENV)/bin/python scripts/secrets.py set /headlamp
+
+# ─────────────────────────────────────────────
+# Phase Console, the secret store that replaces Infisical (M008, ADR-004). Official chart, pinned; database
+# "phase" on the shared PostgreSQL (ADR-015). Deployed from the workstation until Argo CD takes over (M009).
+# ─────────────────────────────────────────────
+
+PHASE_CHART_VERSION := 1.0.2
+PHASE_REPO := https://helm.phase.dev
+PHASE_HELM_ARGS := phase-console phase --repo $(PHASE_REPO) --version $(PHASE_CHART_VERSION) --namespace phase -f services/phase/values.yaml
+PHASE_SECRET_INPUTS := PHASE_SECRET_KEY PHASE_SERVER_SECRET PHASE_REDIS_PASSWORD PG_APP_PHASE_PASSWORD
+
+.PHONY: phase-check phase-deploy
+
+# Offline: renders the pinned chart with our values and checks the routes (needs the chart download), and
+# tests scripts/secrets.py with fake stores and a throw-away age key.
+phase-check:
+	$(VENV)/bin/python tests/phase.py
+	$(VENV)/bin/python tests/secrets.py
+
+# The four values come from the environment only and go straight into the Kubernetes Secret (never printed):
+# PHASE_SERVER_SECRET decrypts the stored secrets; losing it loses them.
+phase-deploy:
+	@test "$(PHASE_DEPLOY_APPROVED)" = yes || (echo "Approve the Phase deployment with PHASE_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@for v in $(PHASE_SECRET_INPUTS); do test -n "$${!v:-}" || { echo "Set $$v in the environment (bootstrap secrets of Phase and the database password of the application phase)" >&2; exit 1; }; done
+	kubectl --context doku-lab apply -f services/phase/access.yaml
+	@set -euo pipefail; kubectl --context doku-lab -n phase create secret generic phase-console-secret --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'SECRET_KEY=%s\nSERVER_SECRET=%s\nREDIS_PASSWORD=%s\nDATABASE_PASSWORD=%s\n' "$$PHASE_SECRET_KEY" "$$PHASE_SERVER_SECRET" "$$PHASE_REDIS_PASSWORD" "$$PG_APP_PHASE_PASSWORD") \
+	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/phase-console-secret applied"
+	helm upgrade --install $(PHASE_HELM_ARGS) --kube-context doku-lab --timeout 10m
+	@for d in backend worker frontend; do kubectl --context doku-lab -n phase rollout status "deployment/phase-console-$$d" --timeout=600s; done
 
 # ─────────────────────────────────────────────
 # Shared storage for k3s user data (M006, ADR-012): storage-01 on pve-core (NFS) + NFS CSI driver.

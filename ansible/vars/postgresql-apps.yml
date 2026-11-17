@@ -2,4 +2,5 @@
 # Applications on the shared PostgreSQL platform (M007, ADR-015): one database and one login role of the
 # same name each. The password of "example" comes from PG_APP_EXAMPLE_PASSWORD in the environment
 # (secret store path /postgresql). Removing an entry never drops anything.
-postgresql_apps: []
+postgresql_apps:
+  - name: phase # Phase Console (M008)

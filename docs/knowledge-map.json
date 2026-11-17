@@ -313,6 +313,10 @@
         {
           "from": "TASK-012",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-019",
+          "field": "related_decisions"
         }
       ]
     },
@@ -875,6 +879,10 @@
         {
           "from": "TASK-017",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-019",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1238,7 +1246,15 @@
           "field": "related_decisions"
         },
         {
+          "from": "M008",
+          "field": "related_decisions"
+        },
+        {
           "from": "TASK-018",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-019",
           "field": "related_decisions"
         }
       ]
@@ -1524,6 +1540,10 @@
         {
           "from": "TASK-018",
           "field": "related"
+        },
+        {
+          "from": "TASK-019",
+          "field": "related"
         }
       ]
     },
@@ -1748,6 +1768,10 @@
         },
         {
           "from": "TASK-018",
+          "field": "related"
+        },
+        {
+          "from": "TASK-019",
           "field": "related"
         }
       ]
@@ -2709,7 +2733,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "active",
       "path": "milestones/M008-phase.md",
       "tags": [
         "roadmap"
@@ -2735,8 +2759,12 @@
           "ARCH-platform",
           "DOC-project-overview"
         ],
+        "related_tasks": [
+          "TASK-019"
+        ],
         "related_decisions": [
           "ADR-004",
+          "ADR-015",
           "ADR-013",
           "ADR-012"
         ],
@@ -2752,6 +2780,10 @@
         {
           "from": "M009",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-019",
+          "field": "milestone"
         }
       ]
     },
@@ -4291,6 +4323,84 @@
         {
           "from": "M007",
           "field": "related_tasks"
+        },
+        {
+          "from": "TASK-019",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "TASK-019",
+      "title": "Phase on k3s with the shared PostgreSQL and migration from Infisical",
+      "summary": "Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md",
+      "tags": [
+        "phase",
+        "secrets",
+        "infisical",
+        "k3s",
+        "migration"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": "M008",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-019 — Phase on k3s with the shared PostgreSQL and migration from Infisical",
+        "Goal",
+        "Context",
+        "Design",
+        "Inventory (Infisical project Homelab-IaC, environment `dev`; `staging` and `prod` are empty)",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-004",
+          "ADR-015",
+          "ADR-011"
+        ],
+        "depends_on": [
+          "TASK-018"
+        ],
+        "related_implementations": [
+          "services/phase",
+          "scripts/secrets.py",
+          "ansible/vars/postgresql-apps.yml",
+          "ansible/roles/admin_workstation/defaults/main.yml",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/phase.py",
+          "tests/secrets.py"
+        ],
+        "milestone": [
+          "M008"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M008",
+          "field": "related_tasks"
         }
       ]
     }
@@ -4360,7 +4470,8 @@
       "TASK-015",
       "TASK-016",
       "TASK-017",
-      "TASK-018"
+      "TASK-018",
+      "TASK-019"
     ]
   },
   "by_tag": {
@@ -4482,7 +4593,8 @@
       "TASK-016"
     ],
     "infisical": [
-      "ADR-004"
+      "ADR-004",
+      "TASK-019"
     ],
     "inventory": [
       "INV-legacy-inventory",
@@ -4501,7 +4613,8 @@
       "ADR-011",
       "TASK-015",
       "TASK-016",
-      "TASK-017"
+      "TASK-017",
+      "TASK-019"
     ],
     "kubernetes": [
       "ADR-006",
@@ -4526,7 +4639,8 @@
     ],
     "migration": [
       "ADR-001",
-      "TASK-005"
+      "TASK-005",
+      "TASK-019"
     ],
     "nfs": [
       "TASK-017"
@@ -4555,7 +4669,8 @@
       "TASK-004"
     ],
     "phase": [
-      "ADR-004"
+      "ADR-004",
+      "TASK-019"
     ],
     "plan": [
       "INV-pve-management-bootstrap"
@@ -4627,7 +4742,8 @@
     ],
     "secrets": [
       "ADR-004",
-      "TASK-011"
+      "TASK-011",
+      "TASK-019"
     ],
     "security": [
       "ADR-008"

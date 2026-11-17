@@ -20,7 +20,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ID | Status | Priority | Title | Tasks | Summary |
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
-| M008 | planned | high | [Phase](../milestones/M008-phase.md) | none | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
+| M008 | active | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
 | M009 | planned | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | none | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
@@ -39,6 +39,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 |----|--------|----------|-----------|-------|---------|
 | TASK-001 | in-progress | critical | M000 | [Reset repository to the agent harness and record the rebuild direction](../tasks/TASK-001-repository-reset-and-alignment.md) | Install the agent harness, archive the legacy Codex workflow, and document vision, architecture, decisions and roadmap. |
 | TASK-006 | in-progress | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](../tasks/TASK-006-target-layout-and-service-contract.md) | Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check). |
+| TASK-019 | in-progress | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md) | Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -134,24 +135,24 @@ _No commit records. Generate with `harness history sync`._
 - **hardware**: INV-new-proxmox-cluster-inventory
 - **harness**: TASK-001
 - **headlamp**: ADR-011, TASK-016
-- **infisical**: ADR-004
+- **infisical**: ADR-004, TASK-019
 - **inventory**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, TASK-002, TASK-003
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
-- **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017
+- **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017, TASK-019
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
 - **legacy**: ADR-007, INV-legacy-inventory
 - **m002**: TASK-013
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
-- **migration**: ADR-001, TASK-005
+- **migration**: ADR-001, TASK-005, TASK-019
 - **nfs**: TASK-017
 - **nvme**: ADR-012
 - **opentofu**: ADR-003, TASK-006, TASK-008, TASK-014, TASK-015, TASK-017, TASK-018
 - **overview**: DOC-project-overview
 - **patroni**: ADR-013, ADR-015, TASK-018
 - **pbs**: TASK-004
-- **phase**: ADR-004
+- **phase**: ADR-004, TASK-019
 - **plan**: INV-pve-management-bootstrap
 - **planning**: M000, TASK-005
 - **platform**: ARCH-platform
@@ -165,7 +166,7 @@ _No commit records. Generate with `harness history sync`._
 - **roadmap**: M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012
 - **runbook**: TASK-012
 - **runner**: ADR-008, ADR-014, TASK-009, TASK-014
-- **secrets**: ADR-004, TASK-011
+- **secrets**: ADR-004, TASK-011, TASK-019
 - **security**: ADR-008
 - **service-catalog**: ADR-005
 - **sops**: ADR-004, TASK-011

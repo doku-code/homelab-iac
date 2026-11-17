@@ -56,6 +56,7 @@ admin_workstation_mise_tools:
   kubectl: "1.35.8" # legacy Stage A cluster
   helm: latest # charts for k3s (Headlamp, Argo CD, operators)
   infisical: latest # Make targets use the Infisical CLI until Phase replaces it
+  "github:phasehq/cli[bin=phase]": "2.3.3" # Phase CLI (`phase`), the secret store that replaces Infisical (M008)
   claude: latest # Claude Code, native binary
   codex: latest # OpenAI Codex CLI, native binary
 

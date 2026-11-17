@@ -72,6 +72,11 @@ verification:
     detected: false
     verified: true
     description: OpenTofu root postgresql (fmt, validate, mocked tofu test), playbook syntax, Patroni role/access/Make guard tests; offline
+  - name: phase-check
+    run: make phase-check
+    detected: false
+    verified: true
+    description: Renders the pinned Phase chart and tests scripts/secrets.py with fake stores (workstation only; needs helm, the chart download and age)
   - name: headlamp-check
     run: make headlamp-check
     detected: false

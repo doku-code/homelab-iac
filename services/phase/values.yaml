@@ -1,0 +1,46 @@
+# Phase Console (M008, ADR-004): official chart phase/phase, pinned in the Makefile. The database is the
+# shared PostgreSQL outside k3s (ADR-015); Redis is only a job queue and cache and stays in the cluster.
+global:
+  host: phase.192.168.0.40.sslip.io
+  httpProtocol: "https://"
+  version: v2.79.0
+
+# Kubernetes Secret created by `make phase-deploy` from the environment, never from Git.
+phaseSecrets: phase-console-secret
+
+# Email + password login until Authentik exists; no outgoing email, so no verification step.
+passwordAuth:
+  enabled: true
+
+# The chart's Ingress is written for ingress-nginx (regex paths, rewrite annotations). Traefik routes are in
+# services/phase/access.yaml.
+ingress:
+  enabled: false
+
+database:
+  external: true
+  host: 192.168.0.60
+  port: "5432"
+  name: phase
+  user: phase
+  ssl: true
+
+app:
+  frontend:
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {cpu: 1000m, memory: 1Gi}
+  backend:
+    gunicornWorkers: "2"
+    resources:
+      requests: {cpu: 200m, memory: 384Mi}
+      limits: {cpu: 2000m, memory: 1536Mi}
+  worker:
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {cpu: 1000m, memory: 1Gi}
+
+redis:
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 256Mi}

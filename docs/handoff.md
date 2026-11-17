@@ -111,9 +111,15 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   from the k3s nodes only. New application database: add the name to `ansible/vars/postgresql-apps.yml`,
   store `PG_APP_<NAME>_PASSWORD` in the secret store path `/postgresql`, run `make postgresql-configure`.
   State of the cluster: `make postgresql-status`. No database backups yet (M012).
-- **Operator roadmap (2026-11-17), remaining, in order:** Phase (uses the shared PostgreSQL; migrate every
-  Infisical key, then shut Infisical down — ask the operator before the shutdown) → lean
-  Grafana/Prometheus/Loki/Alloy.
+- **M008 in progress** ([TASK-019](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md)):
+  Phase Console v2.79.0 runs at `https://phase.192.168.0.40.sslip.io/` (LAN only, self-signed certificate),
+  database on the shared PostgreSQL. It is **empty**: Infisical is still the active store
+  (`.local/secret-store`). `scripts/secrets.py` is the store entry point (`run`, `set`, `inventory`,
+  `migrate`, `verify`, `recovery-export`). **Waiting for the operator:** sign up in Phase and keep the recovery
+  kit, create the app `homelab-iac`, run `phase auth` on the workstation; provide an age public key for the
+  recovery copy of the bootstrap secrets. Then: migrate, verify, switch the store, and only after the
+  operator's confirmation shut Infisical down.
+- **Operator roadmap (2026-11-17), remaining after Phase:** lean Grafana/Prometheus/Loki/Alloy.
 
 ## Commands
 
