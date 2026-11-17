@@ -96,7 +96,8 @@ reachable only at 192.168.0.14** (old `pve-lab`, Ryzen 9 9950X3D), which keeps r
 services; `pve-compute` is the future name of that machine after its final reinstall. Make now refuses
 every legacy root whose endpoint is a new-cluster address (`LEGACY_ENDPOINT_GUARD`), and `pve-core` left
 the legacy `proxmox` Ansible group. Legacy roots stay on Terraform with their local state on the Mac
-(not migrated); repoint a root at `.14` only when that root is worked on (M010).
+(not migrated; an inactive archive is on `mgmt-control-01` in `.local/legacy-state-archive-2026-11-16.tar`);
+repoint a root at `.14` only when that root is worked on (M010).
 
 ### Retired hosts (resolved 2026-11-12)
 

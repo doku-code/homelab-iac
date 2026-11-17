@@ -57,8 +57,10 @@ use IPs**. The new nodes have no DNS records.
   (`terraform.tfstate`, `terraform.tfvars`, 0600, git-ignored); handed over 2026-11-16, plan from here: no
   changes. The Mac copy is retired (Mac `.local/handoff/`). `make mgmt-plan` refuses to run without a state
   file, so an empty state can never recreate VM 100.
-- Legacy roots: their local states stay on the Mac (not migrated); Make refuses them on any new-cluster
-  address. Copy one over only when its root is worked on (M010).
+- Legacy roots: their local states (10 roots, 22 files with private tfvars) stay in place on the Mac and
+  are archived, inactive, in `.local/legacy-state-archive-2026-11-16.tar` here (0600). To work on one root
+  (M010), extract only that root's files into the checkout and stop using the Mac copy; Make refuses any
+  legacy root whose endpoint is a new-cluster address.
 - Proxmox credentials: `infisical login` once (domain `https://secrets.doku-lab.net`), then prefix Make
   targets with `infisical run --silent --env dev --path /pve-management --` and pass `MGMT_INPUT_SOURCE=env`.
   The token sees all four nodes but has rights only on VM 100; M003 adds scoped identities.
