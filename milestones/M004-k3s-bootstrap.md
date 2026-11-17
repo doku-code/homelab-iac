@@ -3,7 +3,7 @@ id: M004
 title: "k3s bootstrap"
 summary: "The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl."
 type: milestone
-status: active
+status: completed
 priority: high
 created: 2026-11-12
 updated: 2026-11-17
@@ -48,15 +48,19 @@ Out of scope:
 
 ## Acceptance criteria
 
-- [ ] `kubectl get nodes` healthy from the workstation
-- [ ] Rebuilding a k3s VM from IaC succeeds
+- [x] `kubectl get nodes` healthy from the workstation
+- [x] Rebuilding a k3s VM from IaC succeeds
 
 ## Verification evidence
 
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
-| | | not verified | |
+| `kubectl get nodes` healthy from the workstation | `kubectl get nodes -o wide` (context doku-lab) | PASS: k3s-server-01 Ready, control-plane,etcd, v1.35.8+k3s1 (TASK-015) | 2026-11-17 |
+| Rebuilding a k3s VM from IaC succeeds | `make k3s-cluster-plan K3S_CLUSTER_REPLACE=k3s-server-01` → apply → hostkeys → configure | PASS: replaced and Ready again in 191 s; plan afterwards: No changes (TASK-015) | 2026-11-17 |
 
 ## Completion summary
 
-_Not completed._
+Completed 2026-11-17 with TASK-015: single-server k3s (embedded etcd) on pve-lab, reachable with kubectl,
+rebuildable from IaC. Initial availability is one server (no HA); more servers are tfvars entries.
+Ingress/LB decision: bundled Traefik + ServiceLB for now. Deferred: runner kubeconfig with scoped RBAC,
+local-path vs ADR-012 (M006), etcd snapshot backups (M012).

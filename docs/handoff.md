@@ -93,7 +93,12 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   in Infisical `dev:/deploy-runner`. Deploy flow: Forgejo → Actions → Deploy (root, `plan`) →
   `make deploy-runner-review DEPLOY_ROOT=<root>` → `make deploy-runner-approve …` → Deploy (`apply`, SHA256)
   ([runbook](../terraform/stacks/deploy-runner/README.md)). `main` is protected in Forgejo (push/merge only `doku-code`, no force-push, 2026-11-17).
-- **Next: M004 k3s** (first server on `pve-lab` .16), then M005 Headlamp, M006 storage.
+- **M004 completed** 2026-11-17 ([TASK-015](../tasks/TASK-015-k3s-cluster-on-doku-lab-first-server-on-pve-lab.md)):
+  k3s `k3s-server-01`, VM 310, 192.168.0.40 on `pve-lab`, embedded etcd, Traefik + ServiceLB; `kubectl` works
+  here (`~/.kube/config`, context `doku-lab`); token in Infisical `dev:/k3s`; state on this workstation only.
+  Rebuild a node: `make k3s-cluster-plan K3S_CLUSTER_REPLACE=<name>` → apply → `k3s-cluster-hostkeys` →
+  configure (commands in TASK-015). Add servers as tfvars entries in `terraform/stacks/k3s`.
+- **Next: M005 Headlamp**, then M006 storage (decide local-path vs ADR-012 first).
 
 ## Commands
 

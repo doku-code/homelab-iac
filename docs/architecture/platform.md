@@ -40,7 +40,7 @@ flowchart TB
     pm["pve-management .10<br/>workstation"]
     pc["pve-core .11<br/>1 TB NVMe, bootstrap runner"]
     pi["pve-infra .12<br/>light services"]
-    pl["pve-lab .16<br/>512 GB NVMe"]
+    pl["pve-lab .16<br/>512 GB NVMe, k3s-server-01"]
     px["pve-compute (future)<br/>old .14 reinstalled"]
   end
   old["Old environment<br/>pve-lab .14 (legacy services)"]
@@ -105,7 +105,7 @@ Verified facts: [INV-new-proxmox-cluster-inventory](../investigations/new-proxmo
 | `pve-management` 192.168.0.10 | New cluster; i5-10500T, 16 GB; runs `mgmt-control-01` (VM 100) | Management node: workstation |
 | `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe | Bootstrap deployment runner `deploy-runner-01` (VM 302, ADR-014), k3s node, first external NVMe storage |
 | `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD; empty | Lightweight services |
-| `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE; empty | First k3s server |
+| `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE | First k3s server `k3s-server-01` (VM 310, .40, M004) |
 | `pve-lab` **192.168.0.14** | **Old environment**, independent; Ryzen 9 9950X3D; runs the legacy services | Emptied (M010), reinstalled as `pve-compute`, joined |
 | `pve-k8s-01/02` | Legacy | Reclaimed after migration |
 | TrueNAS SCALE | Serves Forgejo and datasets | Backup destination; current apps stay until replaced |

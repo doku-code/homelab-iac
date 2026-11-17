@@ -75,7 +75,7 @@
         content: >-
           {{ (k3s_admin_kubeconfig.content | b64decode)
              | replace('https://127.0.0.1:6443', 'https://' + ansible_host + ':6443')
-             | regex_replace('(?m)^(\s*(name|cluster|user|current-context):\s*)default$', '\g<1>' + k3s_kubeconfig_context) }}
+             | regex_replace('(?m)^(\s*(- )?(name|cluster|user|current-context):\s*)default$', '\g<1>' + k3s_kubeconfig_context) }}
         mode: "0600"
       delegate_to: localhost
       become: false

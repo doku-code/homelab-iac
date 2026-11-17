@@ -81,6 +81,31 @@ def test_playbook():
     assert write["delegate_to"] == "localhost" and write["become"] is False
     assert "https://127.0.0.1:6443" in write["ansible.builtin.copy"]["content"], "the API is rewritten to the node IP"
 
+    # Run the playbook's exact transform over a k3s-shaped kubeconfig: every reference must be renamed,
+    # including the "- name: default" list items (a missed user makes kubectl prompt for a username).
+    sample = ("apiVersion: v1\nclusters:\n- cluster:\n    certificate-authority-data: Q0E=\n"
+              "    server: https://127.0.0.1:6443\n  name: default\ncontexts:\n- context:\n    cluster: default\n"
+              "    user: default\n  name: default\ncurrent-context: default\nkind: Config\npreferences: {}\n"
+              "users:\n- name: default\n  user:\n    client-certificate-data: Q0VSVA==\n    client-key-data: S0VZ\n")
+    expression = write["ansible.builtin.copy"]["content"]
+    with tempfile.TemporaryDirectory() as directory:
+        out = Path(directory) / "kubeconfig"
+        play = Path(directory) / "render.yml"
+        play.write_text(yaml.safe_dump([{
+            "hosts": "localhost", "gather_facts": False, "vars": kubeconfig["vars"],
+            "tasks": [{"ansible.builtin.copy": {"dest": str(out), "content": expression}}]}]))
+        extra = {"ansible_host": "192.168.0.40",
+                 "k3s_admin_kubeconfig": {"content": __import__("base64").b64encode(sample.encode()).decode()}}
+        result = subprocess.run([str(ROOT / ".venv/bin/ansible-playbook"), "-i", "localhost,", "-c", "local",
+                                 "-e", json.dumps(extra), str(play)], capture_output=True, text=True,
+                                env={**os.environ, "ANSIBLE_NOCOLOR": "1"})
+        assert result.returncode == 0, result.stdout + result.stderr
+        config = yaml.safe_load(out.read_text())
+    assert config["current-context"] == "doku-lab"
+    assert config["clusters"][0]["name"] == "doku-lab" and config["clusters"][0]["cluster"]["server"] == "https://192.168.0.40:6443"
+    assert config["contexts"][0] == {"name": "doku-lab", "context": {"cluster": "doku-lab", "user": "doku-lab"}}
+    assert config["users"][0]["name"] == "doku-lab" and config["users"][0]["user"]["client-key-data"] == "S0VZ"
+
 
 def test_hostkey_script_refuses_old_environment():
     script = ROOT / "scripts/pin-guest-hostkey.sh"

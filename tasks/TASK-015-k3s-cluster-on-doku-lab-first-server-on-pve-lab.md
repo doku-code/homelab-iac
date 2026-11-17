@@ -3,7 +3,7 @@ id: TASK-015
 title: "k3s cluster on doku-lab: first server on pve-lab"
 summary: terraform/stacks/k3s VMs (for_each, rebuildable), k3s role with embedded etcd, token in Infisical /k3s, host keys pinned out-of-band, workstation kubeconfig (ADR-011).
 type: task
-status: in-progress
+status: completed
 priority: high
 milestone: M004
 created: 2026-11-17
@@ -54,10 +54,10 @@ with Ansible and reachable with kubectl from the workstation; a node can be rebu
 ## Acceptance criteria
 
 - [x] Offline: root fmt/validate/mocked tests (5); playbook syntax; role/template/kubeconfig/Make guard tests
-- [ ] `tofu@pve!mgmt` may place VMs on pve-lab (ACL `/nodes/pve-lab`) and `K3S_TOKEN` exists in Infisical
-- [ ] Plan (image + VM 310 only) applied; host key pinned out-of-band; configure converges, second run changed=0
-- [ ] `kubectl get nodes` from the workstation: `k3s-server-01` Ready (control-plane, etcd)
-- [ ] Rebuild from IaC: replace VM 310, re-pin, configure → node Ready again
+- [x] `tofu@pve!mgmt` may place VMs on pve-lab (ACL `/nodes/pve-lab`) and `K3S_TOKEN` exists in Infisical
+- [x] Plan (image + VM 310 only) applied; host key pinned out-of-band; configure converges, second run changed=0
+- [x] `kubectl get nodes` from the workstation: `k3s-server-01` Ready (control-plane, etcd)
+- [x] Rebuild from IaC: replace VM 310, re-pin, configure → node Ready again
 
 ## Verification
 
@@ -85,8 +85,24 @@ kubectl get nodes -o wide
 | Host-key script | Pinned VM 302 (.32) with the same fingerprint as the manual check (`SHA256:uWRZ…noj8`); refuses 192.168.0.14 | `scripts/pin-guest-hostkey.sh` into a scratch known_hosts | 2026-11-17 |
 | Offline checks | PASS | `make k3s-cluster-check`, `scripts/check-quality.py` | 2026-11-17 |
 | Plan | 2 to add, 0 change, 0 destroy: image download on pve-lab `local` and VM 310 `k3s-server-01` (pve-lab, 6 vCPU, 12288 MiB, 64 GiB, 192.168.0.40/24); SHA256 `afe3f7c15710283812684103a0664f284f7d624465b1f22f4f9df0e5a610f0b5` | `make k3s-cluster-plan` | 2026-11-17 |
+| ACL + token (operator-authorized rule) | `IaCManagementVM` on `/nodes/pve-lab` for `tofu@pve` and `!mgmt`; `K3S_TOKEN` (64 hex) generated locally into Infisical `dev:/k3s`, local copy shredded | `pveum acl list` on .16, `infisical run` (length only) | 2026-11-17 |
+| Apply | 2 added (image 12 s, VM 310 2 min 8 s); only the expected guest-agent warning, now after 2 min | `make k3s-cluster-apply` | 2026-11-17 |
+| Host key | Network and on-disk keys agreed: `SHA256:/Ce1uzvwMy+1Yc7GMgsO9gWOShq7AxtA8t99UuS4ZCA` pinned | `make k3s-cluster-hostkeys` | 2026-11-17 |
+| Configure | Run 1: ok=25 changed=16; run 2: ok=23 changed=0 | `make k3s-cluster-configure` | 2026-11-17 |
+| Kubeconfig bug | kubectl prompted for a username: the context rename missed the `- name: default` list items; fixed regex, regression test renders the playbook's transform (fails on the old regex) | `tests/k3s-cluster.py` | 2026-11-17 |
+| kubectl from the workstation | `k3s-server-01 Ready control-plane,etcd v1.35.8+k3s1 192.168.0.40`; coredns, local-path, metrics-server, traefik, svclb Running | `kubectl get nodes -o wide`, `kubectl get pods -A` | 2026-11-17 |
+| Rebuild from IaC | Plan `K3S_CLUSTER_REPLACE=k3s-server-01`: 1 add, 1 destroy (SHA256 `861a097c…762b`); apply (destroy 3 s, create 2 min 10 s), new key `SHA256:iOdsSABdS6U7IBrqfkVNoeg4HvDVMAUidzOP/r+9bnA` pinned out-of-band, configure ok=25 changed=15, node Ready again, `/readyz` and `/readyz/etcd` ok; 191 s end to end; afterwards plan: No changes | `make k3s-cluster-*`, kubectl | 2026-11-17 |
+| Verification set | whitespace, fmt, validate, ansible-syntax, offline tests, mgmt/deploy-runner/k3s-cluster checks, quality: PASS | recorded commands | 2026-11-17 |
 
 ## Completion summary
 
-_Not completed._ Remaining: ACL `/nodes/pve-lab` and `K3S_TOKEN` (blocked by Claude Code's permission
-classifier pending the operator's specific OK), then apply, host keys, configure, kubectl, rebuild proof.
+Completed 2026-11-17. `k3s-server-01` (VM 310, pve-lab, 192.168.0.40, 6 vCPU / 12 GiB / 64 GiB) runs k3s
+v1.35.8+k3s1 with embedded etcd (cluster-init), Traefik and ServiceLB; `kubectl` works from the workstation
+(context `doku-lab`). The node was rebuilt from IaC in about 3 minutes (replace, out-of-band host-key pin,
+configure) and the cluster came back Ready; OpenTofu reports no drift.
+
+Initial availability: one server, one etcd member, no HA (a lost VM means a fresh cluster until more
+servers join; workloads are not yet hosted). Next servers: tfvars entries (pve-core first).
+Open, outside this task: local-path-provisioner is k3s's default StorageClass and would put PV data on the
+VM disk, against ADR-012: M006 decides (disable or scratch only); etcd snapshots stay on the VM disk until the
+backup design (M012); the runner's kubeconfig with scoped RBAC comes with the first runner-deployed workload.

@@ -2287,7 +2287,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "active",
+      "status": "completed",
       "path": "milestones/M004-k3s-bootstrap.md",
       "tags": [
         "roadmap"
@@ -3864,7 +3864,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-015-k3s-cluster-on-doku-lab-first-server-on-pve-lab.md",
       "tags": [
         "k3s",
