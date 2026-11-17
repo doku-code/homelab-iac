@@ -3,10 +3,10 @@ id: M001
 title: "Management workstation"
 summary: "Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it."
 type: milestone
-status: active
+status: completed
 priority: critical
 created: 2026-11-12
-updated: 2026-11-16
+updated: 2026-11-17
 tags: [bootstrap, pve-management]
 related_tasks: [TASK-006, TASK-007, TASK-008, TASK-009, TASK-010]
 related_decisions: [ADR-009, ADR-003, ADR-010, ADR-008]
@@ -60,7 +60,7 @@ Out of scope:
 - [x] A plan/apply from a workstation creates the management VM on pve-management (TASK-008, first install)
 - [x] The Ubuntu Desktop VM is installed from the official ISO; a second plan is a no-op (TASK-008)
 - [x] Ansible converges the VM; a second run reports no changes (TASK-009)
-- [ ] Thincast RDP, Zed, Claude Code, Codex, OpenTofu, Ansible, Git and Forgejo access work as `ubuntu` (TASK-009)
+- [x] Thincast RDP, Zed, Claude Code, Codex, OpenTofu, Ansible, Git and Forgejo access work as `ubuntu` (TASK-009)
 - [x] The OpenTofu state is handed over to the VM and recognized there (TASK-010)
 
 ## Verification evidence
@@ -70,8 +70,13 @@ Out of scope:
 | Desktop install, no-op plan | `make mgmt-plan` (Mac, then VM) | No changes | 2026-11-16 |
 | Convergence + idempotency | `make mgmt-configure` ×2 | changed=0 on rerun | 2026-11-14 |
 | State handover | `tofu state list` + plan on the VM | 2 resources, No changes | 2026-11-16 |
-| Thincast two-stage login | operator | not verified | |
+| Thincast two-stage login | operator, Thincast client | PASS, both stages | 2026-11-17 |
+| RDP limited to the LAN | `sudo ufw status verbose` | deny incoming; 3389 only from 192.168.0.0/24 (ruleset, not an external connection test) | 2026-11-17 |
+| Tools and Forgejo access as `ubuntu` | versions, `git ls-remote origin` | PASS for fetch; push access is a first-session operator step (handoff) | 2026-11-17 |
 
 ## Completion summary
 
-_Not completed._
+Completed 2026-11-17. VM 100 `mgmt-control-01` was created by OpenTofu from the official Ubuntu Desktop
+ISO, converged by Ansible (idempotent), took over the OpenTofu state, and is the operator's workstation
+(Thincast two-stage login confirmed). RDP exposure outside the LAN is limited by the ufw ruleset; that
+criterion was checked from the configuration, not with a connection attempt from outside.
