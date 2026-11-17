@@ -64,4 +64,4 @@ Out of scope:
 
 Completed 2026-11-17 with TASK-014: `deploy-runner-01` on pve-core runs approved OpenTofu workflows from
 Forgejo with a pool-scoped Proxmox token; approval is out-of-band over SSH; CT301 stays validation-only.
-Deferred: Kubernetes credentials (M004), shared-state roots (TASK-010), branch protection on `main` (operator).
+Deferred: Kubernetes credentials (M004), shared-state roots (TASK-010); branch protection on `main` set 2026-11-17.

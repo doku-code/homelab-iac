@@ -92,7 +92,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   `pve-core` (6 vCPU / 8 GiB), Forgejo runner 10, label `homelab-deploy`; state on this workstation only, secrets
   in Infisical `dev:/deploy-runner`. Deploy flow: Forgejo → Actions → Deploy (root, `plan`) →
   `make deploy-runner-review DEPLOY_ROOT=<root>` → `make deploy-runner-approve …` → Deploy (`apply`, SHA256)
-  ([runbook](../terraform/stacks/deploy-runner/README.md)). Recommended: protect `main` in Forgejo.
+  ([runbook](../terraform/stacks/deploy-runner/README.md)). `main` is protected in Forgejo (push/merge only `doku-code`, no force-push, 2026-11-17).
 - **Next: M004 k3s** (first server on `pve-lab` .16), then M005 Headlamp, M006 storage.
 
 ## Commands

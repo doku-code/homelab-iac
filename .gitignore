@@ -115,3 +115,6 @@ CLAUDE.local.md
 *.tfstate
 *.tfstate.backup
 # <<< harness managed block <<<
+
+# Claude Code personal settings (operator-local permission rules)
+.claude/settings.local.json

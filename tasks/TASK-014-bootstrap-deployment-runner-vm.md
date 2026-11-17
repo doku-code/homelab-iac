@@ -128,5 +128,5 @@ Learned: a pool-scoped Proxmox token cannot create tagged guests (tag permission
 without the pool); runner roots must not set tags (`test_runner_roots`). Debian generic cloud images lack
 `qemu-guest-agent`, so the first VM apply waits out the agent timeout.
 
-Open, outside this task: protect `main` in Forgejo (the runner trusts whoever can push to it); Kubernetes
+Done after closing: `main` protected in Forgejo (push/merge only `doku-code`). Open, outside this task: Kubernetes
 credentials for the runner arrive with M004; shared-state roots still wait for TASK-010.
