@@ -2182,7 +2182,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "active",
+      "status": "completed",
       "path": "milestones/M003-deployment-runner.md",
       "tags": [
         "roadmap"
@@ -3756,7 +3756,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-014-bootstrap-deployment-runner-vm.md",
       "tags": [
         "runner",

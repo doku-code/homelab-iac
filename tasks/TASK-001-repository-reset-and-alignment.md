@@ -67,6 +67,7 @@ Make the repository a clean, harness-managed starting point whose docs carry the
 | 10 offline test scripts from validate.yml | PASS after fixing pre-existing failure in tests/stage-a-inputs.py (Makefile include added in 915333c, not copied by the test) | local run | 2026-11-12 |
 | `harness-docs-validate.yml` executed in Forgejo CI | FAIL run 50 on f501ff1: runner cannot fetch the private agent-harness repository (anonymous access 404) | Forgejo Actions run 50 | 2026-11-12 |
 | Harness CLI vendored in `tools/agent-harness` (byte-identical to upstream `8ddf06d`), installed from `requirements-agents.txt`; read-only token approach dropped | Clean venv install + `harness check`: PASS, no access to the private template repository | local run | 2026-11-14 |
+| Wiki publication + CI on 8c03161 | PASS: Documentation validation run 81, Wiki publication run 82 (job token initialised the wiki: 53 pages with Home from README and generated _Sidebar), validate run 83 | Forgejo Actions runs 81–83, wiki API | 2026-11-17 |
 | `validate.yml` on f501ff1 | FAIL run 51 after 6 s; cause unknown, log not yet read | Forgejo Actions run 51 | 2026-11-12 |
 
 ## Completion summary

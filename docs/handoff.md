@@ -87,12 +87,13 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 
 - **M001 completed** 2026-11-17: Thincast two-stage login confirmed by the operator (TASK-009).
 - **M002 completed**: cluster formed by the operator, audited read-only.
-- **Current: M003, bootstrap deployment runner** ([ADR-014](decisions/ADR-014-dedicated-forgejo-deployment-runner.md),
-  [TASK-014](../tasks/TASK-014-bootstrap-deployment-runner-vm.md)): `deploy-runner-01`, VM 302,
-  192.168.0.32 on `pve-core` (6 vCPU / 8 GiB), applied, configured and registered 2026-11-17 (runner id 10,
-  label `homelab-deploy`; state on this workstation only; secrets in Infisical `dev:/deploy-runner`). Remaining
-  M003 proof: operator approves the dispatched `ci-disposable` plan, then apply and `plan-destroy` ([runbook](../terraform/stacks/deploy-runner/README.md)). Then M004 k3s (first
-  server on `pve-lab` .16), M005 Headlamp, M006 storage.
+- **M003 completed** 2026-11-17 ([ADR-014](decisions/ADR-014-dedicated-forgejo-deployment-runner.md),
+  [TASK-014](../tasks/TASK-014-bootstrap-deployment-runner-vm.md)): `deploy-runner-01`, VM 302, 192.168.0.32 on
+  `pve-core` (6 vCPU / 8 GiB), Forgejo runner 10, label `homelab-deploy`; state on this workstation only, secrets
+  in Infisical `dev:/deploy-runner`. Deploy flow: Forgejo → Actions → Deploy (root, `plan`) →
+  `make deploy-runner-review DEPLOY_ROOT=<root>` → `make deploy-runner-approve …` → Deploy (`apply`, SHA256)
+  ([runbook](../terraform/stacks/deploy-runner/README.md)). Recommended: protect `main` in Forgejo.
+- **Next: M004 k3s** (first server on `pve-lab` .16), then M005 Headlamp, M006 storage.
 
 ## Commands
 

@@ -3,7 +3,7 @@ id: M003
 title: "Dedicated Forgejo deployment runner"
 summary: "A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials."
 type: milestone
-status: active
+status: completed
 priority: high
 created: 2026-11-12
 updated: 2026-11-17
@@ -50,15 +50,18 @@ Out of scope:
 
 ## Acceptance criteria
 
-- [ ] A reviewed workflow plans and applies a disposable resource through the runner
-- [ ] Validation jobs never receive deployment credentials
+- [x] A reviewed workflow plans and applies a disposable resource through the runner
+- [x] Validation jobs never receive deployment credentials
 
 ## Verification evidence
 
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
-| | | not verified | |
+| Reviewed workflow plans and applies a disposable resource | `deploy.yml` dispatch on `main` → `make deploy-runner-review` / `deploy-runner-approve` → dispatch apply | PASS: VM 9900 created (runs 92–93) and destroyed (runs 94–95) through the runner with `deploy-runner@pve!ci` (TASK-014) | 2026-11-17 |
+| Validation jobs never receive deployment credentials | `tests/deploy-runner.py` (only `deploy.yml` targets `homelab-deploy`; other workflows reference no Proxmox/deploy secrets); runner's token readable only by `deploy` | PASS | 2026-11-17 |
 
 ## Completion summary
 
-_Not completed._
+Completed 2026-11-17 with TASK-014: `deploy-runner-01` on pve-core runs approved OpenTofu workflows from
+Forgejo with a pool-scoped Proxmox token; approval is out-of-band over SSH; CT301 stays validation-only.
+Deferred: Kubernetes credentials (M004), shared-state roots (TASK-010), branch protection on `main` (operator).
