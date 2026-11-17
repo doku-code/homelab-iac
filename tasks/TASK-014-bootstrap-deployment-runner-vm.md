@@ -66,8 +66,8 @@ Runbook and exact commands: [terraform/stacks/deploy-runner/README.md](../terraf
 - [x] Offline: both roots fmt/validate/mocked tests; playbook syntax; wrapper, role, workflow and Make guard tests
 - [x] Reviewed `deploy-runner-plan` (creates only the image download and VM 302) approved by the operator
 - [x] VM applied
-- [ ] `deploy-runner-configure` converges, second run changed=0
-- [ ] Runner online in Forgejo with label `homelab-deploy`, repository scope only
+- [x] `deploy-runner-configure` converges, second run changed=0
+- [x] Runner online in Forgejo with label `homelab-deploy`, repository scope only
 - [ ] Dispatch `ci-disposable` plan → apply with the approved SHA256 creates VM 9900; plan-destroy → apply removes it
 - [ ] A dispatch from a non-main commit is refused by the wrapper; validation jobs never receive deployment credentials
 
@@ -100,7 +100,13 @@ infisical run --silent --env dev --path /pve-management -- make deploy-runner-pl
 | Runner plan (pve-core) | 2 to add, 0 change, 0 destroy: image download to pve-core `local` (import, sha512) and VM 302 `deploy-runner-01` on pve-core, 6 vCPU, 8192 MiB, 24 GiB `local-lvm`, 192.168.0.32/24; approved by the operator | `make deploy-runner-plan`, SHA256 `a3d3cc1be32bfb0f65c63dbaaf3130f423e3a393eb4bc5214e34b7bdb68f382a` | 2026-11-17 |
 | Runner apply | Apply complete: 2 added, 0 changed, 0 destroyed; VM 302 running, answers ping; state `terraform/stacks/deploy-runner/terraform.tfstate` (0600, git-ignored, this workstation only). Warning: QEMU agent timeout (15 min): the Debian generic cloud image has no `qemu-guest-agent` until `headless_baseline` installs it | `make deploy-runner-apply` | 2026-11-17 |
 | DHCP range | Operator: pfSense DHCP pool is 192.168.0.100–.200, so static .32 is outside it | operator statement | 2026-11-17 |
-| SSH host key | ED25519 `SHA256:uWRZqqgqUdqahMNjZJLpU6f7AOBAI+yTK3w/M+3noj8` from `ssh-keyscan`; operator compares with the VM console before first trust | `ssh-keyscan`, `ssh-keygen -lf` | 2026-11-17 |
+| SSH host key | ED25519 `SHA256:uWRZqqgqUdqahMNjZJLpU6f7AOBAI+yTK3w/M+3noj8` from `ssh-keyscan`; matches the key read out-of-band from VM 302's disk on pve-core (read-only loop device + `debugfs -c`); pinned in `~/.ssh/known_hosts` | `ssh-keyscan`, `debugfs` | 2026-11-17 |
+| Runner credentials (operator-authorized) | Pool `ci-disposable`, role `IaCDisposable`, user `deploy-runner@pve`, token `!ci` (privsep) with ACLs on `/pool/ci-disposable`, `/storage/local-lvm`, `/nodes/pve-core`; Forgejo repository runner id 10 `deploy-runner-01` created through the API; the three values stored in Infisical `dev:/deploy-runner`, no local copy | `pveum acl list`, Forgejo API, `infisical run` (lengths only) | 2026-11-17 |
+| Configure | Run 1: ok=30 changed=25 failed=0; run 2: ok=26 changed=0 failed=0 | `make deploy-runner-configure` | 2026-11-17 |
+| Runner state | `forgejo-runner` and `qemu-guest-agent` active; Forgejo shows `deploy-runner-01` v13.0.0, labels `[homelab-deploy]`, idle; config 0640 root:runner, proxmox.env 0640 root:deploy (runner cannot read it), sudo for `runner`: only `(deploy) /usr/local/sbin/homelab-deploy`; OpenTofu 1.13.9 | `systemctl`, Forgejo API, `stat`, `sudo -l` | 2026-11-17 |
+| VM state after configure | No changes | `make deploy-runner-plan` | 2026-11-17 |
+| Dispatch plan (`DEPLOY_RUNNER_APPROVED=true` set) | Run 84 success on `8c03161`; review on the runner: 1 to add, VM 9900 on pve-core, pool `ci-disposable`, stopped, 128 MiB, 1 GiB, no NIC; PLAN_SHA256 `1d20ed019935bf1f003f8d12d2e87f75c240ab4e4162efe049a72c1c4c52497d` | Forgejo Actions run 84, `make deploy-runner-review` | 2026-11-17 |
+| Boundary as job user `runner` | Refused: older main commit `35f448d`, foreign commit, short commit, wrong plan SHA256, correct SHA256 without operator approval; `sudo` to root or to any other command as `deploy` asks for a password | `sudo -u runner sudo -n -u deploy homelab-deploy …` over SSH | 2026-11-17 |
 
 ## Completion summary
 

@@ -236,8 +236,8 @@ def test_role():
         if any(marker in body for marker in secret_markers):
             assert task.get("no_log") is True, f"task handling secrets must use no_log: {task['name']}"
     by_name = {task["name"]: task for task in tasks()}
-    token = by_name["Install the scoped Proxmox token, readable only by the deployment user"]["ansible.builtin.copy"]
-    assert (token["owner"], token["group"], token["mode"]) == ("root", "deploy", "0640")
+    token_task = by_name["Install the scoped Proxmox token, readable only by the deployment user"]["ansible.builtin.copy"]
+    assert (token_task["owner"], token_task["group"], token_task["mode"]) == ("root", "deploy", "0640")
     sudo = by_name["Allow the job user to run only the wrapper, as the deployment user"]["ansible.builtin.template"]
     assert sudo["validate"].startswith("/usr/sbin/visudo -cf")
 

@@ -89,8 +89,9 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 - **M002 completed**: cluster formed by the operator, audited read-only.
 - **Current: M003, bootstrap deployment runner** ([ADR-014](decisions/ADR-014-dedicated-forgejo-deployment-runner.md),
   [TASK-014](../tasks/TASK-014-bootstrap-deployment-runner-vm.md)): `deploy-runner-01`, VM 302,
-  192.168.0.32 on `pve-core` (6 vCPU / 8 GiB), **applied 2026-11-17** (state on this workstation only); next:
-  host-key check, credentials, `deploy-runner-configure` and registration ([runbook](../terraform/stacks/deploy-runner/README.md)). Then M004 k3s (first
+  192.168.0.32 on `pve-core` (6 vCPU / 8 GiB), applied, configured and registered 2026-11-17 (runner id 10,
+  label `homelab-deploy`; state on this workstation only; secrets in Infisical `dev:/deploy-runner`). Remaining
+  M003 proof: operator approves the dispatched `ci-disposable` plan, then apply and `plan-destroy` ([runbook](../terraform/stacks/deploy-runner/README.md)). Then M004 k3s (first
   server on `pve-lab` .16), M005 Headlamp, M006 storage.
 
 ## Commands
