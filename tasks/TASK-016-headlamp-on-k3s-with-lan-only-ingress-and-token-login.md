@@ -34,7 +34,7 @@ M005: graphical Kubernetes administration before storage, databases and secrets 
 
 - Official chart `headlamp/headlamp` 0.46.0 (pinned in the Makefile), values in `services/headlamp/values.yaml`,
   deployed with Helm from the workstation (`make headlamp-deploy`) until Argo CD takes over (M009).
-- Headlamp's own ServiceAccount has **no** cluster rights. Login is a Kubernetes token: ServiceAccount
+- Headlamp's own ServiceAccount has **no** cluster rights. Users log in with the token of the ServiceAccount
   `headlamp-admin` (cluster-admin) in `services/headlamp/access.yaml`; `make headlamp-token` copies its token to
   Infisical `dev:/headlamp` (`HEADLAMP_ADMIN_TOKEN`) without printing it.
 - URL `https://headlamp.192.168.0.40.sslip.io/` (sslip.io resolves to the embedded address: no AdGuard change;
