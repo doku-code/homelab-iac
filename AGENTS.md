@@ -43,9 +43,11 @@ planning metadata, never authorization.
   private tfvars, recovery material or credential caches. Inspect the staged diff before committing.
 - Nine legacy roots under `terraform/stacks/` hold live state as **untracked local files** beside
   the code: never move, rename, delete or re-init those directories.
-- `pve-infra` and `pve-compute` are retired; `192.168.0.10` is `pve-management` (founding node of the new
-  cluster, ADR-010); `pve-core` is emptied and will be reinstalled (TASK-013). Never
-  point legacy automation at it; keep the Make guards (`LEGACY_ENDPOINT_GUARD`, `RETIRED_ROOT`).
+- New cluster `doku-lab`: `pve-management` .10, `pve-core` .11, `pve-infra` .12 (fresh install) and the
+  new `pve-lab` .16 ([inventory](docs/investigations/new-proxmox-cluster-inventory.md)). The **old**
+  environment is only `192.168.0.14` (old `pve-lab`, future `pve-compute`): never let legacy automation
+  reach a new-cluster address, never change `.14`'s cluster or name; keep the Make guards
+  (`LEGACY_ENDPOINT_GUARD`, `RETIRED_ROOT`). Two hosts are named `pve-lab`: always use IPs.
 - Infrastructure is applied only from the operator workstation through approval-gated Make targets;
   CT301 never gets Proxmox credentials (ADR-008). Run Make targets that can reach infrastructure
   only when the task authorizes it; test guards in a sandbox, not against real targets.

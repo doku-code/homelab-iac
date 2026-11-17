@@ -20,8 +20,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ID | Status | Priority | Title | Tasks | Summary |
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
-| M001 | active | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 1, in-progress: 4 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
-| M002 | planned | critical | [New Proxmox compute capacity (pve-core, new cluster)](../milestones/M002-proxmox-compute-capacity.md) | planned: 1 | pve-core is reinstalled cleanly and joined to the new Proxmox cluster founded on pve-management, with the two-node quorum handled explicitly. |
+| M001 | active | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 3, in-progress: 2 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
 | M003 | planned | high | [Dedicated Forgejo deployment runner](../milestones/M003-deployment-runner.md) | none | A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials. |
 | M004 | planned | high | [k3s bootstrap](../milestones/M004-k3s-bootstrap.md) | none | The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl. |
 | M005 | planned | high | [Headlamp](../milestones/M005-headlamp.md) | none | Headlamp is deployed with its official Helm chart, RBAC-based authentication and network restriction, and shows nodes, workloads, storage objects, events and logs. |
@@ -32,6 +31,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](../milestones/M012-backups-and-finalization.md) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
+| M002 | completed | critical | [New Proxmox cluster (four nodes)](../milestones/M002-proxmox-compute-capacity.md) | completed: 1 | The new cluster doku-lab runs on pve-management, pve-core, pve-infra and the new pve-lab (.16), quorate, with its hardware and capacity inventoried. |
 
 ## Tasks
 
@@ -39,17 +39,17 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 |----|--------|----------|-----------|-------|---------|
 | TASK-001 | in-progress | critical | M000 | [Reset repository to the agent harness and record the rebuild direction](../tasks/TASK-001-repository-reset-and-alignment.md) | Install the agent harness, archive the legacy Codex workflow, and document vision, architecture, decisions and roadmap. |
 | TASK-006 | in-progress | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](../tasks/TASK-006-target-layout-and-service-contract.md) | Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check). |
-| TASK-008 | in-progress | critical | M001 | [Reusable OpenTofu guest module and management VM root](../tasks/TASK-008-proxmox-guest-module-and-management-vm.md) | Write modules/opentofu/proxmox-guest (bpg/proxmox, cloud-init) and the stacks/management root that creates the Ubuntu management VM. |
 | TASK-009 | in-progress | high | M001 | [Ansible baseline for the management VM (toolchain and runner)](../tasks/TASK-009-management-vm-ansible-baseline.md) | Configure the management VM with Ansible: SSH hardening, guest agent, OpenTofu, Ansible environment, SOPS/age. No runner in M001 (ADR-008). |
-| TASK-010 | in-progress | critical | M001 | [OpenTofu state: one local authority, handed over to the workstation](../tasks/TASK-010-state-management-and-backups.md) | Keep new-root state local on the single operator workstation, move it from the Mac to mgmt-control-01, and never let an empty state recreate existing guests. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
 | TASK-005 | planned | high | M010 | [Migration order and bootstrap credential requirements](../tasks/TASK-005-migration-order-and-bootstrap-credentials.md) | Decide the service migration order and list every bootstrap credential and recovery prerequisite. |
 | TASK-011 | planned | critical | M012 | [SOPS + age bootstrap secrets](../tasks/TASK-011-sops-age-bootstrap-secrets.md) | Introduce .sops.yaml, an encrypted secrets/bootstrap/ file for the Proxmox token and SSH material, and decryption in Ansible/OpenTofu workflows. |
 | TASK-012 | planned | high | M012 | [Independent bootstrap and recovery runbook](../tasks/TASK-012-bootstrap-and-recovery-runbook.md) | Write and exercise the runbook that rebuilds the management VM from a clean workstation. |
-| TASK-013 | planned | critical | M002 | [Reinstall pve-core and form the new Proxmox cluster](../tasks/TASK-013-reinstall-pve-core-and-form-cluster.md) | Confirm the emptied pve-core holds nothing to keep, inventory its NVMe, reinstall Proxmox VE, create the cluster on pve-management and join pve-core with an explicit two-node quorum plan. |
 | TASK-007 | completed | critical | M001 | [Scoped Proxmox API token and SSH access for pve-management](../tasks/TASK-007-pve-management-access.md) | Define and verify the dedicated automation identity, role and token on pve-management, and SSH access for Ansible. |
+| TASK-008 | completed | critical | M001 | [Reusable OpenTofu guest module and management VM root](../tasks/TASK-008-proxmox-guest-module-and-management-vm.md) | Write modules/opentofu/proxmox-guest (bpg/proxmox, cloud-init) and the stacks/management root that creates the Ubuntu management VM. |
+| TASK-010 | completed | critical | M001 | [OpenTofu state: one local authority, handed over to the workstation](../tasks/TASK-010-state-management-and-backups.md) | Keep new-root state local on the single operator workstation, move it from the Mac to mgmt-control-01, and never let an empty state recreate existing guests. |
+| TASK-013 | completed | critical | M002 | [Reinstall pve-core and form the new Proxmox cluster](../tasks/TASK-013-reinstall-pve-core-and-form-cluster.md) | Confirm the emptied pve-core holds nothing to keep, inventory its NVMe, reinstall Proxmox VE, create the cluster on pve-management and join pve-core with an explicit two-node quorum plan. |
 
 ## Decisions
 
@@ -87,6 +87,7 @@ _No external references captured yet. Create one with `harness new api-reference
 ### Investigation result
 
 - **INV-legacy-inventory** [Legacy homelab inventory (archived repository, operator corrections, state review)](investigations/legacy-inventory.md) (needs-review) — inventory `investigation, inventory, legacy` — Legacy hosts, guests, services and local Terraform states, with retired hosts, stale state and endpoint hazards; starting point for the M000 live inventory.
+- **INV-new-proxmox-cluster-inventory** [New Proxmox cluster inventory](investigations/new-proxmox-cluster-inventory.md) (current) `investigation, inventory, proxmox, cluster, hardware` — Authoritative read-only audit of the new doku-lab cluster (pve-management, pve-core, pve-infra, new pve-lab .16): membership, hardware, NVMe, network, guests, capacity, placement.
 - **INV-pve-management-bootstrap** [pve-management bootstrap — readiness and implementation plan](investigations/pve-management-bootstrap.md) (current) — pve-management `investigation, bootstrap, pve-management, plan` — Readiness, exact API privileges, SSH/TLS/state decisions, proposed VM values and the next step for provisioning mgmt-control-01 on pve-management; nothing applied.
 
 ### Guide
@@ -109,7 +110,7 @@ _No commit records. Generate with `harness history sync`._
 - **bootstrap**: ADR-002, ADR-008, INV-pve-management-bootstrap, M001
 - **ceph**: ADR-012
 - **ci**: ADR-008, ADR-014
-- **cluster**: ADR-010, TASK-013
+- **cluster**: ADR-010, INV-new-proxmox-cluster-inventory, TASK-013
 - **compose**: ADR-006
 - **compute**: TASK-013
 - **csi**: ADR-012
@@ -123,11 +124,12 @@ _No commit records. Generate with `harness history sync`._
 - **gitops**: ADR-005
 - **guide**: GUIDE-handoff
 - **handoff**: GUIDE-handoff
+- **hardware**: INV-new-proxmox-cluster-inventory
 - **harness**: TASK-001
 - **headlamp**: ADR-011
 - **infisical**: ADR-004
-- **inventory**: INV-legacy-inventory, M000, TASK-002, TASK-003
-- **investigation**: INV-legacy-inventory, INV-pve-management-bootstrap
+- **inventory**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, TASK-002, TASK-003
+- **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
 - **k3s**: ADR-006, ADR-011
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
@@ -146,7 +148,7 @@ _No commit records. Generate with `harness history sync`._
 - **planning**: M000, TASK-005
 - **platform**: ARCH-platform
 - **postgresql**: ADR-013
-- **proxmox**: ADR-002, ADR-010, TASK-002, TASK-013
+- **proxmox**: ADR-002, ADR-010, INV-new-proxmox-cluster-inventory, TASK-002, TASK-013
 - **pve-core**: ADR-010, TASK-013
 - **pve-management**: ADR-009, ADR-010, GUIDE-handoff, INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview

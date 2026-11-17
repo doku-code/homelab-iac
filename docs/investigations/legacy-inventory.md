@@ -6,12 +6,12 @@ type: investigation
 status: needs-review
 importance: 4
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [investigation, inventory, legacy]
 component: inventory
 topics: [proxmox, guests, services, state, migration]
 related_tasks: [TASK-002, TASK-003]
-related: [ARCH-platform, ADR-007, ADR-008, INV-pve-management-bootstrap]
+related: [ARCH-platform, ADR-007, ADR-008, INV-pve-management-bootstrap, INV-new-proxmox-cluster-inventory]
 ---
 
 # Legacy homelab inventory
@@ -87,6 +87,16 @@ plan/apply/import for any root whose private `proxmox_endpoint` (`terraform.tfva
 The retired hosts were removed from `ansible/inventories/homelab.yml` (the `proxmox` group is targeted
 by `audit-linux.yml` and `deploy-node-exporter.yml`) and from the Prometheus node targets.
 The workstation's `known_hosts` still holds `pve-infra`'s keys for 192.168.0.10, so SSH fails closed.
+
+### New cluster reuses names and addresses (2026-11-16)
+
+The new cluster ([INV-new-proxmox-cluster-inventory](new-proxmox-cluster-inventory.md)) reuses
+`192.168.0.10/.11/.12/.16` and the names `pve-core`, `pve-infra` and `pve-lab`. The **old environment is
+reachable only at 192.168.0.14** (old `pve-lab`, Ryzen 9 9950X3D), which keeps running the legacy
+services; `pve-compute` is the future name of that machine after its final reinstall. Make now refuses
+every legacy root whose endpoint is a new-cluster address (`LEGACY_ENDPOINT_GUARD`), and `pve-core` left
+the legacy `proxmox` Ansible group. Legacy roots stay on Terraform with their local state on the Mac
+(not migrated); repoint a root at `.14` only when that root is worked on (M010).
 
 ### Retired hosts (resolved 2026-11-12)
 

@@ -3,17 +3,17 @@ id: TASK-010
 title: "OpenTofu state: one local authority, handed over to the workstation"
 summary: "Keep new-root state local on the single operator workstation, move it from the Mac to mgmt-control-01, and never let an empty state recreate existing guests."
 type: task
-status: in-progress
+status: completed
 priority: critical
 milestone: M001
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [state, backup]
 depends_on: [TASK-006]
 related: [ARCH-platform]
 related_decisions: [ADR-003]
 related_implementations: []
-related_tests: []
+related_tests: [tests/mgmt-control.py]
 tests_justification: ""
 verification_commands: []
 evidence: []
@@ -36,8 +36,8 @@ legacy roots stay where they are until they are migrated.
 
 ## Acceptance criteria
 
-- [ ] `pve-management-control` state copied to `mgmt-control-01` (0600, git-ignored), Mac copy retired
-- [ ] `tofu state list` on the VM shows the image and VM 100; a plan from the VM reports no changes
+- [x] `pve-management-control` state copied to `mgmt-control-01` (0600, git-ignored), Mac copy retired
+- [x] `tofu state list` on the VM shows the image and VM 100; a plan from the VM reports no changes
 - [x] `make mgmt-plan` refuses to run without a state file (tested in `tests/mgmt-control.py`)
 
 ## Verification
@@ -56,7 +56,11 @@ legacy roots stay where they are until they are migrated.
 |-------|--------|-----------------------------------|------|
 | Bootstrap strategy for new roots: local state + `mgmt-state-backup` (age, off-machine) | Implemented; refusal paths tested; no state exists yet | Makefile, ARCH-platform#state-management | 2026-11-12 |
 | Backups of the nine legacy local states | Deferred by the operator (re-scope above) | — | 2026-11-14 |
+| Handoff to `mgmt-control-01` | `terraform.tfstate` + private `terraform.tfvars` copied over SSH, SHA-256 identical on both sides, mode 0600, owner `ubuntu`, ignored by Git | `sha256sum`, `git status` | 2026-11-16 |
+| Recognition on the VM | `tofu init` OK; `tofu state list`: `proxmox_download_file.desktop_iso`, `proxmox_virtual_environment_vm.workstation[0]`; `make mgmt-plan` from the VM: **No changes** | VM shell | 2026-11-16 |
+| Mac copy retired | State, backup, tfvars and plans moved to the Mac's `.local/handoff/pve-management-control-2026-11-16/`; `make mgmt-plan` on the Mac now refuses to run | Mac shell | 2026-11-16 |
 
 ## Completion summary
 
-_Not completed._
+Completed 2026-11-16: the only active state for `pve-management-control` is on `mgmt-control-01`; one
+workstation applies. A shared backend is decided when the runner must apply (M003).

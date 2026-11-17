@@ -6,11 +6,11 @@ type: milestone
 status: planned
 priority: high
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [roadmap]
 related_tasks: []
 related_decisions: [ADR-014, ADR-008]
-related: [ARCH-platform, DOC-project-overview]
+related: [ARCH-platform, DOC-project-overview, INV-new-proxmox-cluster-inventory]
 depends_on: [M002]
 completion_criteria: []
 ---
@@ -22,6 +22,8 @@ completion_criteria: []
 Automate approved OpenTofu, Ansible, k3s and Helm jobs from Forgejo without giving CT301 deployment credentials.
 
 **Completion criterion:** A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials.
+
+Placement proposal: the runner VM on `pve-infra` (.12), see [INV-new-proxmox-cluster-inventory](../docs/investigations/new-proxmox-cluster-inventory.md).
 
 ## Scope
 

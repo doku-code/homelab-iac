@@ -6,11 +6,11 @@ type: milestone
 status: planned
 priority: high
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [roadmap]
 related_tasks: []
 related_decisions: [ADR-012]
-related: [ARCH-platform, DOC-project-overview]
+related: [ARCH-platform, DOC-project-overview, INV-new-proxmox-cluster-inventory]
 depends_on: [M004]
 completion_criteria: []
 ---
@@ -22,6 +22,8 @@ completion_criteria: []
 Replace the rejected TrueNAS CSI idea with storage on the physical hosts' NVMe drives, external to the k3s cluster.
 
 **Completion criterion:** Kubernetes provisions PVCs through CSI from an NVMe-backed storage service outside k3s; data survives pod and k3s VM replacement; the failure domain is documented.
+
+Inventory and options (Proxmox CSI over `local-lvm`, or a storage VM on `pve-core`): [INV-new-proxmox-cluster-inventory](../docs/investigations/new-proxmox-cluster-inventory.md#storage-options-for-m006-input-not-a-decision). No node has a spare NVMe yet.
 
 ## Scope
 

@@ -6,11 +6,11 @@ type: milestone
 status: planned
 priority: high
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [roadmap]
 related_tasks: []
 related_decisions: [ADR-011]
-related: [ARCH-platform, DOC-project-overview]
+related: [ARCH-platform, DOC-project-overview, INV-new-proxmox-cluster-inventory]
 depends_on: [M002]
 completion_criteria: []
 ---
@@ -22,6 +22,8 @@ completion_criteria: []
 Provide the application platform early, sized for current hardware and ready to add servers and agents.
 
 **Completion criterion:** The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl.
+
+Placement proposal: first server on the new `pve-lab` (.16), next node on `pve-core` (.11), a third etcd voter later; capacity in [INV-new-proxmox-cluster-inventory](../docs/investigations/new-proxmox-cluster-inventory.md).
 
 ## Scope
 

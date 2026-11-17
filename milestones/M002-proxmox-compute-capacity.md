@@ -1,27 +1,30 @@
 ---
 id: M002
-title: "New Proxmox compute capacity (pve-core, new cluster)"
-summary: "pve-core is reinstalled cleanly and joined to the new Proxmox cluster founded on pve-management, with the two-node quorum handled explicitly."
+title: "New Proxmox cluster (four nodes)"
+summary: "The new cluster doku-lab runs on pve-management, pve-core, pve-infra and the new pve-lab (.16), quorate, with its hardware and capacity inventoried."
 type: milestone
-status: planned
+status: completed
 priority: critical
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [roadmap]
 related_tasks: [TASK-013]
 related_decisions: [ADR-010, ADR-001]
-related: [ARCH-platform, DOC-project-overview]
+related: [ARCH-platform, DOC-project-overview, INV-new-proxmox-cluster-inventory]
 depends_on: [M001]
 completion_criteria: []
 ---
 
-# M002 — New Proxmox compute capacity (pve-core, new cluster)
+# M002 — New Proxmox cluster (four nodes)
 
 ## Objective
 
-Turn the emptied `pve-core` (Ryzen 7 6800H, 8C/16T, 32 GB DDR5) into the first compute node of the new cluster without disturbing `pve-management`, `mgmt-control-01` or `pve-lab`.
+Form the new cluster on `pve-management` with freshly installed compute nodes, without disturbing `mgmt-control-01` or the old environment (`192.168.0.14`).
 
-**Completion criterion:** pve-core is reinstalled cleanly and joined to the new Proxmox cluster founded on pve-management, with the two-node quorum handled explicitly.
+**Completion criterion:** the new cluster runs quorate with its nodes, hardware and capacity inventoried ([INV-new-proxmox-cluster-inventory](../docs/investigations/new-proxmox-cluster-inventory.md)).
+
+The operator went further than planned (2026-11-16): `pve-core`, a new `pve-infra` and a new `pve-lab` (.16)
+joined, so the two-node quorum question disappeared.
 
 ## Scope
 
@@ -48,16 +51,18 @@ Out of scope:
 
 ## Acceptance criteria
 
-- [ ] `pve-core` reinstalled and joined; `pve-management` and VM 100 unaffected
-- [ ] Quorum behaviour with two nodes documented and the chosen mitigation applied
-- [ ] NVMe devices and free capacity of both hosts recorded
+- [x] `pve-core` (and `pve-infra`, new `pve-lab`) installed and joined; `pve-management` and VM 100 unaffected
+- [x] Quorum documented: four votes, quorum 3, no QDevice needed
+- [x] NVMe devices and free capacity of every node recorded
 
 ## Verification evidence
 
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
-| | | not verified | |
+| Cluster quorate, 4/4 members | `pvecm status` (all nodes) | `doku-lab`, quorate, expected votes 4 | 2026-11-16 |
+| Inventory | read-only audit | INV-new-proxmox-cluster-inventory | 2026-11-16 |
+| VM 100 unaffected | `qm list`, `make mgmt-plan` from the VM | running; No changes | 2026-11-16 |
 
 ## Completion summary
 
-_Not completed._
+Completed 2026-11-16 (operator installs and joins, verified read-only). Next: M003.

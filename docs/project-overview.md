@@ -6,10 +6,10 @@ type: overview
 status: current
 importance: 5
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [overview, vision, rebuild, status]
 aliases: [PROJECT_VISION]
-related: [ARCH-platform, GUIDE-handoff, ADR-001, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, INV-legacy-inventory, M001, M002]
+related: [ARCH-platform, GUIDE-handoff, ADR-001, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M001, M002, M003]
 topics: [rebuild, roadmap, proxmox, k3s, headlamp, storage, nvme, truenas, ceph, postgresql, phase, argocd, windmill]
 ---
 
@@ -95,22 +95,23 @@ Argo CD + Windmill → applications.** Layers and owners: [ARCH-platform](archit
 
 ### Roadmap
 
-M001 management workstation (active) → **M002 new Proxmox compute capacity** (`pve-core`, new cluster)
-→ M003 dedicated deployment runner → M004 k3s bootstrap → M005 Headlamp → M006 external NVMe-backed
-storage → M007 PostgreSQL platform → M008 Phase → M009 Argo CD and Windmill → M010 rolling application
-migration → M011 Ceph and expansion → M012 backups and finalization. M000 (inventory) runs alongside.
+M001 management workstation (closing) → M002 new Proxmox cluster (**completed**) → **M003 dedicated
+deployment runner** → M004 k3s bootstrap → M005 Headlamp → M006 external NVMe-backed storage → M007
+PostgreSQL platform → M008 Phase → M009 Argo CD and Windmill → M010 rolling application migration → M011
+Ceph and expansion → M012 backups and finalization. M000 (inventory) runs alongside.
 Progress: [dashboard](dashboard.md).
 
-### Current status (2026-11-14)
+### Current status (2026-11-16)
 
-- `pve-management` (192.168.0.10) is operational and standalone. `mgmt-control-01` (VM 100,
-  192.168.0.39) is being reinstalled as a genuine Ubuntu Desktop from the official ISO (the first,
-  Server-image install was replaced); its configuration and the move of daily work to it follow
-  ([handoff](handoff.md)).
-- `pve-core` is emptied (workloads moved to `pve-lab`) and ready to be reinstalled (M002).
-- `pve-lab` keeps the legacy and former `pve-core` workloads running; TrueNAS keeps Forgejo.
-- `pve-infra` and `pve-compute` are retired. Legacy Terraform roots keep their local state; Make refuses
-  the ones that target retired or reclaimed hosts ([INV-legacy-inventory](investigations/legacy-inventory.md)).
+- New cluster `doku-lab`, quorate with four nodes: `pve-management` (.10), `pve-core` (.11), `pve-infra`
+  (.12, fresh install) and the new `pve-lab` (.16); only VM 100 exists
+  ([inventory](investigations/new-proxmox-cluster-inventory.md)).
+- `mgmt-control-01` (VM 100, 192.168.0.39) is a genuine Ubuntu Desktop, configured by Ansible, and holds the
+  OpenTofu state: the operator works from it ([handoff](handoff.md)).
+- The **old environment** is the old `pve-lab` at **192.168.0.14** (Ryzen 9 9950X3D), outside the new cluster,
+  running the legacy services (TrueNAS keeps Forgejo). Emptied at the end of M010, it becomes `pve-compute`.
+- Legacy Terraform roots keep their local state (on the Mac) and are refused on every new-cluster address
+  ([INV-legacy-inventory](investigations/legacy-inventory.md)).
 
 ### Current priority (operator, 2026-11-14)
 
@@ -123,8 +124,8 @@ until its replacement works) still applies.
 ### Confirmed decisions vs pending choices
 
 Confirmed (operator): rolling rebuild with the existing infrastructure (ADR-001); Proxmox as hypervisor;
-new cluster founded on `pve-management`, `pve-core` emptied for reuse, `pve-lab` as continuity host,
-`pve-infra`/`pve-compute` retired (ADR-010); OpenTofu for new roots (ADR-003); k3s as application
+new cluster `doku-lab` on `pve-management`, `pve-core`, `pve-infra` and the new `pve-lab` (.16), the old
+`pve-lab` (.14) as continuity host until it becomes `pve-compute` (ADR-010); OpenTofu for new roots (ADR-003); k3s as application
 platform, Headlamp as Kubernetes UI, Argo CD for GitOps, Windmill for operational automation (ADR-011,
 ADR-005); Forgejo as source of truth with a dedicated deployment runner (ADR-014); persistent data
 outside the k3s cluster on the physical hosts' NVMe, TrueNAS as backup destination, Ceph as future
@@ -134,10 +135,8 @@ complexity.
 
 | Pending technical choice | Decided in |
 |--------------------------|------------|
-| NVMe inventory and free capacity of each host | M002 / M006 |
 | Initial external storage implementation, protocol and CSI driver; need for a storage VM | M006 |
-| Proxmox quorum configuration (QDevice or not) | M002 |
-| First k3s VM sizing and placement; ingress | M004 |
+| First k3s VM sizing and placement (proposal in the inventory); ingress | M004 |
 | Ceph timing, networking, quorum and OSD topology | M011 |
 | PostgreSQL operator version, Patroni replication mode, storage performance needs | M007 |
 | Phase self-hosted compatibility (licence, chart, external PostgreSQL, Authentik) | M008 |

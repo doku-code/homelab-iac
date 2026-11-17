@@ -681,13 +681,15 @@
         "ADR-010: New Proxmox cluster founded on pve-management",
         "Context",
         "Decision",
-        "Consequences"
+        "Consequences",
+        "Outcome (2026-11-16)"
       ],
       "relations": {
         "related": [
           "ARCH-platform",
           "ADR-001",
-          "ADR-009"
+          "ADR-009",
+          "INV-new-proxmox-cluster-inventory"
         ],
         "related_milestones": [
           "M002",
@@ -716,6 +718,10 @@
         },
         {
           "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "INV-new-proxmox-cluster-inventory",
           "field": "related"
         },
         {
@@ -920,6 +926,10 @@
           "field": "related"
         },
         {
+          "from": "INV-new-proxmox-cluster-inventory",
+          "field": "related"
+        },
+        {
           "from": "M006",
           "field": "related_decisions"
         },
@@ -1090,6 +1100,10 @@
           "field": "related"
         },
         {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
           "from": "M003",
           "field": "related_decisions"
         },
@@ -1162,6 +1176,7 @@
         "related": [
           "DOC-project-overview",
           "INV-legacy-inventory",
+          "INV-new-proxmox-cluster-inventory",
           "GUIDE-handoff"
         ],
         "related_decisions": [
@@ -1242,6 +1257,10 @@
         },
         {
           "from": "INV-legacy-inventory",
+          "field": "related"
+        },
+        {
+          "from": "INV-new-proxmox-cluster-inventory",
           "field": "related"
         },
         {
@@ -1402,7 +1421,7 @@
         "Target stack and responsibilities",
         "Structure",
         "Roadmap",
-        "Current status (2026-11-14)",
+        "Current status (2026-11-16)",
         "Current priority (operator, 2026-11-14)",
         "Confirmed decisions vs pending choices",
         "Where to look"
@@ -1418,8 +1437,10 @@
           "ADR-013",
           "ADR-014",
           "INV-legacy-inventory",
+          "INV-new-proxmox-cluster-inventory",
           "M001",
-          "M002"
+          "M002",
+          "M003"
         ]
       },
       "backrefs": [
@@ -1429,6 +1450,10 @@
         },
         {
           "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "INV-new-proxmox-cluster-inventory",
           "field": "related"
         },
         {
@@ -1526,10 +1551,12 @@
           "ADR-009",
           "ADR-010",
           "ADR-012",
+          "ADR-014",
+          "INV-new-proxmox-cluster-inventory",
+          "INV-legacy-inventory",
           "INV-pve-management-bootstrap",
           "M001",
-          "M002",
-          "TASK-013"
+          "M003"
         ]
       },
       "backrefs": [
@@ -1539,6 +1566,10 @@
         },
         {
           "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "INV-new-proxmox-cluster-inventory",
           "field": "related"
         },
         {
@@ -1586,6 +1617,7 @@
         "Proxmox hosts",
         "Guests and services (legacy IDs)",
         "Local Terraform state (verified on the operator workstation, 2026-11-12)",
+        "New cluster reuses names and addresses (2026-11-16)",
         "Retired hosts (resolved 2026-11-12)",
         "Inferences",
         "Open questions"
@@ -1595,7 +1627,8 @@
           "ARCH-platform",
           "ADR-007",
           "ADR-008",
-          "INV-pve-management-bootstrap"
+          "INV-pve-management-bootstrap",
+          "INV-new-proxmox-cluster-inventory"
         ],
         "related_tasks": [
           "TASK-002",
@@ -1613,6 +1646,138 @@
         },
         {
           "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "INV-new-proxmox-cluster-inventory",
+          "field": "related"
+        },
+        {
+          "from": "TASK-013",
+          "field": "related"
+        }
+      ]
+    },
+    {
+      "id": "INV-new-proxmox-cluster-inventory",
+      "title": "New Proxmox cluster inventory",
+      "summary": "Authoritative read-only audit of the new doku-lab cluster (pve-management, pve-core, pve-infra, new pve-lab .16): membership, hardware, NVMe, network, guests, capacity, placement.",
+      "importance": 5,
+      "lifecycle": "active",
+      "topics": [
+        "proxmox",
+        "cluster",
+        "quorum",
+        "corosync",
+        "hardware",
+        "nvme",
+        "storage",
+        "network",
+        "capacity",
+        "placement",
+        "pve-management",
+        "pve-core",
+        "pve-infra",
+        "pve-lab",
+        "pve-compute",
+        "k3s",
+        "runner",
+        "ceph"
+      ],
+      "applies_to": [
+        "proxmox"
+      ],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "investigation",
+      "status": "current",
+      "path": "docs/investigations/new-proxmox-cluster-inventory.md",
+      "tags": [
+        "investigation",
+        "inventory",
+        "proxmox",
+        "cluster",
+        "hardware"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "New Proxmox cluster inventory",
+        "Question",
+        "Method",
+        "Findings",
+        "Cluster (verified)",
+        "Hosts (verified)",
+        "Storage (verified)",
+        "Network (verified)",
+        "Guests (verified)",
+        "Inferences",
+        "Capacity",
+        "Storage options for M006 (input, not a decision)",
+        "Open questions"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview",
+          "GUIDE-handoff",
+          "ADR-010",
+          "ADR-012",
+          "INV-legacy-inventory",
+          "M002",
+          "M003",
+          "M004",
+          "M006",
+          "M011"
+        ],
+        "related_tasks": [
+          "TASK-013"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-010",
+          "field": "related"
+        },
+        {
+          "from": "ARCH-platform",
+          "field": "related"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "INV-legacy-inventory",
+          "field": "related"
+        },
+        {
+          "from": "M002",
+          "field": "related"
+        },
+        {
+          "from": "M003",
+          "field": "related"
+        },
+        {
+          "from": "M004",
+          "field": "related"
+        },
+        {
+          "from": "M006",
           "field": "related"
         },
         {
@@ -1902,8 +2067,8 @@
     },
     {
       "id": "M002",
-      "title": "New Proxmox compute capacity (pve-core, new cluster)",
-      "summary": "pve-core is reinstalled cleanly and joined to the new Proxmox cluster founded on pve-management, with the two-node quorum handled explicitly.",
+      "title": "New Proxmox cluster (four nodes)",
+      "summary": "The new cluster doku-lab runs on pve-management, pve-core, pve-infra and the new pve-lab (.16), quorate, with its hardware and capacity inventoried.",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -1912,7 +2077,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "completed",
       "path": "milestones/M002-proxmox-compute-capacity.md",
       "tags": [
         "roadmap"
@@ -1924,7 +2089,7 @@
       "source": null,
       "version": null,
       "headings": [
-        "M002 — New Proxmox compute capacity (pve-core, new cluster)",
+        "M002 — New Proxmox cluster (four nodes)",
         "Objective",
         "Scope",
         "Expected deliverables",
@@ -1936,7 +2101,8 @@
       "relations": {
         "related": [
           "ARCH-platform",
-          "DOC-project-overview"
+          "DOC-project-overview",
+          "INV-new-proxmox-cluster-inventory"
         ],
         "related_tasks": [
           "TASK-013"
@@ -1963,7 +2129,7 @@
           "field": "related"
         },
         {
-          "from": "GUIDE-handoff",
+          "from": "INV-new-proxmox-cluster-inventory",
           "field": "related"
         },
         {
@@ -2016,7 +2182,8 @@
       "relations": {
         "related": [
           "ARCH-platform",
-          "DOC-project-overview"
+          "DOC-project-overview",
+          "INV-new-proxmox-cluster-inventory"
         ],
         "related_decisions": [
           "ADR-014",
@@ -2034,6 +2201,18 @@
         {
           "from": "ADR-014",
           "field": "related_milestones"
+        },
+        {
+          "from": "DOC-project-overview",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "INV-new-proxmox-cluster-inventory",
+          "field": "related"
         }
       ]
     },
@@ -2073,7 +2252,8 @@
       "relations": {
         "related": [
           "ARCH-platform",
-          "DOC-project-overview"
+          "DOC-project-overview",
+          "INV-new-proxmox-cluster-inventory"
         ],
         "related_decisions": [
           "ADR-011"
@@ -2086,6 +2266,10 @@
         {
           "from": "ADR-011",
           "field": "related_milestones"
+        },
+        {
+          "from": "INV-new-proxmox-cluster-inventory",
+          "field": "related"
         },
         {
           "from": "M005",
@@ -2197,7 +2381,8 @@
       "relations": {
         "related": [
           "ARCH-platform",
-          "DOC-project-overview"
+          "DOC-project-overview",
+          "INV-new-proxmox-cluster-inventory"
         ],
         "related_decisions": [
           "ADR-012"
@@ -2210,6 +2395,10 @@
         {
           "from": "ADR-012",
           "field": "related_milestones"
+        },
+        {
+          "from": "INV-new-proxmox-cluster-inventory",
+          "field": "related"
         },
         {
           "from": "M007",
@@ -2524,6 +2713,10 @@
         {
           "from": "ADR-013",
           "field": "related_milestones"
+        },
+        {
+          "from": "INV-new-proxmox-cluster-inventory",
+          "field": "related"
         }
       ]
     },
@@ -3080,7 +3273,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-008-proxmox-guest-module-and-management-vm.md",
       "tags": [
         "opentofu",
@@ -3246,7 +3439,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-010-state-management-and-backups.md",
       "tags": [
         "state",
@@ -3277,6 +3470,9 @@
         ],
         "depends_on": [
           "TASK-006"
+        ],
+        "related_tests": [
+          "tests/mgmt-control.py"
         ],
         "milestone": [
           "M001"
@@ -3453,7 +3649,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "planned",
+      "status": "completed",
       "path": "tasks/TASK-013-reinstall-pve-core-and-form-cluster.md",
       "tags": [
         "compute",
@@ -3483,7 +3679,8 @@
           "GUIDE-handoff",
           "ARCH-platform",
           "INV-legacy-inventory",
-          "INV-pve-management-bootstrap"
+          "INV-pve-management-bootstrap",
+          "INV-new-proxmox-cluster-inventory"
         ],
         "related_decisions": [
           "ADR-010",
@@ -3494,14 +3691,17 @@
         "depends_on": [
           "TASK-009"
         ],
+        "related_tests": [
+          "tests/mgmt-control.py"
+        ],
         "milestone": [
           "M002"
         ]
       },
       "backrefs": [
         {
-          "from": "GUIDE-handoff",
-          "field": "related"
+          "from": "INV-new-proxmox-cluster-inventory",
+          "field": "related_tasks"
         },
         {
           "from": "M002",
@@ -3535,6 +3735,7 @@
     ],
     "investigation": [
       "INV-legacy-inventory",
+      "INV-new-proxmox-cluster-inventory",
       "INV-pve-management-bootstrap"
     ],
     "milestone": [
@@ -3613,6 +3814,7 @@
     ],
     "cluster": [
       "ADR-010",
+      "INV-new-proxmox-cluster-inventory",
       "TASK-013"
     ],
     "compose": [
@@ -3667,6 +3869,9 @@
     "handoff": [
       "GUIDE-handoff"
     ],
+    "hardware": [
+      "INV-new-proxmox-cluster-inventory"
+    ],
     "harness": [
       "TASK-001"
     ],
@@ -3678,12 +3883,14 @@
     ],
     "inventory": [
       "INV-legacy-inventory",
+      "INV-new-proxmox-cluster-inventory",
       "M000",
       "TASK-002",
       "TASK-003"
     ],
     "investigation": [
       "INV-legacy-inventory",
+      "INV-new-proxmox-cluster-inventory",
       "INV-pve-management-bootstrap"
     ],
     "k3s": [
@@ -3751,6 +3958,7 @@
     "proxmox": [
       "ADR-002",
       "ADR-010",
+      "INV-new-proxmox-cluster-inventory",
       "TASK-002",
       "TASK-013"
     ],

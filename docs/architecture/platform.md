@@ -6,12 +6,12 @@ type: architecture
 status: current
 importance: 5
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [architecture, platform, rebuild]
 component: platform
 topics: [proxmox, cluster, k3s, headlamp, argocd, windmill, storage, nvme, csi, ceph, truenas, postgresql, patroni, phase, forgejo, runner, opentofu, ansible]
 applies_to: [terraform, ansible, kubernetes]
-related: [DOC-project-overview, INV-legacy-inventory, GUIDE-handoff]
+related: [DOC-project-overview, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, GUIDE-handoff]
 related_decisions: [ADR-001, ADR-003, ADR-004, ADR-005, ADR-007, ADR-008, ADR-009, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014]
 related_implementations: []
 ---
@@ -36,11 +36,14 @@ in [INV-legacy-inventory](../investigations/legacy-inventory.md); the current st
 
 ```mermaid
 flowchart TB
-  subgraph phys["Physical Proxmox infrastructure (new cluster, ADR-010)"]
-    pm["pve-management<br/>local NVMe"]
-    pc["pve-core<br/>local NVMe"]
-    px["reclaimed hosts<br/>local NVMe"]
+  subgraph phys["New Proxmox cluster doku-lab (ADR-010)"]
+    pm["pve-management .10<br/>workstation host"]
+    pc["pve-core .11<br/>1 TB NVMe"]
+    pi["pve-infra .12<br/>light services, runner"]
+    pl["pve-lab .16<br/>512 GB NVMe"]
+    px["pve-compute (future)<br/>old .14 reinstalled"]
   end
+  old["Old environment<br/>pve-lab .14 (legacy services)"]
   subgraph store["External storage layer (ADR-012)"]
     s1["initial NVMe-backed service<br/>outside k3s"]
     ceph["future Ceph RBD / CephFS"]
@@ -55,8 +58,9 @@ flowchart TB
   ws["mgmt-control-01<br/>Ubuntu Desktop workstation"]
   fj["Forgejo + dedicated runner (ADR-014)"]
   nas["TrueNAS SCALE<br/>backup destination only"]
-  pm --- s1
   pc --- s1
+  pl --- s1
+  old -. rolling migration M010 .-> phys
   px -.-> ceph
   s1 --> csi
   ceph -.-> csi
@@ -94,17 +98,20 @@ bootstrap material is deferred to M012.
 
 ### Hosts
 
+Verified facts: [INV-new-proxmox-cluster-inventory](../investigations/new-proxmox-cluster-inventory.md).
+
 | Host | Now | Target |
 |------|-----|--------|
-| `pve-management` 192.168.0.10 | Operational, standalone; runs `mgmt-control-01` (VM 100) | Founding node of the new cluster |
-| `pve-core` | Emptied, workloads moved to `pve-lab` | Reinstalled, first node joined (M002, TASK-013) |
-| `pve-lab` | Hosts legacy and former `pve-core` workloads | Continuity host; reclaimed after migration (M010) |
+| `pve-management` 192.168.0.10 | New cluster; i5-10500T, 16 GB; runs `mgmt-control-01` (VM 100) | Management node, no other workloads |
+| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe; empty | k3s node, first external NVMe storage |
+| `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD; empty | Dedicated runner, lightweight services |
+| `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE; empty | First k3s server |
+| `pve-lab` **192.168.0.14** | **Old environment**, independent; Ryzen 9 9950X3D; runs the legacy services | Emptied (M010), reinstalled as `pve-compute`, joined |
 | `pve-k8s-01/02` | Legacy | Reclaimed after migration |
 | TrueNAS SCALE | Serves Forgejo and datasets | Backup destination; current apps stay until replaced |
-| `pve-infra`, `pve-compute` | **Retired**, no longer exist | — |
 
-Two nodes have no quorum tolerance (QDevice evaluated in M002); a cluster creates no shared storage;
-initial availability and later HA are designed separately (M004, M011).
+Two hosts are named `pve-lab`: always use the IP. Four votes give quorum 3 (one node may fail); one
+corosync link and one SSD per node mean no physical HA is claimed (M011).
 
 ### Repository layout
 

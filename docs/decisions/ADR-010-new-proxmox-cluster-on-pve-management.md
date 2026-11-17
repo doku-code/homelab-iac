@@ -6,11 +6,11 @@ type: decision
 status: accepted
 importance: 5
 created: 2026-11-14
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [decision, proxmox, cluster, pve-management, pve-core]
 component: proxmox
 topics: [proxmox, cluster, quorum, qdevice]
-related: [ARCH-platform, ADR-001, ADR-009]
+related: [ARCH-platform, ADR-001, ADR-009, INV-new-proxmox-cluster-inventory]
 related_tasks: []
 related_milestones: [M002, M011]
 supersedes: [ADR-002]
@@ -45,3 +45,11 @@ machines are reclaimed, instead of a separate management island.
   reinstalled, as was done for 192.168.0.10.
 - Recovery of `mgmt-control-01` no longer assumes a standalone host; it still never depends on the
   services it hosts (ADR-008).
+
+## Outcome (2026-11-16)
+
+Cluster `doku-lab` exists with four nodes: `pve-management` (.10), `pve-core` (.11, ThinkStation P350
+Tiny), a **new** `pve-infra` (.12, Celeron N5095A; a fresh install reusing the retired host's name and
+address) and a **new** `pve-lab` (.16, Ryzen 7 6800H). The old `pve-lab` (192.168.0.14, Ryzen 9 9950X3D)
+stays outside and keeps the old services; once emptied it is reinstalled as `pve-compute` and joined.
+Facts: [INV-new-proxmox-cluster-inventory](../investigations/new-proxmox-cluster-inventory.md).

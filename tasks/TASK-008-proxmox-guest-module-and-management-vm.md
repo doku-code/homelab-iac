@@ -3,11 +3,11 @@ id: TASK-008
 title: "Reusable OpenTofu guest module and management VM root"
 summary: "Write modules/opentofu/proxmox-guest (bpg/proxmox, cloud-init) and the stacks/management root that creates the Ubuntu management VM."
 type: task
-status: in-progress
+status: completed
 priority: critical
 milestone: M001
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 tags: [opentofu, pve-management]
 depends_on: [TASK-006, TASK-007, TASK-010]
 related: [ARCH-platform]
@@ -37,8 +37,8 @@ Provision the management VM declaratively and idempotently.
 ## Acceptance criteria
 
 - [x] Existing `headless-vm` module reused (engine-agnostic, legacy defaults kept); root tested with mocked provider (`tofu test`)
-- [ ] Root plans the management VM with explicit placement/storage/network inputs
-- [ ] Apply (approved) creates it; second plan shows no changes
+- [x] Root plans the management VM with explicit placement/storage/network inputs
+- [x] Apply (approved) creates it; second plan shows no changes
 
 ## Verification
 
@@ -66,4 +66,5 @@ Provision the management VM declaratively and idempotently.
 
 ## Completion summary
 
-_Not completed._
+Completed 2026-11-16: VM 100 runs Ubuntu Desktop 26.04.1 from the official ISO (autoinstall), the
+plan is a no-op from the Mac and from the VM itself; the in-place reinstall is documented in the stack README.
