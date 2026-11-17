@@ -98,7 +98,11 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   here (`~/.kube/config`, context `doku-lab`); token in Infisical `dev:/k3s`; state on this workstation only.
   Rebuild a node: `make k3s-cluster-plan K3S_CLUSTER_REPLACE=<name>` → apply → `k3s-cluster-hostkeys` →
   configure (commands in TASK-015). Add servers as tfvars entries in `terraform/stacks/k3s`.
-- **Next: M005 Headlamp**, then M006 storage (decide local-path vs ADR-012 first).
+- **M005 completed** 2026-11-17: Headlamp at `https://headlamp.192.168.0.40.sslip.io/` (LAN only, self-signed
+  certificate); log in with `HEADLAMP_ADMIN_TOKEN` from Infisical `dev:/headlamp`. Redeploy: `make headlamp-deploy`.
+- **Operator roadmap (2026-11-17), in order:** storage (shared volume from `pve-core`; user data outside k3s,
+  app data may stay on the node) → PostgreSQL (3 replicas with failover, outside k3s, shared by all apps) →
+  Phase (migrate every Infisical key, then shut Infisical down) → lean Grafana/Prometheus/Loki/Alloy.
 
 ## Commands
 

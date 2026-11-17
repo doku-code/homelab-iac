@@ -3,12 +3,12 @@ id: M005
 title: "Headlamp"
 summary: "Headlamp is deployed with its official Helm chart, RBAC-based authentication and network restriction, and shows nodes, workloads, storage objects, events and logs."
 type: milestone
-status: planned
+status: completed
 priority: high
 created: 2026-11-12
 updated: 2026-11-14
 tags: [roadmap]
-related_tasks: []
+related_tasks: [TASK-016]
 related_decisions: [ADR-011]
 related: [ARCH-platform, DOC-project-overview]
 depends_on: [M004]
@@ -45,15 +45,16 @@ Out of scope:
 
 ## Acceptance criteria
 
-- [ ] Dashboard reachable from the workstation only
-- [ ] Nodes, workloads, PVC/PV/StorageClasses, events and logs visible
+- [x] Dashboard reachable from the administration LAN only (widened from workstation-only, TASK-016)
+- [x] Nodes, workloads, PVC/PV/StorageClasses, events and logs visible
 
 ## Verification evidence
 
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
-| | | not verified | |
+| LAN-only access | `curl` from the workstation (200) and from a pod (403) | PASS (TASK-016) | 2026-11-17 |
+| Objects visible | API through Headlamp with the admin token: nodes, pods, StorageClasses, PVs, events, logs | PASS (TASK-016); browser login not clicked through by the agent | 2026-11-17 |
 
 ## Completion summary
 
-_Not completed._
+Completed 2026-11-17 with TASK-016: `https://headlamp.192.168.0.40.sslip.io/`, token login (Infisical `dev:/headlamp`), LAN only.

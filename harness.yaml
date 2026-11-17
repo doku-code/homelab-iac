@@ -62,6 +62,11 @@ verification:
     verified: true
     description: OpenTofu root k3s (fmt, validate, mocked tofu test), configure-k3s syntax, host-key script,
       role/template/kubeconfig/Make guard tests; offline
+  - name: headlamp-check
+    run: make headlamp-check
+    detected: false
+    verified: true
+    description: Renders the pinned Headlamp chart and checks access rules (workstation only; needs helm and the chart download)
   - name: ansible-syntax
     run: for p in ansible/playbooks/*.yml; do .venv/bin/ansible-playbook --syntax-check -i ansible/inventories/homelab.yml
       "$p" >/dev/null || exit 1; done

@@ -1,0 +1,28 @@
+# Headlamp (ADR-011, M005): official chart kubernetes-sigs/headlamp, version pinned in the Makefile.
+# Headlamp itself gets NO cluster rights: every user logs in with a Kubernetes token and sees what that
+# token's RBAC allows (the admin token belongs to the ServiceAccount in access.yaml).
+replicaCount: 1
+clusterRoleBinding:
+  create: false
+config:
+  enableHelm: false
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  annotations:
+    # HTTPS only (Traefik's own certificate for now), and only from the administration LAN.
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: headlamp-admin-lan@kubernetescrd
+  hosts:
+    # No DNS record needed: sslip.io resolves the name to the embedded address (no change on AdGuard).
+    - host: headlamp.192.168.0.40.sslip.io
+      paths:
+        - path: /
+          type: ImplementationSpecific

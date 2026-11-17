@@ -1,0 +1,12 @@
+# Managed by Ansible (role k3s). Customises the bundled Traefik without replacing it.
+# externalTrafficPolicy Local keeps the client address, so ingress allow-lists (admin LAN) work.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    service:
+      spec:
+        externalTrafficPolicy: Local

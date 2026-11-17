@@ -688,3 +688,33 @@ k3s-cluster-configure:
 	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/k3s-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
 	$(TOFU) -chdir=$(K3S_CLUSTER_DIR) output -json ansible_inventory > "$$inventory"; \
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-k3s.yml --diff
+
+# ─────────────────────────────────────────────
+# Headlamp, the Kubernetes UI (M005, ADR-011). Official chart, pinned; deployed from the workstation with
+# the doku-lab kubeconfig until Argo CD takes over (M009). The admin login token goes to the secret store.
+# ─────────────────────────────────────────────
+
+HEADLAMP_CHART_VERSION := 0.46.0
+HEADLAMP_REPO := https://kubernetes-sigs.github.io/headlamp/
+HEADLAMP_KUBE := --kube-context doku-lab
+HEADLAMP_HELM_ARGS := headlamp headlamp --repo $(HEADLAMP_REPO) --version $(HEADLAMP_CHART_VERSION) --namespace headlamp -f services/headlamp/values.yaml
+
+.PHONY: headlamp-check headlamp-deploy headlamp-token
+
+# Offline: renders the pinned chart with our values and checks the access rules (needs the chart download).
+headlamp-check:
+	$(VENV)/bin/python tests/headlamp.py
+
+headlamp-deploy:
+	@test "$(HEADLAMP_DEPLOY_APPROVED)" = yes || (echo "Approve the Headlamp deployment with HEADLAMP_DEPLOY_APPROVED=yes" >&2; exit 1)
+	kubectl --context doku-lab apply -f services/headlamp/access.yaml
+	helm upgrade --install $(HEADLAMP_HELM_ARGS) $(HEADLAMP_KUBE) --wait --timeout 5m
+	kubectl --context doku-lab -n headlamp rollout status deployment/headlamp --timeout=120s
+
+# Copies the admin login token into Infisical dev:/headlamp (HEADLAMP_ADMIN_TOKEN) without printing it.
+headlamp-token:
+	@set -euo pipefail; umask 077; f="$(CURDIR)/.local/headlamp.env"; mkdir -p "$(CURDIR)/.local"; trap 'rm -f "$$f"' EXIT; \
+	printf 'HEADLAMP_ADMIN_TOKEN=%s\n' "$$(kubectl --context doku-lab -n headlamp get secret headlamp-admin-token -o jsonpath='{.data.token}' | base64 -d)" > "$$f"; \
+	infisical secrets folders create --name headlamp --path / --env dev --silent >/dev/null 2>&1 || true; \
+	infisical secrets set --env dev --path /headlamp --file "$$f" --silent >/dev/null; \
+	echo "Stored HEADLAMP_ADMIN_TOKEN in Infisical dev:/headlamp"

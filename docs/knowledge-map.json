@@ -863,6 +863,10 @@
         {
           "from": "TASK-015",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-016",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1406,6 +1410,10 @@
         {
           "from": "TASK-015",
           "field": "related"
+        },
+        {
+          "from": "TASK-016",
+          "field": "related"
         }
       ]
     },
@@ -1618,6 +1626,10 @@
         },
         {
           "from": "TASK-015",
+          "field": "related"
+        },
+        {
+          "from": "TASK-016",
           "field": "related"
         }
       ]
@@ -2359,7 +2371,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "completed",
       "path": "milestones/M005-headlamp.md",
       "tags": [
         "roadmap"
@@ -2385,6 +2397,9 @@
           "ARCH-platform",
           "DOC-project-overview"
         ],
+        "related_tasks": [
+          "TASK-016"
+        ],
         "related_decisions": [
           "ADR-011"
         ],
@@ -2408,6 +2423,10 @@
         {
           "from": "M009",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-016",
+          "field": "milestone"
         }
       ]
     },
@@ -3921,6 +3940,69 @@
           "field": "related_tasks"
         }
       ]
+    },
+    {
+      "id": "TASK-016",
+      "title": "Headlamp on k3s with LAN-only ingress and token login",
+      "summary": "Official chart 0.46.0, no cluster rights for the app, admin ServiceAccount token in Infisical dev:/headlamp, HTTPS ingress limited to 192.168.0.0/24.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "completed",
+      "path": "tasks/TASK-016-headlamp-on-k3s-with-lan-only-ingress-and-token-login.md",
+      "tags": [
+        "k3s",
+        "headlamp"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": "M005",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-016 — Headlamp on k3s with LAN-only ingress and token login",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-011"
+        ],
+        "related_implementations": [
+          "services/headlamp",
+          "ansible/roles/k3s/templates/traefik-config.yaml.j2",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/headlamp.py",
+          "tests/k3s-cluster.py"
+        ],
+        "milestone": [
+          "M005"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M005",
+          "field": "related_tasks"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -3984,7 +4066,8 @@
       "TASK-012",
       "TASK-013",
       "TASK-014",
-      "TASK-015"
+      "TASK-015",
+      "TASK-016"
     ]
   },
   "by_tag": {
@@ -4095,7 +4178,8 @@
       "TASK-001"
     ],
     "headlamp": [
-      "ADR-011"
+      "ADR-011",
+      "TASK-016"
     ],
     "infisical": [
       "ADR-004"
@@ -4115,7 +4199,8 @@
     "k3s": [
       "ADR-006",
       "ADR-011",
-      "TASK-015"
+      "TASK-015",
+      "TASK-016"
     ],
     "kubernetes": [
       "ADR-006",

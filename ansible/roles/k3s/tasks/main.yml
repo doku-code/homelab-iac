@@ -74,6 +74,24 @@
   diff: false
   notify: Restart k3s
 
+- name: Create the server manifests directory
+  ansible.builtin.file:
+    path: /var/lib/rancher/k3s/server/manifests
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  when: k3s_role == 'server'
+
+- name: Keep client addresses on the bundled Traefik (ingress allow-lists)
+  ansible.builtin.template:
+    src: traefik-config.yaml.j2
+    dest: /var/lib/rancher/k3s/server/manifests/traefik-config.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  when: k3s_role == 'server'
+
 - name: Install the k3s service
   ansible.builtin.template:
     src: k3s.service.j2

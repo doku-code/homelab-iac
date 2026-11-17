@@ -1,0 +1,46 @@
+# Applied before the chart (make headlamp-deploy). Namespace, network restriction and the admin login.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: headlamp
+---
+# Only the administration LAN may reach the UI. Needs the real client address: the k3s role sets
+# externalTrafficPolicy: Local on Traefik (ansible/roles/k3s/templates/traefik-config.yaml.j2).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-lan
+  namespace: headlamp
+spec:
+  ipAllowList:
+    sourceRange:
+      - 192.168.0.0/24
+---
+# The operator's login identity. Its long-lived token is copied to the secret store by make headlamp-deploy.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: headlamp-admin
+  namespace: headlamp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: headlamp-admin
+    namespace: headlamp
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: headlamp-admin-token
+  namespace: headlamp
+  annotations:
+    kubernetes.io/service-account.name: headlamp-admin
+type: kubernetes.io/service-account-token
