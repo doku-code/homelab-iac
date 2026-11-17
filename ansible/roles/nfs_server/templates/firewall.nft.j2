@@ -1,0 +1,13 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (role nfs_server). Own table only: NFS (2049) for the k3s nodes, nobody else.
+table inet nfs_server
+delete table inet nfs_server
+table inet nfs_server {
+  chain input {
+    type filter hook input priority 0; policy accept;
+    iifname "lo" accept
+    ip saddr { {{ nfs_clients | join(', ') }} } tcp dport 2049 accept
+    tcp dport { 111, 2049 } drop
+    udp dport { 111, 2049 } drop
+  }
+}

@@ -164,6 +164,10 @@ jobs:
       - name: Validate OpenTofu root terraform/stacks/k3s, k3s role and Make guards offline
         run: make k3s-cluster-check
 
+      # Offline only: mocked provider, rendered templates, fake tools.
+      - name: Validate OpenTofu root terraform/stacks/storage, NFS role and StorageClass offline
+        run: make storage-check
+
       - name: Validate monitoring Compose configuration
         run: docker-compose -f services/monitoring/compose.yml config --quiet
 

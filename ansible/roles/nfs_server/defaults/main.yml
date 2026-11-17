@@ -1,0 +1,6 @@
+---
+# Shared NFS storage for k3s user data (M006). NFSv4 only, exported to the k3s node range only.
+nfs_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
+nfs_data_mount: /srv/k3s
+# k3s node addresses 192.168.0.40-49 (terraform/stacks/k3s).
+nfs_clients: [192.168.0.40/29, 192.168.0.48/31]

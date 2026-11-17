@@ -867,6 +867,10 @@
         {
           "from": "TASK-016",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-017",
+          "field": "related_decisions"
         }
       ]
     },
@@ -983,6 +987,10 @@
         },
         {
           "from": "TASK-015",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-017",
           "field": "related_decisions"
         }
       ]
@@ -1414,6 +1422,10 @@
         {
           "from": "TASK-016",
           "field": "related"
+        },
+        {
+          "from": "TASK-017",
+          "field": "related"
         }
       ]
     },
@@ -1631,6 +1643,10 @@
         {
           "from": "TASK-016",
           "field": "related"
+        },
+        {
+          "from": "TASK-017",
+          "field": "related"
         }
       ]
     },
@@ -1846,6 +1862,10 @@
         },
         {
           "from": "TASK-015",
+          "field": "related"
+        },
+        {
+          "from": "TASK-017",
           "field": "related"
         }
       ]
@@ -2442,7 +2462,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "completed",
       "path": "milestones/M006-external-nvme-storage.md",
       "tags": [
         "roadmap"
@@ -2469,6 +2489,9 @@
           "DOC-project-overview",
           "INV-new-proxmox-cluster-inventory"
         ],
+        "related_tasks": [
+          "TASK-017"
+        ],
         "related_decisions": [
           "ADR-012"
         ],
@@ -2488,6 +2511,10 @@
         {
           "from": "M007",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-017",
+          "field": "milestone"
         }
       ]
     },
@@ -4003,6 +4030,76 @@
           "field": "related_tasks"
         }
       ]
+    },
+    {
+      "id": "TASK-017",
+      "title": "Shared NFS storage VM on pve-core and nvme-shared StorageClass",
+      "summary": "storage-01 (VM 350, .50, 300 GiB data disk) exports NFSv4 to the k3s nodes only; csi-driver-nfs 4.13.6 with a Retain class for user data; app data stays on local-path.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "completed",
+      "path": "tasks/TASK-017-shared-nfs-storage-vm-on-pve-core-and-nvme-shared-storagecla.md",
+      "tags": [
+        "storage",
+        "nfs",
+        "k3s",
+        "opentofu",
+        "ansible"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": "M006",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-017 — Shared NFS storage VM on pve-core and nvme-shared StorageClass",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "INV-new-proxmox-cluster-inventory",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-012",
+          "ADR-011"
+        ],
+        "related_implementations": [
+          "terraform/stacks/storage",
+          "ansible/roles/nfs_server",
+          "ansible/playbooks/configure-storage.yml",
+          "services/storage",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/storage.py",
+          "terraform/stacks/storage/tests/storage.tftest.hcl"
+        ],
+        "milestone": [
+          "M006"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M006",
+          "field": "related_tasks"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -4067,7 +4164,8 @@
       "TASK-013",
       "TASK-014",
       "TASK-015",
-      "TASK-016"
+      "TASK-016",
+      "TASK-017"
     ]
   },
   "by_tag": {
@@ -4081,7 +4179,8 @@
     "ansible": [
       "TASK-009",
       "TASK-014",
-      "TASK-015"
+      "TASK-015",
+      "TASK-017"
     ],
     "architecture": [
       "ARCH-platform"
@@ -4200,7 +4299,8 @@
       "ADR-006",
       "ADR-011",
       "TASK-015",
-      "TASK-016"
+      "TASK-016",
+      "TASK-017"
     ],
     "kubernetes": [
       "ADR-006",
@@ -4227,6 +4327,9 @@
       "ADR-001",
       "TASK-005"
     ],
+    "nfs": [
+      "TASK-017"
+    ],
     "nvme": [
       "ADR-012"
     ],
@@ -4235,7 +4338,8 @@
       "TASK-006",
       "TASK-008",
       "TASK-014",
-      "TASK-015"
+      "TASK-015",
+      "TASK-017"
     ],
     "overview": [
       "DOC-project-overview"
@@ -4337,7 +4441,8 @@
       "DOC-project-overview"
     ],
     "storage": [
-      "ADR-012"
+      "ADR-012",
+      "TASK-017"
     ],
     "strategy": [
       "ADR-001"

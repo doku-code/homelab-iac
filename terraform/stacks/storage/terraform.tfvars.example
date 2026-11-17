@@ -1,0 +1,19 @@
+# Copy to terraform.tfvars (git-ignored). Allocation 2026-11-17 (read-only): 192.168.0.50-54 no ping reply,
+# VMID 350 free, pve-core thin pool 849 GiB almost empty, ~28 GiB RAM available.
+proxmox_endpoint = "https://192.168.0.10:8006/"
+
+profile = {
+  node         = "pve-core"
+  vm_id        = 350
+  name         = "storage-01"
+  ipv4         = "192.168.0.50/24"
+  cores        = 2
+  memory       = 2048
+  os_disk_gb   = 16
+  data_disk_gb = 300 # thin; raise later (max 700 on this pool), Ansible grows the filesystem
+}
+
+image = {
+  url    = "https://cloud.debian.org/images/cloud/trixie/20261116-2664/debian-13-genericcloud-amd64-20261116-2664.qcow2"
+  sha512 = "37cb32b320820417eb04b335afcf489bfb4cecce4a957190d09cb2bffbe02b56a1cadd62d78c6ead92aa7839d5ea65e4260f994bbb4b54490df59fdf11ee1d97"
+}

@@ -18,7 +18,7 @@
 
 - name: Install k3s host prerequisites
   ansible.builtin.apt:
-    name: [iptables, nftables, conntrack, socat, curl]
+    name: [iptables, nftables, conntrack, socat, curl, nfs-common] # nfs-common: nvme-shared volumes (M006)
     state: present
     update_cache: true
     cache_valid_time: 3600

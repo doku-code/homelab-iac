@@ -20,7 +20,6 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ID | Status | Priority | Title | Tasks | Summary |
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
-| M006 | planned | high | [External NVMe-backed storage](../milestones/M006-external-nvme-storage.md) | none | Kubernetes provisions PVCs through CSI from an NVMe-backed storage service outside k3s; data survives pod and k3s VM replacement; the failure domain is documented. |
 | M007 | planned | high | [PostgreSQL platform](../milestones/M007-postgresql-platform.md) | none | The selected PostgreSQL operator runs a Patroni-managed primary on external NVMe-backed storage, with per-application databases and roles. |
 | M008 | planned | high | [Phase](../milestones/M008-phase.md) | none | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
 | M009 | planned | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | none | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
@@ -32,6 +31,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M003 | completed | high | [Dedicated Forgejo deployment runner](../milestones/M003-deployment-runner.md) | completed: 1 | A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials. |
 | M004 | completed | high | [k3s bootstrap](../milestones/M004-k3s-bootstrap.md) | completed: 1 | The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl. |
 | M005 | completed | high | [Headlamp](../milestones/M005-headlamp.md) | completed: 1 | Headlamp is deployed with its official Helm chart, RBAC-based authentication and network restriction, and shows nodes, workloads, storage objects, events and logs. |
+| M006 | completed | high | [External NVMe-backed storage](../milestones/M006-external-nvme-storage.md) | completed: 1 | Kubernetes provisions PVCs through CSI from an NVMe-backed storage service outside k3s; data survives pod and k3s VM replacement; the failure domain is documented. |
 
 ## Tasks
 
@@ -53,6 +53,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-014 | completed | high | M003 | [Bootstrap deployment runner VM on pve-core](../tasks/TASK-014-bootstrap-deployment-runner-vm.md) | Runner VM deploy-runner-01 (VMID 302, .32) on pve-core via headless-vm, deploy_runner role, main-only wrapper, approval-gated dispatch workflow and a disposable proof root (ADR-014). |
 | TASK-015 | completed | high | M004 | [k3s cluster on doku-lab: first server on pve-lab](../tasks/TASK-015-k3s-cluster-on-doku-lab-first-server-on-pve-lab.md) | terraform/stacks/k3s VMs (for_each, rebuildable), k3s role with embedded etcd, token in Infisical /k3s, host keys pinned out-of-band, workstation kubeconfig (ADR-011). |
 | TASK-016 | completed | high | M005 | [Headlamp on k3s with LAN-only ingress and token login](../tasks/TASK-016-headlamp-on-k3s-with-lan-only-ingress-and-token-login.md) | Official chart 0.46.0, no cluster rights for the app, admin ServiceAccount token in Infisical dev:/headlamp, HTTPS ingress limited to 192.168.0.0/24. |
+| TASK-017 | completed | high | M006 | [Shared NFS storage VM on pve-core and nvme-shared StorageClass](../tasks/TASK-017-shared-nfs-storage-vm-on-pve-core-and-nvme-shared-storagecla.md) | storage-01 (VM 350, .50, 300 GiB data disk) exports NFSv4 to the k3s nodes only; csi-driver-nfs 4.13.6 with a Retain class for user data; app data stays on local-path. |
 
 ## Decisions
 
@@ -105,7 +106,7 @@ _No commit records. Generate with `harness history sync`._
 
 - **access**: TASK-007
 - **age**: ADR-004, TASK-011
-- **ansible**: TASK-009, TASK-014, TASK-015
+- **ansible**: TASK-009, TASK-014, TASK-015, TASK-017
 - **architecture**: ARCH-platform
 - **archive**: ADR-007
 - **argocd**: ADR-006, ADR-011
@@ -133,7 +134,7 @@ _No commit records. Generate with `harness history sync`._
 - **infisical**: ADR-004
 - **inventory**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, TASK-002, TASK-003
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
-- **k3s**: ADR-006, ADR-011, TASK-015, TASK-016
+- **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
 - **legacy**: ADR-007, INV-legacy-inventory
@@ -141,8 +142,9 @@ _No commit records. Generate with `harness history sync`._
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, TASK-005
+- **nfs**: TASK-017
 - **nvme**: ADR-012
-- **opentofu**: ADR-003, TASK-006, TASK-008, TASK-014, TASK-015
+- **opentofu**: ADR-003, TASK-006, TASK-008, TASK-014, TASK-015, TASK-017
 - **overview**: DOC-project-overview
 - **patroni**: ADR-013
 - **pbs**: TASK-004
@@ -166,7 +168,7 @@ _No commit records. Generate with `harness history sync`._
 - **sops**: ADR-004, TASK-011
 - **state**: ADR-007, TASK-010
 - **status**: DOC-project-overview
-- **storage**: ADR-012
+- **storage**: ADR-012, TASK-017
 - **strategy**: ADR-001
 - **terraform**: ADR-003
 - **truenas**: ADR-012

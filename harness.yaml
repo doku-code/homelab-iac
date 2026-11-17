@@ -37,7 +37,7 @@ verification:
     detected: false
     verified: true
   - name: terraform-validate
-    run: d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do case "$r" in terraform/stacks/pve-management-control/|terraform/stacks/deploy-runner/|terraform/stacks/ci-disposable/|terraform/stacks/k3s/)
+    run: d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do case "$r" in terraform/stacks/pve-management-control/|terraform/stacks/deploy-runner/|terraform/stacks/ci-disposable/|terraform/stacks/k3s/|terraform/stacks/storage/)
       continue;; esac; n="$d/$(basename "$r")"; TF_DATA_DIR="$n" terraform -chdir="$r" init -backend=false -input=false -lockfile=readonly
       >/dev/null && TF_DATA_DIR="$n" terraform -chdir="$r" validate >/dev/null || { echo "FAIL $r"; exit
       1; }; done; rm -rf "$d"
@@ -62,6 +62,11 @@ verification:
     verified: true
     description: OpenTofu root k3s (fmt, validate, mocked tofu test), configure-k3s syntax, host-key script,
       role/template/kubeconfig/Make guard tests; offline
+  - name: storage-check
+    run: make storage-check
+    detected: false
+    verified: true
+    description: OpenTofu root storage (fmt, validate, mocked tofu test), playbook syntax, NFS role/StorageClass/Make guard tests; offline
   - name: headlamp-check
     run: make headlamp-check
     detected: false

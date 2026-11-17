@@ -103,7 +103,7 @@ Verified facts: [INV-new-proxmox-cluster-inventory](../investigations/new-proxmo
 | Host | Now | Target |
 |------|-----|--------|
 | `pve-management` 192.168.0.10 | New cluster; i5-10500T, 16 GB; runs `mgmt-control-01` (VM 100) | Management node: workstation |
-| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe | Bootstrap deployment runner `deploy-runner-01` (VM 302, ADR-014), k3s node, first external NVMe storage |
+| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe | Bootstrap deployment runner `deploy-runner-01` (VM 302, ADR-014), shared storage `storage-01` (VM 350, NFS for k3s user data, M006), later a k3s node |
 | `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD; empty | Lightweight services |
 | `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE | First k3s server `k3s-server-01` (VM 310, .40, M004) |
 | `pve-lab` **192.168.0.14** | **Old environment**, independent; Ryzen 9 9950X3D; runs the legacy services | Emptied (M010), reinstalled as `pve-compute`, joined |

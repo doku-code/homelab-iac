@@ -1,0 +1,87 @@
+---
+- name: Require Debian 13 and the dedicated data disk
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.distribution == 'Debian'
+      - ansible_facts.distribution_major_version == '13'
+    fail_msg: The storage VM is a Debian 13 VM from terraform/stacks/storage.
+
+- name: Check the data disk
+  ansible.builtin.stat:
+    path: "{{ nfs_data_device }}"
+  register: nfs_data_disk
+
+- name: Refuse to continue without the data disk
+  ansible.builtin.assert:
+    that: nfs_data_disk.stat.exists
+    fail_msg: "{{ nfs_data_device }} is missing: never export the OS disk."
+
+- name: Install the NFS server and firewall
+  ansible.builtin.apt:
+    name: [nfs-kernel-server, nftables, e2fsprogs]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# Creates the filesystem only on an empty device; an existing one is only grown (never re-formatted).
+- name: Create or grow the data filesystem
+  community.general.filesystem:
+    dev: "{{ nfs_data_device }}"
+    fstype: ext4
+    resizefs: true
+    force: false
+
+- name: Mount the data filesystem
+  ansible.posix.mount:
+    path: "{{ nfs_data_mount }}"
+    src: "{{ nfs_data_device }}"
+    fstype: ext4
+    opts: defaults,noatime,discard
+    state: mounted
+
+- name: Serve NFSv4 only
+  ansible.builtin.copy:
+    dest: /etc/nfs.conf.d/10-homelab.conf
+    content: |
+      # Managed by Ansible (role nfs_server)
+      [nfsd]
+      vers3 = n
+      vers4 = y
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart NFS server
+
+- name: Create the exports drop-in directory
+  ansible.builtin.file:
+    path: /etc/exports.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Export the data filesystem to the k3s nodes only
+  ansible.builtin.template:
+    src: exports.j2
+    dest: /etc/exports.d/k3s.exports
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload exports
+
+- name: Restrict NFS to the k3s nodes
+  ansible.builtin.template:
+    src: firewall.nft.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0755"
+    validate: /usr/sbin/nft -c -f %s
+  notify: Reload firewall
+
+- name: Enable the firewall and the NFS server
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [nftables, nfs-server]

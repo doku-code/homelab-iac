@@ -3,12 +3,12 @@ id: M006
 title: "External NVMe-backed storage"
 summary: "Kubernetes provisions PVCs through CSI from an NVMe-backed storage service outside k3s; data survives pod and k3s VM replacement; the failure domain is documented."
 type: milestone
-status: planned
+status: completed
 priority: high
 created: 2026-11-12
 updated: 2026-11-16
 tags: [roadmap]
-related_tasks: []
+related_tasks: [TASK-017]
 related_decisions: [ADR-012]
 related: [ARCH-platform, DOC-project-overview, INV-new-proxmox-cluster-inventory]
 depends_on: [M004]
@@ -37,7 +37,7 @@ In scope:
 
 Out of scope:
 
-- TrueNAS CSI, NFS or iSCSI for live volumes
+- TrueNAS CSI or iSCSI for live volumes (NFS from a storage VM on `pve-core` was chosen by the operator on 2026-11-17, TASK-017)
 - Ceph before enough hardware exists (M011)
 - NFS exports on hypervisors
 
@@ -52,15 +52,16 @@ Out of scope:
 
 ## Acceptance criteria
 
-- [ ] A test application keeps its data across pod deletion and k3s VM replacement
-- [ ] The storage failure domain is documented without HA claims
+- [x] A test application keeps its data across pod deletion and k3s VM replacement
+- [x] The storage failure domain is documented without HA claims
 
 ## Verification evidence
 
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
-| | | not verified | |
+| Data survives pod deletion, k3s VM reboot and replacement | write through an `nvme-shared` PVC, read after each event | PASS (TASK-017) | 2026-11-17 |
+| Failure domain documented | TASK-017 Design: one VM, one host, one NVMe, no backup yet | done | 2026-11-17 |
 
 ## Completion summary
 
-_Not completed._
+Completed 2026-11-17 with TASK-017: `storage-01` (NFS, pve-core) and StorageClass `nvme-shared` for user data; `local-path` for app data on the node. Single failure domain, no backup until M012.

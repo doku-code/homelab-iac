@@ -1,0 +1,7 @@
+# NFS CSI driver (kubernetes-csi/csi-driver-nfs, official chart, version pinned in the Makefile), M006.
+# k3s keeps its kubelet under the standard path, so chart defaults apply. Small footprint on purpose.
+controller:
+  replicas: 1
+  runOnControlPlane: true
+externalSnapshotter:
+  enabled: false

@@ -718,3 +718,65 @@ headlamp-token:
 	infisical secrets folders create --name headlamp --path / --env dev --silent >/dev/null 2>&1 || true; \
 	infisical secrets set --env dev --path /headlamp --file "$$f" --silent >/dev/null; \
 	echo "Stored HEADLAMP_ADMIN_TOKEN in Infisical dev:/headlamp"
+
+# ─────────────────────────────────────────────
+# Shared storage for k3s user data (M006, ADR-012): storage-01 on pve-core (NFS) + NFS CSI driver.
+# Same gates as the other workstation roots. The VM holds data: prevent_destroy, no replace target.
+# ─────────────────────────────────────────────
+
+STORAGE_DIR := terraform/stacks/storage
+STORAGE_PLAN := storage.tfplan
+STORAGE_CSI_CHART_VERSION := 4.13.6
+STORAGE_CSI_REPO := https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+
+.PHONY: storage-check storage-plan storage-apply storage-hostkeys storage-configure storage-csi-deploy
+
+# Offline only: no credentials, no backend, mocked provider.
+storage-check:
+	@set -euo pipefail; d="$(DEPLOY_RUNNER_CHECK_DATA)/storage"; mkdir -p "$$d"; \
+	$(TOFU) -chdir=$(STORAGE_DIR) fmt -check -recursive; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(STORAGE_DIR) init -backend=false -input=false -lockfile=readonly -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(STORAGE_DIR) validate -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(STORAGE_DIR) test -no-color | tail -n 1
+	$(ANSIBLE) ansible/playbooks/configure-storage.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(VENV)/bin/python tests/storage.py
+
+storage-plan:
+	@test "$(STORAGE_ALLOCATION_REVIEWED)" = yes || (echo "Confirm the allocation in $(STORAGE_DIR)/terraform.tfvars, then set STORAGE_ALLOCATION_REVIEWED=yes" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@test -f "$(STORAGE_DIR)/terraform.tfvars" || (echo "Create the private $(STORAGE_DIR)/terraform.tfvars from terraform.tfvars.example" >&2; exit 1)
+	@test -f "$(STORAGE_DIR)/terraform.tfstate" || test "$(STORAGE_NEW_STATE)" = yes || (echo "No $(STORAGE_DIR)/terraform.tfstate here. Only the first creation starts from an empty state (STORAGE_NEW_STATE=yes); otherwise copy the state from the workstation that holds it." >&2; exit 1)
+	@test ! -e "$(STORAGE_DIR)/$(STORAGE_PLAN)" || mv -f "$(STORAGE_DIR)/$(STORAGE_PLAN)" "$(STORAGE_DIR)/storage.previous.tfplan"
+	$(TOFU) -chdir=$(STORAGE_DIR) init -input=false -lockfile=readonly
+	$(call MGMT_RUN,$(TOFU) -chdir=$(STORAGE_DIR) plan -input=false -out=$(STORAGE_PLAN))
+	@shasum -a 256 "$(STORAGE_DIR)/$(STORAGE_PLAN)"
+
+# Mutates the doku-lab cluster (storage-01): only with explicit approval of the exact saved plan.
+storage-apply:
+	@test "$(STORAGE_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: STORAGE_APPLY_APPROVED=yes" >&2; exit 1)
+	@test -n "$(STORAGE_PLAN_SHA256)" || (echo "Supply STORAGE_PLAN_SHA256 as printed by make storage-plan" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@printf '%s  %s\n' '$(STORAGE_PLAN_SHA256)' '$(STORAGE_DIR)/$(STORAGE_PLAN)' | shasum -a 256 -c
+	$(call MGMT_RUN,$(TOFU) -chdir=$(STORAGE_DIR) apply -input=false $(STORAGE_PLAN))
+	@mv -f "$(STORAGE_DIR)/$(STORAGE_PLAN)" "$(STORAGE_DIR)/storage.applied.tfplan"
+	@chmod 0600 "$(STORAGE_DIR)/terraform.tfstate"
+	@echo "State updated locally: $(STORAGE_DIR)/terraform.tfstate (this workstation only, never in Git)"
+
+storage-hostkeys:
+	@set -euo pipefail; \
+	$(TOFU) -chdir=$(STORAGE_DIR) output -json ansible_inventory | \
+	jq -r '{"pve-core":"192.168.0.11"} as $$pve | .all.children.storage.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
+
+storage-configure:
+	@test "$(STORAGE_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of storage-01 with STORAGE_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/storage-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
+	$(TOFU) -chdir=$(STORAGE_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-storage.yml --diff
+
+# NFS CSI driver and the nvme-shared StorageClass, from the workstation until Argo CD takes over (M009).
+storage-csi-deploy:
+	@test "$(STORAGE_CSI_DEPLOY_APPROVED)" = yes || (echo "Approve the CSI deployment with STORAGE_CSI_DEPLOY_APPROVED=yes" >&2; exit 1)
+	helm upgrade --install csi-driver-nfs csi-driver-nfs --repo $(STORAGE_CSI_REPO) --version $(STORAGE_CSI_CHART_VERSION) --namespace kube-system -f services/storage/values.yaml --kube-context doku-lab --wait --timeout 5m
+	kubectl --context doku-lab apply -f services/storage/storageclass.yaml

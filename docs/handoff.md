@@ -100,8 +100,11 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   configure (commands in TASK-015). Add servers as tfvars entries in `terraform/stacks/k3s`.
 - **M005 completed** 2026-11-17: Headlamp at `https://headlamp.192.168.0.40.sslip.io/` (LAN only, self-signed
   certificate); log in with `HEADLAMP_ADMIN_TOKEN` from Infisical `dev:/headlamp`. Redeploy: `make headlamp-deploy`.
-- **Operator roadmap (2026-11-17), in order:** storage (shared volume from `pve-core`; user data outside k3s,
-  app data may stay on the node) → PostgreSQL (3 replicas with failover, outside k3s, shared by all apps) →
+- **M006 completed** 2026-11-17 ([TASK-017](../tasks/TASK-017-shared-nfs-storage-vm-on-pve-core-and-nvme-shared-storagecla.md)):
+  `storage-01` (VM 350, 192.168.0.50, pve-core) exports NFS to the k3s nodes; **user data uses
+  `storageClassName: nvme-shared`** (Retain), app data may use the default `local-path`. One host, one disk,
+  no backup yet. After a k3s rebuild: `make storage-csi-deploy` and `make headlamp-deploy`.
+- **Operator roadmap (2026-11-17), remaining, in order:** PostgreSQL (3 replicas with failover, outside k3s, shared by all apps) →
   Phase (migrate every Infisical key, then shut Infisical down) → lean Grafana/Prometheus/Loki/Alloy.
 
 ## Commands
