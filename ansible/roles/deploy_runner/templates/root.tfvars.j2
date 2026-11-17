@@ -1,0 +1,4 @@
+# Managed by Ansible (deploy_runner): non-secret inputs for terraform/stacks/{{ item.key }}.
+{% for name, value in item.value | dictsort %}
+{{ name }} = {{ value | to_json }}
+{% endfor %}

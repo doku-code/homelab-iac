@@ -1,0 +1,16 @@
+# Managed by Ansible (deploy_runner). Host-mode deployment runner, one job at a time (one state writer).
+log:
+  level: info
+runner:
+  capacity: 1
+  timeout: 1h
+  labels: []
+host:
+  workdir_parent: {{ deploy_runner_home }}/work
+server:
+  connections:
+    homelab-iac:
+      url: {{ deploy_runner_forgejo_url | to_json }}
+      uuid: {{ deploy_runner_connection_uuid | to_json }}
+      token: {{ deploy_runner_connection_token | to_json }}
+      labels: {{ [deploy_runner_label ~ ':host'] | to_json }}

@@ -549,3 +549,79 @@ mgmt-state-backup:
 	@set -euo pipefail; out="$(MGMT_BACKUP_DIR)/pve-management-control-$$(date -u +%Y%m%dT%H%M%SZ).tfstate.age"; \
 	age -R "$(AGE_RECIPIENTS_FILE)" -o "$$out" "$(MGMT_DIR)/terraform.tfstate"; \
 	shasum -a 256 "$$out"
+
+# ─────────────────────────────────────────────
+# Bootstrap deployment runner deploy-runner-01 (M003, ADR-014, OpenTofu)
+# The VM root is applied from the operator workstation only, with the same token and gates as mgmt-*.
+# terraform/stacks/ci-disposable is applied only BY the runner (homelab-deploy wrapper), never from here.
+# ─────────────────────────────────────────────
+
+DEPLOY_RUNNER_DIR := terraform/stacks/deploy-runner
+DEPLOY_RUNNER_PLAN := deploy-runner.tfplan
+DEPLOY_RUNNER_ROOTS := $(DEPLOY_RUNNER_DIR) terraform/stacks/ci-disposable
+DEPLOY_RUNNER_CHECK_DATA := $(CURDIR)/.local/tofu-check
+
+.PHONY: deploy-runner-check deploy-runner-plan deploy-runner-apply deploy-runner-configure
+
+# Offline only: no credentials, no backend, mocked provider.
+deploy-runner-check:
+	@set -euo pipefail; for r in $(DEPLOY_RUNNER_ROOTS); do \
+		d="$(DEPLOY_RUNNER_CHECK_DATA)/$$(basename "$$r")"; mkdir -p "$$d"; \
+		$(TOFU) -chdir=$$r fmt -check -recursive; \
+		TF_DATA_DIR="$$d" $(TOFU) -chdir=$$r init -backend=false -input=false -lockfile=readonly -no-color >/dev/null; \
+		TF_DATA_DIR="$$d" $(TOFU) -chdir=$$r validate -no-color >/dev/null; \
+		TF_DATA_DIR="$$d" $(TOFU) -chdir=$$r test -no-color | tail -n 1; \
+	done
+	$(ANSIBLE) ansible/playbooks/configure-deploy-runner.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(VENV)/bin/python tests/deploy-runner.py
+
+deploy-runner-plan:
+	@test "$(DEPLOY_RUNNER_ALLOCATION_REVIEWED)" = yes || (echo "Confirm the allocation in $(DEPLOY_RUNNER_DIR)/terraform.tfvars, then set DEPLOY_RUNNER_ALLOCATION_REVIEWED=yes" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@test -f "$(DEPLOY_RUNNER_DIR)/terraform.tfvars" || (echo "Create the private $(DEPLOY_RUNNER_DIR)/terraform.tfvars from terraform.tfvars.example" >&2; exit 1)
+	@test -f "$(DEPLOY_RUNNER_DIR)/terraform.tfstate" || test "$(DEPLOY_RUNNER_NEW_STATE)" = yes || (echo "No $(DEPLOY_RUNNER_DIR)/terraform.tfstate here. Only the first creation of deploy-runner-01 starts from an empty state (DEPLOY_RUNNER_NEW_STATE=yes); otherwise copy the state from the workstation that holds it." >&2; exit 1)
+	@test ! -e "$(DEPLOY_RUNNER_DIR)/$(DEPLOY_RUNNER_PLAN)" || mv -f "$(DEPLOY_RUNNER_DIR)/$(DEPLOY_RUNNER_PLAN)" "$(DEPLOY_RUNNER_DIR)/deploy-runner.previous.tfplan"
+	$(TOFU) -chdir=$(DEPLOY_RUNNER_DIR) init -input=false -lockfile=readonly
+	$(call MGMT_RUN,$(TOFU) -chdir=$(DEPLOY_RUNNER_DIR) plan -input=false -out=$(DEPLOY_RUNNER_PLAN))
+	@shasum -a 256 "$(DEPLOY_RUNNER_DIR)/$(DEPLOY_RUNNER_PLAN)"
+
+# Mutates the doku-lab cluster (deploy-runner-01 on pve-core): only with explicit approval of the exact saved plan.
+deploy-runner-apply:
+	@test "$(DEPLOY_RUNNER_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: DEPLOY_RUNNER_APPLY_APPROVED=yes" >&2; exit 1)
+	@test -n "$(DEPLOY_RUNNER_PLAN_SHA256)" || (echo "Supply DEPLOY_RUNNER_PLAN_SHA256 as printed by make deploy-runner-plan" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@printf '%s  %s\n' '$(DEPLOY_RUNNER_PLAN_SHA256)' '$(DEPLOY_RUNNER_DIR)/$(DEPLOY_RUNNER_PLAN)' | shasum -a 256 -c
+	$(call MGMT_RUN,$(TOFU) -chdir=$(DEPLOY_RUNNER_DIR) apply -input=false $(DEPLOY_RUNNER_PLAN))
+	@mv -f "$(DEPLOY_RUNNER_DIR)/$(DEPLOY_RUNNER_PLAN)" "$(DEPLOY_RUNNER_DIR)/deploy-runner.applied.tfplan"
+	@echo "State updated locally: $(DEPLOY_RUNNER_DIR)/terraform.tfstate (this workstation only, never in Git)"
+
+# Configures deploy-runner-01. Secrets come from the environment only, e.g.
+#   infisical run --silent --env dev --path /deploy-runner -- make deploy-runner-configure DEPLOY_RUNNER_CONFIGURE_APPROVED=yes
+deploy-runner-configure:
+	@test "$(DEPLOY_RUNNER_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of deploy-runner-01 with DEPLOY_RUNNER_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@for v in FORGEJO_RUNNER_UUID FORGEJO_RUNNER_TOKEN DEPLOY_PROXMOX_VE_API_TOKEN; do test -n "$${!v:-}" || { echo "Set $$v in the environment (Infisical /deploy-runner)" >&2; exit 1; }; done
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/deploy-runner-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
+	$(TOFU) -chdir=$(DEPLOY_RUNNER_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-deploy-runner.yml --diff
+
+# Approval of a runner plan happens here, over SSH, never in a Forgejo job (whose logs are public and whose
+# code any branch can change). Review shows the saved plan from the runner itself; approve writes the
+# root-owned approval file the wrapper requires before `apply`.
+DEPLOY_ROOT ?=
+DEPLOY_RUNNER_SSH = ssh -o StrictHostKeyChecking=yes -o BatchMode=yes "debian@$$($(TOFU) -chdir=$(DEPLOY_RUNNER_DIR) output -raw address)"
+define DEPLOY_ROOT_REQUIRED
+	@printf '%s' "$(DEPLOY_ROOT)" | grep -Eq '^[a-z0-9][a-z0-9-]{0,62}$$' || (echo "Set DEPLOY_ROOT to a runner root, e.g. DEPLOY_ROOT=ci-disposable" >&2; exit 1)
+endef
+
+.PHONY: deploy-runner-review deploy-runner-approve
+deploy-runner-review:
+	$(DEPLOY_ROOT_REQUIRED)
+	$(DEPLOY_RUNNER_SSH) sudo -n -u deploy /usr/local/sbin/homelab-deploy "$(DEPLOY_ROOT)" show
+
+deploy-runner-approve:
+	@test "$(DEPLOY_RUNNER_APPROVE)" = yes || (echo "Approve the reviewed plan explicitly: DEPLOY_RUNNER_APPROVE=yes" >&2; exit 1)
+	$(DEPLOY_ROOT_REQUIRED)
+	@printf '%s' "$(DEPLOY_PLAN_SHA256)" | grep -Eq '^[0-9a-f]{64}$$' || (echo "Set DEPLOY_PLAN_SHA256 to the PLAN_SHA256 shown by make deploy-runner-review" >&2; exit 1)
+	printf '%s\n' "$(DEPLOY_PLAN_SHA256)" | $(DEPLOY_RUNNER_SSH) "sudo -n sh -c 'umask 022; cat > /etc/homelab-deploy/approvals/$(DEPLOY_ROOT).sha256'"
+	@echo "Approved $(DEPLOY_PLAN_SHA256) for $(DEPLOY_ROOT); dispatch Deploy → apply with this SHA256."

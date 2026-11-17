@@ -1,0 +1,25 @@
+# Copy to terraform.tfvars (git-ignored). Allocation proposed 2026-11-17: 192.168.0.32 gave no ping/ARP
+# reply, VMID 302 is free in doku-lab (only VM 100 exists). pve-management was too small (~3.7 GiB free), so the
+# operator moved the runner to pve-core (16 CPUs, ~29.6 GiB free) on 2026-11-17.
+proxmox_endpoint = "https://192.168.0.10:8006/" # cluster API via pve-management; TLS verified against the cluster CA
+
+profile = {
+  node            = "pve-core" # operator decision 2026-11-17 (pve-management too small)
+  vm_id           = 302
+  name            = "deploy-runner-01"
+  image_datastore = "local"     # dir with the "import" content type
+  disk_datastore  = "local-lvm" # lvmthin on pve-core
+  bridge          = "vmbr0"
+  ipv4            = "192.168.0.32/24" # static, confirmed by the operator outside the DHCP pool
+  gateway         = "192.168.0.1"
+  dns_servers     = ["192.168.0.20"] # AdGuard Home
+  cores           = 6
+  memory          = 8192 # MiB
+  disk_gb         = 24
+}
+
+image = {
+  # https://cloud.debian.org/images/cloud/trixie/20261116-2664/SHA512SUMS
+  url    = "https://cloud.debian.org/images/cloud/trixie/20261116-2664/debian-13-genericcloud-amd64-20261116-2664.qcow2"
+  sha512 = "37cb32b320820417eb04b335afcf489bfb4cecce4a957190d09cb2bffbe02b56a1cadd62d78c6ead92aa7839d5ea65e4260f994bbb4b54490df59fdf11ee1d97"
+}

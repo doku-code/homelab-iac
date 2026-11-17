@@ -1,0 +1,4 @@
+# Managed by Ansible (deploy_runner). The job user may run exactly one program as `deploy`; sudo resets
+# the environment, and the program validates its own arguments.
+Defaults:runner !requiretty, env_reset
+runner ALL=(deploy) NOPASSWD: /usr/local/sbin/homelab-deploy

@@ -156,6 +156,10 @@ jobs:
       - name: Validate OpenTofu root terraform/stacks/pve-management-control offline
         run: make mgmt-check
 
+      # Offline only: mocked provider, fake tofu and a local Git remote; no runner, no credentials.
+      - name: Validate OpenTofu roots terraform/stacks/deploy-runner and terraform/stacks/ci-disposable, wrapper and workflow boundary offline
+        run: make deploy-runner-check
+
       - name: Validate monitoring Compose configuration
         run: docker-compose -f services/monitoring/compose.yml config --quiet
 

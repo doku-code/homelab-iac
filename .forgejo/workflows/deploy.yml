@@ -1,0 +1,44 @@
+# Approved deployments on the bootstrap deployment runner (ADR-014, M003).
+# - Manual dispatch only: never push or pull_request triggers; validation workflows never use this label.
+# - Activation gate: main and the repository variable DEPLOY_RUNNER_APPROVED. This file is not the trust
+#   boundary (any branch can carry its own workflow): the runner's wrapper is. It clones Forgejo main itself,
+#   plans only the current main tip, holds the scoped token where this job cannot read it, and applies only
+#   a saved plan the operator reviewed and approved over SSH (make deploy-runner-review / -approve).
+# - Job logs are public (public repository): review plans on the runner, not here.
+# - No Forgejo secrets, no checkout, no third-party actions.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      root:
+        description: OpenTofu root on the runner allowlist
+        type: choice
+        options: [ci-disposable]
+        required: true
+      operation:
+        description: plan, plan-destroy, or apply of the saved plan
+        type: choice
+        options: [plan, plan-destroy, apply]
+        required: true
+      plan_sha256:
+        description: For apply only, the PLAN_SHA256 approved with make deploy-runner-approve
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  deploy:
+    if: forgejo.ref == 'refs/heads/main' && vars.DEPLOY_RUNNER_APPROVED == 'true'
+    runs-on: homelab-deploy
+    steps:
+      - name: Run the main-only deployment wrapper
+        env:
+          ROOT: ${{ inputs.root }}
+          OPERATION: ${{ inputs.operation }}
+          PLAN_SHA256: ${{ inputs.plan_sha256 }}
+          COMMIT: ${{ forgejo.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$OPERATION" = apply ]; then argument="$PLAN_SHA256"; else argument="$COMMIT"; fi
+          sudo -n -u deploy /usr/local/sbin/homelab-deploy "$ROOT" "$OPERATION" "$argument"

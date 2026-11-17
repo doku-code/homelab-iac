@@ -1,0 +1,13 @@
+{{ {
+  'repository': deploy_runner_repository,
+  'branch': deploy_runner_branch,
+  'base': deploy_runner_base,
+  'credentials': deploy_runner_etc ~ '/proxmox.env',
+  'approvals': deploy_runner_etc ~ '/approvals',
+  'tofu_cli_config': deploy_runner_etc ~ '/tofurc',
+  'max_plan_age_hours': deploy_runner_max_plan_age_hours,
+  'roots': dict(deploy_runner_roots | dict2items | map(attribute='key')
+                | zip(deploy_runner_roots | dict2items | map(attribute='key')
+                      | map('regex_replace', '^(.*)$', '{"var_file": "' ~ deploy_runner_etc ~ '/roots/\\1.tfvars"}')
+                      | map('from_json')))
+} | to_nice_json }}

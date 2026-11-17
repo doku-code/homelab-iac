@@ -1,0 +1,7 @@
+---
+# Never restart under a running deployment: the wrapper's tofu lives in this unit's cgroup. flock fails
+# immediately while the wrapper holds the lock; rerun the configuration once the job has finished.
+- name: Restart deploy runner
+  ansible.builtin.command:
+    argv: [flock, --nonblock, "{{ deploy_runner_base }}/lock", systemctl, restart, forgejo-runner.service]
+  changed_when: true

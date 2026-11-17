@@ -6,7 +6,7 @@ type: investigation
 status: current
 importance: 5
 created: 2026-11-16
-updated: 2026-11-16
+updated: 2026-11-17
 tags: [investigation, inventory, proxmox, cluster, hardware]
 topics: [proxmox, cluster, quorum, corosync, hardware, nvme, storage, network, capacity, placement, pve-management, pve-core, pve-infra, pve-lab, pve-compute, k3s, runner, ceph]
 applies_to: [proxmox]
@@ -108,7 +108,8 @@ on any node.
 | `pve-lab` | 16 threads, ~24 GiB, 403 GiB NVMe | First k3s server (fastest CPU, DDR5, 2.5 GbE) |
 | `pve-infra` | 4 threads, ~5 GiB, 170 GiB SATA | Dedicated Forgejo runner (M003), lightweight services, later a small etcd/k3s member |
 
-Proposed placement (decided in each milestone, not allocated now): runner VM on `pve-infra` (M003);
+Proposed placement (decided in each milestone, not allocated now): runner VM on `pve-infra` (M003; the
+operator decided `pve-core` with 6 vCPU / 8 GiB on 2026-11-17, TASK-014);
 first k3s server on `pve-lab`, then a second node on `pve-core`, a third etcd voter later (M004);
 storage on `pve-core` first (M006). No physical HA is claimed: every node has one SSD, one NIC and one
 corosync link.

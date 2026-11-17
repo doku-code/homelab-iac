@@ -6,7 +6,7 @@ type: architecture
 status: current
 importance: 5
 created: 2026-11-12
-updated: 2026-11-16
+updated: 2026-11-17
 tags: [architecture, platform, rebuild]
 component: platform
 topics: [proxmox, cluster, k3s, headlamp, argocd, windmill, storage, nvme, csi, ceph, truenas, postgresql, patroni, phase, forgejo, runner, opentofu, ansible]
@@ -37,9 +37,9 @@ in [INV-legacy-inventory](../investigations/legacy-inventory.md); the current st
 ```mermaid
 flowchart TB
   subgraph phys["New Proxmox cluster doku-lab (ADR-010)"]
-    pm["pve-management .10<br/>workstation host"]
-    pc["pve-core .11<br/>1 TB NVMe"]
-    pi["pve-infra .12<br/>light services, runner"]
+    pm["pve-management .10<br/>workstation"]
+    pc["pve-core .11<br/>1 TB NVMe, bootstrap runner"]
+    pi["pve-infra .12<br/>light services"]
     pl["pve-lab .16<br/>512 GB NVMe"]
     px["pve-compute (future)<br/>old .14 reinstalled"]
   end
@@ -102,9 +102,9 @@ Verified facts: [INV-new-proxmox-cluster-inventory](../investigations/new-proxmo
 
 | Host | Now | Target |
 |------|-----|--------|
-| `pve-management` 192.168.0.10 | New cluster; i5-10500T, 16 GB; runs `mgmt-control-01` (VM 100) | Management node, no other workloads |
-| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe; empty | k3s node, first external NVMe storage |
-| `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD; empty | Dedicated runner, lightweight services |
+| `pve-management` 192.168.0.10 | New cluster; i5-10500T, 16 GB; runs `mgmt-control-01` (VM 100) | Management node: workstation |
+| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe | Bootstrap deployment runner `deploy-runner-01` (VM 302, ADR-014), k3s node, first external NVMe storage |
+| `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD; empty | Lightweight services |
 | `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE; empty | First k3s server |
 | `pve-lab` **192.168.0.14** | **Old environment**, independent; Ryzen 9 9950X3D; runs the legacy services | Emptied (M010), reinstalled as `pve-compute`, joined |
 | `pve-k8s-01/02` | Legacy | Reclaimed after migration |

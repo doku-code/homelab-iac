@@ -37,8 +37,8 @@ verification:
     detected: false
     verified: true
   - name: terraform-validate
-    run: d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do [ "$r" = terraform/stacks/pve-management-control/
-      ] && continue; n="$d/$(basename "$r")"; TF_DATA_DIR="$n" terraform -chdir="$r" init -backend=false -input=false -lockfile=readonly
+    run: d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do case "$r" in terraform/stacks/pve-management-control/|terraform/stacks/deploy-runner/|terraform/stacks/ci-disposable/)
+      continue;; esac; n="$d/$(basename "$r")"; TF_DATA_DIR="$n" terraform -chdir="$r" init -backend=false -input=false -lockfile=readonly
       >/dev/null && TF_DATA_DIR="$n" terraform -chdir="$r" validate >/dev/null || { echo "FAIL $r"; exit
       1; }; done; rm -rf "$d"
     detected: false
@@ -50,6 +50,12 @@ verification:
     detected: false
     verified: true
     description: OpenTofu root for mgmt-control-01 (fmt, validate, mocked tofu test) plus auth/Make guard tests; offline
+  - name: deploy-runner-check
+    run: make deploy-runner-check
+    detected: false
+    verified: true
+    description: OpenTofu roots deploy-runner and ci-disposable (fmt, validate, mocked tofu test), playbook syntax,
+      wrapper/role/workflow/Make guard tests; offline
   - name: ansible-syntax
     run: for p in ansible/playbooks/*.yml; do .venv/bin/ansible-playbook --syntax-check -i ansible/inventories/homelab.yml
       "$p" >/dev/null || exit 1; done

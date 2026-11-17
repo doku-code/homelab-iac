@@ -1,0 +1,20 @@
+[Unit]
+Description=Forgejo Actions deployment runner (host mode, {{ deploy_runner_label }})
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=runner
+Group=runner
+WorkingDirectory={{ deploy_runner_home }}
+ExecStart={{ deploy_runner_binary }} daemon -c {{ deploy_runner_config }}
+Restart=on-failure
+RestartSec=5s
+# No NoNewPrivileges: jobs must reach the sudo wrapper. ProtectSystem=full keeps /usr, /boot and /etc
+# read-only for jobs; the wrapper only reads /etc and writes {{ deploy_runner_base }}.
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

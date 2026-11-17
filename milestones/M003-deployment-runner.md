@@ -3,12 +3,12 @@ id: M003
 title: "Dedicated Forgejo deployment runner"
 summary: "A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials."
 type: milestone
-status: planned
+status: active
 priority: high
 created: 2026-11-12
-updated: 2026-11-16
+updated: 2026-11-17
 tags: [roadmap]
-related_tasks: []
+related_tasks: [TASK-014]
 related_decisions: [ADR-014, ADR-008]
 related: [ARCH-platform, DOC-project-overview, INV-new-proxmox-cluster-inventory]
 depends_on: [M002]
@@ -23,7 +23,8 @@ Automate approved OpenTofu, Ansible, k3s and Helm jobs from Forgejo without givi
 
 **Completion criterion:** A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials.
 
-Placement proposal: the runner VM on `pve-infra` (.12), see [INV-new-proxmox-cluster-inventory](../docs/investigations/new-proxmox-cluster-inventory.md).
+Placement (operator, 2026-11-17): the bootstrap runner `deploy-runner-01` runs on `pve-core` (6 vCPU / 8 GiB;
+`pve-management` was too small); design and runbook in [TASK-014](../tasks/TASK-014-bootstrap-deployment-runner-vm.md).
 
 ## Scope
 

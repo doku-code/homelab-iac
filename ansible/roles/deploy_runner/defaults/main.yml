@@ -1,0 +1,34 @@
+---
+# Bootstrap deployment runner (ADR-014). Same pinned binary as the CT301 role (tests/deploy-runner.py
+# keeps them equal); host-mode label: jobs run as `runner` without credentials, privileged work only
+# through /usr/local/sbin/homelab-deploy as `deploy`.
+deploy_runner_version: "13.0.0"
+deploy_runner_checksum: "sha256:cfcfe65e9ed5c9a4b344acfdbc3c32210b274c005a5888f46967c4d988177707"
+deploy_runner_binary: /usr/local/bin/forgejo-runner
+deploy_runner_label: homelab-deploy
+deploy_runner_forgejo_url: https://git.doku-lab.net/
+deploy_runner_name: "{{ inventory_hostname }}"
+deploy_runner_home: /var/lib/forgejo-runner
+deploy_runner_config: /etc/forgejo-runner/config.yml
+
+opentofu_version: "1.13.9"
+opentofu_sha256: bc44eb6b06446ba83bd4072114891987f590f66cca712737a7f1147c50c539ce
+
+deploy_runner_repository: https://git.doku-lab.net/Homelab/homelab-iac.git
+deploy_runner_branch: main
+deploy_runner_base: /var/lib/homelab-deploy
+deploy_runner_etc: /etc/homelab-deploy
+# A saved plan older than this is refused at apply time.
+deploy_runner_max_plan_age_hours: 24
+# Roots the runner may plan/apply, with their non-secret inputs. Nothing else is reachable.
+deploy_runner_roots:
+  ci-disposable:
+    proxmox_endpoint: https://192.168.0.10:8006/
+    node: pve-core
+
+# Secrets: from the controller's environment (Infisical path /deploy-runner), never from Git.
+deploy_runner_connection_uuid: "{{ lookup('ansible.builtin.env', 'FORGEJO_RUNNER_UUID') }}"
+deploy_runner_connection_token: "{{ lookup('ansible.builtin.env', 'FORGEJO_RUNNER_TOKEN') }}"
+deploy_runner_proxmox_token: "{{ lookup('ansible.builtin.env', 'DEPLOY_PROXMOX_VE_API_TOKEN') }}"
+# The only identity accepted on the runner: never the workstation's tofu@pve or root@pam.
+deploy_runner_proxmox_user: deploy-runner@pve

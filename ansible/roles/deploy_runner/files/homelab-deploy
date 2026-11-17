@@ -1,0 +1,263 @@
+#!/usr/bin/python3 -I
+"""Approved OpenTofu runs on the deployment runner, from Forgejo main only (ADR-014, M003).
+
+Usage, as user `deploy` (the Forgejo job reaches it through sudo; the operator through SSH):
+  homelab-deploy <root> plan|plan-destroy <commit>   commit must be the current tip of main
+  homelab-deploy <root> show                          the saved plan, for review over SSH (not job logs)
+  homelab-deploy <root> apply <plan-sha256>           only with a root-owned approval of that SHA256
+
+Trust boundary: the job's workspace, environment and checkout are never used. Each run clones the
+repository afresh with Git configuration and hooks disabled, plans only the current main tip of an
+allowlisted root, runs OpenTofu with an empty per-run HOME and a root-owned CLI configuration, and reads the
+scoped Proxmox token from a file the job user cannot read. Approval is outside the job: `apply` needs
+<approvals>/<root>.sha256, owned by root and not writable by others, containing the plan's SHA256, which the
+operator writes over SSH after reviewing `show`. Plans expire after max_plan_age_hours. One run at a time.
+No secret is printed.
+"""
+
+import fcntl
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+CONFIG = Path("/etc/homelab-deploy/config.json")
+ROOT_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
+COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+OPERATIONS = ("plan", "plan-destroy", "show", "apply")
+ALLOWED_CREDENTIALS = ("PROXMOX_VE_API_TOKEN",)
+SAFE_PATH = "/usr/local/bin:/usr/bin:/bin"
+GIT_SAFE = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"]
+
+
+class Refused(Exception):
+    pass
+
+
+def parse_request(argv, roots):
+    """argv without the program name -> (root, operation, argument or None)."""
+    if len(argv) not in (2, 3):
+        raise Refused("usage: homelab-deploy <root> plan|plan-destroy <commit> | <root> show | <root> apply <plan-sha256>")
+    root, operation = argv[0], argv[1]
+    argument = argv[2] if len(argv) == 3 else None
+    if not ROOT_RE.match(root) or root not in roots:
+        raise Refused(f"root {root!r} is not on the runner allowlist")
+    if operation not in OPERATIONS:
+        raise Refused(f"operation must be one of {', '.join(OPERATIONS)}")
+    if operation == "show":
+        if argument is not None:
+            raise Refused("show takes no argument")
+    elif argument is None or not (SHA256_RE if operation == "apply" else COMMIT_RE).match(argument):
+        raise Refused("apply takes the 64-hex plan SHA256; plan takes the full 40-hex main commit")
+    return root, operation, argument
+
+
+def load_credentials(path):
+    """KEY=value lines; only the allowed keys, nothing else is exported to OpenTofu."""
+    try:
+        text = Path(path).read_text()
+    except OSError as error:
+        raise Refused(f"cannot read the credentials file {path}: {error.strerror}")
+    values = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, sep, value = line.partition("=")
+        if not sep or key not in ALLOWED_CREDENTIALS or not value:
+            raise Refused(f"{path}: unexpected entry (allowed: {', '.join(ALLOWED_CREDENTIALS)})")
+        values[key] = value
+    missing = [k for k in ALLOWED_CREDENTIALS if k not in values]
+    if missing:
+        raise Refused(f"{path}: missing {', '.join(missing)}")
+    return values
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def check_saved_plan(metadata, now, max_age_hours):
+    """Return the commit of a pending, unexpired saved plan, or refuse."""
+    if not metadata or metadata.get("operation") not in ("plan", "plan-destroy"):
+        raise Refused("no pending saved plan for this root: run plan first")
+    commit = metadata.get("commit", "")
+    if not COMMIT_RE.match(commit):
+        raise Refused("saved plan metadata has no valid commit")
+    try:
+        created = datetime.fromisoformat(metadata["created"])
+    except (KeyError, TypeError, ValueError):
+        raise Refused("saved plan metadata has no valid creation time")
+    if now - created > timedelta(hours=max_age_hours):
+        raise Refused(f"the saved plan is older than {max_age_hours} h: plan again")
+    return commit
+
+
+def check_plan(metadata, requested_sha, actual_sha, now, max_age_hours):
+    """Return the commit to apply from, or refuse."""
+    commit = check_saved_plan(metadata, now, max_age_hours)
+    if not (requested_sha == metadata.get("sha256") == actual_sha):
+        raise Refused("the requested SHA256 does not match the saved plan")
+    return commit
+
+
+def check_approval(path, sha, owner_uid):
+    """The operator's approval: a file the deploy user cannot write, holding exactly this SHA256."""
+    path = Path(path)
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        raise Refused(f"no operator approval at {path}: review with `show`, then approve over SSH")
+    for item, what in ((info, path), (os.lstat(path.parent), path.parent)):
+        if item.st_uid != owner_uid or item.st_mode & 0o022:
+            raise Refused(f"{what} must be owned by uid {owner_uid} and not writable by group or others")
+    if not path.is_file() or path.is_symlink():
+        raise Refused(f"{path} must be a regular file")
+    if path.read_text().strip() != sha:
+        raise Refused("the operator approval is for a different plan")
+
+
+class Step:
+    """Runs one command; failures name the step (and git's last stderr line), never the environment."""
+
+    def __init__(self, lock_fd):
+        self.lock_fd = lock_fd  # inherited: the lock stays held while a child still runs
+
+    def __call__(self, name, argv, env, capture=False, check=True):
+        result = subprocess.run(argv, env=env, pass_fds=(self.lock_fd,), text=True, capture_output=capture)
+        if check and result.returncode != 0:
+            detail = (result.stderr or "").strip().splitlines()[-1:] if capture else []
+            raise Refused(f"{name} failed (exit {result.returncode})" + (f": {detail[0]}" if detail else ""))
+        return result
+
+
+def git_env(home):
+    return {"PATH": SAFE_PATH, "HOME": str(home), "LANG": "C.UTF-8", "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_CONFIG_NOSYSTEM": "1", "GIT_TERMINAL_PROMPT": "0"}
+
+
+def tofu_env(base, root, home, cli_config, credentials):
+    env = {
+        "PATH": SAFE_PATH,
+        "HOME": str(home),
+        "TMPDIR": str(home),
+        "LANG": "C.UTF-8",
+        "TF_IN_AUTOMATION": "1",
+        "TF_INPUT": "0",
+        "TF_CLI_CONFIG_FILE": str(cli_config),
+        "TF_DATA_DIR": str(base / "work" / root),
+        "TF_PLUGIN_CACHE_DIR": str(base / "plugin-cache"),
+    }
+    env.update(credentials)
+    return env
+
+
+def run(config, argv, now=None):
+    now = now or datetime.now(timezone.utc)
+    roots = config["roots"]
+    root, operation, argument = parse_request(argv, roots)
+    base = Path(config["base"])
+    branch = config["branch"]
+    max_age = config.get("max_plan_age_hours", 24)
+    plans, state = base / "plans", base / "state"
+    for directory in (plans, state, base / "work", base / "plugin-cache", base / "tmp"):
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    plan_file, meta_file = plans / f"{root}.tfplan", plans / f"{root}.json"
+
+    lock = open(base / "lock", "a")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise Refused("another deployment is running on this runner")
+    step = Step(lock.fileno())
+    home = Path(tempfile.mkdtemp(prefix="run-", dir=base / "tmp"))
+    try:
+        # A fresh clone every run: nothing a previous run left in a checkout or .git survives.
+        src, genv = home / "src", git_env(home)
+        git = ["git", *GIT_SAFE, "-C", str(src)]
+        step("git clone", ["git", *GIT_SAFE, "clone", "--quiet", "--no-checkout", "--single-branch", "--branch", branch,
+                           config["repository"], str(src)], genv, capture=True)
+        tip = step("git rev-parse", git + ["rev-parse", f"refs/remotes/origin/{branch}"], genv, capture=True).stdout.strip()
+
+        metadata = json.loads(meta_file.read_text()) if meta_file.exists() else None
+        if operation in ("plan", "plan-destroy"):
+            if argument != tip:
+                raise Refused(f"commit {argument} is not the current tip of {branch} ({tip})")
+            commit = argument
+        elif operation == "show":
+            commit = check_saved_plan(metadata, now, max_age)
+        else:
+            actual = sha256_file(plan_file) if plan_file.exists() else ""
+            commit = check_plan(metadata, argument, actual, now, max_age)
+            check_approval(Path(config["approvals"]) / f"{root}.sha256", argument, config.get("approval_owner_uid", 0))
+        # The planned commit must still be on main when it is shown or applied (force-push, history rewrite).
+        if step("git merge-base", git + ["merge-base", "--is-ancestor", commit, f"refs/remotes/origin/{branch}"],
+                genv, capture=True, check=False).returncode != 0:
+            raise Refused(f"commit {commit} is not on {branch}")
+        step("git checkout", git + ["-c", "advice.detachedHead=false", "checkout", "--quiet", "--detach", "--force",
+                                    commit], genv, capture=True)
+
+        root_dir = src / "terraform" / "stacks" / root
+        if not root_dir.is_dir():
+            raise Refused(f"terraform/stacks/{root} does not exist at {commit}")
+        cli_config = config.get("tofu_cli_config", "/etc/homelab-deploy/tofurc")
+        plain_env = tofu_env(base, root, home, cli_config, {})  # init and show need no Proxmox credentials
+        tofu = [config.get("tofu", "/usr/local/bin/tofu"), f"-chdir={root_dir}"]
+        step("tofu init", tofu + ["init", "-input=false", "-lockfile=readonly", "-reconfigure", "-no-color",
+                                  f"-backend-config=path={state / (root + '.tfstate')}"], plain_env)
+
+        if operation == "show":
+            step("tofu show", tofu + ["show", "-no-color", str(plan_file)], plain_env)
+            print(f"PLAN_SHA256={metadata['sha256']}\nCOMMIT={commit}\nCREATED={metadata['created']}", flush=True)
+            return 0
+
+        env = tofu_env(base, root, home, cli_config, load_credentials(config["credentials"]))
+        # The repository's own guard: dedicated token only, TLS verified, no debug logging.
+        guard = ["/usr/bin/python3", "-I", str(src / "scripts" / "pve-auth-guard.py"), "--"]
+        print(f"homelab-deploy: {root} {operation} at {commit}", flush=True)
+        if operation == "apply":
+            step("tofu apply", guard + tofu + ["apply", "-input=false", "-no-color", str(plan_file)], env)
+            plan_file.replace(plans / f"{root}.applied.tfplan")
+            meta_file.write_text(json.dumps({**metadata, "operation": "applied", "applied": now.isoformat()}) + "\n")
+            print(f"homelab-deploy: applied {argument}", flush=True)
+            return 0
+
+        plan_file.unlink(missing_ok=True)
+        meta_file.unlink(missing_ok=True)
+        var_file = roots[root].get("var_file")
+        args = ["plan", "-input=false", "-no-color", f"-out={plan_file}"]
+        args += [f"-var-file={var_file}"] if var_file else []
+        args += ["-destroy"] if operation == "plan-destroy" else []
+        step("tofu plan", guard + tofu + args, env)
+        sha = sha256_file(plan_file)
+        meta_file.write_text(json.dumps({"root": root, "operation": operation, "commit": commit, "sha256": sha,
+                                         "created": now.isoformat()}) + "\n")
+        print(f"PLAN_SHA256={sha}\nNot approved yet: review it on the runner (make deploy-runner-review), approve it "
+              "(make deploy-runner-approve), then dispatch apply with this SHA256.", flush=True)
+        return 0
+    finally:
+        shutil.rmtree(home, ignore_errors=True)
+
+
+def main():
+    os.umask(0o077)
+    try:
+        return run(json.loads(CONFIG.read_text()), sys.argv[1:])
+    except Refused as error:
+        print(f"homelab-deploy: refused: {error}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

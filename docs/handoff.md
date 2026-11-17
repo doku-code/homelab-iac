@@ -6,7 +6,7 @@ type: guide
 status: current
 importance: 5
 created: 2026-11-14
-updated: 2026-11-16
+updated: 2026-11-17
 tags: [guide, handoff, workstation, pve-management]
 related: [DOC-project-overview, ARCH-platform, ADR-009, ADR-010, ADR-012, ADR-014, INV-new-proxmox-cluster-inventory, INV-legacy-inventory, INV-pve-management-bootstrap, M001, M003]
 topics: [handoff, current-work, workstation, state, next-task]
@@ -63,7 +63,9 @@ use IPs**. The new nodes have no DNS records.
   legacy root whose endpoint is a new-cluster address.
 - Proxmox credentials: `infisical login` once (domain `https://secrets.doku-lab.net`), then prefix Make
   targets with `infisical run --silent --env dev --path /pve-management --` and pass `MGMT_INPUT_SOURCE=env`.
-  The token sees all four nodes but has rights only on VM 100; M003 adds scoped identities.
+  The token's role is granted on `/vms` (every VM in the cluster, not only VM 100), `/storage/local`,
+  `/storage/local-lvm`, `/nodes/pve-management`, `/nodes/pve-core` (added 2026-11-17 for VM 302) and vmbr0.
+  M003 adds the runner's own `deploy-runner@pve!ci`.
 - Read-only cluster audit outputs: `.local/audit/2026-11-16/`.
 
 ## First steps in the first Ubuntu session
@@ -71,23 +73,23 @@ use IPs**. The new nodes have no DNS records.
 These need the operator at the keyboard (logins, tokens); do them once, in this order:
 
 1. `claude` and `codex`: log in when prompted.
-2. `infisical login` (choose the self-hosted domain above).
-3. Prove state continuity with your own session:
+2. `infisical login` (choose the self-hosted domain above). Done 2026-11-17.
+3. Prove state continuity with your own session (done 2026-11-17: No changes):
    `infisical run --silent --env dev --path /pve-management -- make mgmt-plan MGMT_INPUT_SOURCE=env MGMT_ALLOCATION_REVIEWED=yes`
    must report **No changes**.
-4. Forgejo push access: create a personal access token in Forgejo (repository read/write), then
+4. Forgejo push access: create a personal access token in Forgejo (scope `write:repository`), then
    `git config --global credential.helper store`; the first `git push` asks for the user and the
    token and stores them in `~/.git-credentials` (0600).
 
 ## Current and next work
 
-- **M001**: closes once the Thincast two-stage login is confirmed (TASK-009); everything else is verified.
+- **M001 completed** 2026-11-17: Thincast two-stage login confirmed by the operator (TASK-009).
 - **M002 completed**: cluster formed by the operator, audited read-only.
-- **Next: M003, dedicated Forgejo deployment runner** ([ADR-014](decisions/ADR-014-dedicated-forgejo-deployment-runner.md)):
-  a runner VM (OpenTofu `headless-vm` module, proposed on `pve-infra` .12) and Ansible role, registered with
-  the existing Forgejo, approval-gated workflows, scoped Proxmox credentials; CT301 gets none. Start with a
-  task (`harness new task`), a plan, and operator approval before any apply. Then M004 k3s (first server on
-  `pve-lab` .16), M005 Headlamp, M006 storage.
+- **Current: M003, bootstrap deployment runner** ([ADR-014](decisions/ADR-014-dedicated-forgejo-deployment-runner.md),
+  [TASK-014](../tasks/TASK-014-bootstrap-deployment-runner-vm.md)): `deploy-runner-01`, VM 302,
+  192.168.0.32 on `pve-core` (6 vCPU / 8 GiB), **applied 2026-11-17** (state on this workstation only); next:
+  host-key check, credentials, `deploy-runner-configure` and registration ([runbook](../terraform/stacks/deploy-runner/README.md)). Then M004 k3s (first
+  server on `pve-lab` .16), M005 Headlamp, M006 storage.
 
 ## Commands
 
@@ -107,4 +109,9 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 - `pve-management` runs kernel 7.0.14-28, the other nodes -29: reboot it during approved maintenance.
 - One corosync link on the shared 1 GbE LAN, one SSD per node: no physical HA yet.
 - GDM allows one graphical session per user: log out of a Proxmox console desktop before RDP.
+- The remote display's resolution and scaling come from the Thincast client ("Auto-fit window and
+  session", 32-bit colour), not from GNOME Settings; change them in the client's connection profile.
 - Docker-published ports bypass `ufw`; bind development containers to `127.0.0.1`.
+- Debian generic cloud images ship without `qemu-guest-agent`, while `headless-vm` enables the agent: the
+  first apply of such a VM waits the full 15-minute agent timeout and only warns. `headless_baseline` installs
+  the agent; until then, refreshes of that VM wait as well.
