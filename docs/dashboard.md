@@ -79,7 +79,7 @@ gantt
 
 | ID | Priority | Milestone | Title |
 |----|----------|-----------|-------|
-| TASK-024 | medium | M009 | [Argo CD on k3s and NetBox as its first application](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md) |
+| TASK-024 | medium | M009 | [Argo CD on k3s and every service of the cluster under it](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md) |
 | TASK-023 | medium | M013 | [NetBox on k3s, initial inventory, reconciliation and Ansible inventory](../tasks/TASK-023-netbox-on-k3s-initial-inventory-reconciliation-and-ansible-i.md) |
 | TASK-021 | medium | M004 | [k3s servers on pve-core and pve-lab: three etcd members](../tasks/TASK-021-k3s-servers-on-pve-core-and-pve-lab-three-etcd-members.md) |
 | TASK-020 | medium | M010 | [Lean observability: Prometheus, Loki, Grafana and Alloy](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md) |

@@ -52,10 +52,10 @@ Out of scope:
 
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
-| A change merged in Forgejo is reconciled | See [TASK-024](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md) | Done for NetBox: a pushed commit reached the cluster in about three minutes | 2026-11-18 |
+| A change merged in Forgejo is reconciled | See [TASK-024](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md) | Done: a pushed commit reached the cluster in about three minutes; six applications `Synced` and `Healthy` | 2026-11-18 |
 | A Windmill flow triggers a runner workflow | | not started | |
 
 ## Completion summary
 
-Active. Argo CD runs and owns NetBox (TASK-024). Remaining: the other services under Argo CD one at a
-time (Headlamp, cert-manager, observability, Phase), then Windmill on k3s and its first flow.
+Active. Argo CD runs and owns every service on the cluster (TASK-024): NetBox, Headlamp, monitoring, Phase,
+certificates and routes, the storage driver. Remaining: Windmill on k3s and its first flow.

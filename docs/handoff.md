@@ -144,10 +144,12 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   (commands below). Open: the operator reviews the 34 records tagged `needs-review`; next steps in ADR-016.
 - **Argo CD deployed** 2026-11-18 ([TASK-024](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md)):
   `https://argocd.doku-lab.net` (LAN only; user `admin`, password at `/argocd` in the secret store). It keeps
-  the applications of `services/argocd/apps/` in sync with `main` on Forgejo (about three minutes after a
-  push; it never deletes on its own). **NetBox is the first and only application under it**; Headlamp,
-  cert-manager, observability and Phase are still installed by their Make targets and move one at a time.
-  A service under Argo CD is changed by a commit, not by `helm`; its Make target only writes its Secret.
+  the six applications of `services/argocd/apps/` in sync with `main` on Forgejo (about three minutes after
+  a push; it never deletes on its own): `netbox`, `headlamp`, `monitoring`, `phase`, `ingress` (cert-manager,
+  certificates, routes), `storage` (NFS CSI driver). **A service is changed by a commit, not by `helm` or
+  `kubectl apply`**: manual changes are reverted. The `<name>-deploy` Make targets now only write the Secrets
+  that are not in Git and register the Application; they are needed on a rebuilt cluster or when a secret
+  changes. Argo CD itself: `make argocd-deploy`. Traefik stays managed by k3s.
 - **Operator roadmap (2026-11-17):** all items are deployed.
 
 ## Commands

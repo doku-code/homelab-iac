@@ -4930,6 +4930,7 @@
         "Design",
         "Acceptance criteria",
         "Verification",
+        "routes: applied by Argo CD since 2026-11-18 (services/argocd/apps/ingress.yaml)",
         "Tests",
         "Evidence",
         "Completion summary"
@@ -5061,8 +5062,8 @@
     },
     {
       "id": "TASK-024",
-      "title": "Argo CD on k3s and NetBox as its first application",
-      "summary": "Install Argo CD from the workstation, restrict it to this repository and named namespaces, and move NetBox under it without a restart.",
+      "title": "Argo CD on k3s and every service of the cluster under it",
+      "summary": "Install Argo CD from the workstation, restrict it to this repository and named namespaces, and move NetBox, Headlamp, monitoring, Phase, certificates and routes and the storage driver under it without a restart.",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -5084,7 +5085,7 @@
       "source": null,
       "version": null,
       "headings": [
-        "TASK-024 — Argo CD on k3s and NetBox as its first application",
+        "TASK-024 — Argo CD on k3s and every service of the cluster under it",
         "Goal",
         "Context",
         "Design",
@@ -5109,7 +5110,9 @@
         "related_implementations": [
           "services/argocd/values.yaml",
           "services/argocd/access.yaml",
-          "services/argocd/apps/netbox.yaml",
+          "services/argocd/apps/",
+          "services/phase/kustomization.yaml",
+          "services/observability/kustomization.yaml",
           "Makefile"
         ],
         "related_tests": [

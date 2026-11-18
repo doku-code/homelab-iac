@@ -89,7 +89,7 @@ between nodes is deferred with the other replica questions.
 ```
 make ingress-check
 scripts/secrets.py run /ingress -- make ingress-certs-deploy INGRESS_CERTS_DEPLOY_APPROVED=yes
-make ingress-routes-deploy INGRESS_ROUTES_DEPLOY_APPROVED=yes
+# routes: applied by Argo CD since 2026-11-18 (services/argocd/apps/ingress.yaml)
 ```
 
 ## Tests
