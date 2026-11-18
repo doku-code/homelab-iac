@@ -6,7 +6,7 @@ type: overview
 status: current
 importance: 5
 created: 2026-11-12
-updated: 2026-11-16
+updated: 2026-11-18
 tags: [overview, vision, rebuild, status]
 aliases: [PROJECT_VISION]
 related: [ARCH-platform, GUIDE-handoff, ADR-001, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M001, M002, M003]
@@ -98,7 +98,8 @@ Argo CD + Windmill → applications.** Layers and owners: [ARCH-platform](archit
 M001 management workstation (closing) → M002 new Proxmox cluster (**completed**) → **M003 dedicated
 deployment runner** → M004 k3s bootstrap → M005 Headlamp → M006 external NVMe-backed storage → M007
 PostgreSQL platform → M008 Phase → M009 Argo CD and Windmill → M010 rolling application migration → M011
-Ceph and expansion → M012 backups and finalization. M000 (inventory) runs alongside.
+Ceph and expansion → M012 backups and finalization. M000 (inventory) and M013 (NetBox inventory and
+IPAM, added 2026-11-18) run alongside.
 Progress: [dashboard](dashboard.md).
 
 ### Current status (2026-11-16)

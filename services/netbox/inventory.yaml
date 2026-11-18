@@ -1,0 +1,130 @@
+# Foundation of the NetBox inventory (M013, ADR-016), read by scripts/netbox-sync.py.
+#
+# Who owns what:
+#   schema       site, clusters, roles, platforms, tags, prefix, ranges: this file; the script creates and updates them.
+#   iac          VMs of the OpenTofu roots listed under iac_roots, and addresses marked iac: Git owns name, VMID,
+#                host, role, platform and addresses; the script creates and updates them (tag "iac").
+#   seed         physical devices and the addresses of unmanaged equipment: created once from this file, then
+#                NetBox is the authority (edit them there; the script never updates them).
+#   discovered   guests found on a Proxmox host that no root defines: created once (tags "discovered" and
+#                "needs-review"), later differences are only reported.
+# Nothing is ever deleted by the script. No secrets belong in this file or in NetBox.
+
+site: {name: doku-lab, slug: doku-lab, description: "Homelab, one location, one LAN"}
+
+# Proxmox environments read by `make netbox-discover` (GET requests only). Always by IP: two hosts are named pve-lab.
+sources:
+  doku-lab:
+    endpoint: https://192.168.0.10:8006
+    ca: keys/pve-management-root-ca.crt
+    cluster: doku-lab
+    description: "New Proxmox VE cluster (ADR-010)"
+  legacy:
+    endpoint: https://192.168.0.14:8006
+    insecure: true   # self-signed certificate of the old host; read-only requests on the LAN
+    cluster: homelab
+    description: "Old environment, 192.168.0.14 only; its guests move to doku-lab one at a time (ADR-001)"
+    device_names: {pve-lab: pve-lab-legacy}   # the node is also named pve-lab; NetBox needs one name per device
+
+prefixes:
+  - {prefix: 192.168.0.0/24, description: "LAN, gateway 192.168.0.1 (pfSense)"}
+
+# Address plan as enforced by the variable validations of the OpenTofu roots (terraform/stacks/*/variables.tf).
+ranges:
+  - {start: 192.168.0.40, end: 192.168.0.49, description: "k3s nodes (VMIDs 310-349)"}
+  - {start: 192.168.0.50, end: 192.168.0.59, description: "Storage VMs (VMIDs 350-359)"}
+  - {start: 192.168.0.60, end: 192.168.0.69, description: "PostgreSQL: .60 virtual IP, .61-.69 members (VMIDs 360-369)"}
+  - {start: 192.168.0.70, end: 192.168.0.79, description: "DNS VMs (VMIDs 370-379)"}
+  - {start: 192.168.0.100, end: 192.168.0.200, description: "DHCP pool (pfSense), as stated in the k3s root; not verified on pfSense", review: true}
+
+platforms:
+  - {name: Proxmox VE 9, slug: proxmox-ve-9}
+  - {name: Debian 13, slug: debian-13}
+  - {name: Ubuntu 26.04, slug: ubuntu-26-04}
+
+roles:
+  - {name: Hypervisor, slug: hypervisor, color: 2196f3}
+  - {name: Router, slug: router, color: f44336}
+  - {name: Switch, slug: switch, color: ff9800}
+  - {name: NAS, slug: nas, color: 795548}
+  - {name: Backup server, slug: backup-server, color: 607d8b}
+  - {name: k3s server, slug: k3s-server, color: 4caf50}
+  - {name: PostgreSQL, slug: postgresql, color: 3f51b5}
+  - {name: Storage, slug: storage, color: 009688}
+  - {name: DNS, slug: dns, color: 9c27b0}
+  - {name: Deployment runner, slug: deploy-runner, color: ffc107}
+  - {name: Admin workstation, slug: admin-workstation, color: 00bcd4}
+
+# Seed: created once, then maintained in NetBox. Manufacturer and model are what the firmware reports
+# (dmidecode on 2026-11-18); "review: true" marks what nobody has verified.
+devices:
+  - name: pve-management
+    manufacturer: Lenovo
+    model: ThinkCentre M90q
+    part_number: 11DGS0UW00
+    role: hypervisor
+    platform: proxmox-ve-9
+    cluster: doku-lab
+    interface: vmbr0
+    address: 192.168.0.10/24
+    description: "Intel Core i5-10500T, 16 GB RAM, 256 GB NVMe; hosts the admin workstation (ADR-002)"
+  - name: pve-core
+    manufacturer: Lenovo
+    model: ThinkStation P350 Tiny
+    part_number: 30EF006DUS
+    role: hypervisor
+    platform: proxmox-ve-9
+    cluster: doku-lab
+    interface: vmbr0
+    address: 192.168.0.11/24
+    description: "Intel Core i7-11700, 32 GB RAM, 1 TB NVMe"
+  - name: pve-infra
+    manufacturer: AZW
+    model: MINI S
+    role: hypervisor
+    platform: proxmox-ve-9
+    cluster: doku-lab
+    interface: vmbr0
+    address: 192.168.0.12/24
+    description: "Intel Celeron N5095A, 8 GB RAM, 256 GB SATA SSD"
+  - name: pve-lab
+    manufacturer: ORIGIMAGIC
+    model: Nebula Series
+    role: hypervisor
+    platform: proxmox-ve-9
+    cluster: doku-lab
+    interface: vmbr0
+    address: 192.168.0.16/24
+    description: "AMD Ryzen 7 6800H, 28 GB usable RAM, 512 GB NVMe"
+  - name: pve-lab-legacy
+    manufacturer: ASUS
+    model: Custom-built PC
+    role: hypervisor
+    platform: proxmox-ve-9
+    cluster: homelab
+    interface: vmbr0
+    address: 192.168.0.14/24
+    description: "Old environment (Proxmox node name pve-lab, future pve-compute). AMD Ryzen 9 9950X3D; the firmware reports an ASUS mainboard and no model name"
+    review: true
+  - {name: pfsense, role: router, description: "pfSense, LAN gateway 192.168.0.1; never changed by automation", review: true}
+  - {name: switch, role: switch, description: "Network switch, management address 192.168.0.3", review: true}
+  - {name: truenas, role: nas, description: "TrueNAS at 192.168.0.13: Forgejo, Nextcloud, Plex, qBittorrent; backup destination (ADR-012)", review: true}
+  - {name: pbs, role: backup-server, status: offline, description: "Proxmox Backup Server at 192.168.0.15, powered off (backup disk failed in November 2026)", review: true}
+
+# Addresses that belong to no VM interface of a root. "iac: true": owned by Git; the others are seed.
+addresses:
+  - {address: 192.168.0.60/24, role: vip, iac: true, description: "PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql)"}
+  - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address (ansible/vars/dns.yml)"}
+  - {address: 192.168.0.1/24, dns_name: pfsense.doku-lab.net, description: "pfSense (LAN gateway)"}
+  - {address: 192.168.0.3/24, dns_name: switch.doku-lab.net, description: "Network switch (management)"}
+  - {address: 192.168.0.13/24, description: "TrueNAS"}
+  - {address: 192.168.0.15/24, status: reserved, description: "Proxmox Backup Server (powered off)"}
+
+# OpenTofu roots whose VMs are inventoried from `tofu output -json ansible_inventory` (state on the workstation).
+iac_roots:
+  - {root: pve-management-control, group: mgmt_control, role: admin-workstation, platform: ubuntu-26-04, node: pve-management}
+  - {root: deploy-runner, group: deploy_runner, role: deploy-runner, platform: debian-13}
+  - {root: k3s, group: k3s_cluster, role: k3s-server, platform: debian-13}
+  - {root: storage, group: storage, role: storage, platform: debian-13}
+  - {root: postgresql, group: postgresql, role: postgresql, platform: debian-13}
+  - {root: dns, group: dns, role: dns, platform: debian-13}

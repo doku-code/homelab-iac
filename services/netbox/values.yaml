@@ -1,0 +1,70 @@
+# NetBox (M013, ADR-016): official chart netbox-community/netbox, pinned in the Makefile. One web pod, one
+# worker pod. The database is the shared PostgreSQL outside k3s (ADR-015); the key-value store is only a job
+# queue and cache and runs in the cluster (services/netbox/access.yaml).
+image:
+  tag: v4.7.5
+
+# Every credential comes from the Kubernetes Secret created by `make netbox-deploy` from the environment
+# (store paths /netbox and /postgresql), never from Git.
+existingSecret: netbox-secrets
+superuser:
+  existingSecret: netbox-secrets
+
+allowedHosts:
+  - netbox.doku-lab.net
+csrf:
+  trustedOrigins:
+    - https://netbox.doku-lab.net
+# The chart's default lets anyone read the inventory without an account.
+loginRequired: true
+
+# Routes are in services/netbox/access.yaml (Traefik, LAN only, wildcard certificate).
+ingress:
+  enabled: false
+
+postgresql:
+  enabled: false
+externalDatabase:
+  host: 192.168.0.60
+  port: 5432
+  database: netbox
+  username: netbox
+  existingSecretName: netbox-secrets
+  existingSecretKey: db_password
+  options:
+    sslmode: require
+    target_session_attrs: read-write
+
+# The bundled Valkey sub-chart pulls an unpinned image (bitnami/valkey:latest) and defaults to replication;
+# a single pinned official Valkey is declared in access.yaml instead.
+valkey:
+  enabled: false
+tasksDatabase:
+  host: netbox-valkey
+  existingSecretName: netbox-secrets
+  existingSecretKey: valkey_password
+cachingDatabase:
+  host: netbox-valkey
+  existingSecretName: netbox-secrets
+  existingSecretKey: valkey_password
+
+# Uploaded images and attachments: shared NVMe storage outside the cluster (ADR-012). Web and worker pods
+# mount the same volume and may run on different nodes.
+persistence:
+  enabled: true
+  storageClass: nvme-shared
+  accessMode: ReadWriteMany
+  size: 1Gi
+
+replicaCount: 1
+# The image starts four web workers by default (about 1.5 GiB together); two are plenty for one household.
+extraEnvs:
+  - {name: GRANIAN_WORKERS, value: "2"}
+resources:
+  requests: {cpu: 200m, memory: 768Mi}
+  limits: {cpu: 2000m, memory: 2Gi}
+worker:
+  replicaCount: 1
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {cpu: 1000m, memory: 1536Mi}

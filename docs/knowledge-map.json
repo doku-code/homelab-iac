@@ -287,6 +287,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-016",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -366,6 +370,10 @@
       "backrefs": [
         {
           "from": "ADR-011",
+          "field": "related"
+        },
+        {
+          "from": "ADR-016",
           "field": "related"
         },
         {
@@ -845,6 +853,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-016",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -866,6 +878,10 @@
         },
         {
           "from": "M010",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M013",
           "field": "related_decisions"
         },
         {
@@ -894,6 +910,10 @@
         },
         {
           "from": "TASK-022",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-023",
           "field": "related_decisions"
         }
       ]
@@ -970,6 +990,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-016",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -1010,6 +1034,10 @@
           "field": "related_decisions"
         },
         {
+          "from": "M013",
+          "field": "related_decisions"
+        },
+        {
           "from": "TASK-013",
           "field": "related_decisions"
         },
@@ -1027,6 +1055,10 @@
         },
         {
           "from": "TASK-021",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-023",
           "field": "related_decisions"
         }
       ]
@@ -1258,11 +1290,19 @@
           "field": "related"
         },
         {
+          "from": "ADR-016",
+          "field": "related"
+        },
+        {
           "from": "M007",
           "field": "related_decisions"
         },
         {
           "from": "M008",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M013",
           "field": "related_decisions"
         },
         {
@@ -1275,6 +1315,77 @@
         },
         {
           "from": "TASK-020",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-023",
+          "field": "related_decisions"
+        }
+      ]
+    },
+    {
+      "id": "ADR-016",
+      "title": "NetBox is the inventory and IPAM source of truth, populated from Git and read-only discovery",
+      "summary": "NetBox on k3s holds the intended inventory and address plan; Git owns what OpenTofu defines, Proxmox is only observed, NetBox is never a bootstrap dependency.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [
+        "netbox",
+        "inventory",
+        "ipam",
+        "source-of-truth",
+        "ansible-inventory",
+        "proxmox-discovery"
+      ],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "accepted",
+      "path": "docs/decisions/ADR-016-netbox-is-the-inventory-and-ipam-source-of-truth-populated-f.md",
+      "tags": [
+        "decision",
+        "netbox",
+        "inventory",
+        "ipam"
+      ],
+      "component": "inventory",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "ADR-016: NetBox is the inventory and IPAM source of truth, populated from Git and read-only discovery",
+        "Context",
+        "Decision",
+        "Alternatives considered",
+        "Consequences"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "ADR-011",
+          "ADR-012",
+          "ADR-015",
+          "ADR-004",
+          "ADR-005"
+        ],
+        "related_tasks": [
+          "TASK-023"
+        ],
+        "related_milestones": [
+          "M013"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M013",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-023",
           "field": "related_decisions"
         }
       ]
@@ -1418,6 +1529,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-016",
+          "field": "related"
+        },
+        {
           "from": "DOC-project-overview",
           "field": "related"
         },
@@ -1487,6 +1602,10 @@
         },
         {
           "from": "M012",
+          "field": "related"
+        },
+        {
+          "from": "M013",
           "field": "related"
         },
         {
@@ -1575,6 +1694,10 @@
         },
         {
           "from": "TASK-022",
+          "field": "related"
+        },
+        {
+          "from": "TASK-023",
           "field": "related"
         }
       ]
@@ -1704,6 +1827,10 @@
         },
         {
           "from": "M012",
+          "field": "related"
+        },
+        {
+          "from": "M013",
           "field": "related"
         }
       ]
@@ -2548,6 +2675,10 @@
           "field": "depends_on"
         },
         {
+          "from": "M013",
+          "field": "depends_on"
+        },
+        {
           "from": "TASK-015",
           "field": "milestone"
         },
@@ -2691,6 +2822,10 @@
           "field": "depends_on"
         },
         {
+          "from": "M013",
+          "field": "depends_on"
+        },
+        {
           "from": "TASK-017",
           "field": "milestone"
         }
@@ -2761,6 +2896,10 @@
         },
         {
           "from": "M008",
+          "field": "depends_on"
+        },
+        {
+          "from": "M013",
           "field": "depends_on"
         },
         {
@@ -3106,6 +3245,132 @@
         {
           "from": "TASK-012",
           "field": "milestone"
+        }
+      ]
+    },
+    {
+      "id": "M013",
+      "title": "NetBox inventory and IPAM",
+      "summary": "NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "active",
+      "path": "milestones/M013-netbox-inventory-and-ipam.md",
+      "tags": [
+        "roadmap",
+        "netbox",
+        "inventory"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "M013 — NetBox inventory and IPAM",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_tasks": [
+          "TASK-023"
+        ],
+        "related_decisions": [
+          "ADR-016",
+          "ADR-015",
+          "ADR-012",
+          "ADR-011"
+        ],
+        "depends_on": [
+          "M004",
+          "M006",
+          "M007"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-016",
+          "field": "related_milestones"
+        },
+        {
+          "from": "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
+          "field": "related_milestones"
+        },
+        {
+          "from": "TASK-023",
+          "field": "milestone"
+        }
+      ]
+    },
+    {
+      "id": "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
+      "title": "NetBox 4.7 REST API, chart 8.3.107 and the netbox.netbox collection",
+      "summary": "What the NetBox deployment and reconciliation rely on: chart values, superuser and v2 tokens, filters used by the sync, nb_inventory behaviour.",
+      "importance": 3,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "api-reference",
+      "status": "current",
+      "path": "docs/reference/external/netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll.md",
+      "tags": [
+        "reference",
+        "external",
+        "netbox"
+      ],
+      "component": null,
+      "technology": "NetBox",
+      "priority": null,
+      "milestone": null,
+      "source": "https://github.com/netbox-community/netbox-chart",
+      "version": "NetBox 4.7.5, chart netbox 8.3.107, netbox.netbox 3.24.0",
+      "headings": [
+        "NetBox 4.7 REST API, chart 8.3.107 and the netbox.netbox collection",
+        "Purpose",
+        "Endpoint or function",
+        "Parameters",
+        "Request",
+        "Response",
+        "Usage example",
+        "Known limitations",
+        "Verification"
+      ],
+      "relations": {
+        "related_tasks": [
+          "TASK-023"
+        ],
+        "related_milestones": [
+          "M013"
+        ],
+        "related_implementations": [
+          "services/netbox/values.yaml",
+          "scripts/netbox-sync.py",
+          "ansible/inventories/netbox.yml"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "TASK-023",
+          "field": "related"
         }
       ]
     },
@@ -4308,6 +4573,10 @@
         {
           "from": "M006",
           "field": "related_tasks"
+        },
+        {
+          "from": "TASK-023",
+          "field": "depends_on"
         }
       ]
     },
@@ -4390,6 +4659,10 @@
         },
         {
           "from": "TASK-020",
+          "field": "depends_on"
+        },
+        {
+          "from": "TASK-023",
           "field": "depends_on"
         }
       ]
@@ -4670,10 +4943,100 @@
           "M010"
         ]
       },
-      "backrefs": []
+      "backrefs": [
+        {
+          "from": "TASK-023",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "TASK-023",
+      "title": "NetBox on k3s, initial inventory, reconciliation and Ansible inventory",
+      "summary": "Deploy NetBox with the official chart on the shared PostgreSQL, populate it from the OpenTofu outputs and read-only Proxmox discovery, and let Ansible read its inventory from it.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "completed",
+      "path": "tasks/TASK-023-netbox-on-k3s-initial-inventory-reconciliation-and-ansible-i.md",
+      "tags": [
+        "netbox",
+        "inventory",
+        "ipam"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M013",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-023 — NetBox on k3s, initial inventory, reconciliation and Ansible inventory",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll"
+        ],
+        "related_decisions": [
+          "ADR-016",
+          "ADR-015",
+          "ADR-012",
+          "ADR-011"
+        ],
+        "depends_on": [
+          "TASK-018",
+          "TASK-017",
+          "TASK-022"
+        ],
+        "related_implementations": [
+          "services/netbox/values.yaml",
+          "services/netbox/access.yaml",
+          "services/netbox/inventory.yaml",
+          "scripts/netbox-sync.py",
+          "ansible/inventories/netbox.yml",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/netbox.py"
+        ],
+        "milestone": [
+          "M013"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-016",
+          "field": "related_tasks"
+        },
+        {
+          "from": "M013",
+          "field": "related_tasks"
+        },
+        {
+          "from": "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
+          "field": "related_tasks"
+        }
+      ]
     }
   ],
   "by_type": {
+    "api-reference": [
+      "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll"
+    ],
     "architecture": [
       "ARCH-platform"
     ],
@@ -4692,7 +5055,8 @@
       "ADR-012",
       "ADR-013",
       "ADR-014",
-      "ADR-015"
+      "ADR-015",
+      "ADR-016"
     ],
     "guide": [
       "GUIDE-handoff"
@@ -4715,7 +5079,8 @@
       "M009",
       "M010",
       "M011",
-      "M012"
+      "M012",
+      "M013"
     ],
     "overview": [
       "DOC-project-overview"
@@ -4742,7 +5107,8 @@
       "TASK-019",
       "TASK-020",
       "TASK-021",
-      "TASK-022"
+      "TASK-022",
+      "TASK-023"
     ]
   },
   "by_tag": {
@@ -4835,7 +5201,8 @@
       "ADR-012",
       "ADR-013",
       "ADR-014",
-      "ADR-015"
+      "ADR-015",
+      "ADR-016"
     ],
     "dependencies": [
       "TASK-003"
@@ -4852,6 +5219,9 @@
     "etcd": [
       "TASK-018",
       "TASK-021"
+    ],
+    "external": [
+      "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll"
     ],
     "flux": [
       "ADR-006"
@@ -4890,16 +5260,23 @@
       "TASK-022"
     ],
     "inventory": [
+      "ADR-016",
       "INV-legacy-inventory",
       "INV-new-proxmox-cluster-inventory",
       "M000",
+      "M013",
       "TASK-002",
-      "TASK-003"
+      "TASK-003",
+      "TASK-023"
     ],
     "investigation": [
       "INV-legacy-inventory",
       "INV-new-proxmox-cluster-inventory",
       "INV-pve-management-bootstrap"
+    ],
+    "ipam": [
+      "ADR-016",
+      "TASK-023"
     ],
     "k3s": [
       "ADR-006",
@@ -4938,6 +5315,12 @@
       "ADR-001",
       "TASK-005",
       "TASK-019"
+    ],
+    "netbox": [
+      "ADR-016",
+      "M013",
+      "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
+      "TASK-023"
     ],
     "nfs": [
       "TASK-017"
@@ -5019,6 +5402,9 @@
       "TASK-004",
       "TASK-012"
     ],
+    "reference": [
+      "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll"
+    ],
     "repository": [
       "TASK-001"
     ],
@@ -5033,7 +5419,8 @@
       "M009",
       "M010",
       "M011",
-      "M012"
+      "M012",
+      "M013"
     ],
     "runbook": [
       "TASK-012"

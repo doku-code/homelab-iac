@@ -1,0 +1,34 @@
+# Inventory from NetBox (M013, ADR-016): the VMs Git defines (tag "iac"), with the group names the playbooks
+# already use. Read-only token from the environment, never from this file:
+#   scripts/secrets.py run /netbox -- make netbox-inventory
+# Each OpenTofu root still writes its own inventory for its own configuration run (that is what bootstraps the
+# platform when NetBox is down); this file is for runs across roots and for consumers without the state.
+plugin: netbox.netbox.nb_inventory
+api_endpoint: https://netbox.doku-lab.net
+validate_certs: true
+config_context: false
+interfaces: false
+plurals: false
+vm_query_filters:
+  - tag: iac
+  - status: active
+device_query_filters:
+  - tag: iac
+group_by: []
+groups:
+  mgmt_control: role == 'admin-workstation'
+  deploy_runner: role == 'deploy-runner'
+  k3s_cluster: role == 'k3s-server'
+  storage: role == 'storage'
+  postgresql: role == 'postgresql'
+  dns: role == 'dns'
+# compose reads the record as the NetBox API returns it (platform and device are objects there).
+compose:
+  ansible_user: "'ubuntu' if platform.slug == 'ubuntu-26-04' else 'debian'"
+  ansible_python_interpreter: "'/usr/bin/python3'"
+  vm_id: custom_fields.proxmox_vmid
+  proxmox_node: device.name
+# NetBox fields whose names Ansible reserves for itself.
+rename_variables:
+  - {pattern: '^serial$', repl: netbox_serial}
+  - {pattern: '^tags$', repl: netbox_tags}

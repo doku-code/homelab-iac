@@ -957,14 +957,20 @@ observability-deploy:
 	helm upgrade --install grafana grafana --repo $(OBS_GRAFANA_REPO) --version $(OBS_GRAFANA_CHART) -f $(OBS_DIR)/grafana.yaml $(OBS_KUBE) --wait --timeout 10m
 
 # Installs and configures Alloy on every VM of the listed roots (inventories from their OpenTofu outputs).
+# OBS_INVENTORY=netbox reads the same hosts from NetBox instead (ansible/inventories/netbox.yml, read-only
+# token, no OpenTofu state needed): scripts/secrets.py run /netbox -- make observability-agents OBS_INVENTORY=netbox …
+# OBS_ANSIBLE_ARGS passes extra arguments to ansible-playbook, e.g. --check.
 # On the PostgreSQL members it also creates the read-only monitoring role, through the local socket.
 observability-agents:
 	@test "$(OBSERVABILITY_AGENTS_APPROVED)" = yes || (echo "Approve the agent configuration with OBSERVABILITY_AGENTS_APPROVED=yes" >&2; exit 1)
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	@set -euo pipefail; umask 077; mkdir -p "$(CURDIR)/.local"; args=(); \
-	for root in $(OBS_AGENT_ROOTS); do inventory="$(CURDIR)/.local/$$root-inventory.json"; \
-	  $(TOFU) -chdir=terraform/stacks/$$root output -json ansible_inventory > "$$inventory"; args+=(-i "$$inventory"); done; \
-	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) "$${args[@]}" ansible/playbooks/configure-observability-agents.yml --diff
+	if [ "$(OBS_INVENTORY)" = netbox ]; then \
+	  test -n "$${NETBOX_READ_TOKEN:-}" || { echo "Set NETBOX_READ_TOKEN in the environment (store path /netbox)" >&2; exit 1; }; \
+	  export NETBOX_TOKEN="$$NETBOX_READ_TOKEN"; args=(-i ansible/inventories/netbox.yml); \
+	else for root in $(OBS_AGENT_ROOTS); do inventory="$(CURDIR)/.local/$$root-inventory.json"; \
+	  $(TOFU) -chdir=terraform/stacks/$$root output -json ansible_inventory > "$$inventory"; args+=(-i "$$inventory"); done; fi; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) "$${args[@]}" ansible/playbooks/configure-observability-agents.yml --diff $(OBS_ANSIBLE_ARGS)
 
 # Read-only: members, roles, replication lag, and which member holds the virtual IP.
 postgresql-status:
@@ -1033,3 +1039,67 @@ dns-configure:
 	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/dns-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
 	$(TOFU) -chdir=$(DNS_DIR) output -json ansible_inventory > "$$inventory"; \
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-dns.yml --diff $(if $(DNS_SERVICE_ADDRESS),-e adguard_service_address=$(DNS_SERVICE_ADDRESS))
+
+# ─────────────────────────────────────────────
+# NetBox (M013, ADR-016): inventory and IPAM on k3s (services/netbox), official chart, shared PostgreSQL.
+# Deployed from the workstation until Argo CD takes over (M009). Nothing below is needed to build or rebuild
+# the platform: every root keeps its own variables and inventory, NetBox is populated from them.
+# ─────────────────────────────────────────────
+
+NETBOX_CHART_VERSION := 8.3.107
+NETBOX_CHART := oci://ghcr.io/netbox-community/netbox-chart/netbox
+NETBOX_HELM_ARGS := netbox $(NETBOX_CHART) --version $(NETBOX_CHART_VERSION) --namespace netbox -f services/netbox/values.yaml
+NETBOX_SECRET_INPUTS := NETBOX_SECRET_KEY NETBOX_API_TOKEN_PEPPER NETBOX_SUPERUSER_PASSWORD NETBOX_VALKEY_PASSWORD PG_APP_NETBOX_PASSWORD
+NETBOX_SYNC := $(VENV)/bin/python scripts/netbox-sync.py
+
+.PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-plan netbox-apply netbox-inventory
+
+# Offline: renders the pinned chart with our values (needs the chart download) and runs the inventory
+# reconciliation against an in-memory NetBox.
+netbox-check:
+	$(VENV)/bin/python tests/netbox.py
+
+# The five values come from the environment only and go straight into the Kubernetes Secret (never printed).
+# api_token stays empty: the image creates no token for the superuser; `make netbox-identities` provisions
+# short-lived ones from the password when it needs them.
+#   scripts/secrets.py run /netbox /postgresql -- make netbox-deploy NETBOX_DEPLOY_APPROVED=yes
+netbox-deploy:
+	@test "$(NETBOX_DEPLOY_APPROVED)" = yes || (echo "Approve the NetBox deployment with NETBOX_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@for v in $(NETBOX_SECRET_INPUTS); do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /netbox and /postgresql)" >&2; exit 1; }; done
+	kubectl --context doku-lab apply -f services/netbox/access.yaml
+	@set -euo pipefail; kubectl --context doku-lab -n netbox create secret generic netbox-secrets --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'secret_key=%s\napi_token_peppers={"1":"%s"}\nemail_password=\nusername=admin\nemail=admin@doku-lab.net\npassword=%s\napi_token=\nvalkey_password=%s\ndb_password=%s\n' \
+	    "$$NETBOX_SECRET_KEY" "$$NETBOX_API_TOKEN_PEPPER" "$$NETBOX_SUPERUSER_PASSWORD" "$$NETBOX_VALKEY_PASSWORD" "$$PG_APP_NETBOX_PASSWORD") \
+	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/netbox-secrets applied"
+	kubectl --context doku-lab -n netbox rollout status deployment/netbox-valkey --timeout=300s
+	helm upgrade --install $(NETBOX_HELM_ARGS) --kube-context doku-lab --timeout 20m --wait
+
+# Service accounts for automation, created with a 10-minute superuser token provisioned from the password: "inventory-sync" may write the
+# inventory, "automation-read" may only read it. Their API tokens go into the secret store (path /netbox).
+#   scripts/secrets.py run /netbox -- make netbox-identities NETBOX_IDENTITIES_APPROVED=yes
+netbox-identities:
+	@test "$(NETBOX_IDENTITIES_APPROVED)" = yes || (echo "Approve the creation of the NetBox service accounts with NETBOX_IDENTITIES_APPROVED=yes" >&2; exit 1)
+	$(NETBOX_SYNC) identities
+
+# Read-only snapshot of one Proxmox environment into .local/netbox/ (GET requests only):
+#   scripts/secrets.py run /pve-management -- make netbox-discover NETBOX_SOURCE=doku-lab
+#   scripts/secrets.py run / -- make netbox-discover NETBOX_SOURCE=legacy
+netbox-discover:
+	@test -n "$(NETBOX_SOURCE)" || (echo "Set NETBOX_SOURCE to a source of services/netbox/inventory.yaml (doku-lab or legacy)" >&2; exit 1)
+	$(NETBOX_SYNC) discover $(NETBOX_SOURCE)
+
+# What the reconciliation would change in NetBox, and what needs a human decision. Writes nothing.
+#   scripts/secrets.py run /netbox -- make netbox-plan
+netbox-plan:
+	$(NETBOX_SYNC) plan
+
+#   scripts/secrets.py run /netbox -- make netbox-apply NETBOX_APPLY_APPROVED=yes
+netbox-apply:
+	@test "$(NETBOX_APPLY_APPROVED)" = yes || (echo "Read 'make netbox-plan' first, then approve the inventory write with NETBOX_APPLY_APPROVED=yes" >&2; exit 1)
+	$(NETBOX_SYNC) apply
+
+# The Ansible inventory as NetBox serves it (read-only token):
+#   scripts/secrets.py run /netbox -- make netbox-inventory
+netbox-inventory:
+	@test -n "$${NETBOX_READ_TOKEN:-}" || { echo "Set NETBOX_READ_TOKEN in the environment (store path /netbox)" >&2; exit 1; }
+	NETBOX_TOKEN="$$NETBOX_READ_TOKEN" $(VENV)/bin/ansible-inventory -i ansible/inventories/netbox.yml --graph

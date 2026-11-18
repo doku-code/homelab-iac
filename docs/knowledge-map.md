@@ -21,6 +21,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
 | M008 | active | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
+| M013 | active | medium | [NetBox inventory and IPAM](../milestones/M013-netbox-inventory-and-ipam.md) | completed: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
 | M009 | planned | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | none | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 1, in-progress: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
@@ -59,6 +60,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-018 | completed | high | M007 | [PostgreSQL platform: three Patroni VMs outside k3s with a virtual IP](../tasks/TASK-018-postgresql-platform-three-patroni-vms-outside-k3s-with-a-vir.md) | Three Debian 13 VMs (pg-01..03 on pve-core, pve-lab, pve-infra) run PostgreSQL 17 under Patroni with etcd and a virtual IP; per-application databases and roles. |
 | TASK-020 | completed | medium | M010 | [Lean observability: Prometheus, Loki, Grafana and Alloy](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md) | Prometheus, Loki and Grafana on k3s; Alloy collects a small allow-list of metrics and logs from the cluster and from every VM; Grafana state on the shared PostgreSQL. |
 | TASK-021 | completed | medium | M004 | [k3s servers on pve-core and pve-lab: three etcd members](../tasks/TASK-021-k3s-servers-on-pve-core-and-pve-lab-three-etcd-members.md) | k3s-server-02 on pve-core and k3s-server-03 on pve-lab join the embedded etcd; Traefik runs on every node so ingress survives a reschedule. |
+| TASK-023 | completed | medium | M013 | [NetBox on k3s, initial inventory, reconciliation and Ansible inventory](../tasks/TASK-023-netbox-on-k3s-initial-inventory-reconciliation-and-ansible-i.md) | Deploy NetBox with the official chart on the shared PostgreSQL, populate it from the OpenTofu outputs and read-only Proxmox discovery, and let Ansible read its inventory from it. |
 
 ## Decisions
 
@@ -79,10 +81,15 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ADR-013 | accepted | [A central PostgreSQL platform with Patroni replication serves the applications](decisions/ADR-013-central-postgresql-patroni.md) | database | Applications get their own database, role and credentials on a shared PostgreSQL platform managed by Patroni (Zalando Postgres Operator pending validation), on external NVMe-backed PVCs. |
 | ADR-014 | accepted | [A dedicated Forgejo runner VM executes approved infrastructure workflows](decisions/ADR-014-dedicated-forgejo-deployment-runner.md) | execution | A runner VM created with OpenTofu and configured with Ansible runs approved OpenTofu, Ansible, k3s and Helm jobs with scoped credentials; CT301 stays validation-only. Amends ADR-008. |
 | ADR-015 | accepted | [PostgreSQL runs on three Patroni VMs outside k3s](decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md) | database | Operator decision 2026-11-17: the shared PostgreSQL platform is three Patroni VMs outside k3s with etcd and a virtual IP, not an operator inside k3s. |
+| ADR-016 | accepted | [NetBox is the inventory and IPAM source of truth, populated from Git and read-only discovery](decisions/ADR-016-netbox-is-the-inventory-and-ipam-source-of-truth-populated-f.md) | inventory | NetBox on k3s holds the intended inventory and address plan; Git owns what OpenTofu defines, Proxmox is only observed, NetBox is never a bootstrap dependency. |
 
 ## External references
 
-_No external references captured yet. Create one with `harness new api-reference`._
+### NetBox
+
+| ID | Type | Status | Version | Title |
+|----|------|--------|---------|-------|
+| REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll | api-reference | current | NetBox 4.7.5, chart netbox 8.3.107, netbox.netbox 3.24.0 | [NetBox 4.7 REST API, chart 8.3.107 and the netbox.netbox collection](reference/external/netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll.md) |
 
 ## Documents by type
 
@@ -129,12 +136,13 @@ _No commit records. Generate with `harness history sync`._
 - **compute**: TASK-013
 - **csi**: ADR-012
 - **database**: ADR-013, ADR-015
-- **decision**: ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015
+- **decision**: ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-016
 - **dependencies**: TASK-003
 - **deployment**: ADR-014
 - **desktop**: ADR-009
 - **dns**: TASK-022
 - **etcd**: TASK-018, TASK-021
+- **external**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll
 - **flux**: ADR-006
 - **forgejo**: ADR-014, TASK-014
 - **gitops**: ADR-005
@@ -146,8 +154,9 @@ _No commit records. Generate with `harness history sync`._
 - **headlamp**: ADR-011, TASK-016
 - **infisical**: ADR-004, TASK-019
 - **ingress**: TASK-022
-- **inventory**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, TASK-002, TASK-003
+- **inventory**: ADR-016, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, M013, TASK-002, TASK-003, TASK-023
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
+- **ipam**: ADR-016, TASK-023
 - **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017, TASK-019, TASK-021
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
@@ -157,6 +166,7 @@ _No commit records. Generate with `harness history sync`._
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, TASK-005, TASK-019
+- **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023
 - **nfs**: TASK-017
 - **nvme**: ADR-012
 - **observability**: TASK-020
@@ -175,8 +185,9 @@ _No commit records. Generate with `harness history sync`._
 - **pve-management**: ADR-009, ADR-010, GUIDE-handoff, INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview
 - **recovery**: TASK-004, TASK-012
+- **reference**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll
 - **repository**: TASK-001
-- **roadmap**: M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012
+- **roadmap**: M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012, M013
 - **runbook**: TASK-012
 - **runner**: ADR-008, ADR-014, TASK-009, TASK-014
 - **secrets**: ADR-004, TASK-011, TASK-019
@@ -200,7 +211,7 @@ _No commit records. Generate with `harness history sync`._
 - **database**: ADR-013, ADR-015
 - **execution**: ADR-008, ADR-014
 - **infrastructure**: ADR-003
-- **inventory**: INV-legacy-inventory
+- **inventory**: ADR-016, INV-legacy-inventory
 - **orchestration**: ADR-005
 - **platform**: ADR-001, ARCH-platform
 - **proxmox**: ADR-010
@@ -211,7 +222,7 @@ _No commit records. Generate with `harness history sync`._
 
 ## By technology
 
-_No technology recorded._
+- **NetBox**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll
 
 ## Broken references
 

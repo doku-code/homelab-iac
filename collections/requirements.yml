@@ -12,3 +12,5 @@ collections:
     version: "1.2.3"
   - name: ansible.windows
     version: "3.8.0"
+  - name: netbox.netbox # dynamic inventory from NetBox (M013); 3.24.0 is newer than the copy bundled with ansible 14.4.0
+    version: "3.24.0"

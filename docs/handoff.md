@@ -135,7 +135,14 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   Traefik (`services/ingress/legacy-routes.yaml` for the legacy backends); `git`, `cloud` and the public
   tunnel are still on the legacy Caddy (CT204). The legacy AdGuard (CT200) and the legacy monitoring VM
   (208) are stopped, not deleted. Operator rule of the day: one replica per k3s service for now.
-- **Operator roadmap (2026-11-17):** all items are deployed; what remains is the Phase cutover above.
+- **NetBox deployed** 2026-11-18 ([TASK-023](../tasks/TASK-023-netbox-on-k3s-initial-inventory-reconciliation-and-ansible-i.md),
+  [ADR-016](decisions/ADR-016-netbox-is-the-inventory-and-ipam-source-of-truth-populated-f.md)):
+  `https://netbox.doku-lab.net` (LAN only; user `admin`, password at `/netbox` in the secret store), NetBox
+  4.7.5 on k3s with the shared PostgreSQL. Inventory: 5 Proxmox hosts, 10 VMs from the OpenTofu roots (tag
+  `iac`), 28 legacy guests found by discovery (tags `discovered`, `needs-review`), prefix, ranges, 35
+  addresses. Keep it current after a root changes: `netbox-discover` → `netbox-plan` → `netbox-apply`
+  (commands below). Open: the operator reviews the 34 records tagged `needs-review`; next steps in ADR-016.
+- **Operator roadmap (2026-11-17):** all items are deployed.
 
 ## Commands
 
@@ -147,6 +154,9 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 | Add a workstation tool | one line in `ansible/roles/admin_workstation/defaults/main.yml`, then re-apply |
 | Reinstall VM 100 in place | `terraform/stacks/pve-management-control/README.md` |
 | Read a node | `ssh root@192.168.0.1x` (IPs only) |
+| Inventory: snapshot Proxmox (read-only) | `scripts/secrets.py run /pve-management -- make netbox-discover NETBOX_SOURCE=doku-lab`; `scripts/secrets.py run / -- make netbox-discover NETBOX_SOURCE=legacy` |
+| Inventory: show, then write the difference | `scripts/secrets.py run /netbox -- make netbox-plan`, then `… make netbox-apply NETBOX_APPLY_APPROVED=yes` |
+| Ansible inventory from NetBox | `scripts/secrets.py run /netbox -- make netbox-inventory` |
 
 ## Known issues
 

@@ -34,6 +34,7 @@ adguard_rewrites:
   - {domain: phase.doku-lab.net, answer: 192.168.0.40}
   - {domain: grafana.doku-lab.net, answer: 192.168.0.40}
   - {domain: headlamp.doku-lab.net, answer: 192.168.0.40}
+  - {domain: netbox.doku-lab.net, answer: 192.168.0.40}
   - {domain: pve-management.doku-lab.net, answer: 192.168.0.40}
   - {domain: pve-core.doku-lab.net, answer: 192.168.0.40}
   - {domain: pve-infra.doku-lab.net, answer: 192.168.0.40}

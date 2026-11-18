@@ -90,11 +90,14 @@ Each layer has one owner; a tool never writes objects another layer owns.
 | 5 | Central database | PostgreSQL 17 + Patroni on three VMs outside k3s, virtual IP 192.168.0.60 ([ADR-015](../decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md), [ADR-013](../decisions/ADR-013-central-postgresql-patroni.md)) | Per-application databases, roles, replication | Bootstrap k3s, store data on TrueNAS |
 | 6 | Applications | Phase ([ADR-004](../decisions/ADR-004-secrets-phase-runtime-sops-bootstrap.md)), Windmill, Authentik, migrated services; Compose only for bootstrap exceptions | Their configuration | — |
 | 7 | Management tools | Headlamp (UI), Argo CD (GitOps), Windmill (workflows, [ADR-005](../decisions/ADR-005-windmill-service-catalog.md)), Forgejo + dedicated runner ([ADR-014](../decisions/ADR-014-dedicated-forgejo-deployment-runner.md)), workstation `mgmt-control-01` ([ADR-009](../decisions/ADR-009-management-vm-gnome-admin-workstation.md)) | Inspect / reconcile / automate / execute | Duplicate each other or OpenTofu/Ansible |
+| — | Inventory and IPAM | NetBox on k3s ([ADR-016](../decisions/ADR-016-netbox-is-the-inventory-and-ipam-source-of-truth-populated-f.md)); `scripts/netbox-sync.py` | The list of machines, hosts, addresses and ranges; what a person validated | Sit in the bootstrap path, hold credentials, write to Git or Proxmox |
 | 8 | Backup storage | TrueNAS SCALE (and PBS for guests) | Storage, VM, database and application backups | Provide live PVCs (no TrueNAS CSI/NFS/iSCSI for applications) |
 | — | Edge, identity, observability | Caddy and/or ingress, AdGuard Home, pfSense; Authentik; Prometheus, Loki, Grafana | HTTPS, DNS, routing; SSO; metrics, logs, alerts | Sit in the bootstrap path |
 
-Secrets: Infisical stays in use until secrets migrate incrementally to Phase (M008); SOPS + age for
-bootstrap material is deferred to M012.
+Secrets: Phase since 2026-11-18 (M008), with an age-encrypted recovery bundle for the bootstrap paths.
+
+Inventory data has one authority per kind (ADR-016): Git for what the OpenTofu roots define, NetBox for
+physical devices and for everything a person validated, the Proxmox API for what is merely observed.
 
 ### Hosts
 
@@ -134,6 +137,10 @@ in Git. A shared backend is decided only when the dedicated runner must apply (T
   workflow; every step stays runnable from the workstation.
 - **Migrate a service (M010):** deploy the replacement, copy its data, configure database and secrets,
   validate, cut over, retire the old workload only after validation.
+- **Inventory:** a root is applied from its own variables → `make netbox-discover` snapshots Proxmox
+  read-only → `make netbox-plan` shows the difference and what needs a decision → `make netbox-apply`
+  writes it. Ansible runs across roots read `ansible/inventories/netbox.yml`; each root's own
+  configuration run keeps the inventory from its OpenTofu output, so nothing needs NetBox to be rebuilt.
 - **Reclaim a host:** confirm it is empty → guard legacy roots → reinstall Proxmox → join the cluster
   → add k3s and storage capacity.
 

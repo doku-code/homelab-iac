@@ -26,6 +26,9 @@ One owner per concern; never let two tools write the same object.
   workflows, never an infrastructure engine or a recovery dependency (ADR-005).
 - **Secrets**: Phase (`scripts/secrets.py`, store selected in `.local/secret-store`); an age-encrypted
   recovery bundle holds the bootstrap paths (ADR-004). No automatic fallback between stores.
+- **NetBox** (ADR-016): inventory and IPAM. Git owns what the OpenTofu roots define, NetBox owns physical
+  devices and what a person validated, Proxmox is only observed (`scripts/netbox-sync.py`: plan before
+  apply, never deletes). No root may need NetBox to plan or apply; no credentials in NetBox.
 - **Makefile**: human-facing entrypoints; keep targets small, predictable and repository-local.
 
 New code goes into the target layout (`modules/`, `stacks/`, `services/<service>/service.yaml`,

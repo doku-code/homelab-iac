@@ -92,6 +92,11 @@ verification:
     detected: false
     verified: true
     description: Renders the pinned cert-manager chart and checks issuer, wildcard certificate, Traefik store and the routes carried over from the legacy Caddy (workstation only; needs helm and the chart download)
+  - name: netbox-check
+    run: make netbox-check
+    detected: false
+    verified: true
+    description: Renders the pinned NetBox chart and runs the inventory reconciliation against an in-memory NetBox (workstation only; needs helm and the chart download)
   - name: headlamp-check
     run: make headlamp-check
     detected: false

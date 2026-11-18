@@ -5,3 +5,4 @@
 postgresql_apps:
   - name: phase # Phase Console (M008)
   - name: grafana # Grafana users, folders and edited dashboards (TASK-020)
+  - name: netbox # NetBox inventory and IPAM (M013)
