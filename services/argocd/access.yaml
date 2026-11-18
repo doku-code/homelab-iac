@@ -32,8 +32,8 @@ spec:
 # Two projects limit what an application may do. Manifests and values come only from this repository on
 # Forgejo, charts only from the registries listed, objects go only to this cluster.
 #
-# platform: the services people use. Named namespaces; the only cluster-wide kinds are namespaces and the
-# cluster roles the charts create for their own service accounts.
+# platform: the services people use. Named namespaces; the only cluster-wide kinds are namespaces, the
+# cluster roles the charts create for their own service accounts, and the definitions a chart ships (Alloy).
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -57,6 +57,7 @@ spec:
     - {group: "", kind: Namespace}
     - {group: rbac.authorization.k8s.io, kind: ClusterRole}
     - {group: rbac.authorization.k8s.io, kind: ClusterRoleBinding}
+    - {group: apiextensions.k8s.io, kind: CustomResourceDefinition}
   namespaceResourceWhitelist:
     - {group: "*", kind: "*"}
 ---

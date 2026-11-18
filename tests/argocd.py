@@ -112,7 +112,8 @@ def access_and_applications(registries):
     assert "kube-system" not in namespaces["platform"]
     assert projects["platform"]["clusterResourceWhitelist"] == [
         {"group": "", "kind": "Namespace"}, {"group": "rbac.authorization.k8s.io", "kind": "ClusterRole"},
-        {"group": "rbac.authorization.k8s.io", "kind": "ClusterRoleBinding"}]
+        {"group": "rbac.authorization.k8s.io", "kind": "ClusterRoleBinding"},
+        {"group": "apiextensions.k8s.io", "kind": "CustomResourceDefinition"}]
     oci = {repo for spec in projects.values() for repo in spec["sourceRepos"] if "://" not in repo}
     assert oci == registries, "every OCI chart registry of a project is declared to Argo CD"
 
