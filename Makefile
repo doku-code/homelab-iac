@@ -1041,14 +1041,45 @@ dns-configure:
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-dns.yml --diff $(if $(DNS_SERVICE_ADDRESS),-e adguard_service_address=$(DNS_SERVICE_ADDRESS))
 
 # ─────────────────────────────────────────────
-# NetBox (M013, ADR-016): inventory and IPAM on k3s (services/netbox), official chart, shared PostgreSQL.
-# Deployed from the workstation until Argo CD takes over (M009). Nothing below is needed to build or rebuild
-# the platform: every root keeps its own variables and inventory, NetBox is populated from them.
+# Argo CD (M009, ADR-011): keeps the applications of services/argocd/apps in sync with the main branch on
+# Forgejo. Argo CD itself is installed from the workstation: on a rebuilt cluster it is what deploys the rest.
 # ─────────────────────────────────────────────
 
-NETBOX_CHART_VERSION := 8.3.107
-NETBOX_CHART := oci://ghcr.io/netbox-community/netbox-chart/netbox
-NETBOX_HELM_ARGS := netbox $(NETBOX_CHART) --version $(NETBOX_CHART_VERSION) --namespace netbox -f services/netbox/values.yaml
+ARGOCD_CHART_VERSION := 10.18.1
+ARGOCD_REPO := https://argoproj.github.io/argo-helm
+ARGOCD_HELM_ARGS := argocd argo-cd --repo $(ARGOCD_REPO) --version $(ARGOCD_CHART_VERSION) --namespace argocd -f services/argocd/values.yaml
+# Waits until the named application is in sync with Git and healthy.
+ARGOCD_WAIT = kubectl --context doku-lab -n argocd wait --timeout=900s --for=jsonpath='{.status.sync.status}'=Synced application/$(1) && kubectl --context doku-lab -n argocd wait --timeout=900s --for=jsonpath='{.status.health.status}'=Healthy application/$(1)
+
+.PHONY: argocd-check argocd-deploy argocd-password
+
+# Offline: renders the pinned chart with our values and checks route, project and applications (needs the chart download).
+argocd-check:
+	$(VENV)/bin/python tests/argocd.py
+
+# No secret input: Argo CD generates its own keys and the first admin password (see argocd-password).
+argocd-deploy:
+	@test "$(ARGOCD_DEPLOY_APPROVED)" = yes || (echo "Approve the Argo CD deployment with ARGOCD_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@kubectl --context doku-lab create namespace argocd --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	helm upgrade --install $(ARGOCD_HELM_ARGS) --kube-context doku-lab --wait --timeout 10m
+	kubectl --context doku-lab apply -f services/argocd/access.yaml
+
+# Moves the generated admin password into the secret store (path /argocd, never printed) and removes the
+# Kubernetes Secret that held it in clear, as the Argo CD documentation asks. Run once after the first deploy.
+argocd-password:
+	@test "$(ARGOCD_PASSWORD_APPROVED)" = yes || (echo "Approve storing the Argo CD admin password with ARGOCD_PASSWORD_APPROVED=yes" >&2; exit 1)
+	@set -euo pipefail; k="kubectl --context doku-lab -n argocd"; \
+	$$k get secret argocd-initial-admin-secret >/dev/null 2>&1 || { echo "argocd-initial-admin-secret is gone: the password is already in the secret store (path /argocd)"; exit 0; }; \
+	printf 'ARGOCD_ADMIN_PASSWORD=%s\n' "$$($$k get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)" | scripts/secrets.py set /argocd; \
+	$$k delete secret argocd-initial-admin-secret
+
+# ─────────────────────────────────────────────
+# NetBox (M013, ADR-016): inventory and IPAM on k3s (services/netbox), official chart, shared PostgreSQL.
+# Installed and kept in sync by Argo CD (services/argocd/apps/netbox.yaml pins the chart). Nothing below is
+# needed to build or rebuild the platform: every root keeps its own variables and inventory, NetBox is
+# populated from them.
+# ─────────────────────────────────────────────
+
 NETBOX_SECRET_INPUTS := NETBOX_SECRET_KEY NETBOX_API_TOKEN_PEPPER NETBOX_SUPERUSER_PASSWORD NETBOX_VALKEY_PASSWORD PG_APP_NETBOX_PASSWORD
 NETBOX_SYNC := $(VENV)/bin/python scripts/netbox-sync.py
 
@@ -1059,20 +1090,21 @@ NETBOX_SYNC := $(VENV)/bin/python scripts/netbox-sync.py
 netbox-check:
 	$(VENV)/bin/python tests/netbox.py
 
-# The five values come from the environment only and go straight into the Kubernetes Secret (never printed).
+# Writes the Secret NetBox needs, then hands NetBox to Argo CD and waits until it is in sync and healthy. The
+# five values come from the environment only and go straight into the Kubernetes Secret (never printed).
 # api_token stays empty: the image creates no token for the superuser; `make netbox-identities` provisions
 # short-lived ones from the password when it needs them.
 #   scripts/secrets.py run /netbox /postgresql -- make netbox-deploy NETBOX_DEPLOY_APPROVED=yes
 netbox-deploy:
 	@test "$(NETBOX_DEPLOY_APPROVED)" = yes || (echo "Approve the NetBox deployment with NETBOX_DEPLOY_APPROVED=yes" >&2; exit 1)
 	@for v in $(NETBOX_SECRET_INPUTS); do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /netbox and /postgresql)" >&2; exit 1; }; done
-	kubectl --context doku-lab apply -f services/netbox/access.yaml
+	@kubectl --context doku-lab create namespace netbox --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
 	@set -euo pipefail; kubectl --context doku-lab -n netbox create secret generic netbox-secrets --dry-run=client -o yaml \
 	  --from-env-file=<(printf 'secret_key=%s\napi_token_peppers={"1":"%s"}\nemail_password=\nusername=admin\nemail=admin@doku-lab.net\npassword=%s\napi_token=\nvalkey_password=%s\ndb_password=%s\n' \
 	    "$$NETBOX_SECRET_KEY" "$$NETBOX_API_TOKEN_PEPPER" "$$NETBOX_SUPERUSER_PASSWORD" "$$NETBOX_VALKEY_PASSWORD" "$$PG_APP_NETBOX_PASSWORD") \
 	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/netbox-secrets applied"
-	kubectl --context doku-lab -n netbox rollout status deployment/netbox-valkey --timeout=300s
-	helm upgrade --install $(NETBOX_HELM_ARGS) --kube-context doku-lab --timeout 20m --wait
+	kubectl --context doku-lab apply -f services/argocd/apps/netbox.yaml
+	$(call ARGOCD_WAIT,netbox)
 
 # Service accounts for automation, created with a 10-minute superuser token provisioned from the password: "inventory-sync" may write the
 # inventory, "automation-read" may only read it. Their API tokens go into the secret store (path /netbox).

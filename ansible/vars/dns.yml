@@ -35,6 +35,7 @@ adguard_rewrites:
   - {domain: grafana.doku-lab.net, answer: 192.168.0.40}
   - {domain: headlamp.doku-lab.net, answer: 192.168.0.40}
   - {domain: netbox.doku-lab.net, answer: 192.168.0.40}
+  - {domain: argocd.doku-lab.net, answer: 192.168.0.40}
   - {domain: pve-management.doku-lab.net, answer: 192.168.0.40}
   - {domain: pve-core.doku-lab.net, answer: 192.168.0.40}
   - {domain: pve-infra.doku-lab.net, answer: 192.168.0.40}

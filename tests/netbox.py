@@ -34,7 +34,11 @@ def containers(doc):
 
 
 def chart():
-    result = subprocess.run(["helm", "template", "netbox", make_var("NETBOX_CHART"), "--version", make_var("NETBOX_CHART_VERSION"),
+    # The chart and its version are pinned where Argo CD reads them.
+    application = yaml.safe_load((ROOT / "services/argocd/apps/netbox.yaml").read_text())
+    source = application["spec"]["sources"][0]
+    assert re.fullmatch(r"\d+\.\d+\.\d+", source["targetRevision"]) and source["helm"]["releaseName"] == "netbox"
+    result = subprocess.run(["helm", "template", "netbox", f"oci://{source['repoURL']}/{source['chart']}", "--version", source["targetRevision"],
                              "--namespace", "netbox", "-f", str(DIR / "values.yaml")], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     docs = [d for d in yaml.safe_load_all(result.stdout) if d]
@@ -109,6 +113,8 @@ def make_guards():
         assert f'test "$({guard})" = yes' in recipe, target
         refused = subprocess.run(["make", "-C", str(ROOT), target], capture_output=True, text=True)
         assert refused.returncode != 0 and "Approve" in refused.stderr + refused.stdout or "approve" in refused.stderr, target
+    deploy = re.search(r"^netbox-deploy:.*?(?=^\S)", make, re.M | re.S).group(0)
+    assert "helm " not in deploy and "apply -f services/argocd/apps/netbox.yaml" in deploy, "Argo CD installs the chart, not Make"
     assert "NETBOX_SUPERUSER_API_TOKEN" not in make and "api_token=\\nvalkey_password" in make, "no standing superuser token"
     assert secret_keys() == {"secret_key", "api_token_peppers", "email_password", "username", "email", "password", "api_token",
                              "valkey_password", "db_password"}

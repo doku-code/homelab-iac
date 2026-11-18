@@ -1,0 +1,48 @@
+# Argo CD (M009, ADR-011): official chart argo/argo-cd, pinned in the Makefile. One replica of each component.
+# Installed from the workstation (`make argocd-deploy`): it is the tool that deploys the others, so it cannot
+# deploy itself on a rebuilt cluster.
+global:
+  domain: argocd.doku-lab.net
+
+configs:
+  params:
+    # TLS ends at Traefik (wildcard certificate); the route is in services/argocd/access.yaml.
+    server.insecure: true
+  cm:
+    # No shell into pods from the web interface.
+    exec.enabled: false
+  # Chart registries that are not plain Git or HTTPS Helm repositories. No credentials: all are public.
+  repositories:
+    netbox-chart:
+      name: netbox-chart
+      type: helm
+      url: ghcr.io/netbox-community/netbox-chart
+      enableOCI: "true"
+
+# Not needed yet: single sign-on (no identity provider exists), notifications, generated applications.
+dex:
+  enabled: false
+notifications:
+  enabled: false
+applicationSet:
+  replicas: 0
+
+controller:
+  replicas: 1
+  resources:
+    requests: {cpu: 100m, memory: 384Mi}
+    limits: {cpu: 2000m, memory: 1536Mi}
+server:
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 1000m, memory: 512Mi}
+repoServer:
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 192Mi}
+    limits: {cpu: 2000m, memory: 1Gi}
+redis:
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 256Mi}

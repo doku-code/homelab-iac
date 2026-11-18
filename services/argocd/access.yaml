@@ -1,0 +1,51 @@
+# Applied by `make argocd-deploy`: the Traefik route and the project that limits what applications may do.
+# Only the administration LAN may reach Argo CD. Needs the real client address: the k3s role sets
+# externalTrafficPolicy: Local on Traefik.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-lan
+  namespace: argocd
+spec:
+  ipAllowList:
+    sourceRange:
+      - 192.168.0.0/24
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`argocd.doku-lab.net`)
+      middlewares:
+        - name: admin-lan
+      services:
+        - name: argocd-server
+          port: 80
+  tls: {}
+---
+# Applications of the platform: manifests and values only from this repository on Forgejo, charts only from
+# the registries listed, objects only in this cluster. Namespaces are the one cluster-wide kind allowed; a
+# chart that needs more (CRDs, cluster roles) gets it added here when it is moved under Argo CD.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  description: Platform services of the doku-lab cluster, declared in homelab-iac
+  sourceRepos:
+    - https://git.doku-lab.net/Homelab/homelab-iac.git
+    - ghcr.io/netbox-community/netbox-chart
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: netbox
+  clusterResourceWhitelist:
+    - {group: "", kind: Namespace}
+  namespaceResourceWhitelist:
+    - {group: "*", kind: "*"}

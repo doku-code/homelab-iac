@@ -1,0 +1,35 @@
+# NetBox under Argo CD (M009, M013): the pinned chart with the values from this repository, plus the
+# manifests of services/netbox/access.yaml. The Secret `netbox-secrets` is not in Git: `make netbox-deploy`
+# writes it from the secret store before applying this file.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: netbox
+  namespace: argocd
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: netbox
+  sources:
+    - repoURL: ghcr.io/netbox-community/netbox-chart
+      chart: netbox
+      targetRevision: 8.3.107
+      helm:
+        releaseName: netbox
+        valueFiles:
+          - $values/services/netbox/values.yaml
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/netbox
+      directory:
+        include: access.yaml
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true
