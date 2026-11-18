@@ -22,7 +22,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
 | M008 | active | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
 | M009 | planned | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | none | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
-| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
+| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 1, in-progress: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](../milestones/M012-backups-and-finalization.md) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
 | M001 | completed | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 4, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
@@ -40,6 +40,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-001 | in-progress | critical | M000 | [Reset repository to the agent harness and record the rebuild direction](../tasks/TASK-001-repository-reset-and-alignment.md) | Install the agent harness, archive the legacy Codex workflow, and document vision, architecture, decisions and roadmap. |
 | TASK-006 | in-progress | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](../tasks/TASK-006-target-layout-and-service-contract.md) | Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check). |
 | TASK-019 | in-progress | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md) | Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account. |
+| TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -110,6 +111,7 @@ _No commit records. Generate with `harness history sync`._
 ## By tag
 
 - **access**: TASK-007
+- **adguard**: TASK-022
 - **age**: ADR-004, TASK-011
 - **alloy**: TASK-020
 - **ansible**: TASK-009, TASK-014, TASK-015, TASK-017, TASK-018
@@ -118,7 +120,9 @@ _No commit records. Generate with `harness history sync`._
 - **argocd**: ADR-006, ADR-011
 - **backup**: ADR-012, TASK-003, TASK-004, TASK-010
 - **bootstrap**: ADR-002, ADR-008, INV-pve-management-bootstrap, M001
+- **caddy**: TASK-022
 - **ceph**: ADR-012
+- **cert-manager**: TASK-022
 - **ci**: ADR-008, ADR-014, TASK-014
 - **cluster**: ADR-010, INV-new-proxmox-cluster-inventory, TASK-013
 - **compose**: ADR-006
@@ -129,6 +133,7 @@ _No commit records. Generate with `harness history sync`._
 - **dependencies**: TASK-003
 - **deployment**: ADR-014
 - **desktop**: ADR-009
+- **dns**: TASK-022
 - **etcd**: TASK-018, TASK-021
 - **flux**: ADR-006
 - **forgejo**: ADR-014, TASK-014
@@ -140,6 +145,7 @@ _No commit records. Generate with `harness history sync`._
 - **harness**: TASK-001
 - **headlamp**: ADR-011, TASK-016
 - **infisical**: ADR-004, TASK-019
+- **ingress**: TASK-022
 - **inventory**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, TASK-002, TASK-003
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
 - **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017, TASK-019, TASK-021
@@ -182,7 +188,7 @@ _No commit records. Generate with `harness history sync`._
 - **storage**: ADR-012, TASK-017
 - **strategy**: ADR-001
 - **terraform**: ADR-003
-- **traefik**: TASK-021
+- **traefik**: TASK-021, TASK-022
 - **truenas**: ADR-012
 - **vision**: DOC-project-overview
 - **windmill**: ADR-005, ADR-011

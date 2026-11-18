@@ -1,0 +1,39 @@
+# Let's Encrypt through a Cloudflare DNS record (DNS-01): nothing is exposed to the internet for it.
+# The API token (zone doku-lab.net, DNS edit) comes from the store path /ingress into the Secret
+# cloudflare-api-token, created by `make ingress-certs-deploy`; it is never in Git.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-account
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token
+        selector:
+          dnsZones: [doku-lab.net]
+---
+# One wildcard for every service name; Traefik's default certificate (tls-store.yaml).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: doku-lab-wildcard
+  namespace: kube-system
+spec:
+  secretName: doku-lab-wildcard-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt
+  dnsNames:
+    - "*.doku-lab.net"
+    - doku-lab.net
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always

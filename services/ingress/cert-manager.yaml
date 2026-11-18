@@ -1,0 +1,24 @@
+# cert-manager (official chart, pinned in the Makefile): issues the Let's Encrypt wildcard certificate that
+# Traefik serves. One replica of each component (operator direction 2026-11-18: single replicas for now).
+crds:
+  enabled: true
+replicaCount: 1
+webhook:
+  replicaCount: 1
+  resources:
+    requests: {cpu: 10m, memory: 32Mi}
+    limits: {memory: 128Mi}
+cainjector:
+  replicaCount: 1
+  resources:
+    requests: {cpu: 10m, memory: 64Mi}
+    limits: {memory: 256Mi}
+resources:
+  requests: {cpu: 10m, memory: 64Mi}
+  limits: {memory: 256Mi}
+# The DNS-01 check must see the public record: the LAN resolver (AdGuard) rewrites doku-lab.net names.
+extraArgs:
+  - --dns01-recursive-nameservers-only
+  - --dns01-recursive-nameservers=1.1.1.1:53,9.9.9.9:53
+prometheus:
+  enabled: false

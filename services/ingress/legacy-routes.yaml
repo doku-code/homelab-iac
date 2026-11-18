@@ -1,0 +1,513 @@
+# Sites of the legacy Caddy (CT204, 192.168.0.24) that are still in use, served by Traefik instead: same
+# names, same backends outside k3s, same headers. A name moves here when its DNS answer changes from
+# 192.168.0.24 to the cluster; until then these routes are idle. Remove a block when its service has
+# been redeployed on the platform. Not carried over: the three Proxmox names (they pointed at addresses
+# that now belong to other hosts) and dropper (its backend address is now a k3s node).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: legacy-edge
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: hsts
+  namespace: legacy-edge
+spec:
+  headers:
+    customResponseHeaders:
+      Strict-Transport-Security: max-age=15552000
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: self-signed-backend
+  namespace: legacy-edge
+spec:
+  insecureSkipVerify: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloud
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 30027
+    targetPort: 30027
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: cloud
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: cloud
+addressType: IPv4
+ports:
+- name: backend
+  port: 30027
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.13
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: cloud
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`cloud.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: cloud
+      port: 30027
+    middlewares:
+    - name: hsts
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: truenas
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 444
+    targetPort: 444
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: truenas
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: truenas
+addressType: IPv4
+ports:
+- name: backend
+  port: 444
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.13
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: truenas
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`truenas.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: truenas
+      port: 444
+      scheme: https
+      serversTransport: self-signed-backend
+    middlewares:
+    - name: hsts
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plex
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 32400
+    targetPort: 32400
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: plex
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: plex
+addressType: IPv4
+ports:
+- name: backend
+  port: 32400
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.13
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: plex
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`plex.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: plex
+      port: 32400
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbit
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: qbit
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: qbit
+addressType: IPv4
+ports:
+- name: backend
+  port: 8080
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.13
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: qbit
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`qbit.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: qbit
+      port: 8080
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homepage
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: homepage
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: homepage
+addressType: IPv4
+ports:
+- name: backend
+  port: 3000
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.21
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homepage
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: (Host(`homepage.doku-lab.net`) || Host(`home.doku-lab.net`)) && (Path(`/health`)
+      || Path(`/api/summary`) || Path(`/api/nodes`) || Path(`/api/storage`) || Path(`/api/snapshot`))
+    kind: Rule
+    services:
+    - name: homepage-metrics
+      port: 9101
+  - match: (Host(`homepage.doku-lab.net`) || Host(`home.doku-lab.net`))
+    kind: Rule
+    services:
+    - name: homepage
+      port: 3000
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homepage-metrics
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 9101
+    targetPort: 9101
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: homepage-metrics
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: homepage-metrics
+addressType: IPv4
+ports:
+- name: backend
+  port: 9101
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.21
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wiki
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 80
+    targetPort: 80
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: wiki
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: wiki
+addressType: IPv4
+ports:
+- name: backend
+  port: 80
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.22
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wiki
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`wiki.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: wiki
+      port: 80
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pbs
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 8007
+    targetPort: 8007
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pbs
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: pbs
+addressType: IPv4
+ports:
+- name: backend
+  port: 8007
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.15
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pbs
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`pbs.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: pbs
+      port: 8007
+      scheme: https
+      serversTransport: self-signed-backend
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: vault
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: vault
+addressType: IPv4
+ports:
+- name: backend
+  port: 8080
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.26
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: vault
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`vault.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: vault
+      port: 8080
+    middlewares:
+    - name: hsts
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secrets
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 80
+    targetPort: 80
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: secrets
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: secrets
+addressType: IPv4
+ports:
+- name: backend
+  port: 80
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.27
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: secrets
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`secrets.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: secrets
+      port: 80
+    middlewares:
+    - name: hsts
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: git
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 30142
+    targetPort: 30142
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: git
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: git
+addressType: IPv4
+ports:
+- name: backend
+  port: 30142
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.13
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: git
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`git.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: git
+      port: 30142
+  tls: {}

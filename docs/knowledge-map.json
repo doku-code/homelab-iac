@@ -891,6 +891,10 @@
         {
           "from": "TASK-021",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-022",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1568,6 +1572,10 @@
         {
           "from": "TASK-021",
           "field": "related"
+        },
+        {
+          "from": "TASK-022",
+          "field": "related"
         }
       ]
     },
@@ -1804,6 +1812,10 @@
         },
         {
           "from": "TASK-021",
+          "field": "related"
+        },
+        {
+          "from": "TASK-022",
           "field": "related"
         }
       ]
@@ -2952,6 +2964,10 @@
         },
         {
           "from": "TASK-020",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-022",
           "field": "milestone"
         }
       ]
@@ -4580,6 +4596,74 @@
           "M004"
         ]
       },
+      "backrefs": [
+        {
+          "from": "TASK-022",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "TASK-022",
+      "title": "Edge migration: certificates, Caddy sites on Traefik, AdGuard as code",
+      "summary": "Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md",
+      "tags": [
+        "ingress",
+        "traefik",
+        "cert-manager",
+        "caddy",
+        "adguard",
+        "dns"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-022 — Edge migration: certificates, Caddy sites on Traefik, AdGuard as code",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-011"
+        ],
+        "depends_on": [
+          "TASK-021"
+        ],
+        "related_implementations": [
+          "services/ingress",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/ingress.py"
+        ],
+        "milestone": [
+          "M010"
+        ]
+      },
       "backrefs": []
     }
   ],
@@ -4651,12 +4735,16 @@
       "TASK-018",
       "TASK-019",
       "TASK-020",
-      "TASK-021"
+      "TASK-021",
+      "TASK-022"
     ]
   },
   "by_tag": {
     "access": [
       "TASK-007"
+    ],
+    "adguard": [
+      "TASK-022"
     ],
     "age": [
       "ADR-004",
@@ -4694,8 +4782,14 @@
       "INV-pve-management-bootstrap",
       "M001"
     ],
+    "caddy": [
+      "TASK-022"
+    ],
     "ceph": [
       "ADR-012"
+    ],
+    "cert-manager": [
+      "TASK-022"
     ],
     "ci": [
       "ADR-008",
@@ -4746,6 +4840,9 @@
     "desktop": [
       "ADR-009"
     ],
+    "dns": [
+      "TASK-022"
+    ],
     "etcd": [
       "TASK-018",
       "TASK-021"
@@ -4782,6 +4879,9 @@
     "infisical": [
       "ADR-004",
       "TASK-019"
+    ],
+    "ingress": [
+      "TASK-022"
     ],
     "inventory": [
       "INV-legacy-inventory",
@@ -4971,7 +5071,8 @@
       "ADR-003"
     ],
     "traefik": [
-      "TASK-021"
+      "TASK-021",
+      "TASK-022"
     ],
     "truenas": [
       "ADR-012"

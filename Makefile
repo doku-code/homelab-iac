@@ -756,7 +756,32 @@ phase-deploy:
 # The deployed certificate must be the one in keys/k3s-ingress.crt, which the workstation trusts.
 # ─────────────────────────────────────────────
 
-.PHONY: ingress-tls-deploy
+INGRESS_CERT_MANAGER_CHART := v1.21.3
+INGRESS_CERT_MANAGER_REPO := https://charts.jetstack.io
+
+.PHONY: ingress-check ingress-certs-deploy ingress-routes-deploy ingress-tls-deploy
+
+# Offline: renders the pinned cert-manager chart and checks issuer, certificate and store (needs the chart download).
+ingress-check:
+	$(VENV)/bin/python tests/ingress.py
+
+# cert-manager, the Let's Encrypt issuer (Cloudflare DNS-01) and the *.doku-lab.net wildcard for Traefik.
+#   scripts/secrets.py run /ingress -- make ingress-certs-deploy INGRESS_CERTS_DEPLOY_APPROVED=yes
+ingress-certs-deploy:
+	@test "$(INGRESS_CERTS_DEPLOY_APPROVED)" = yes || (echo "Approve cert-manager and the certificate issuer with INGRESS_CERTS_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@test -n "$${CLOUDFLARE_API_TOKEN:-}" || { echo "Set CLOUDFLARE_API_TOKEN in the environment (store path /ingress)" >&2; exit 1; }
+	@kubectl --context doku-lab create namespace cert-manager --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	@set -euo pipefail; kubectl --context doku-lab -n cert-manager create secret generic cloudflare-api-token --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'api-token=%s\n' "$$CLOUDFLARE_API_TOKEN") | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/cloudflare-api-token applied"
+	helm upgrade --install cert-manager cert-manager --repo $(INGRESS_CERT_MANAGER_REPO) --version $(INGRESS_CERT_MANAGER_CHART) --namespace cert-manager -f services/ingress/cert-manager.yaml --kube-context doku-lab --wait --timeout 10m
+	kubectl --context doku-lab apply -f services/ingress/certificates.yaml
+	kubectl --context doku-lab -n kube-system wait certificate/doku-lab-wildcard --for=condition=Ready --timeout=600s
+	kubectl --context doku-lab apply -f services/ingress/tls-store.yaml
+
+# Routes for the sites carried over from the legacy Caddy (idle until a name's DNS answer points at the cluster).
+ingress-routes-deploy:
+	@test "$(INGRESS_ROUTES_DEPLOY_APPROVED)" = yes || (echo "Approve the carried-over routes with INGRESS_ROUTES_DEPLOY_APPROVED=yes" >&2; exit 1)
+	kubectl --context doku-lab apply -f services/ingress/legacy-routes.yaml
 
 ingress-tls-deploy:
 	@test "$(INGRESS_TLS_DEPLOY_APPROVED)" = yes || (echo "Approve the ingress certificate deployment with INGRESS_TLS_DEPLOY_APPROVED=yes" >&2; exit 1)

@@ -1,8 +1,8 @@
-# Default certificate of the bundled Traefik: every IngressRoute with `tls: {}` serves it.
-# One self-signed certificate for *.192.168.0.40.sslip.io (public part: keys/k3s-ingress.crt, trusted by the
-# workstation), so clients verify the server they send secrets to. `make ingress-tls-deploy` creates the
-# Secret from the secret store path /ingress; the key is never in Git. Replace with an issuer when
-# certificates are automated.
+# Certificates of the bundled Traefik: every IngressRoute with `tls: {}` serves one of them, chosen by name.
+# - *.doku-lab.net: Let's Encrypt wildcard kept current by cert-manager (certificates.yaml); also the default.
+# - *.192.168.0.40.sslip.io: self-signed certificate (public part keys/k3s-ingress.crt, trusted by the
+#   workstation; Secret from the store path /ingress by `make ingress-tls-deploy`) until every service has
+#   moved to a doku-lab.net name.
 apiVersion: traefik.io/v1alpha1
 kind: TLSStore
 metadata:
@@ -10,4 +10,6 @@ metadata:
   namespace: kube-system
 spec:
   defaultCertificate:
-    secretName: ingress-default-tls
+    secretName: doku-lab-wildcard-tls
+  certificates:
+    - secretName: ingress-default-tls
