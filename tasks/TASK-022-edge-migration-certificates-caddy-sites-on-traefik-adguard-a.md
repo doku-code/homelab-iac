@@ -80,7 +80,8 @@ between nodes is deferred with the other replica questions.
 - [x] Every Caddy site in use answers through Traefik like through Caddy
 - [x] New AdGuard answers like the old one (rewrites, blocking, upstreams) and holds `192.168.0.20`
 - [x] Phase, Grafana, Headlamp on `doku-lab.net` names; nine Caddy names repointed to the cluster
-- [ ] `git` and `cloud` repointed (their applications must trust the new proxy addresses first)
+- [x] `git` and `cloud` stay on the legacy Caddy for now (operator decision: services hosted on TrueNAS are handled later)
+- [x] Proxmox web interfaces under their current host names; `penpot` public record deleted
 - [ ] Tunnel moved; Caddy container stopped
 
 ## Verification
@@ -112,6 +113,9 @@ make ingress-routes-deploy INGRESS_ROUTES_DEPLOY_APPROVED=yes
 | Names | `phase`, `grafana`, `headlamp`, `home`, `homepage`, `wiki`, `vault`, `secrets`, `qbit`, `truenas`, `plex` answer through `192.168.0.40` with certificate verification on (200, or the same 302/401 as before); `git` and `cloud` still through `192.168.0.24`; the secret store works through Traefik | `curl` without `-k` | 2026-11-18 |
 | Phase rename | After the host change the pods kept the old name until restarted (CLI got HTTP 400); `make phase-deploy` now restarts them; the CLI reaches `https://phase.doku-lab.net` with a public certificate | `phase secrets list` with a dummy token: 401 | 2026-11-18 |
 
+| Proxmox names | `pve-management`, `pve-core`, `pve-infra`, `pve-lab` (`.16`) answer 200 through Traefik, each page naming its own node; backend certificates verified against the cluster CA; LAN only | `curl`, `services/ingress/proxmox-routes.yaml` | 2026-11-18 |
+| `penpot` | One public CNAME to the tunnel found and deleted; none left | Cloudflare API | 2026-11-18 |
+
 ## Completion summary
 
 In progress. The LAN resolves through `dns-01`; eleven names are served by Traefik with the Let's Encrypt
@@ -119,9 +123,9 @@ wildcard; the Caddy container still serves `git`, `cloud`, the stale Proxmox nam
 Not carried over: the old AdGuard's query log and statistics (they stay in the stopped container).
 Rollback of the DNS move: stop `dns-service-address` on `dns-01`, start CT200 on the old Proxmox host.
 
-Remaining: (1) `git` and `cloud`: add the k3s node addresses to the trusted proxies of Forgejo and
-Nextcloud, then change their answers in `ansible/vars/dns.yml`; (2) operator decides the names of the
-Proxmox UIs and what `dropper` and `penpot` should become; (3) tunnel to k3s (one replica) with its public
-hostnames pointed at Traefik, then stop CT204; (4) move the ingestion names of the monitoring agents off
-sslip.io and drop the self-signed certificate; (5) a second DNS server and a shared ingress address are
-deferred with the other replica questions.
+Remaining: (1) the services hosted on TrueNAS (`git`, `cloud`, and the tunnel that publishes them) stay on
+the legacy Caddy until the operator takes them up; `dropper` is the operator's own; (2) the tunnel's entry
+for `penpot` in the Cloudflare dashboard, if any, is the operator's to remove (the DNS token cannot see
+tunnels); (3) move the ingestion names of the monitoring agents off sslip.io and drop the self-signed
+certificate; (4) a second DNS server and a shared ingress address are deferred with the other replica
+questions; `pve-compute` gets a name when that host exists.

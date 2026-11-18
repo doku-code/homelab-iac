@@ -596,7 +596,7 @@ deploy-runner-apply:
 	@echo "State updated locally: $(DEPLOY_RUNNER_DIR)/terraform.tfstate (this workstation only, never in Git)"
 
 # Configures deploy-runner-01. Secrets come from the environment only, e.g.
-#   infisical run --silent --env dev --path /deploy-runner -- make deploy-runner-configure DEPLOY_RUNNER_CONFIGURE_APPROVED=yes
+#   scripts/secrets.py run /deploy-runner -- make deploy-runner-configure DEPLOY_RUNNER_CONFIGURE_APPROVED=yes
 deploy-runner-configure:
 	@test "$(DEPLOY_RUNNER_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of deploy-runner-01 with DEPLOY_RUNNER_CONFIGURE_APPROVED=yes" >&2; exit 1)
 	@for v in FORGEJO_RUNNER_UUID FORGEJO_RUNNER_TOKEN DEPLOY_PROXMOX_VE_API_TOKEN; do test -n "$${!v:-}" || { echo "Set $$v in the environment (Infisical /deploy-runner)" >&2; exit 1; }; done
@@ -680,7 +680,7 @@ k3s-cluster-hostkeys:
 	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
 
 # Configures k3s. The token comes from the environment only, e.g.
-#   infisical run --silent --env dev --path /k3s -- make k3s-cluster-configure K3S_CLUSTER_CONFIGURE_APPROVED=yes
+#   scripts/secrets.py run /k3s -- make k3s-cluster-configure K3S_CLUSTER_CONFIGURE_APPROVED=yes
 k3s-cluster-configure:
 	@test "$(K3S_CLUSTER_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of the k3s nodes with K3S_CLUSTER_CONFIGURE_APPROVED=yes" >&2; exit 1)
 	@test -n "$${K3S_TOKEN:-}" || { echo "Set K3S_TOKEN in the environment (Infisical dev:/k3s)" >&2; exit 1; }
@@ -784,6 +784,7 @@ ingress-certs-deploy:
 ingress-routes-deploy:
 	@test "$(INGRESS_ROUTES_DEPLOY_APPROVED)" = yes || (echo "Approve the carried-over routes with INGRESS_ROUTES_DEPLOY_APPROVED=yes" >&2; exit 1)
 	kubectl --context doku-lab apply -f services/ingress/legacy-routes.yaml
+	kubectl --context doku-lab apply -f services/ingress/proxmox-routes.yaml
 
 ingress-tls-deploy:
 	@test "$(INGRESS_TLS_DEPLOY_APPROVED)" = yes || (echo "Approve the ingress certificate deployment with INGRESS_TLS_DEPLOY_APPROVED=yes" >&2; exit 1)
@@ -907,7 +908,7 @@ postgresql-hostkeys:
 
 # Configures etcd, Patroni, the virtual IP and the application databases. Credentials come from the
 # environment only, e.g.
-#   infisical run --silent --env dev --path /postgresql -- make postgresql-configure POSTGRESQL_CONFIGURE_APPROVED=yes
+#   scripts/secrets.py run /postgresql -- make postgresql-configure POSTGRESQL_CONFIGURE_APPROVED=yes
 postgresql-configure:
 	@test "$(POSTGRESQL_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of the PostgreSQL members with POSTGRESQL_CONFIGURE_APPROVED=yes" >&2; exit 1)
 	@test -n "$${PG_SUPERUSER_PASSWORD:-}" || { echo "Set PG_SUPERUSER_PASSWORD and the other PG_* credentials in the environment (secret store path /postgresql)" >&2; exit 1; }

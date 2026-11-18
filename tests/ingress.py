@@ -47,6 +47,28 @@ def legacy_routes():
     assert not {"dropper.doku-lab.net", "pve-lab.doku-lab.net"} & hosts, "stale Caddy sites are not carried over"
 
 
+def proxmox_routes():
+    """Proxmox web interfaces: current host names, LAN only, backend certificate verified against the cluster CA."""
+    docs = [d for d in yaml.safe_load_all((DIR / "proxmox-routes.yaml").read_text()) if d]
+    expected = {"pve-management": "192.168.0.10", "pve-core": "192.168.0.11", "pve-infra": "192.168.0.12", "pve-lab": "192.168.0.16"}
+    slices = {d["metadata"]["name"]: d["endpoints"][0]["addresses"] for d in docs if d["kind"] == "EndpointSlice"}
+    assert slices == {name: [address] for name, address in expected.items()}, "never the old environment (192.168.0.14)"
+    transports = {d["metadata"]["name"]: d["spec"] for d in docs if d["kind"] == "ServersTransport"}
+    for name, address in expected.items():
+        assert transports[name] == {"serverName": address, "rootCAs": [{"configMap": "doku-lab-cluster-ca"}]}, name
+        assert "insecureSkipVerify" not in transports[name]
+    (ca,) = [d for d in docs if d["kind"] == "ConfigMap"]
+    repo_ca = "".join(l for l in (ROOT / "keys/pve-management-root-ca.crt").read_text().splitlines(keepends=True) if not l.startswith("#"))
+    assert ca["data"]["ca.crt"] == repo_ca and "PRIVATE KEY" not in ca["data"]["ca.crt"]
+    routes = {d["metadata"]["name"]: d["spec"] for d in docs if d["kind"] == "IngressRoute"}
+    assert set(routes) == set(expected)
+    for name, spec in routes.items():
+        (rule,) = spec["routes"]
+        assert spec["entryPoints"] == ["websecure"] and spec["tls"] == {} and rule["match"] == f"Host(`{name}.doku-lab.net`)"
+        assert rule["middlewares"] == [{"name": "admin-lan"}]
+        assert rule["services"] == [{"name": name, "port": 8006, "scheme": "https", "serversTransport": name}]
+
+
 def main():
     version, repo = make_var("INGRESS_CERT_MANAGER_CHART"), make_var("INGRESS_CERT_MANAGER_REPO")
     assert re.fullmatch(r"v\d+\.\d+\.\d+", version), "the chart version is pinned"
@@ -85,6 +107,7 @@ def main():
     assert "DNS:*.192.168.0.40.sslip.io" in text and "CA:FALSE" in text and "TLS Web Server Authentication" in text
 
     legacy_routes()
+    proxmox_routes()
     for path in DIR.glob("*.yaml"):
         assert not any(d and d.get("kind") == "Secret" for d in yaml.safe_load_all(path.read_text())), path
     makefile = (ROOT / "Makefile").read_text()

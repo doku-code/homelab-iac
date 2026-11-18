@@ -64,7 +64,7 @@ use IPs**. The new nodes have no DNS records.
   (M010), extract only that root's files into the checkout and stop using the Mac copy; Make refuses any
   legacy root whose endpoint is a new-cluster address.
 - Proxmox credentials: `infisical login` once (domain `https://secrets.doku-lab.net`), then prefix Make
-  targets with `infisical run --silent --env dev --path /pve-management --` and pass `MGMT_INPUT_SOURCE=env`.
+  targets with `scripts/secrets.py run /pve-management --` and pass `MGMT_INPUT_SOURCE=env`.
   The token's role is granted on `/vms` (every VM in the cluster, not only VM 100), `/storage/local`,
   `/storage/local-lvm`, `/nodes/pve-management`, `/nodes/pve-core` (added 2026-11-17 for VM 302) and vmbr0.
   M003 adds the runner's own `deploy-runner@pve!ci`.
@@ -77,7 +77,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 1. `claude`: log in when prompted (Codex is installed but not used).
 2. `infisical login` (choose the self-hosted domain above). Done 2026-11-17.
 3. Prove state continuity with your own session (done 2026-11-17: No changes):
-   `infisical run --silent --env dev --path /pve-management -- make mgmt-plan MGMT_INPUT_SOURCE=env MGMT_ALLOCATION_REVIEWED=yes`
+   `scripts/secrets.py run /pve-management -- make mgmt-plan MGMT_INPUT_SOURCE=env MGMT_ALLOCATION_REVIEWED=yes`
    must report **No changes**.
 4. Forgejo push access (done 2026-11-17): a Forgejo personal access token in the credential store
    (`git config --global credential.helper store`, `~/.git-credentials` 0600); Make and agents reuse it for
@@ -117,12 +117,11 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 - **M008 in progress** ([TASK-019](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md)):
   Phase Console v2.79.0 runs at `https://phase.doku-lab.net/` (LAN only),
   database on the shared PostgreSQL; minimum password length 10 through
-  `services/phase/frontend-password-policy.yaml` (review it at every Console upgrade). It is **empty**: Infisical is still the active store
-  (`.local/secret-store`). `scripts/secrets.py` is the store entry point (`run`, `set`, `inventory`,
-  `migrate`, `verify`, `recovery-export`). **Waiting for the operator:** sign up in Phase and keep the recovery
-  kit and create the app `homelab-iac` (done), run `phase auth` on the workstation with host
-  `https://phase.doku-lab.net` (open). The recovery bundle exists (`keys/operator-recovery.age.pub`). Then: migrate, verify, switch the store, and only after the
-  operator's confirmation shut Infisical down.
+  `services/phase/frontend-password-policy.yaml` (review it at every Console upgrade). **Phase is the active
+  secret store** since 2026-11-18 (`.local/secret-store`; 42 keys migrated and verified):
+  `scripts/secrets.py run /path… -- command`, `set /path`, `recovery-export`. Open: the operator opens the
+  recovery bundle once and keeps a copy outside the homelab; Infisical (VM 207, old host) is shut down only
+  after the operator's confirmation.
 - **Observability deployed** 2026-11-17 ([TASK-020](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md)):
   Grafana at `https://grafana.doku-lab.net/` (LAN only; `admin` with `GRAFANA_ADMIN_PASSWORD` from
   store path `/monitoring`), dashboard "Homelab overview". Prometheus and Loki on k3s; Alloy in the cluster

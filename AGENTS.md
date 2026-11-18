@@ -24,8 +24,8 @@ One owner per concern; never let two tools write the same object.
   is the backup destination, never live PVC storage (ADR-012).
 - **Forgejo**: source of truth and CI; **Windmill**: forms/schedules that call versioned
   workflows, never an infrastructure engine or a recovery dependency (ADR-005).
-- **Secrets**: Infisical today, Phase as target runtime store, SOPS + age for bootstrap and
-  recovery material (ADR-004). No automatic fallback between stores.
+- **Secrets**: Phase (`scripts/secrets.py`, store selected in `.local/secret-store`); an age-encrypted
+  recovery bundle holds the bootstrap paths (ADR-004). No automatic fallback between stores.
 - **Makefile**: human-facing entrypoints; keep targets small, predictable and repository-local.
 
 New code goes into the target layout (`modules/`, `stacks/`, `services/<service>/service.yaml`,

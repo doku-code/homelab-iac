@@ -61,7 +61,13 @@ if args[:2] == ["secrets", "import"]:
             value = raw[1:-1].replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
         if os.environ.get("FAKE_MANGLE") == key:
             value += "x"
+        if key in store.get(path, {}):
+            sys.exit(9)  # like the real CLI: HTTP 409, duplicate secret
         store.setdefault(path, {})[key] = value
+    json.dump(store, open(store_file, "w"))
+elif args[:2] == ["secrets", "update"]:
+    assert args[2] in store.get(path, {}), "update needs an existing key"
+    store[path][args[2]] = sys.stdin.read()
     json.dump(store, open(store_file, "w"))
 elif args[:2] == ["secrets", "export"]:
     print(json.dumps(store.get(path, {})))
@@ -115,6 +121,14 @@ def main():
         assert "synthetic-headlamp-value" not in stored.stdout + stored.stderr
         assert put("infisical", "lower=x\n").returncode == 2 and put("recovery", "A=b\n").returncode == 2
         SOURCE["/headlamp"] = {"HEADLAMP_ADMIN_TOKEN": "synthetic-headlamp-value"}
+
+        # Phase refuses to import a key that exists: the first write creates it, the second updates it.
+        for value in ("synthetic-phase-first", "synthetic-phase-second"):
+            written = put("phase", f"ROTATED_TOKEN={value}\n")
+            assert written.returncode == 0 and "stored ROTATED_TOKEN" in written.stdout, written.stderr
+            assert value not in written.stdout + written.stderr
+        assert json.loads((base / "target.json").read_text())["/headlamp"] == {"ROTATED_TOKEN": "synthetic-phase-second"}
+        (base / "target.json").unlink()
 
         inventory = run("inventory", store="infisical")
         assert "/postgresql  2  MULTI, PG_SUPERUSER_PASSWORD" in inventory.stdout and not leaks(inventory)

@@ -30,7 +30,7 @@ deployment holds the lock.
    ~29.6 GiB RAM available, `local` (import, 30 GiB free), `local-lvm` (848 GiB free) and vmbr0. The operator confirmed .32 is outside the pfSense DHCP pool (.100–.200). Copy `terraform.tfvars.example` to
    `terraform.tfvars`.
 2. **Plan** (no change on the cluster):
-   `infisical run --silent --env dev --path /pve-management -- make deploy-runner-plan MGMT_INPUT_SOURCE=env DEPLOY_RUNNER_ALLOCATION_REVIEWED=yes DEPLOY_RUNNER_NEW_STATE=yes`
+   `scripts/secrets.py run /pve-management -- make deploy-runner-plan MGMT_INPUT_SOURCE=env DEPLOY_RUNNER_ALLOCATION_REVIEWED=yes DEPLOY_RUNNER_NEW_STATE=yes`
    (`DEPLOY_RUNNER_NEW_STATE=yes` only for this first creation). `tofu@pve!mgmt` holds `IaCManagementVM` on
    `/vms`, `/storage/local`, `/storage/local-lvm`, `/sdn/zones/localnetwork/vmbr0` and `/nodes/pve-management`;
    placing the VM on `pve-core` needs one more ACL (privilege change, approve it):
@@ -53,7 +53,7 @@ deployment holds the lock.
      note the UUID and token. Set the repository variable `DEPLOY_RUNNER_APPROVED=true` only when ready.
    - Infisical, project Homelab-IaC, env `dev`, path `/deploy-runner`: `FORGEJO_RUNNER_UUID`,
      `FORGEJO_RUNNER_TOKEN`, `DEPLOY_PROXMOX_VE_API_TOKEN` (`deploy-runner@pve!ci=<secret>`).
-5. **Configure**: `infisical run --silent --env dev --path /deploy-runner -- make deploy-runner-configure DEPLOY_RUNNER_CONFIGURE_APPROVED=yes`; a second run reports changed=0.
+5. **Configure**: `scripts/secrets.py run /deploy-runner -- make deploy-runner-configure DEPLOY_RUNNER_CONFIGURE_APPROVED=yes`; a second run reports changed=0.
 6. **Proof** (M003 acceptance): Forgejo → Actions → Deploy → Run workflow on `main`: `ci-disposable` / `plan`.
    Review on the runner: `make deploy-runner-review DEPLOY_ROOT=ci-disposable`; approve:
    `make deploy-runner-approve DEPLOY_RUNNER_APPROVE=yes DEPLOY_ROOT=ci-disposable DEPLOY_PLAN_SHA256=<sha>`;

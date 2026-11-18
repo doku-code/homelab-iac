@@ -3,7 +3,7 @@
 k3s_version: v1.35.8+k3s1
 k3s_sha256: 12f81c9bb5b71e098a4f7a2d187e350902a9339a6c3d5e56c20a03f7a417e07f
 
-# Shared cluster secret: from the controller environment (Infisical dev:/k3s K3S_TOKEN), never from Git.
+# Shared cluster secret: from the controller environment (store path /k3s, K3S_TOKEN), never from Git.
 k3s_token: "{{ lookup('ansible.builtin.env', 'K3S_TOKEN') }}"
 
 # The first server (OpenTofu output k3s_init_node) initialises embedded etcd; later servers join it.

@@ -1,7 +1,7 @@
 ---
 # k3s cluster on doku-lab (ADR-011, M004). Run through `make k3s-cluster-configure` from the operator
 # workstation: the inventory comes from the OpenTofu outputs of terraform/stacks/k3s, the cluster token from
-# the controller environment (Infisical dev:/k3s K3S_TOKEN). Servers converge one at a time, the
+# the controller environment (store path /k3s, K3S_TOKEN). Servers converge one at a time, the
 # cluster-init server first.
 - name: Configure k3s nodes
   hosts: k3s_cluster

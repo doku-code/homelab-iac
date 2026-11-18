@@ -53,8 +53,8 @@ def check_paths(paths):
     return list(paths)
 
 
-def output(argv, env=None):
-    result = subprocess.run(argv, capture_output=True, text=True, env=env)
+def output(argv, env=None, stdin=None):
+    result = subprocess.run(argv, capture_output=True, text=True, env=env, input=stdin)
     if result.returncode != 0:
         die(f"{argv[0]} {argv[1] if len(argv) > 1 else ''} failed (exit {result.returncode}); its output is withheld")
     return result.stdout
@@ -82,6 +82,23 @@ def phase_read(path):
     data = output(["phase", "secrets", "export", "--app", PHASE_APP, "--env", PHASE_ENV, "--path", path, "--format", "json"],
                   env=phase_env())
     return {key: str(value) for key, value in json.loads(data or "{}").items()}
+
+
+def phase_write(path, pairs):
+    """Create or update keys at one Phase path. `phase secrets import` refuses a key that exists (HTTP 409),
+    so existing keys are updated one by one with the value on standard input; equal values are left alone."""
+    existing = phase_read(path)
+    target = ["--app", PHASE_APP, "--env", PHASE_ENV, "--path", path]
+    new = {key: value for key, value in pairs.items() if key not in existing}
+    if new:
+        with tempfile.NamedTemporaryFile("w", suffix=".env", dir=ROOT / ".local", delete=True) as handle:
+            os.chmod(handle.name, 0o600)
+            handle.writelines(dotenv_line(key, value) for key, value in sorted(new.items()))
+            handle.flush()
+            output(["phase", "secrets", "import", handle.name, *target], env=phase_env())
+    for key, value in sorted(pairs.items()):
+        if key in existing and digest(existing[key]) != digest(value):
+            output(["phase", "secrets", "update", key, *target], env=phase_env(), stdin=value)
 
 
 def recovery_read():
@@ -162,12 +179,7 @@ def cmd_migrate(args):
         print(f"{path}  {len(source)} keys{'  (dry run)' if dry_run else ''}")
         if dry_run:
             continue
-        with tempfile.NamedTemporaryFile("w", suffix=".env", dir=ROOT / ".local", delete=True) as handle:
-            os.chmod(handle.name, 0o600)
-            handle.writelines(dotenv_line(key, value) for key, value in sorted(source.items()))
-            handle.flush()
-            output(["phase", "secrets", "import", handle.name, "--app", PHASE_APP, "--env", PHASE_ENV, "--path", path],
-                   env=phase_env())
+        phase_write(path, source)
     if not dry_run and not compare(paths):
         die("the copy differs from the source: fix the listed keys before switching the store")
 
@@ -183,18 +195,17 @@ def cmd_set(args):
     if not pairs or not all(re.fullmatch(r"[A-Z][A-Z0-9_]*", key) and value for key, value in pairs.items()):
         die("expected KEY=VALUE lines with upper-case keys and non-empty values")
     (ROOT / ".local").mkdir(exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", suffix=".env", dir=ROOT / ".local", delete=True) as handle:
-        os.chmod(handle.name, 0o600)
-        handle.writelines(dotenv_line(key, value) for key, value in sorted(pairs.items()))
-        handle.flush()
-        if store == "infisical":
+    if store == "phase":
+        phase_write(path, pairs)
+    else:
+        with tempfile.NamedTemporaryFile("w", suffix=".env", dir=ROOT / ".local", delete=True) as handle:
+            os.chmod(handle.name, 0o600)
+            handle.writelines(dotenv_line(key, value) for key, value in sorted(pairs.items()))
+            handle.flush()
             parent, _, name = path.rpartition("/")
             subprocess.run(["infisical", "secrets", "folders", "create", "--env", INFISICAL_ENV, "--path", parent or "/",
                             "--name", name], capture_output=True)  # exists already on every run but the first
             output(["infisical", "secrets", "set", "--env", INFISICAL_ENV, "--path", path, "--file", handle.name])
-        else:
-            output(["phase", "secrets", "import", handle.name, "--app", PHASE_APP, "--env", PHASE_ENV, "--path", path],
-                   env=phase_env())
     stored = read(store, path)
     wrong = sorted(key for key, value in pairs.items() if digest(stored.get(key, "")) != digest(value))
     if wrong:
