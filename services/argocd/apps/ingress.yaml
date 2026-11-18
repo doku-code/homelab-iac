@@ -1,0 +1,41 @@
+# Certificates and routes under Argo CD (TASK-022, M009): the pinned cert-manager chart with the values
+# from this repository, plus the issuer, the wildcard certificate, Traefik's certificate store and the
+# routes to services outside k3s. The Secrets `cloudflare-api-token` and `ingress-default-tls` are not in
+# Git: `make ingress-certs-deploy` and `make ingress-tls-deploy` write them from the secret store.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress
+  namespace: argocd
+spec:
+  project: infrastructure
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  sources:
+    - repoURL: https://charts.jetstack.io
+      chart: cert-manager
+      targetRevision: v1.21.3
+      helm:
+        releaseName: cert-manager
+        valueFiles:
+          - $values/services/ingress/cert-manager.yaml
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/ingress
+      directory:
+        include: '{certificates.yaml,tls-store.yaml,legacy-routes.yaml,proxmox-routes.yaml}'
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      # The cert-manager definitions are too large for the client-side apply annotation, and on a new
+      # cluster the issuer and certificate are applied in the same run as the definitions they need.
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

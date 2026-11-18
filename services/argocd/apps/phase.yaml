@@ -1,0 +1,24 @@
+# Phase Console under Argo CD (M008, M009). One source: services/phase/kustomization.yaml renders the pinned
+# chart with the values from this repository, adds the routes and applies the frontend password-length
+# patch, so the patch is part of what Argo CD keeps in place. The Secret `phase-console-secret` is not in
+# Git: `make phase-deploy` writes it from the environment before applying this file.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: phase
+  namespace: argocd
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: phase
+  sources:
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/phase
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true

@@ -100,8 +100,8 @@ def test_make_guards():
         assert "STORAGE_CONFIGURE_APPROVED" in make("storage-configure").stderr
         assert "STORAGE_CSI_DEPLOY_APPROVED" in make("storage-csi-deploy").stderr and "helm" not in calls()
         make("storage-csi-deploy", "STORAGE_CSI_DEPLOY_APPROVED=yes")
-        assert "helm upgrade --install csi-driver-nfs" in calls() and "--kube-context doku-lab" in calls()
-        assert "kubectl --context doku-lab apply -f services/storage/storageclass.yaml" in calls()
+        assert "kubectl --context doku-lab apply -f services/argocd/apps/storage.yaml" in calls(), "Argo CD installs the driver"
+        assert "helm" not in calls()
 
 
 def main():

@@ -11,6 +11,8 @@ configs:
   cm:
     # No shell into pods from the web interface.
     exec.enabled: false
+    # services/phase/kustomization.yaml renders a Helm chart and patches it.
+    kustomize.buildOptions: --enable-helm
   # Chart registries that are not plain Git or HTTPS Helm repositories. No credentials: all are public.
   repositories:
     netbox-chart:

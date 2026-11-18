@@ -1,0 +1,34 @@
+# NFS CSI driver and the nvme-shared StorageClass under Argo CD (M006, M009): the pinned chart with the
+# values from this repository, plus services/storage/storageclass.yaml. No secret input.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: storage
+  namespace: argocd
+spec:
+  project: infrastructure
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  sources:
+    - repoURL: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+      chart: csi-driver-nfs
+      targetRevision: 4.13.6
+      helm:
+        releaseName: csi-driver-nfs
+        valueFiles:
+          - $values/services/storage/values.yaml
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/storage
+      directory:
+        include: storageclass.yaml
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true

@@ -118,3 +118,6 @@ CLAUDE.local.md
 
 # Claude Code personal settings (operator-local permission rules)
 .claude/settings.local.json
+
+# Charts downloaded by `kubectl kustomize --enable-helm` during local tests
+services/*/charts/

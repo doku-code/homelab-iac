@@ -29,9 +29,11 @@ spec:
           port: 80
   tls: {}
 ---
-# Applications of the platform: manifests and values only from this repository on Forgejo, charts only from
-# the registries listed, objects only in this cluster. Namespaces are the one cluster-wide kind allowed; a
-# chart that needs more (CRDs, cluster roles) gets it added here when it is moved under Argo CD.
+# Two projects limit what an application may do. Manifests and values come only from this repository on
+# Forgejo, charts only from the registries listed, objects go only to this cluster.
+#
+# platform: the services people use. Named namespaces; the only cluster-wide kinds are namespaces and the
+# cluster roles the charts create for their own service accounts.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -42,10 +44,42 @@ spec:
   sourceRepos:
     - https://git.doku-lab.net/Homelab/homelab-iac.git
     - ghcr.io/netbox-community/netbox-chart
+    - https://kubernetes-sigs.github.io/headlamp/
+    - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
+    - https://grafana-community.github.io/helm-charts
   destinations:
-    - server: https://kubernetes.default.svc
-      namespace: netbox
+    - {server: https://kubernetes.default.svc, namespace: netbox}
+    - {server: https://kubernetes.default.svc, namespace: headlamp}
+    - {server: https://kubernetes.default.svc, namespace: monitoring}
+    - {server: https://kubernetes.default.svc, namespace: phase}
   clusterResourceWhitelist:
     - {group: "", kind: Namespace}
+    - {group: rbac.authorization.k8s.io, kind: ClusterRole}
+    - {group: rbac.authorization.k8s.io, kind: ClusterRoleBinding}
+  namespaceResourceWhitelist:
+    - {group: "*", kind: "*"}
+---
+# infrastructure: what the cluster itself needs (certificates and routes, the storage driver). These charts
+# install definitions, cluster roles and admission webhooks and reach into kube-system, so this project allows
+# every cluster-wide kind; keep ordinary services out of it.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infrastructure
+  namespace: argocd
+spec:
+  description: Cluster infrastructure of doku-lab (certificates, routes, storage driver), declared in homelab-iac
+  sourceRepos:
+    - https://git.doku-lab.net/Homelab/homelab-iac.git
+    - https://charts.jetstack.io
+    - https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+  destinations:
+    - {server: https://kubernetes.default.svc, namespace: cert-manager}
+    - {server: https://kubernetes.default.svc, namespace: kube-system}
+    - {server: https://kubernetes.default.svc, namespace: legacy-edge}
+    - {server: https://kubernetes.default.svc, namespace: proxmox-ui}
+  clusterResourceWhitelist:
+    - {group: "*", kind: "*"}
   namespaceResourceWhitelist:
     - {group: "*", kind: "*"}

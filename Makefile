@@ -696,8 +696,6 @@ k3s-cluster-configure:
 
 HEADLAMP_CHART_VERSION := 0.46.0
 HEADLAMP_REPO := https://kubernetes-sigs.github.io/headlamp/
-HEADLAMP_KUBE := --kube-context doku-lab
-HEADLAMP_HELM_ARGS := headlamp headlamp --repo $(HEADLAMP_REPO) --version $(HEADLAMP_CHART_VERSION) --namespace headlamp -f services/headlamp/values.yaml
 
 .PHONY: headlamp-check headlamp-deploy headlamp-token
 
@@ -707,9 +705,8 @@ headlamp-check:
 
 headlamp-deploy:
 	@test "$(HEADLAMP_DEPLOY_APPROVED)" = yes || (echo "Approve the Headlamp deployment with HEADLAMP_DEPLOY_APPROVED=yes" >&2; exit 1)
-	kubectl --context doku-lab apply -f services/headlamp/access.yaml
-	helm upgrade --install $(HEADLAMP_HELM_ARGS) $(HEADLAMP_KUBE) --wait --timeout 5m
-	kubectl --context doku-lab -n headlamp rollout status deployment/headlamp --timeout=120s
+	kubectl --context doku-lab apply -f services/argocd/apps/headlamp.yaml
+	$(call ARGOCD_WAIT,headlamp)
 
 # Copies the admin login token into the active secret store, path /headlamp (HEADLAMP_ADMIN_TOKEN), without
 # printing it; scripts/secrets.py reads it back and compares.
@@ -719,12 +716,11 @@ headlamp-token:
 
 # ─────────────────────────────────────────────
 # Phase Console, the secret store that replaces Infisical (M008, ADR-004). Official chart, pinned; database
-# "phase" on the shared PostgreSQL (ADR-015). Deployed from the workstation until Argo CD takes over (M009).
+# "phase" on the shared PostgreSQL (ADR-015). Installed and kept in sync by Argo CD.
 # ─────────────────────────────────────────────
 
 PHASE_CHART_VERSION := 1.0.2
 PHASE_REPO := https://helm.phase.dev
-PHASE_HELM_ARGS := phase-console phase --repo $(PHASE_REPO) --version $(PHASE_CHART_VERSION) --namespace phase -f services/phase/values.yaml
 PHASE_SECRET_INPUTS := PHASE_SECRET_KEY PHASE_SERVER_SECRET PHASE_REDIS_PASSWORD PG_APP_PHASE_PASSWORD
 
 .PHONY: phase-check phase-deploy
@@ -735,21 +731,20 @@ phase-check:
 	$(VENV)/bin/python tests/phase.py
 	$(VENV)/bin/python tests/secrets.py
 
-# The four values come from the environment only and go straight into the Kubernetes Secret (never printed):
-# PHASE_SERVER_SECRET decrypts the stored secrets; losing it loses them. The patch after the chart lowers the
-# minimum password length (services/phase/frontend-password-policy.yaml).
+# Writes the Secret Phase needs, then hands Phase to Argo CD (services/argocd/apps/phase.yaml) and waits. The
+# four values come from the environment only and go straight into the Kubernetes Secret (never printed):
+# PHASE_SERVER_SECRET decrypts the stored secrets; losing it loses them. Chart, routes and the patch that
+# lowers the minimum password length are in services/phase/kustomization.yaml. The pods read host and
+# settings only when they start: after changing them, `kubectl -n phase rollout restart deployment`.
 phase-deploy:
 	@test "$(PHASE_DEPLOY_APPROVED)" = yes || (echo "Approve the Phase deployment with PHASE_DEPLOY_APPROVED=yes" >&2; exit 1)
 	@for v in $(PHASE_SECRET_INPUTS); do test -n "$${!v:-}" || { echo "Set $$v in the environment (bootstrap secrets of Phase and the database password of the application phase)" >&2; exit 1; }; done
-	kubectl --context doku-lab apply -f services/phase/access.yaml
+	@kubectl --context doku-lab create namespace phase --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
 	@set -euo pipefail; kubectl --context doku-lab -n phase create secret generic phase-console-secret --dry-run=client -o yaml \
 	  --from-env-file=<(printf 'SECRET_KEY=%s\nSERVER_SECRET=%s\nREDIS_PASSWORD=%s\nDATABASE_PASSWORD=%s\n' "$$PHASE_SECRET_KEY" "$$PHASE_SERVER_SECRET" "$$PHASE_REDIS_PASSWORD" "$$PG_APP_PHASE_PASSWORD") \
 	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/phase-console-secret applied"
-	helm upgrade --install $(PHASE_HELM_ARGS) --kube-context doku-lab --timeout 10m
-	kubectl --context doku-lab -n phase patch deployment phase-console-frontend --patch-file services/phase/frontend-password-policy.yaml
-	@# The pods read host and settings from the ConfigMap and the Secret only when they start.
-	@for d in backend worker frontend; do kubectl --context doku-lab -n phase rollout restart "deployment/phase-console-$$d"; done
-	@for d in backend worker frontend; do kubectl --context doku-lab -n phase rollout status "deployment/phase-console-$$d" --timeout=600s; done
+	kubectl --context doku-lab apply -f services/argocd/apps/phase.yaml
+	$(call ARGOCD_WAIT,phase)
 
 # ─────────────────────────────────────────────
 # Ingress certificate: Traefik's default certificate for *.192.168.0.40.sslip.io (services/ingress).
@@ -761,13 +756,15 @@ phase-deploy:
 INGRESS_CERT_MANAGER_CHART := v1.21.3
 INGRESS_CERT_MANAGER_REPO := https://charts.jetstack.io
 
-.PHONY: ingress-check ingress-certs-deploy ingress-routes-deploy ingress-tls-deploy
+.PHONY: ingress-check ingress-certs-deploy ingress-tls-deploy
 
 # Offline: renders the pinned cert-manager chart and checks issuer, certificate and store (needs the chart download).
 ingress-check:
 	$(VENV)/bin/python tests/ingress.py
 
-# cert-manager, the Let's Encrypt issuer (Cloudflare DNS-01) and the *.doku-lab.net wildcard for Traefik.
+# Writes the Cloudflare token, then hands cert-manager, the Let's Encrypt issuer (Cloudflare DNS-01), the
+# *.doku-lab.net wildcard, Traefik's certificate store and the routes to services outside k3s to Argo CD
+# (services/argocd/apps/ingress.yaml).
 #   scripts/secrets.py run /ingress -- make ingress-certs-deploy INGRESS_CERTS_DEPLOY_APPROVED=yes
 ingress-certs-deploy:
 	@test "$(INGRESS_CERTS_DEPLOY_APPROVED)" = yes || (echo "Approve cert-manager and the certificate issuer with INGRESS_CERTS_DEPLOY_APPROVED=yes" >&2; exit 1)
@@ -775,16 +772,9 @@ ingress-certs-deploy:
 	@kubectl --context doku-lab create namespace cert-manager --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
 	@set -euo pipefail; kubectl --context doku-lab -n cert-manager create secret generic cloudflare-api-token --dry-run=client -o yaml \
 	  --from-env-file=<(printf 'api-token=%s\n' "$$CLOUDFLARE_API_TOKEN") | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/cloudflare-api-token applied"
-	helm upgrade --install cert-manager cert-manager --repo $(INGRESS_CERT_MANAGER_REPO) --version $(INGRESS_CERT_MANAGER_CHART) --namespace cert-manager -f services/ingress/cert-manager.yaml --kube-context doku-lab --wait --timeout 10m
-	kubectl --context doku-lab apply -f services/ingress/certificates.yaml
+	kubectl --context doku-lab apply -f services/argocd/apps/ingress.yaml
+	$(call ARGOCD_WAIT,ingress)
 	kubectl --context doku-lab -n kube-system wait certificate/doku-lab-wildcard --for=condition=Ready --timeout=600s
-	kubectl --context doku-lab apply -f services/ingress/tls-store.yaml
-
-# Routes for the sites carried over from the legacy Caddy (idle until a name's DNS answer points at the cluster).
-ingress-routes-deploy:
-	@test "$(INGRESS_ROUTES_DEPLOY_APPROVED)" = yes || (echo "Approve the carried-over routes with INGRESS_ROUTES_DEPLOY_APPROVED=yes" >&2; exit 1)
-	kubectl --context doku-lab apply -f services/ingress/legacy-routes.yaml
-	kubectl --context doku-lab apply -f services/ingress/proxmox-routes.yaml
 
 ingress-tls-deploy:
 	@test "$(INGRESS_TLS_DEPLOY_APPROVED)" = yes || (echo "Approve the ingress certificate deployment with INGRESS_TLS_DEPLOY_APPROVED=yes" >&2; exit 1)
@@ -794,7 +784,6 @@ ingress-tls-deploy:
 	@set -euo pipefail; kubectl --context doku-lab -n kube-system create secret tls ingress-default-tls --dry-run=client -o yaml \
 	  --cert=<(printf '%s' "$$INGRESS_TLS_CERT_B64" | base64 -d) --key=<(printf '%s' "$$INGRESS_TLS_KEY_B64" | base64 -d) \
 	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/ingress-default-tls applied"
-	kubectl --context doku-lab apply -f services/ingress/tls-store.yaml
 
 # ─────────────────────────────────────────────
 # Shared storage for k3s user data (M006, ADR-012): storage-01 on pve-core (NFS) + NFS CSI driver.
@@ -852,11 +841,12 @@ storage-configure:
 	$(TOFU) -chdir=$(STORAGE_DIR) output -json ansible_inventory > "$$inventory"; \
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-storage.yml --diff
 
-# NFS CSI driver and the nvme-shared StorageClass, from the workstation until Argo CD takes over (M009).
+# NFS CSI driver and the nvme-shared StorageClass, installed and kept in sync by Argo CD
+# (services/argocd/apps/storage.yaml).
 storage-csi-deploy:
 	@test "$(STORAGE_CSI_DEPLOY_APPROVED)" = yes || (echo "Approve the CSI deployment with STORAGE_CSI_DEPLOY_APPROVED=yes" >&2; exit 1)
-	helm upgrade --install csi-driver-nfs csi-driver-nfs --repo $(STORAGE_CSI_REPO) --version $(STORAGE_CSI_CHART_VERSION) --namespace kube-system -f services/storage/values.yaml --kube-context doku-lab --wait --timeout 5m
-	kubectl --context doku-lab apply -f services/storage/storageclass.yaml
+	kubectl --context doku-lab apply -f services/argocd/apps/storage.yaml
+	$(call ARGOCD_WAIT,storage)
 
 # ─────────────────────────────────────────────
 # Shared PostgreSQL platform (M007, ADR-015): pg-01..03, one per Proxmox host, outside k3s. PostgreSQL 17
@@ -919,11 +909,10 @@ postgresql-configure:
 
 # ─────────────────────────────────────────────
 # Lean observability (TASK-020): Prometheus, Loki and Grafana on k3s, Alloy as the only collector (one in
-# the cluster, one on every VM). Official charts, pinned; deployed from the workstation until Argo CD (M009).
+# the cluster, one on every VM). Official charts, pinned; kept in sync by Argo CD.
 # ─────────────────────────────────────────────
 
 OBS_DIR := services/observability
-OBS_KUBE := --kube-context doku-lab --namespace monitoring
 OBS_PROMETHEUS_CHART := 29.47.2
 OBS_LOKI_CHART := 7.6.0
 OBS_ALLOY_CHART := 1.16.0
@@ -940,21 +929,19 @@ observability-check:
 	$(ANSIBLE) ansible/playbooks/configure-observability-agents.yml --syntax-check -i ansible/inventories/homelab.yml
 	$(VENV)/bin/python tests/observability.py
 
-# Grafana's two passwords come from the environment only (store paths /monitoring and /postgresql).
+# Writes Grafana's two passwords (environment only: store paths /monitoring and /postgresql), then hands the
+# four charts, the routes, the Alloy configuration and the dashboards to Argo CD
+# (services/argocd/apps/monitoring.yaml).
 observability-deploy:
 	@test "$(OBSERVABILITY_DEPLOY_APPROVED)" = yes || (echo "Approve the observability deployment with OBSERVABILITY_DEPLOY_APPROVED=yes" >&2; exit 1)
 	@for v in GRAFANA_ADMIN_PASSWORD PG_APP_GRAFANA_PASSWORD; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /monitoring and /postgresql)" >&2; exit 1; }; done
-	kubectl --context doku-lab apply -f $(OBS_DIR)/access.yaml
+	@kubectl --context doku-lab create namespace monitoring --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
 	@set -euo pipefail; k="kubectl --context doku-lab -n monitoring"; \
 	$$k create secret generic grafana-admin --dry-run=client -o yaml --from-env-file=<(printf 'admin-user=admin\nadmin-password=%s\n' "$$GRAFANA_ADMIN_PASSWORD") | $$k apply -f - >/dev/null; \
 	$$k create secret generic grafana-db --dry-run=client -o yaml --from-env-file=<(printf 'password=%s\n' "$$PG_APP_GRAFANA_PASSWORD") | $$k apply -f - >/dev/null; \
-	$$k create configmap alloy-config --dry-run=client -o yaml --from-file=config.alloy=$(OBS_DIR)/cluster.alloy | $$k apply -f - >/dev/null; \
-	$$k create configmap grafana-dashboards --dry-run=client -o yaml --from-file=$(OBS_DIR)/dashboards/ | $$k apply -f - >/dev/null; \
-	echo "secrets and configuration applied"
-	helm upgrade --install prometheus prometheus --repo $(OBS_PROMETHEUS_REPO) --version $(OBS_PROMETHEUS_CHART) -f $(OBS_DIR)/prometheus.yaml $(OBS_KUBE) --wait --timeout 10m
-	helm upgrade --install loki loki --repo $(OBS_GRAFANA_LABS_REPO) --version $(OBS_LOKI_CHART) -f $(OBS_DIR)/loki.yaml $(OBS_KUBE) --wait --timeout 10m
-	helm upgrade --install alloy alloy --repo $(OBS_GRAFANA_LABS_REPO) --version $(OBS_ALLOY_CHART) -f $(OBS_DIR)/alloy.yaml $(OBS_KUBE) --wait --timeout 10m
-	helm upgrade --install grafana grafana --repo $(OBS_GRAFANA_REPO) --version $(OBS_GRAFANA_CHART) -f $(OBS_DIR)/grafana.yaml $(OBS_KUBE) --wait --timeout 10m
+	echo "secrets applied"
+	kubectl --context doku-lab apply -f services/argocd/apps/monitoring.yaml
+	$(call ARGOCD_WAIT,monitoring)
 
 # Installs and configures Alloy on every VM of the listed roots (inventories from their OpenTofu outputs).
 # OBS_INVENTORY=netbox reads the same hosts from NetBox instead (ansible/inventories/netbox.yml, read-only

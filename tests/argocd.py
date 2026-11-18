@@ -43,6 +43,7 @@ def chart():
     maps = {d["metadata"]["name"]: d.get("data") or {} for d in docs if d["kind"] == "ConfigMap"}
     assert maps["argocd-cmd-params-cm"]["server.insecure"] == "true", "TLS ends at Traefik"
     assert maps["argocd-cm"]["exec.enabled"] == "false" and maps["argocd-cm"]["url"] == f"https://{HOST}"
+    assert maps["argocd-cm"]["kustomize.buildOptions"] == "--enable-helm", "services/phase renders a chart through kustomize"
     # Repository entries are rendered as Secrets by the chart: they must carry addresses only, no credentials.
     repositories = [d for d in docs if d["kind"] == "Secret" and d["metadata"].get("labels", {}).get("argocd.argoproj.io/secret-type") == "repository"]
     assert len(repositories) == 1
@@ -50,6 +51,38 @@ def chart():
         assert set(repository["data"]) == {"name", "type", "url", "enableOCI"}, repository["data"].keys()
     assert not [d for d in docs if d["kind"] in ("Ingress", "HTTPRoute")], "the route is in access.yaml"
     return {base64.b64decode(r["data"]["url"]).decode() for r in repositories}
+
+
+# Chart pins also used by the offline tests of each service: release -> Makefile variables (repository, version).
+PINS = {
+    "headlamp": ("HEADLAMP_REPO", "HEADLAMP_CHART_VERSION"),
+    "prometheus": ("OBS_PROMETHEUS_REPO", "OBS_PROMETHEUS_CHART"),
+    "loki": ("OBS_GRAFANA_LABS_REPO", "OBS_LOKI_CHART"),
+    "alloy": ("OBS_GRAFANA_LABS_REPO", "OBS_ALLOY_CHART"),
+    "grafana": ("OBS_GRAFANA_REPO", "OBS_GRAFANA_CHART"),
+    "cert-manager": ("INGRESS_CERT_MANAGER_REPO", "INGRESS_CERT_MANAGER_CHART"),
+    "csi-driver-nfs": ("STORAGE_CSI_REPO", "STORAGE_CSI_CHART_VERSION"),
+    "phase-console": ("PHASE_REPO", "PHASE_CHART_VERSION"),
+}
+
+
+def applied_files(path, source):
+    """The files Argo CD applies as they are from a Git path: a kustomization, or the included manifests."""
+    if (path / "kustomization.yaml").exists():
+        assert "directory" not in source
+        kustomization = yaml.safe_load((path / "kustomization.yaml").read_text())
+        for chart in kustomization.get("helmCharts", []):
+            repo, version = PINS[chart["releaseName"]]
+            assert (chart["repo"], chart["version"]) == (make_var(repo), make_var(version)), chart["releaseName"]
+            assert (path / chart["valuesFile"]).is_file()
+        for generator in kustomization.get("configMapGenerator", []):
+            for entry in generator["files"]:
+                assert (path / entry.split("=")[-1]).is_file(), entry
+        for patch in kustomization.get("patches", []):
+            assert (path / patch["path"]).is_file()
+        return [path / name for name in kustomization["resources"]]
+    names = source["directory"]["include"].strip("{}").split(",")
+    return [path / name for name in names]
 
 
 def access_and_applications(registries):
@@ -64,37 +97,61 @@ def access_and_applications(registries):
     rewrites = {r["domain"]: r["answer"] for r in yaml.safe_load((ROOT / "ansible/vars/dns.yml").read_text())["adguard_rewrites"]}
     assert rewrites[HOST] == "192.168.0.40"
 
-    (project,) = [d for d in docs if d["kind"] == "AppProject"]
-    spec = project["spec"]
-    assert REPO in spec["sourceRepos"] and "*" not in spec["sourceRepos"], "only this repository and the listed chart registries"
-    assert set(spec["sourceRepos"]) - {REPO} == registries, "every chart registry of the project is declared to Argo CD"
-    assert all(d["server"] == CLUSTER and d["namespace"] != "*" for d in spec["destinations"]), "this cluster, named namespaces"
-    assert spec["clusterResourceWhitelist"] == [{"group": "", "kind": "Namespace"}], "no cluster-wide objects beyond namespaces"
-    namespaces = {d["namespace"] for d in spec["destinations"]}
-    assert "argocd" not in namespaces and "kube-system" not in namespaces, "applications cannot change Argo CD or the system"
+    projects = {d["metadata"]["name"]: d["spec"] for d in docs if d["kind"] == "AppProject"}
+    assert set(projects) == {"platform", "infrastructure"}
+    namespaces = {}
+    for name, spec in projects.items():
+        assert REPO in spec["sourceRepos"] and "*" not in spec["sourceRepos"], "only this repository and the listed chart registries"
+        assert all(d["server"] == CLUSTER and d["namespace"] != "*" for d in spec["destinations"]), "this cluster, named namespaces"
+        namespaces[name] = {d["namespace"] for d in spec["destinations"]}
+        assert "argocd" not in namespaces[name], "no application can change Argo CD itself"
+    assert not namespaces["platform"] & namespaces["infrastructure"], "a namespace belongs to one project"
+    # Ordinary services cannot touch the system namespace or create cluster-wide objects beyond their own roles.
+    assert "kube-system" not in namespaces["platform"]
+    assert projects["platform"]["clusterResourceWhitelist"] == [
+        {"group": "", "kind": "Namespace"}, {"group": "rbac.authorization.k8s.io", "kind": "ClusterRole"},
+        {"group": "rbac.authorization.k8s.io", "kind": "ClusterRoleBinding"}]
+    oci = {repo for spec in projects.values() for repo in spec["sourceRepos"] if "://" not in repo}
+    assert oci == registries, "every OCI chart registry of a project is declared to Argo CD"
 
     applications = sorted((DIR / "apps").glob("*.yaml"))
-    assert applications
+    assert {p.stem for p in applications} == {"netbox", "headlamp", "monitoring", "phase", "ingress", "storage"}
+    used_repos, used_namespaces = set(), set()
     for path in applications:
         (application,) = [d for d in yaml.safe_load_all(path.read_text()) if d]
         app = application["spec"]
         assert application["kind"] == "Application" and application["metadata"] == {"name": path.stem, "namespace": "argocd"}
-        assert app["project"] == "platform" and app["destination"] == {"server": CLUSTER, "namespace": path.stem}
-        assert app["destination"]["namespace"] in namespaces
+        project = projects[app["project"]]
+        assert app["destination"]["server"] == CLUSTER and app["destination"]["namespace"] in namespaces[app["project"]], path.stem
+        used_namespaces.add(app["destination"]["namespace"])
         assert app["syncPolicy"]["automated"] == {"prune": False, "selfHeal": True}, "nothing is deleted automatically"
         for source in app["sources"]:
-            assert source["repoURL"] in spec["sourceRepos"], source["repoURL"]
+            assert source["repoURL"] in project["sourceRepos"], source["repoURL"]
+            used_repos.add(source["repoURL"])
             if "chart" in source:
-                assert re.fullmatch(r"\d+\.\d+\.\d+", source["targetRevision"]), "charts are pinned"
+                assert re.fullmatch(r"v?\d+\.\d+\.\d+", source["targetRevision"]), "charts are pinned"
+                release = source["helm"]["releaseName"]
+                if release in PINS:
+                    repo, version = PINS[release]
+                    assert (source["repoURL"], source["targetRevision"]) == (make_var(repo), make_var(version)), release
                 for values in source["helm"]["valueFiles"]:
                     assert values.startswith("$values/") and (ROOT / values[len("$values/"):]).is_file(), values
             else:
                 assert source["repoURL"] == REPO and source["targetRevision"] == "main"
                 if "path" in source:
-                    # Argo CD applies these files as they are: they must exist and hold no Secret.
-                    included = ROOT / source["path"] / source["directory"]["include"]
-                    kinds = [d["kind"] for d in yaml.safe_load_all(included.read_text()) if d]
-                    assert kinds and "Secret" not in kinds, included
+                    for applied in applied_files(ROOT / source["path"], source):
+                        objects = [d for d in yaml.safe_load_all(applied.read_text()) if d]
+                        assert objects, applied
+                        for item in objects:
+                            # A Secret in Git may only be an empty shell Kubernetes fills in (a service-account token).
+                            assert item["kind"] != "Secret" or not (item.get("data") or item.get("stringData")), applied
+                            namespace = item["metadata"].get("namespace")
+                            assert namespace is None or namespace in namespaces[app["project"]], f"{applied}: {namespace}"
+    assert used_repos == {repo for spec in projects.values() for repo in spec["sourceRepos"]}, "no unused source in a project"
+    dashboards = {p.name for p in (ROOT / "services/observability/dashboards").glob("*.json")}
+    generated = yaml.safe_load((ROOT / "services/observability/kustomization.yaml").read_text())["configMapGenerator"]
+    listed = {Path(f).name for g in generated if g["name"] == "grafana-dashboards" for f in g["files"]}
+    assert listed == dashboards, "every dashboard file is listed in the kustomization"
 
 
 def make_guards():
@@ -113,7 +170,7 @@ def main():
     access_and_applications(registries)
     make_guards()
     print("PASS: Argo CD chart pinned with single replicas, LAN-only route behind Traefik, no credentials in Git, "
-          "project limited to this repository, this cluster and named namespaces, applications pinned and never pruning")
+          "two projects limited to this repository, this cluster and named namespaces, six applications pinned and never pruning")
 
 
 if __name__ == "__main__":

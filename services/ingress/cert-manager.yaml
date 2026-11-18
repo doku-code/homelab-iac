@@ -22,3 +22,6 @@ extraArgs:
   - --dns01-recursive-nameservers=1.1.1.1:53,9.9.9.9:53
 prometheus:
   enabled: false
+# A one-off check job the chart runs after an installation; under Argo CD it would run after every sync.
+startupapicheck:
+  enabled: false

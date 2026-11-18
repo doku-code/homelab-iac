@@ -1,0 +1,55 @@
+# Prometheus, Loki, Alloy and Grafana under Argo CD (TASK-020, M009): four pinned charts with the values
+# from this repository, plus services/observability/kustomization.yaml (routes, the Alloy configuration
+# and the dashboards as ConfigMaps). The Secrets `grafana-admin` and `grafana-db` are not in Git:
+# `make observability-deploy` writes them from the secret store before applying this file.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: prometheus
+      targetRevision: 29.47.2
+      helm:
+        releaseName: prometheus
+        valueFiles:
+          - $values/services/observability/prometheus.yaml
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: loki
+      targetRevision: 7.6.0
+      helm:
+        releaseName: loki
+        valueFiles:
+          - $values/services/observability/loki.yaml
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: alloy
+      targetRevision: 1.16.0
+      helm:
+        releaseName: alloy
+        valueFiles:
+          - $values/services/observability/alloy.yaml
+    - repoURL: https://grafana-community.github.io/helm-charts
+      chart: grafana
+      targetRevision: 14.5.0
+      helm:
+        releaseName: grafana
+        valueFiles:
+          - $values/services/observability/grafana.yaml
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/observability
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true

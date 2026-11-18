@@ -1,0 +1,16 @@
+# What Argo CD applies for Phase (services/argocd/apps/phase.yaml): the pinned chart with our values, the
+# routes, and the frontend patch that lowers the minimum password length. Needs Argo CD's Helm support for
+# kustomize (services/argocd/values.yaml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+helmCharts:
+  - name: phase
+    repo: https://helm.phase.dev
+    version: 1.0.2
+    releaseName: phase-console
+    namespace: phase
+    valuesFile: values.yaml
+resources:
+  - access.yaml
+patches:
+  - path: frontend-password-policy.yaml

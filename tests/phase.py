@@ -105,9 +105,15 @@ def main():
     assert "PHASE_DEPLOY_APPROVED" in makefile and "--from-env-file=<(printf" in makefile
     deploy = makefile[makefile.index("phase-deploy:"):]
     deploy = deploy[:deploy.index("\n\n")]
-    assert "--wait" not in deploy, "the migration job is a post-install hook: helm --wait would deadlock on it"
-    assert "patch deployment phase-console-frontend --patch-file services/phase/frontend-password-policy.yaml" in deploy
-    assert deploy.index("helm upgrade") < deploy.index("frontend-password-policy.yaml"), "the patch follows the chart"
+    assert "helm " not in deploy and "apply -f services/argocd/apps/phase.yaml" in deploy, "Argo CD installs the chart, not Make"
+    # The chart, our values, the routes and the password patch are rendered together by Argo CD.
+    kustomization = yaml.safe_load((ROOT / "services/phase/kustomization.yaml").read_text())
+    (pinned,) = kustomization["helmCharts"]
+    assert (pinned["repo"], pinned["version"], pinned["releaseName"]) == (repo, version, "phase-console")
+    assert pinned["valuesFile"] == "values.yaml" and kustomization["resources"] == ["access.yaml"]
+    assert kustomization["patches"] == [{"path": "frontend-password-policy.yaml"}]
+    target = yaml.safe_load((ROOT / "services/phase/frontend-password-policy.yaml").read_text())
+    assert (target["kind"], target["metadata"]) == ("Deployment", {"name": "phase-console-frontend"})
     password_policy()
     print("PASS: Phase chart and Console pinned, external TLS database, no in-cluster database, "
           "HTTPS + admin-LAN routes, secrets only from the environment, 10-character password rule fails closed")
