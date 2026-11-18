@@ -7,12 +7,12 @@ status: in-progress
 priority: high
 milestone: M008
 created: 2026-11-17
-updated: 2026-11-17
+updated: 2026-11-18
 tags: [phase, secrets, infisical, k3s, migration]
 depends_on: [TASK-018]
 related: [ARCH-platform, GUIDE-handoff]
 related_decisions: [ADR-004, ADR-015, ADR-011]
-related_implementations: [services/phase, scripts/secrets.py, ansible/vars/postgresql-apps.yml, ansible/roles/admin_workstation/defaults/main.yml, Makefile]
+related_implementations: [services/phase, services/phase/frontend-password-policy.yaml, scripts/secrets.py, ansible/vars/postgresql-apps.yml, ansible/roles/admin_workstation/defaults/main.yml, Makefile]
 related_tests: [tests/phase.py, tests/secrets.py]
 tests_justification: ""
 verification_commands: [make phase-check]
@@ -43,6 +43,10 @@ shut down (operator direction 2026-11-17; the shutdown itself needs the operator
   the backend without the prefix, the rest to the frontend, HTTPS only, administration LAN only.
   URL: `https://phase.192.168.0.40.sslip.io/` (Traefik's self-signed certificate for now).
 - **Login**: email and password (no SSO provider exists yet; Authentik later). No outgoing email.
+  Minimum password length **10** instead of Phase's built-in 16 (operator decision 2026-11-18). Phase has no
+  setting for it and checks the length only in the browser, so `services/phase/frontend-password-policy.yaml`
+  makes the frontend container rewrite that rule in its own files before it starts; the container stops if
+  the expected code is missing, so a Console upgrade that changes it fails the rollout and has to be reviewed.
 - **Bootstrap secrets**: `PHASE_SECRET_KEY`, `PHASE_SERVER_SECRET`, `PHASE_REDIS_PASSWORD` (store path
   `/phase`) and `PG_APP_PHASE_PASSWORD` (`/postgresql`); `make phase-deploy` puts them into the Kubernetes
   Secret `phase-console-secret` without printing them.
@@ -106,6 +110,7 @@ scripts/secrets.py migrate --dry-run
 | Test file | Covers | Command | Result |
 |-----------|--------|---------|--------|
 | `tests/phase.py` | pinned chart and Console, external TLS database, no in-cluster database, Traefik routes (HTTPS, LAN, prefix strip), no secret in Git, no `helm --wait` (migration hook) | `make phase-check` | PASS 2026-11-17 |
+| `tests/phase.py` (password rule) | the start-up patch turns 16 into 10 in the three code shapes of v2.79.0, leaves unrelated length checks alone, and exits without starting when the code is missing or changed | `make phase-check` | PASS 2026-11-18 |
 | `tests/secrets.py` | explicit store, `run` from infisical/phase/recovery, `set` with read-back, migration with digest verification and a mangled value detected, age bundle (encrypted, 0600, identity required, never overwritten by an incomplete source), no value printed | `make phase-check` | PASS 2026-11-17 |
 
 ## Evidence
@@ -117,6 +122,7 @@ scripts/secrets.py migrate --dry-run
 | Health | `/api/health` 200 `alive`; `/service/health/` 200 `v2.79.0`; `/login` 200; port 80 gives 404; from a pod 403 | `curl` | 2026-11-17 |
 | CLI | `phase` 2.3.3 installed through the tool catalog | `phase --version` | 2026-11-17 |
 | Store script against Infisical | `inventory` lists 12 paths / 36 keys (names only); `run /k3s` injects the token; `make headlamp-token` stored and read back the token | script output | 2026-11-17 |
+| Password rule | Patched frontend rolled out; the served sign-up code says "at least 10 characters" (28 fields, 4 checks, 2 meters rewritten; nothing left at 16); `/signup`, `/login`, `/api/health` 200. Not tested by creating an account | `kubectl patch`, `curl` over the served chunks | 2026-11-18 |
 | Account bootstrap | **Not done.** Automating the first sign-up with a headless browser was refused by the permission system; the owner account is the operator's to create | — | 2026-11-17 |
 | Phase side of the script | **Not verified** against a real Phase (needs the account): `phase secrets import/export` are exercised only with a fake | `tests/secrets.py` | 2026-11-17 |
 

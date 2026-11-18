@@ -736,7 +736,8 @@ phase-check:
 	$(VENV)/bin/python tests/secrets.py
 
 # The four values come from the environment only and go straight into the Kubernetes Secret (never printed):
-# PHASE_SERVER_SECRET decrypts the stored secrets; losing it loses them.
+# PHASE_SERVER_SECRET decrypts the stored secrets; losing it loses them. The patch after the chart lowers the
+# minimum password length (services/phase/frontend-password-policy.yaml).
 phase-deploy:
 	@test "$(PHASE_DEPLOY_APPROVED)" = yes || (echo "Approve the Phase deployment with PHASE_DEPLOY_APPROVED=yes" >&2; exit 1)
 	@for v in $(PHASE_SECRET_INPUTS); do test -n "$${!v:-}" || { echo "Set $$v in the environment (bootstrap secrets of Phase and the database password of the application phase)" >&2; exit 1; }; done
@@ -745,6 +746,7 @@ phase-deploy:
 	  --from-env-file=<(printf 'SECRET_KEY=%s\nSERVER_SECRET=%s\nREDIS_PASSWORD=%s\nDATABASE_PASSWORD=%s\n' "$$PHASE_SECRET_KEY" "$$PHASE_SERVER_SECRET" "$$PHASE_REDIS_PASSWORD" "$$PG_APP_PHASE_PASSWORD") \
 	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/phase-console-secret applied"
 	helm upgrade --install $(PHASE_HELM_ARGS) --kube-context doku-lab --timeout 10m
+	kubectl --context doku-lab -n phase patch deployment phase-console-frontend --patch-file services/phase/frontend-password-policy.yaml
 	@for d in backend worker frontend; do kubectl --context doku-lab -n phase rollout status "deployment/phase-console-$$d" --timeout=600s; done
 
 # ─────────────────────────────────────────────
