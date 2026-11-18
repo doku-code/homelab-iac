@@ -21,8 +21,8 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
 | M008 | active | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
+| M009 | active | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | completed: 1 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M013 | active | medium | [NetBox inventory and IPAM](../milestones/M013-netbox-inventory-and-ipam.md) | completed: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
-| M009 | planned | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | none | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 1, in-progress: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](../milestones/M012-backups-and-finalization.md) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
@@ -61,6 +61,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-020 | completed | medium | M010 | [Lean observability: Prometheus, Loki, Grafana and Alloy](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md) | Prometheus, Loki and Grafana on k3s; Alloy collects a small allow-list of metrics and logs from the cluster and from every VM; Grafana state on the shared PostgreSQL. |
 | TASK-021 | completed | medium | M004 | [k3s servers on pve-core and pve-lab: three etcd members](../tasks/TASK-021-k3s-servers-on-pve-core-and-pve-lab-three-etcd-members.md) | k3s-server-02 on pve-core and k3s-server-03 on pve-lab join the embedded etcd; Traefik runs on every node so ingress survives a reschedule. |
 | TASK-023 | completed | medium | M013 | [NetBox on k3s, initial inventory, reconciliation and Ansible inventory](../tasks/TASK-023-netbox-on-k3s-initial-inventory-reconciliation-and-ansible-i.md) | Deploy NetBox with the official chart on the shared PostgreSQL, populate it from the OpenTofu outputs and read-only Proxmox discovery, and let Ansible read its inventory from it. |
+| TASK-024 | completed | medium | M009 | [Argo CD on k3s and NetBox as its first application](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md) | Install Argo CD from the workstation, restrict it to this repository and named namespaces, and move NetBox under it without a restart. |
 
 ## Decisions
 
@@ -124,7 +125,7 @@ _No commit records. Generate with `harness history sync`._
 - **ansible**: TASK-009, TASK-014, TASK-015, TASK-017, TASK-018
 - **architecture**: ARCH-platform
 - **archive**: ADR-007
-- **argocd**: ADR-006, ADR-011
+- **argocd**: ADR-006, ADR-011, TASK-024
 - **backup**: ADR-012, TASK-003, TASK-004, TASK-010
 - **bootstrap**: ADR-002, ADR-008, INV-pve-management-bootstrap, M001
 - **caddy**: TASK-022
@@ -145,7 +146,7 @@ _No commit records. Generate with `harness history sync`._
 - **external**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll
 - **flux**: ADR-006
 - **forgejo**: ADR-014, TASK-014
-- **gitops**: ADR-005
+- **gitops**: ADR-005, TASK-024
 - **grafana**: TASK-020
 - **guide**: GUIDE-handoff
 - **handoff**: GUIDE-handoff

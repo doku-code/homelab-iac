@@ -915,6 +915,10 @@
         {
           "from": "TASK-023",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-024",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1387,6 +1391,10 @@
         {
           "from": "TASK-023",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-024",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1698,6 +1706,10 @@
         },
         {
           "from": "TASK-023",
+          "field": "related"
+        },
+        {
+          "from": "TASK-024",
           "field": "related"
         }
       ]
@@ -2986,7 +2998,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "active",
       "path": "milestones/M009-argocd-windmill.md",
       "tags": [
         "roadmap"
@@ -3012,6 +3024,9 @@
           "ARCH-platform",
           "DOC-project-overview"
         ],
+        "related_tasks": [
+          "TASK-024"
+        ],
         "related_decisions": [
           "ADR-011",
           "ADR-005",
@@ -3030,6 +3045,10 @@
         {
           "from": "M010",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-024",
+          "field": "milestone"
         }
       ]
     },
@@ -4947,6 +4966,10 @@
         {
           "from": "TASK-023",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-024",
+          "field": "depends_on"
         }
       ]
     },
@@ -5029,6 +5052,78 @@
         {
           "from": "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
           "field": "related_tasks"
+        },
+        {
+          "from": "TASK-024",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "TASK-024",
+      "title": "Argo CD on k3s and NetBox as its first application",
+      "summary": "Install Argo CD from the workstation, restrict it to this repository and named namespaces, and move NetBox under it without a restart.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "completed",
+      "path": "tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md",
+      "tags": [
+        "argocd",
+        "gitops"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M009",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-024 — Argo CD on k3s and NetBox as its first application",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform"
+        ],
+        "related_decisions": [
+          "ADR-011",
+          "ADR-016"
+        ],
+        "depends_on": [
+          "TASK-023",
+          "TASK-022"
+        ],
+        "related_implementations": [
+          "services/argocd/values.yaml",
+          "services/argocd/access.yaml",
+          "services/argocd/apps/netbox.yaml",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/argocd.py",
+          "tests/netbox.py"
+        ],
+        "milestone": [
+          "M009"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M009",
+          "field": "related_tasks"
         }
       ]
     }
@@ -5108,7 +5203,8 @@
       "TASK-020",
       "TASK-021",
       "TASK-022",
-      "TASK-023"
+      "TASK-023",
+      "TASK-024"
     ]
   },
   "by_tag": {
@@ -5140,7 +5236,8 @@
     ],
     "argocd": [
       "ADR-006",
-      "ADR-011"
+      "ADR-011",
+      "TASK-024"
     ],
     "backup": [
       "ADR-012",
@@ -5231,7 +5328,8 @@
       "TASK-014"
     ],
     "gitops": [
-      "ADR-005"
+      "ADR-005",
+      "TASK-024"
     ],
     "grafana": [
       "TASK-020"

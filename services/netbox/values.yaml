@@ -1,4 +1,5 @@
-# NetBox (M013, ADR-016): official chart netbox-community/netbox, pinned in the Makefile. One web pod, one
+# NetBox (M013, ADR-016): official chart netbox-community/netbox, pinned in
+# services/argocd/apps/netbox.yaml and kept in sync by Argo CD. One web pod, one
 # worker pod. The database is the shared PostgreSQL outside k3s (ADR-015); the key-value store is only a job
 # queue and cache and runs in the cluster (services/netbox/access.yaml).
 image:

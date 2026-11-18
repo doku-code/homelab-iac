@@ -92,6 +92,11 @@ verification:
     detected: false
     verified: true
     description: Renders the pinned cert-manager chart and checks issuer, wildcard certificate, Traefik store and the routes carried over from the legacy Caddy (workstation only; needs helm and the chart download)
+  - name: argocd-check
+    run: make argocd-check
+    detected: false
+    verified: true
+    description: Renders the pinned Argo CD chart and checks route, project limits and every Application (workstation only; needs helm and the chart download)
   - name: netbox-check
     run: make netbox-check
     detected: false

@@ -137,6 +137,9 @@ in Git. A shared backend is decided only when the dedicated runner must apply (T
   workflow; every step stays runnable from the workstation.
 - **Migrate a service (M010):** deploy the replacement, copy its data, configure database and secrets,
   validate, cut over, retire the old workload only after validation.
+- **Change a service that is under Argo CD:** edit its values or manifests in `services/<name>/` → merge to
+  `main` → Argo CD applies it. Services not yet under Argo CD keep their `make <name>-deploy` target; the
+  list is `services/argocd/apps/`.
 - **Inventory:** a root is applied from its own variables → `make netbox-discover` snapshots Proxmox
   read-only → `make netbox-plan` shows the difference and what needs a decision → `make netbox-apply`
   writes it. Ansible runs across roots read `ansible/inventories/netbox.yml`; each root's own

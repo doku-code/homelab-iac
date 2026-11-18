@@ -106,6 +106,8 @@ scripts/secrets.py run /netbox -- make netbox-inventory
 
 Completed 2026-11-18. NetBox 4.7.5 runs on k3s at `https://netbox.doku-lab.net`, holds the first inventory
 and serves the Ansible inventory for runs across roots.
+Since the same day NetBox is installed and kept in sync by Argo CD
+([TASK-024](TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md)); `make netbox-deploy` only writes its Secret.
 
 Not done, on purpose (ADR-016, next steps): no address allocation from NetBox during provisioning, no
 OpenTofu provider, no services, cables, racks or MAC addresses, no Kubernetes workloads. Operator: review the
