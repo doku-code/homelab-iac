@@ -62,6 +62,7 @@ kind: Service
 metadata:
   name: netbox-valkey
   namespace: netbox
+  labels: {app.kubernetes.io/name: netbox-valkey, app.kubernetes.io/part-of: netbox}
 spec:
   selector: {app.kubernetes.io/name: netbox-valkey}
   ports:
