@@ -44,6 +44,8 @@ def chart():
     assert maps["argocd-cmd-params-cm"]["server.insecure"] == "true", "TLS ends at Traefik"
     assert maps["argocd-cm"]["exec.enabled"] == "false" and maps["argocd-cm"]["url"] == f"https://{HOST}"
     assert maps["argocd-cm"]["kustomize.buildOptions"] == "--enable-helm", "services/phase renders a chart through kustomize"
+    excluded = {kind for entry in yaml.safe_load(maps["argocd-cm"]["resource.exclusions"]) for kind in entry["kinds"]}
+    assert "EndpointSlice" not in excluded and {"Endpoints", "Lease"} <= excluded, "the routes to outside services need EndpointSlices"
     # Repository entries are rendered as Secrets by the chart: they must carry addresses only, no credentials.
     repositories = [d for d in docs if d["kind"] == "Secret" and d["metadata"].get("labels", {}).get("argocd.argoproj.io/secret-type") == "repository"]
     assert len(repositories) == 1
