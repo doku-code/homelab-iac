@@ -172,6 +172,10 @@ jobs:
       - name: Validate OpenTofu root terraform/stacks/postgresql, Patroni role and access rules offline
         run: make postgresql-check
 
+      # Offline only: mocked provider, rendered templates; synthetic login hash.
+      - name: Validate OpenTofu root terraform/stacks/dns, AdGuard Home role and Make guards offline
+        run: make dns-check
+
       - name: Validate monitoring Compose configuration
         run: docker-compose -f services/monitoring/compose.yml config --quiet
 

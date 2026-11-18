@@ -1,0 +1,28 @@
+---
+# LAN DNS content (TASK-022), carried over from the legacy AdGuard Home on 2026-11-18. Edit here, then run
+# `make dns-configure`; changes made in the web interface do not survive the next run.
+adguard_filters:
+  - {name: "AdGuard DNS filter", url: "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt"}
+  - {name: "AdAway Default Blocklist", url: "https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt"}
+  - {name: "OISD Big", url: "https://big.oisd.nl"}
+
+# Local answers. Names served by the legacy Caddy point at 192.168.0.24; a name moves to the cluster by
+# changing its answer to the ingress address (services/ingress/legacy-routes.yaml has its route).
+adguard_rewrites:
+  - {domain: plex.doku-lab.net, answer: 192.168.0.24}
+  - {domain: print.home, answer: 192.168.0.23}
+  - {domain: adguard.doku-lab.net, answer: 192.168.0.20}
+  - {domain: qbit.doku-lab.net, answer: 192.168.0.24}
+  - {domain: wiki.doku-lab.net, answer: 192.168.0.24}
+  - {domain: home.doku-lab.net, answer: 192.168.0.24}
+  - {domain: truenas.doku-lab.net, answer: 192.168.0.24}
+  - {domain: cloud.doku-lab.net, answer: 192.168.0.24}
+  - {domain: pve-lab.doku-lab.net, answer: 192.168.0.24}
+  - {domain: vault.doku-lab.net, answer: 192.168.0.24}
+  - {domain: secrets.doku-lab.net, answer: 192.168.0.24}
+  - {domain: git.doku-lab.net, answer: 192.168.0.24}
+  - {domain: pbs.doku-lab.net, answer: 192.168.0.24}
+  - {domain: tfstate.doku-lab.net, answer: 192.168.0.30}
+  - {domain: dropper.doku-lab.net, answer: 192.168.0.24}
+  - {domain: pfsense.doku-lab.net, answer: 192.168.0.1}
+  - {domain: switch.doku-lab.net, answer: 192.168.0.3}

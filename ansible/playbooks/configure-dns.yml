@@ -1,0 +1,34 @@
+---
+# LAN DNS VM dns-01 (TASK-022). Run through `make dns-configure` from the operator workstation;
+# the inventory comes from the OpenTofu outputs of terraform/stacks/dns. The web login hash comes from the controller environment (store path /dns).
+- name: Configure the LAN DNS VM
+  hosts: dns
+  become: true
+  gather_facts: true
+  force_handlers: true
+  vars:
+    stage_a_hostname: "{{ inventory_hostname }}"
+  vars_files:
+    - ../vars/dns.yml
+  roles:
+    - headless_baseline
+    - adguard_home
+  tasks:
+    - name: Keep SSH key-only and without root login
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/10-homelab.conf
+        content: |
+          # Managed by Ansible (configure-dns.yml)
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PermitRootLogin no
+        owner: root
+        group: root
+        mode: "0644"
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Reload SSH
+  handlers:
+    - name: Reload SSH
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: reloaded

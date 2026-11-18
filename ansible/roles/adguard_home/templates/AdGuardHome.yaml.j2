@@ -1,0 +1,58 @@
+# Managed by Ansible (role adguard_home): changes made in the web interface are replaced at the next run.
+# Settings not listed here keep AdGuard Home's defaults.
+http:
+  address: 0.0.0.0:80
+  session_ttl: 30d
+users:
+  - name: {{ adguard_admin_user }}
+    password: {{ adguard_admin_hash | to_json }}
+auth_attempts: 5
+block_auth_min: 15
+language: en
+theme: auto
+dns:
+  bind_hosts: [0.0.0.0]
+  port: 53
+  ratelimit: 20
+  refuse_any: true
+  upstream_dns: {{ adguard_upstreams | to_json }}
+  bootstrap_dns: {{ adguard_bootstrap | to_json }}
+  upstream_mode: load_balance
+  cache_enabled: true
+  cache_size: 4194304
+  enable_dnssec: true
+  serve_plain_dns: true
+  hostsfile_enabled: true
+querylog:
+  enabled: true
+  file_enabled: true
+  interval: {{ adguard_querylog_interval }}
+statistics:
+  enabled: true
+  interval: 1d
+filters:
+{% for filter in adguard_filters %}
+  - enabled: true
+    id: {{ loop.index }}
+    name: {{ filter.name | to_json }}
+    url: {{ filter.url | to_json }}
+{% endfor %}
+whitelist_filters: []
+user_rules: []
+dhcp:
+  enabled: false
+filtering:
+  protection_enabled: true
+  filtering_enabled: true
+  rewrites_enabled: true
+  parental_enabled: false
+  safebrowsing_enabled: false
+  filters_update_interval: 24
+  blocked_response_ttl: 10
+  rewrites:
+{% for rewrite in adguard_rewrites %}
+    - domain: {{ rewrite.domain }}
+      answer: {{ rewrite.answer }}
+      enabled: true
+{% endfor %}
+schema_version: {{ adguard_schema_version }}

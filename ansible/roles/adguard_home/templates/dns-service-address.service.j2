@@ -1,0 +1,16 @@
+# Managed by Ansible (role adguard_home). Holds the LAN's DNS address on this VM next to its own address.
+[Unit]
+Description=LAN DNS service address {{ adguard_service_address }}
+Wants=network-online.target
+After=network-online.target
+Before=adguardhome.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/ip address replace {{ adguard_service_address }}/24 dev {{ ansible_facts.default_ipv4.interface }}
+ExecStartPost=-/usr/sbin/arping -U -c 3 -I {{ ansible_facts.default_ipv4.interface }} {{ adguard_service_address }}
+ExecStop=/usr/sbin/ip address del {{ adguard_service_address }}/24 dev {{ ansible_facts.default_ipv4.interface }}
+
+[Install]
+WantedBy=multi-user.target

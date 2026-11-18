@@ -1,0 +1,15 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (role adguard_home). Own table only: DNS (53) and the web interface (80) for the LAN.
+table inet adguard
+delete table inet adguard
+table inet adguard {
+  chain input {
+    type filter hook input priority 0; policy accept;
+    iifname "lo" accept
+    ct state established,related accept
+    ip saddr { {{ adguard_clients | join(', ') }} } meta l4proto { tcp, udp } th dport 53 accept
+    ip saddr { {{ adguard_clients | join(', ') }} } tcp dport 80 accept
+    meta l4proto { tcp, udp } th dport 53 drop
+    tcp dport 80 drop
+  }
+}

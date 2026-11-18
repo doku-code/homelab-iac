@@ -972,3 +972,61 @@ postgresql-status:
 	  if [ "$$listed" = no ] && ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$$target" 'sudo -u postgres patronictl -c /etc/patroni/config.yml list' 2>/dev/null; then listed=yes; fi; \
 	  ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$$target" "ip -4 -o addr show | grep -q ' $$vip/' && echo 'virtual IP $$vip: $$name' || true" 2>/dev/null || echo "$$name: unreachable"; \
 	done; }
+
+# ─────────────────────────────────────────────
+# LAN DNS (TASK-022): dns-01 on pve-infra runs AdGuard Home from the configuration in Git, outside k3s.
+# Same gates as the other workstation roots. The admin password hash comes from the store path /dns:
+#   scripts/secrets.py run /dns -- make dns-configure DNS_CONFIGURE_APPROVED=yes
+# DNS_SERVICE_ADDRESS=192.168.0.20 makes the VM answer on the LAN's DNS address as well (cutover: only
+# after the old AdGuard container is stopped).
+# ─────────────────────────────────────────────
+
+DNS_DIR := terraform/stacks/dns
+DNS_PLAN := dns.tfplan
+
+.PHONY: dns-check dns-plan dns-apply dns-hostkeys dns-configure
+
+# Offline only: no credentials, no backend, mocked provider.
+dns-check:
+	@set -euo pipefail; d="$(DEPLOY_RUNNER_CHECK_DATA)/dns"; mkdir -p "$$d"; \
+	$(TOFU) -chdir=$(DNS_DIR) fmt -check -recursive; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(DNS_DIR) init -backend=false -input=false -lockfile=readonly -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(DNS_DIR) validate -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(DNS_DIR) test -no-color | tail -n 1
+	$(ANSIBLE) ansible/playbooks/configure-dns.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(VENV)/bin/python tests/dns.py
+
+dns-plan:
+	@test "$(DNS_ALLOCATION_REVIEWED)" = yes || (echo "Confirm the allocation in $(DNS_DIR)/terraform.tfvars, then set DNS_ALLOCATION_REVIEWED=yes" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@test -f "$(DNS_DIR)/terraform.tfvars" || (echo "Create the private $(DNS_DIR)/terraform.tfvars from terraform.tfvars.example" >&2; exit 1)
+	@test -f "$(DNS_DIR)/terraform.tfstate" || test "$(DNS_NEW_STATE)" = yes || (echo "No $(DNS_DIR)/terraform.tfstate here. Only the first creation starts from an empty state (DNS_NEW_STATE=yes); otherwise copy the state from the workstation that holds it." >&2; exit 1)
+	@test ! -e "$(DNS_DIR)/$(DNS_PLAN)" || mv -f "$(DNS_DIR)/$(DNS_PLAN)" "$(DNS_DIR)/dns.previous.tfplan"
+	$(TOFU) -chdir=$(DNS_DIR) init -input=false -lockfile=readonly
+	$(call MGMT_RUN,$(TOFU) -chdir=$(DNS_DIR) plan -input=false -out=$(DNS_PLAN))
+	@shasum -a 256 "$(DNS_DIR)/$(DNS_PLAN)"
+
+# Mutates the doku-lab cluster (dns-01): only with explicit approval of the exact saved plan.
+dns-apply:
+	@test "$(DNS_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: DNS_APPLY_APPROVED=yes" >&2; exit 1)
+	@test -n "$(DNS_PLAN_SHA256)" || (echo "Supply DNS_PLAN_SHA256 as printed by make dns-plan" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@printf '%s  %s\n' '$(DNS_PLAN_SHA256)' '$(DNS_DIR)/$(DNS_PLAN)' | shasum -a 256 -c
+	$(call MGMT_RUN,$(TOFU) -chdir=$(DNS_DIR) apply -input=false $(DNS_PLAN))
+	@mv -f "$(DNS_DIR)/$(DNS_PLAN)" "$(DNS_DIR)/dns.applied.tfplan"
+	@chmod 0600 "$(DNS_DIR)/terraform.tfstate"
+	@echo "State updated locally: $(DNS_DIR)/terraform.tfstate (this workstation only, never in Git)"
+
+dns-hostkeys:
+	@set -euo pipefail; \
+	$(TOFU) -chdir=$(DNS_DIR) output -json ansible_inventory | \
+	jq -r '{"pve-core":"192.168.0.11","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.dns.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
+
+dns-configure:
+	@test "$(DNS_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of dns-01 with DNS_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@test -n "$${ADGUARD_ADMIN_HASH:-}" || { echo "Set ADGUARD_ADMIN_HASH in the environment (store path /dns)" >&2; exit 1; }
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/dns-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
+	$(TOFU) -chdir=$(DNS_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-dns.yml --diff $(if $(DNS_SERVICE_ADDRESS),-e adguard_service_address=$(DNS_SERVICE_ADDRESS))

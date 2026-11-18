@@ -1,0 +1,48 @@
+---
+# AdGuard Home rewrites its own configuration file while it runs, so the file is replaced only while the
+# service is stopped, and only when the configuration in Git changed.
+- name: Stop AdGuard Home before replacing its configuration
+  ansible.builtin.systemd_service:
+    name: adguardhome
+    state: stopped
+  listen: Apply AdGuard configuration
+
+- name: Put the configuration from Git in place
+  ansible.builtin.copy:
+    src: /etc/adguardhome/desired.yaml
+    dest: /etc/adguardhome/AdGuardHome.yaml
+    remote_src: true
+    owner: adguard
+    group: adguard
+    mode: "0600"
+  no_log: true
+  listen: Apply AdGuard configuration
+
+- name: Start AdGuard Home
+  ansible.builtin.systemd_service:
+    name: adguardhome
+    state: started
+    daemon_reload: true
+  listen: Apply AdGuard configuration
+
+- name: Restart AdGuard Home
+  ansible.builtin.systemd_service:
+    name: adguardhome
+    state: restarted
+    daemon_reload: true
+
+- name: Reload firewall
+  ansible.builtin.command:
+    argv: [nft, -f, /etc/nftables.d/adguard.nft]
+  changed_when: true
+
+- name: Restart systemd-resolved
+  ansible.builtin.systemd_service:
+    name: systemd-resolved
+    state: restarted
+
+- name: Apply the service address
+  ansible.builtin.systemd_service:
+    name: dns-service-address
+    state: restarted
+    daemon_reload: true

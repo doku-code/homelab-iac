@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars (git-ignored). Allocation 2026-11-18 (read-only): 192.168.0.70 gave no ping/ARP
+# reply; VMIDs 370+ free; pve-infra has 7.5 GiB RAM with 2 GiB allocated (pg-03).
+proxmox_endpoint = "https://192.168.0.10:8006/"
+
+profile = {
+  node       = "pve-infra"
+  vm_id      = 370
+  name       = "dns-01"
+  ipv4       = "192.168.0.70/24"
+  cores      = 1
+  memory     = 1024
+  os_disk_gb = 16
+}
+
+image = {
+  url    = "https://cloud.debian.org/images/cloud/trixie/20261116-2664/debian-13-genericcloud-amd64-20261116-2664.qcow2"
+  sha512 = "37cb32b320820417eb04b335afcf489bfb4cecce4a957190d09cb2bffbe02b56a1cadd62d78c6ead92aa7839d5ea65e4260f994bbb4b54490df59fdf11ee1d97"
+}

@@ -1,0 +1,23 @@
+---
+# AdGuard Home for the LAN (TASK-022). Same release as the legacy server; checksum from the release's checksums.txt.
+adguard_version: v0.107.79
+adguard_sha256: c48f4a43000665484c5ec28177de11a004759b620dae8f77b2aabefc9ef3687f
+adguard_schema_version: 34
+
+# Web login: the bcrypt hash comes from the controller environment (store path /dns), never from Git.
+adguard_admin_user: nith
+adguard_admin_hash: "{{ lookup('ansible.builtin.env', 'ADGUARD_ADMIN_HASH') }}"
+
+adguard_clients: [192.168.0.0/24]   # who may ask (DNS) and open the web interface
+adguard_upstreams:
+  - https://dns10.quad9.net/dns-query
+  - https://cloudflare-dns.com/dns-query
+adguard_bootstrap: [9.9.9.10, 9.9.9.9, 1.1.1.1, 149.112.112.10, "2620:fe::10", "2620:fe::fe:10"]
+adguard_querylog_interval: 90d
+
+# Block lists, local answers: ansible/vars/dns.yml.
+adguard_filters: []
+adguard_rewrites: []
+
+# The LAN's DNS address (192.168.0.20), added to this VM at the cutover. Empty: the VM answers on its own address only.
+adguard_service_address: ""
