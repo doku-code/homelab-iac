@@ -131,6 +131,8 @@ class FakeNetBox:
             for key, value in (query or {}).items():
                 if key.startswith("cf_"):
                     actual = item.get("custom_fields", {}).get(key[3:])
+                elif path == "ipam/services" and key == "virtual_machine_id":
+                    actual = item.get("parent_object_id")
                 elif key.endswith("_id"):
                     actual = item.get(key[:-3])
                 else:
@@ -216,6 +218,28 @@ def reconciliation():
     assert service["role"] == "secondary" and service["assigned_object_id"] == api.get(
         "virtualization/interfaces", virtual_machine=api.get(vms, name="dns-01")["id"], name="net0")["id"]
     assert api.get(ips, address="192.168.0.60/24")["role"] == "vip" and "assigned_object_id" not in api.get(ips, address="192.168.0.60/24")
+
+    # Parameters automation reads: per site, platform and role, with the values the roots enforce.
+    contexts = {c["name"]: c for c in api.objects["extras/config-contexts"]}
+    role = {r["slug"]: r["id"] for r in api.objects["dcim/device-roles"]}
+    assert contexts["role-k3s-server"]["roles"] == [role["k3s-server"]] and contexts["role-k3s-server"]["sites"] == []
+    assert contexts["role-k3s-server"]["data"]["provisioning"]["vmid_range"] == [310, 349]
+    assert contexts["site-network"]["data"]["network"]["dns_servers"] == ["192.168.0.20"]
+    variables = (ROOT / "terraform/stacks/k3s/variables.tf").read_text()
+    assert "k3s VMIDs are 310-349" in variables and "192.168.0.40-49/24" in variables, "the context repeats what the root enforces"
+    # A range is tied to the machines that use it through an IPAM role of the same slug.
+    address_role = {r["slug"]: r["id"] for r in api.objects["ipam/roles"]}
+    assert api.get("ipam/ip-ranges", start_address="192.168.0.40/24")["role"] == address_role["k3s-server"]
+    assert "role" not in api.get("ipam/ip-ranges", start_address="192.168.0.100/24")
+    services = {(s["parent_object_id"], s["name"]): s for s in api.objects["ipam/services"]}
+    assert services[(k3s["id"], "Kubernetes API")]["ports"] == [6443] and services[(k3s["id"], "Ingress (Traefik)")]["ports"] == [80, 443]
+    assert services[(api.get(vms, name="dns-01")["id"], "DNS")]["protocol"] == "udp"
+    # Git owns the contexts: a change made in NetBox is overwritten.
+    api.get("extras/config-contexts", name="site-network")["data"] = {"network": {"gateway": "192.168.0.254"}}
+    restored = run(True)
+    assert any(op.startswith("update  config context site-network") for op in restored.operations)
+    assert api.get("extras/config-contexts", name="site-network")["data"]["network"]["gateway"] == "192.168.0.1"
+    assert run(False).operations == []
 
     # Guests no root defines: created once, flagged, on the right cluster and host; containers marked as such.
     caddy = api.get(vms, name="caddy")
@@ -328,6 +352,34 @@ def discovery():
     assert (found["vmid"], found["memory_mb"], found["disk_mb"], found["nics"][0]["ip"]) == (311, 8192, 65536, "192.168.0.41/24")
 
 
+def export():
+    """The copy for Git: one sorted file per kind, without dates, addresses of the API or counters."""
+    import tempfile
+
+    class Api:
+        def list(self, path, query=None):
+            if path == "dcim/devices":
+                return [{"id": 2, "url": "https://x/api/dcim/devices/2/", "display": "b", "name": "b", "created": "2026", "last_updated": "2026",
+                         "site": {"id": 1, "url": "https://x/1", "name": "doku-lab", "slug": "doku-lab"}, "status": {"value": "active", "label": "Active"},
+                         "interface_count": 3, "comments": "", "tags": [{"id": 5, "url": "https://x/5", "slug": "iac", "name": "IaC"}],
+                         "config_context": {"merged": True}},
+                        {"id": 1, "url": "u", "display": "a", "name": "a", "created": "2025", "last_updated": "2026", "site": None, "status": None}]
+            if path == "extras/config-contexts":
+                return [{"id": 1, "url": "u", "name": "site-network", "data": {"network": {"gateway": "192.168.0.1"}}, "sites": []}]
+            return []
+
+    with tempfile.TemporaryDirectory() as tmp:
+        written = sync.export(Api(), Path(tmp))
+        assert written["dcim-devices.yaml"] == 2 and len(written) == len(sync.EXPORTED)
+        devices = yaml.safe_load((Path(tmp) / "dcim-devices.yaml").read_text())
+        assert devices == [{"id": 1, "name": "a"}, {"id": 2, "name": "b", "site": "doku-lab", "status": "active", "tags": ["iac"]}]
+        contexts = yaml.safe_load((Path(tmp) / "extras-config-contexts.yaml").read_text())
+        assert contexts == [{"id": 1, "name": "site-network", "data": {"network": {"gateway": "192.168.0.1"}}}]
+        first = (Path(tmp) / "dcim-devices.yaml").read_text()
+        sync.export(Api(), Path(tmp))
+        assert (Path(tmp) / "dcim-devices.yaml").read_text() == first, "an unchanged inventory gives an unchanged file"
+
+
 def seed_and_inventory():
     text = (DIR / "inventory.yaml").read_text()
     seed = yaml.safe_load(text)
@@ -344,6 +396,11 @@ def seed_and_inventory():
         assert ("model" in device) or device.get("review"), f"{device['name']}: unknown hardware must be flagged for review"
     for root in seed["iac_roots"]:
         assert root["role"] in roles and root["platform"] in platforms and (ROOT / "terraform/stacks" / root["root"]).is_dir()
+    for context in seed["config_contexts"]:
+        assert set(context.get("roles", [])) <= roles and set(context.get("platforms", [])) <= platforms, context["name"]
+        root = context["data"].get("provisioning", {}).get("opentofu_root")
+        assert root is None or (ROOT / root).is_dir(), context["name"]
+    assert set(seed["services"]) <= roles and all(r.get("role", "dns") in roles for r in seed["ranges"])
     # Ansible reads the inventory with the token from the environment and verifies the certificate.
     inventory = yaml.safe_load((ROOT / "ansible/inventories/netbox.yml").read_text())
     assert inventory["plugin"] == "netbox.netbox.nb_inventory" and inventory["api_endpoint"] == f"https://{HOST}"
@@ -360,6 +417,7 @@ def main():
     make_guards()
     reconciliation()
     discovery()
+    export()
     seed_and_inventory()
     print("PASS: chart pinned with single replicas, shared PostgreSQL, pinned Valkey, no secret in Git, LAN-only route; "
           "reconciliation idempotent, never deletes, never overwrites NetBox-owned records; discovery read-only")

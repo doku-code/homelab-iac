@@ -5,6 +5,7 @@
   scripts/netbox-sync.py plan                what would change in NetBox, and what needs a human decision
   scripts/netbox-sync.py apply               write those changes
   scripts/netbox-sync.py identities          create the two service accounts and store their API tokens
+  scripts/netbox-sync.py export <directory>  write the whole inventory as sorted YAML files (for a history in Git)
 
 Three kinds of data, never mixed (services/netbox/inventory.yaml describes the ownership):
   intended   the VMs of the OpenTofu roots (`tofu output`) and the foundation in inventory.yaml: written to NetBox
@@ -44,8 +45,8 @@ TAGS = {
 # What the write account may touch (view, add, change; never delete) and what the read account may see.
 SYNC_MODELS = ["dcim.site", "dcim.manufacturer", "dcim.devicetype", "dcim.devicerole", "dcim.platform", "dcim.device",
                "dcim.interface", "virtualization.clustertype", "virtualization.cluster", "virtualization.virtualmachine",
-               "virtualization.vminterface", "ipam.prefix", "ipam.iprange", "ipam.ipaddress", "extras.tag",
-               "extras.customfield"]
+               "virtualization.vminterface", "ipam.prefix", "ipam.iprange", "ipam.ipaddress", "ipam.role",
+               "ipam.service", "extras.tag", "extras.customfield", "extras.configcontext"]
 READ_APPS = ("dcim", "ipam", "virtualization", "tenancy", "extras")
 
 
@@ -244,6 +245,8 @@ def differs(existing, desired, key):
         return not set(desired) <= set(norm(existing or []))
     if key == "custom_fields":
         return any((existing or {}).get(name) != value for name, value in desired.items())
+    if key == "data":  # configuration context: free-form JSON, compared as it is
+        return existing != desired
     current = norm(existing)
     if isinstance(desired, (int, float)) and not isinstance(desired, bool) and current is not None:
         try:
@@ -348,9 +351,24 @@ def reconcile(seed, machines, snapshots, api, apply):
     for entry in seed["ranges"]:
         start, end = f"{entry['start']}/{lan.prefixlen}", f"{entry['end']}/{lan.prefixlen}"
         fields = {"start_address": start, "end_address": end, "status": "active", "description": entry["description"]}
+        if entry.get("role"):  # the IPAM role carries the slug of the machine role the range is for
+            role_name = next(e["name"] for e in seed["roles"] if e["slug"] == entry["role"])
+            fields["role"] = ref(r.ensure(f"address role {entry['role']}", "ipam/roles", {"slug": entry["role"]},
+                                          {"name": role_name, "slug": entry["role"]}))
         if entry.get("review"):
             fields["tags"] = tagged("needs-review")
         r.ensure(f"range {entry['start']}-{entry['end'].rsplit('.', 1)[1]}", "ipam/ip-ranges", {"start_address": start, "end_address": end}, fields)
+
+    # Parameters for automation, per site, platform or role. Git owns them.
+    for entry in seed.get("config_contexts", []):
+        fields = {"name": entry["name"], "description": entry["description"], "is_active": True, "data": entry["data"],
+                  "sites": [ref(site)] if entry.get("sites") else [],
+                  "platforms": [ref(platforms[slug]) for slug in entry.get("platforms", [])],
+                  "roles": [ref(roles[slug]) for slug in entry.get("roles", [])]}
+        if any(isinstance(value, Pending) for values in fields.values() if isinstance(values, list) for value in values):
+            r.operations.append(f"create  config context {entry['name']}")  # its site, platform or role is new too
+            continue
+        r.ensure(f"config context {entry['name']}", "extras/config-contexts", {"name": entry["name"]}, fields)
 
     # Seed: physical devices, created once.
     devices = {}
@@ -431,6 +449,12 @@ def reconcile(seed, machines, snapshots, api, apply):
         address = f"{m['address']}/{lan.prefixlen}"
         ip = r.address(f"{label} address", address, {"tags": tagged("iac"), "description": m["name"]}, ("virtualization.vminterface", interface))
         primary(label, vm, ip, address)
+        for service in seed.get("services", {}).get(m["role"], []):
+            r.ensure(f"{label} service {service['name']}", "ipam/services",
+                     {"virtual_machine_id": ref(vm), "name": service["name"]},
+                     {"parent_object_type": "virtualization.virtualmachine", "parent_object_id": ref(vm), "name": service["name"],
+                      "protocol": service["protocol"], "ports": service["ports"], "description": service.get("description", ""),
+                      "tags": tagged("iac")})
 
     # Addresses outside the VM interfaces: iac ones follow Git, the others are seed.
     for entry in seed["addresses"]:
@@ -559,9 +583,59 @@ def cmd_identities(seed):
             die("the tokens were created but not stored; delete them in NetBox (Admin > API tokens) and run again")
 
 
+# ───────────────────────── export (a readable copy for a history in Git) ─────────────────────────
+
+EXPORTED = ("dcim/sites", "dcim/manufacturers", "dcim/device-types", "dcim/device-roles", "dcim/platforms", "dcim/devices",
+            "dcim/interfaces", "virtualization/cluster-types", "virtualization/clusters", "virtualization/virtual-machines",
+            "virtualization/interfaces", "ipam/roles", "ipam/prefixes", "ipam/ip-ranges", "ipam/ip-addresses", "ipam/services",
+            "extras/tags", "extras/custom-fields", "extras/config-contexts")
+VOLATILE = ("url", "display", "display_url", "created", "last_updated", "config_context", "owner")
+
+
+def plain(value):
+    """An API value without what changes on its own: related objects become their name, counters and dates go."""
+    if isinstance(value, dict):
+        if "id" in value and "url" in value:  # a related object
+            return value.get("slug") or value.get("name") or value.get("address") or value.get("display")
+        if set(value) == {"value", "label"}:
+            return value["value"]
+        return {key: plain(item) for key, item in sorted(value.items())}
+    if isinstance(value, list):
+        return [plain(item) for item in value]
+    return value
+
+
+def export(api, directory):
+    written = {}
+    for path in EXPORTED:
+        records = []
+        for item in sorted(api.list(path), key=lambda item: item["id"]):
+            record = {key: plain(value) for key, value in sorted(item.items())
+                      if key not in VOLATILE and not key.endswith("_count") and value not in (None, "", [], {})}
+            if path == "extras/config-contexts":
+                record["data"] = item["data"]
+            records.append(record)
+        target = directory / f"{path.replace('/', '-')}.yaml"
+        target.write_text(yaml.safe_dump(records, sort_keys=True, allow_unicode=True, width=120))
+        written[target.name] = len(records)
+    return written
+
+
+def cmd_export(args):
+    if len(args) != 1:
+        die("usage: netbox-sync.py export <directory>")
+    token = os.environ.get("NETBOX_READ_TOKEN") or die("set NETBOX_READ_TOKEN in the environment (store path /netbox)")
+    directory = Path(args[0])
+    directory.mkdir(parents=True, exist_ok=True)
+    written = export(NetBox(NETBOX_URL, token), directory)
+    print(f"{sum(written.values())} records in {len(written)} files -> {directory}")
+
+
 def main(argv):
+    if argv and argv[0] == "export":
+        return cmd_export(argv[1:])
     if not argv or argv[0] not in ("discover", "plan", "apply", "identities"):
-        die("usage: netbox-sync.py discover <source> | plan | apply | identities")
+        die("usage: netbox-sync.py discover <source> | plan | apply | identities | export <directory>")
     seed = yaml.safe_load(SEED.read_text())
     if argv[0] == "discover":
         cmd_discover(seed, argv[1:])

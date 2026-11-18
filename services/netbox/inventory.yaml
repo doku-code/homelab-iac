@@ -30,11 +30,12 @@ prefixes:
   - {prefix: 192.168.0.0/24, description: "LAN, gateway 192.168.0.1 (pfSense)"}
 
 # Address plan as enforced by the variable validations of the OpenTofu roots (terraform/stacks/*/variables.tf).
+# "role" ties a range to the machines that use it (an IPAM role with the slug of the machine role).
 ranges:
-  - {start: 192.168.0.40, end: 192.168.0.49, description: "k3s nodes (VMIDs 310-349)"}
-  - {start: 192.168.0.50, end: 192.168.0.59, description: "Storage VMs (VMIDs 350-359)"}
-  - {start: 192.168.0.60, end: 192.168.0.69, description: "PostgreSQL: .60 virtual IP, .61-.69 members (VMIDs 360-369)"}
-  - {start: 192.168.0.70, end: 192.168.0.79, description: "DNS VMs (VMIDs 370-379)"}
+  - {start: 192.168.0.40, end: 192.168.0.49, role: k3s-server, description: "k3s nodes (VMIDs 310-349)"}
+  - {start: 192.168.0.50, end: 192.168.0.59, role: storage, description: "Storage VMs (VMIDs 350-359)"}
+  - {start: 192.168.0.60, end: 192.168.0.69, role: postgresql, description: "PostgreSQL: .60 virtual IP, .61-.69 members (VMIDs 360-369)"}
+  - {start: 192.168.0.70, end: 192.168.0.79, role: dns, description: "DNS VMs (VMIDs 370-379)"}
   - {start: 192.168.0.100, end: 192.168.0.200, description: "DHCP pool (pfSense), as stated in the k3s root; not verified on pfSense", review: true}
 
 platforms:
@@ -128,3 +129,77 @@ iac_roots:
   - {root: storage, group: storage, role: storage, platform: debian-13}
   - {root: postgresql, group: postgresql, role: postgresql, platform: debian-13}
   - {root: dns, group: dns, role: dns, platform: debian-13}
+
+# Configuration contexts: the parameters automation reads from NetBox (GET /api/virtualization/virtual-machines/
+# returns them merged per machine as "config_context"). Git owns them: the script creates and updates them,
+# a change made in NetBox is overwritten. Values are the ones the roots and roles of this repository use
+# (terraform/stacks/*/variables.tf, ansible/vars/dns.yml). No credentials here: secrets live in Phase.
+config_contexts:
+  - name: site-network
+    description: "LAN settings every machine of the site uses"
+    sites: [doku-lab]
+    data:
+      network: {prefix: 192.168.0.0/24, gateway: 192.168.0.1, dns_servers: [192.168.0.20], domain: doku-lab.net}
+  - name: platform-debian-13
+    description: "How automation logs in to Debian 13 cloud images"
+    platforms: [debian-13]
+    data:
+      ansible: {user: debian, python_interpreter: /usr/bin/python3}
+  - name: platform-ubuntu-26-04
+    description: "How automation logs in to the Ubuntu workstation"
+    platforms: [ubuntu-26-04]
+    data:
+      ansible: {user: ubuntu, python_interpreter: /usr/bin/python3}
+  - name: role-k3s-server
+    description: "Provisioning rules of k3s nodes (terraform/stacks/k3s)"
+    roles: [k3s-server]
+    data:
+      provisioning:
+        opentofu_root: terraform/stacks/k3s
+        ansible_group: k3s_cluster
+        vmid_range: [310, 349]
+        proxmox_hosts: [pve-core, pve-infra, pve-lab]
+        minimum: {cores: 2, memory_mb: 4096, disk_gb: 32}
+  - name: role-storage
+    description: "Provisioning rules of storage VMs (terraform/stacks/storage)"
+    roles: [storage]
+    data:
+      provisioning:
+        opentofu_root: terraform/stacks/storage
+        ansible_group: storage
+        vmid_range: [350, 359]
+        proxmox_hosts: [pve-core]
+        minimum: {cores: 1, memory_mb: 1024, disk_gb: 10}
+  - name: role-postgresql
+    description: "Provisioning rules of PostgreSQL members (terraform/stacks/postgresql)"
+    roles: [postgresql]
+    data:
+      provisioning:
+        opentofu_root: terraform/stacks/postgresql
+        ansible_group: postgresql
+        vmid_range: [360, 369]
+        proxmox_hosts: [pve-core, pve-infra, pve-lab]
+        minimum: {cores: 2, memory_mb: 2048, disk_gb: 10}
+  - name: role-dns
+    description: "Provisioning rules of DNS VMs (terraform/stacks/dns)"
+    roles: [dns]
+    data:
+      provisioning:
+        opentofu_root: terraform/stacks/dns
+        ansible_group: dns
+        vmid_range: [370, 379]
+        proxmox_hosts: [pve-core, pve-infra, pve-lab]
+        minimum: {cores: 1, memory_mb: 1024, disk_gb: 10}
+
+# What each kind of machine serves, recorded on every VM of the role that a root defines.
+services:
+  k3s-server:
+    - {name: Kubernetes API, protocol: tcp, ports: [6443]}
+    - {name: Ingress (Traefik), protocol: tcp, ports: [80, 443]}
+  postgresql:
+    - {name: PostgreSQL, protocol: tcp, ports: [5432], description: "Clients use the virtual IP 192.168.0.60"}
+  dns:
+    - {name: DNS, protocol: udp, ports: [53]}
+    - {name: AdGuard Home web interface, protocol: tcp, ports: [80]}
+  storage:
+    - {name: NFS, protocol: tcp, ports: [2049]}

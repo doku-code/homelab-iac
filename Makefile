@@ -1070,7 +1070,7 @@ argocd-password:
 NETBOX_SECRET_INPUTS := NETBOX_SECRET_KEY NETBOX_API_TOKEN_PEPPER NETBOX_SUPERUSER_PASSWORD NETBOX_VALKEY_PASSWORD PG_APP_NETBOX_PASSWORD
 NETBOX_SYNC := $(VENV)/bin/python scripts/netbox-sync.py
 
-.PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-plan netbox-apply netbox-inventory
+.PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-plan netbox-apply netbox-inventory netbox-export
 
 # Offline: renders the pinned chart with our values (needs the chart download) and runs the inventory
 # reconciliation against an in-memory NetBox.
@@ -1116,6 +1116,12 @@ netbox-plan:
 netbox-apply:
 	@test "$(NETBOX_APPLY_APPROVED)" = yes || (echo "Read 'make netbox-plan' first, then approve the inventory write with NETBOX_APPLY_APPROVED=yes" >&2; exit 1)
 	$(NETBOX_SYNC) apply
+
+# The whole inventory as sorted YAML files, one per kind, for a history in Git (read-only token):
+#   scripts/secrets.py run /netbox -- make netbox-export NETBOX_EXPORT_DIR=/path/to/a/private/checkout
+netbox-export:
+	@test -n "$(NETBOX_EXPORT_DIR)" || (echo "Set NETBOX_EXPORT_DIR to the directory to write (a checkout of the private history repository)" >&2; exit 1)
+	$(NETBOX_SYNC) export "$(NETBOX_EXPORT_DIR)"
 
 # The Ansible inventory as NetBox serves it (read-only token):
 #   scripts/secrets.py run /netbox -- make netbox-inventory
