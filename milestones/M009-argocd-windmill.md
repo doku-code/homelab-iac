@@ -8,7 +8,7 @@ priority: medium
 created: 2026-11-12
 updated: 2026-11-18
 tags: [roadmap]
-related_tasks: [TASK-024]
+related_tasks: [TASK-024, TASK-025]
 related_decisions: [ADR-011, ADR-005, ADR-014]
 related: [ARCH-platform, DOC-project-overview]
 depends_on: [M005, M008]
@@ -53,9 +53,10 @@ Out of scope:
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
 | A change merged in Forgejo is reconciled | See [TASK-024](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md) | Done: a pushed commit reached the cluster in about three minutes; six applications `Synced` and `Healthy` | 2026-11-18 |
+| Windmill on k3s | See [TASK-025](../tasks/TASK-025-windmill-on-k3s-reading-its-data-from-netbox.md) | Deployed under Argo CD; scripts from Git read NetBox | 2026-11-18 |
 | A Windmill flow triggers a runner workflow | | not started | |
 
 ## Completion summary
 
-Active. Argo CD runs and owns every service on the cluster (TASK-024): NetBox, Headlamp, monitoring, Phase,
-certificates and routes, the storage driver. Remaining: Windmill on k3s and its first flow.
+Active. Argo CD runs and owns every service on the cluster (TASK-024), Windmill included (TASK-025).
+Remaining: a Windmill flow that triggers an approved workflow on the deployment runner.

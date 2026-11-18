@@ -387,6 +387,10 @@
         {
           "from": "TASK-006",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-025",
+          "field": "related_decisions"
         }
       ]
     },
@@ -919,6 +923,10 @@
         {
           "from": "TASK-024",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-025",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1324,6 +1332,10 @@
         {
           "from": "TASK-023",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-025",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1394,6 +1406,10 @@
         },
         {
           "from": "TASK-024",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-025",
           "field": "related_decisions"
         }
       ]
@@ -1710,6 +1726,10 @@
         },
         {
           "from": "TASK-024",
+          "field": "related"
+        },
+        {
+          "from": "TASK-025",
           "field": "related"
         }
       ]
@@ -3025,7 +3045,8 @@
           "DOC-project-overview"
         ],
         "related_tasks": [
-          "TASK-024"
+          "TASK-024",
+          "TASK-025"
         ],
         "related_decisions": [
           "ADR-011",
@@ -3048,6 +3069,10 @@
         },
         {
           "from": "TASK-024",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-025",
           "field": "milestone"
         }
       ]
@@ -3308,7 +3333,8 @@
           "DOC-project-overview"
         ],
         "related_tasks": [
-          "TASK-023"
+          "TASK-023",
+          "TASK-025"
         ],
         "related_decisions": [
           "ADR-016",
@@ -5057,6 +5083,10 @@
         {
           "from": "TASK-024",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-025",
+          "field": "depends_on"
         }
       ]
     },
@@ -5126,6 +5156,89 @@
       "backrefs": [
         {
           "from": "M009",
+          "field": "related_tasks"
+        },
+        {
+          "from": "TASK-025",
+          "field": "depends_on"
+        }
+      ]
+    },
+    {
+      "id": "TASK-025",
+      "title": "Windmill on k3s reading its data from NetBox",
+      "summary": "Deploy Windmill under Argo CD on the shared PostgreSQL, bootstrap it without default credentials, and publish scripts from Git that read roles, ranges and free addresses from NetBox.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "completed",
+      "path": "tasks/TASK-025-windmill-on-k3s-reading-its-data-from-netbox.md",
+      "tags": [
+        "windmill",
+        "netbox",
+        "automation"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M009",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-025 — Windmill on k3s reading its data from NetBox",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform"
+        ],
+        "related_decisions": [
+          "ADR-005",
+          "ADR-016",
+          "ADR-015",
+          "ADR-011"
+        ],
+        "depends_on": [
+          "TASK-024",
+          "TASK-023"
+        ],
+        "related_implementations": [
+          "services/windmill/values.yaml",
+          "services/windmill/access.yaml",
+          "services/argocd/apps/windmill.yaml",
+          "scripts/windmill-admin.py",
+          "windmill/f/netbox/",
+          "scripts/netbox-sync.py",
+          "services/netbox/inventory.yaml"
+        ],
+        "related_tests": [
+          "tests/windmill-k3s.py",
+          "tests/netbox.py",
+          "tests/postgresql.py"
+        ],
+        "milestone": [
+          "M009"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M009",
+          "field": "related_tasks"
+        },
+        {
+          "from": "M013",
           "field": "related_tasks"
         }
       ]
@@ -5207,7 +5320,8 @@
       "TASK-021",
       "TASK-022",
       "TASK-023",
-      "TASK-024"
+      "TASK-024",
+      "TASK-025"
     ]
   },
   "by_tag": {
@@ -5241,6 +5355,9 @@
       "ADR-006",
       "ADR-011",
       "TASK-024"
+    ],
+    "automation": [
+      "TASK-025"
     ],
     "backup": [
       "ADR-012",
@@ -5421,7 +5538,8 @@
       "ADR-016",
       "M013",
       "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
-      "TASK-023"
+      "TASK-023",
+      "TASK-025"
     ],
     "nfs": [
       "TASK-017"
@@ -5576,7 +5694,8 @@
     ],
     "windmill": [
       "ADR-005",
-      "ADR-011"
+      "ADR-011",
+      "TASK-025"
     ],
     "workstation": [
       "ADR-009",

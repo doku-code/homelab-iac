@@ -21,7 +21,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
 | M008 | active | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
-| M009 | active | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | completed: 1 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
+| M009 | active | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | completed: 2 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M013 | active | medium | [NetBox inventory and IPAM](../milestones/M013-netbox-inventory-and-ipam.md) | completed: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
 | M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 1, in-progress: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
@@ -62,6 +62,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-021 | completed | medium | M004 | [k3s servers on pve-core and pve-lab: three etcd members](../tasks/TASK-021-k3s-servers-on-pve-core-and-pve-lab-three-etcd-members.md) | k3s-server-02 on pve-core and k3s-server-03 on pve-lab join the embedded etcd; Traefik runs on every node so ingress survives a reschedule. |
 | TASK-023 | completed | medium | M013 | [NetBox on k3s, initial inventory, reconciliation and Ansible inventory](../tasks/TASK-023-netbox-on-k3s-initial-inventory-reconciliation-and-ansible-i.md) | Deploy NetBox with the official chart on the shared PostgreSQL, populate it from the OpenTofu outputs and read-only Proxmox discovery, and let Ansible read its inventory from it. |
 | TASK-024 | completed | medium | M009 | [Argo CD on k3s and every service of the cluster under it](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md) | Install Argo CD, restrict it to this repository and named namespaces, and move every service of the cluster under it without a restart. |
+| TASK-025 | completed | medium | M009 | [Windmill on k3s reading its data from NetBox](../tasks/TASK-025-windmill-on-k3s-reading-its-data-from-netbox.md) | Deploy Windmill under Argo CD on the shared PostgreSQL, bootstrap it without default credentials, and publish scripts from Git that read roles, ranges and free addresses from NetBox. |
 
 ## Decisions
 
@@ -126,6 +127,7 @@ _No commit records. Generate with `harness history sync`._
 - **architecture**: ARCH-platform
 - **archive**: ADR-007
 - **argocd**: ADR-006, ADR-011, TASK-024
+- **automation**: TASK-025
 - **backup**: ADR-012, TASK-003, TASK-004, TASK-010
 - **bootstrap**: ADR-002, ADR-008, INV-pve-management-bootstrap, M001
 - **caddy**: TASK-022
@@ -167,7 +169,7 @@ _No commit records. Generate with `harness history sync`._
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, TASK-005, TASK-019
-- **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023
+- **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025
 - **nfs**: TASK-017
 - **nvme**: ADR-012
 - **observability**: TASK-020
@@ -203,7 +205,7 @@ _No commit records. Generate with `harness history sync`._
 - **traefik**: TASK-021, TASK-022
 - **truenas**: ADR-012
 - **vision**: DOC-project-overview
-- **windmill**: ADR-005, ADR-011
+- **windmill**: ADR-005, ADR-011, TASK-025
 - **workstation**: ADR-009, GUIDE-handoff
 
 ## By component

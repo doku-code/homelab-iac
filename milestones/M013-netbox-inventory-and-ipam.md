@@ -8,7 +8,7 @@ priority: medium
 created: 2026-11-18
 updated: 2026-11-18
 tags: [roadmap, netbox, inventory]
-related_tasks: [TASK-023]
+related_tasks: [TASK-023, TASK-025]
 related_decisions: [ADR-016, ADR-015, ADR-012, ADR-011]
 related: [ARCH-platform, DOC-project-overview]
 depends_on: [M004, M006, M007]
@@ -58,7 +58,7 @@ Out of scope:
 - [x] Ansible reads the inventory of the Git-defined VMs from NetBox
 - [ ] Every record tagged `needs-review` validated by the operator
 - [ ] Each root's plan checks its addresses and VMIDs against NetBox (and still works without it)
-- [ ] A second consumer (Windmill form, Prometheus targets or the deployment runner) reads from NetBox
+- [x] A second consumer (Windmill form, Prometheus targets or the deployment runner) reads from NetBox
 
 ## Verification evidence
 
@@ -66,9 +66,10 @@ Out of scope:
 |-----------|-----------------|--------|------|
 | Deployment, inventory, Ansible inventory | See [TASK-023](../tasks/TASK-023-netbox-on-k3s-initial-inventory-reconciliation-and-ansible-i.md) | Done: NetBox 4.7.5 running, 165 records created, second plan empty, 10 hosts identical to the OpenTofu inventories | 2026-11-18 |
 | Records validated | NetBox, tag `needs-review` | not verified: 34 records wait for the operator | |
-| Allocation check, second consumer | | not started | |
+| Second consumer | Windmill scripts `f/netbox/*` run inside Windmill against the NetBox API ([TASK-025](../tasks/TASK-025-windmill-on-k3s-reading-its-data-from-netbox.md)) | Done | 2026-11-18 |
+| Allocation check in the roots | | not started | |
 
 ## Completion summary
 
 Active. The foundation is in place (TASK-023). Remaining: the operator's review of the flagged records, the
-allocation check in the roots' plan targets, a second consumer.
+allocation check in the roots' plan targets, and the scheduled export to a private Forgejo repository.

@@ -144,12 +144,20 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   (commands below). Open: the operator reviews the 34 records tagged `needs-review`; next steps in ADR-016.
 - **Argo CD deployed** 2026-11-18 ([TASK-024](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md)):
   `https://argocd.doku-lab.net` (LAN only; user `admin`, password at `/argocd` in the secret store). It keeps
-  the six applications of `services/argocd/apps/` in sync with `main` on Forgejo (about three minutes after
+  the applications of `services/argocd/apps/` in sync with `main` on Forgejo (about three minutes after
   a push; it never deletes on its own): `netbox`, `headlamp`, `monitoring`, `phase`, `ingress` (cert-manager,
-  certificates, routes), `storage` (NFS CSI driver). **A service is changed by a commit, not by `helm` or
+  certificates, routes), `storage` (NFS CSI driver), `windmill`. **A service is changed by a commit, not by `helm` or
   `kubectl apply`**: manual changes are reverted. The `<name>-deploy` Make targets now only write the Secrets
   that are not in Git and register the Application; they are needed on a rebuilt cluster or when a secret
   changes. Argo CD itself: `make argocd-deploy`. Traefik stays managed by k3s.
+- **Windmill deployed** 2026-11-18 ([TASK-025](../tasks/TASK-025-windmill-on-k3s-reading-its-data-from-netbox.md)):
+  `https://windmill.doku-lab.net` (LAN only; user `admin@windmill.dev`, password at `/windmill` in the secret
+  store), workspace `homelab`. Scripts live in `windmill/` and are published with
+  `scripts/secrets.py run /windmill -- make windmill-push`. **Automation reads infrastructure data from
+  NetBox**: configuration contexts, ranges and services are defined in `services/netbox/inventory.yaml`,
+  written by `netbox-apply`, and read by the scripts `f/netbox/*`. Open: a private Forgejo repository and a
+  token for the scheduled NetBox export (`make netbox-export` works locally); a flow that reserves an address
+  and triggers the deployment runner.
 - **Operator roadmap (2026-11-17):** all items are deployed.
 
 ## Commands

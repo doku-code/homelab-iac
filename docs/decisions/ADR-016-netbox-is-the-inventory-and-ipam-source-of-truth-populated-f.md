@@ -49,6 +49,7 @@ reconciliation and the NetBox-backed inventory wait. NetBox holds no credentials
 | VMs of the OpenTofu roots: name, VMID, Proxmox host, address, role, platform | Git (root variables, read through `tofu output`) | Mirror, tag `iac`; the reconciliation overwrites these fields |
 | Sizing of those VMs (vCPU, memory, boot disk) | Proxmox API (observed) | Informational copy |
 | Address plan: prefix, ranges per role | Git today (`services/netbox/inventory.yaml`, same numbers as the root validations) | Mirror; becomes the authority when a root reads its addresses from NetBox (see below) |
+| Parameters automation reads (configuration contexts per site, platform and role; services per machine) | Git (`services/netbox/inventory.yaml`) | Served merged per machine through the API; a change made in NetBox is overwritten |
 | Physical devices, their hardware, location, cabling; unmanaged equipment | NetBox | Seeded once from `inventory.yaml`, then edited only in NetBox |
 | Guests no root defines (the legacy host) | NetBox, after a person validated them | Created once from discovery with tags `discovered` and `needs-review`; later differences are reported, never written |
 | Runtime state (running, stopped, where) | Proxmox and Kubernetes APIs | Compared and reported |
@@ -70,6 +71,14 @@ netbox-apply` writes. A snapshot older than 24 hours can be planned from but not
 (`ansible/inventories/netbox.yml`, account `automation-read`: view only), with the group names the
 playbooks already use. It serves runs across roots and consumers without the OpenTofu state; it does not
 replace the per-root inventories that bootstrap the platform.
+
+**Automation reads NetBox, not copies** (operator direction 2026-11-18). Windmill scripts, and later the
+deployment runner, get roles, ranges, free addresses and network settings from the NetBox API with the
+read-only account. What NetBox serves has two origins and one direction each: definitions that people review
+as code (parameters, the address plan, the roots' VMs) flow from Git into NetBox; what exists only as
+inventory (devices, validated records, hand-entered data) lives in NetBox and is copied out to Git as a
+sorted export (`make netbox-export`) for history and recovery. The export is never read back in, so Forgejo
+keeps the history of everything without becoming a second place to edit inventory.
 
 ## Alternatives considered
 
@@ -98,6 +107,6 @@ replace the per-root inventories that bootstrap the platform.
   run `make netbox-identities` again.
 - Next steps, in order of value: (1) a check in each root's plan target that its addresses and VMIDs are
   free in NetBox, replacing the manual `*_ALLOCATION_REVIEWED` reading; (2) NetBox as the place where the
-  next free address of a range is looked up before it is written to Git; (3) Windmill forms that read roles
-  and ranges from NetBox with the read-only account; (4) Prometheus targets from NetBox. Each must keep
+  next free address of a range is looked up before it is written to Git; (3) a Windmill flow that reserves the proposed address in NetBox and triggers the deployment runner (the
+  read side exists: `windmill/f/netbox/`); (4) Prometheus targets from NetBox. Each must keep
   working, with a clear message, when NetBox is unreachable.

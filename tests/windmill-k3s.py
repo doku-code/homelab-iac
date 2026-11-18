@@ -82,8 +82,24 @@ def scripts():
                 assert call == "GET", f"{source}: the inventory is only read"
 
 
+def admin_tool():
+    """The publishing tool: forms come from the signature of main(), and it has no call that deletes."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("windmill_admin", ROOT / "scripts/windmill-admin.py")
+    admin = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(admin)
+    schema = admin.signature_schema((ROOT / "windmill/f/netbox/next_free.py").read_text())
+    assert schema["properties"]["role"] == {"type": "string", "description": "", "default": "k3s-server"} and schema["required"] == []
+    assert admin.signature_schema("def main(count: int, name: str = 'x'):\n    pass\n")["required"] == ["count"]
+    assert set(admin.local_scripts()) == {"f/netbox/inventory_summary", "f/netbox/list_roles", "f/netbox/next_free"}
+    text = (ROOT / "scripts/windmill-admin.py").read_text()
+    assert '"DELETE"' not in text and "/delete" not in text, "publishing never deletes"
+    assert "print(token" not in text and "print(password" not in text
+
+
 def main():
     chart()
+    admin_tool()
     access_and_database()
     scripts()
     print("PASS: Windmill chart pinned with single replicas, unprivileged workers, shared PostgreSQL over TLS, LAN-only route, "
