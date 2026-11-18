@@ -934,11 +934,12 @@ observability-check:
 # (services/argocd/apps/monitoring.yaml).
 observability-deploy:
 	@test "$(OBSERVABILITY_DEPLOY_APPROVED)" = yes || (echo "Approve the observability deployment with OBSERVABILITY_DEPLOY_APPROVED=yes" >&2; exit 1)
-	@for v in GRAFANA_ADMIN_PASSWORD PG_APP_GRAFANA_PASSWORD; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /monitoring and /postgresql)" >&2; exit 1; }; done
+	@for v in GRAFANA_ADMIN_PASSWORD PG_APP_GRAFANA_PASSWORD SSO_GRAFANA_CLIENT_SECRET; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /monitoring, /postgresql and /authentik)" >&2; exit 1; }; done
 	@kubectl --context doku-lab create namespace monitoring --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
 	@set -euo pipefail; k="kubectl --context doku-lab -n monitoring"; \
 	$$k create secret generic grafana-admin --dry-run=client -o yaml --from-env-file=<(printf 'admin-user=admin\nadmin-password=%s\n' "$$GRAFANA_ADMIN_PASSWORD") | $$k apply -f - >/dev/null; \
 	$$k create secret generic grafana-db --dry-run=client -o yaml --from-env-file=<(printf 'password=%s\n' "$$PG_APP_GRAFANA_PASSWORD") | $$k apply -f - >/dev/null; \
+	$$k create secret generic grafana-sso --dry-run=client -o yaml --from-env-file=<(printf 'clientSecret=%s\n' "$$SSO_GRAFANA_CLIENT_SECRET") | $$k apply -f - >/dev/null; \
 	echo "secrets applied"
 	kubectl --context doku-lab apply -f services/argocd/apps/monitoring.yaml
 	$(call ARGOCD_WAIT,monitoring)
@@ -1044,10 +1045,16 @@ ARGOCD_WAIT = kubectl --context doku-lab -n argocd wait --timeout=900s --for=jso
 argocd-check:
 	$(VENV)/bin/python tests/argocd.py
 
-# No secret input: Argo CD generates its own keys and the first admin password (see argocd-password).
+# Argo CD generates its own keys and the first admin password (see argocd-password). The only input is the
+# client secret of the single sign-on (ADR-017), written as the Secret `argocd-sso` that oidc.config refers to:
+#   scripts/secrets.py run /authentik -- make argocd-deploy ARGOCD_DEPLOY_APPROVED=yes
 argocd-deploy:
 	@test "$(ARGOCD_DEPLOY_APPROVED)" = yes || (echo "Approve the Argo CD deployment with ARGOCD_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@test -n "$${SSO_ARGOCD_CLIENT_SECRET:-}" || { echo "Set SSO_ARGOCD_CLIENT_SECRET in the environment (store path /authentik)" >&2; exit 1; }
 	@kubectl --context doku-lab create namespace argocd --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	@set -euo pipefail; k="kubectl --context doku-lab -n argocd"; \
+	$$k create secret generic argocd-sso --dry-run=client -o yaml --from-env-file=<(printf 'clientSecret=%s\n' "$$SSO_ARGOCD_CLIENT_SECRET") \
+	  | kubectl label --local -f - app.kubernetes.io/part-of=argocd -o yaml | $$k apply -f - >/dev/null; echo "secret/argocd-sso applied"
 	helm upgrade --install $(ARGOCD_HELM_ARGS) --kube-context doku-lab --wait --timeout 10m
 	kubectl --context doku-lab apply -f services/argocd/access.yaml
 
@@ -1067,7 +1074,7 @@ argocd-password:
 # populated from them.
 # ─────────────────────────────────────────────
 
-NETBOX_SECRET_INPUTS := NETBOX_SECRET_KEY NETBOX_API_TOKEN_PEPPER NETBOX_SUPERUSER_PASSWORD NETBOX_VALKEY_PASSWORD PG_APP_NETBOX_PASSWORD
+NETBOX_SECRET_INPUTS := NETBOX_SECRET_KEY NETBOX_API_TOKEN_PEPPER NETBOX_SUPERUSER_PASSWORD NETBOX_VALKEY_PASSWORD PG_APP_NETBOX_PASSWORD SSO_NETBOX_CLIENT_SECRET
 NETBOX_SYNC := $(VENV)/bin/python scripts/netbox-sync.py
 
 .PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-plan netbox-apply netbox-inventory netbox-export
@@ -1078,18 +1085,21 @@ netbox-check:
 	$(VENV)/bin/python tests/netbox.py
 
 # Writes the Secret NetBox needs, then hands NetBox to Argo CD and waits until it is in sync and healthy. The
-# five values come from the environment only and go straight into the Kubernetes Secret (never printed).
+# values come from the environment only and go straight into the Kubernetes Secrets (never printed).
 # api_token stays empty: the image creates no token for the superuser; `make netbox-identities` provisions
 # short-lived ones from the password when it needs them.
-#   scripts/secrets.py run /netbox /postgresql -- make netbox-deploy NETBOX_DEPLOY_APPROVED=yes
+#   scripts/secrets.py run /netbox /postgresql /authentik -- make netbox-deploy NETBOX_DEPLOY_APPROVED=yes
 netbox-deploy:
 	@test "$(NETBOX_DEPLOY_APPROVED)" = yes || (echo "Approve the NetBox deployment with NETBOX_DEPLOY_APPROVED=yes" >&2; exit 1)
-	@for v in $(NETBOX_SECRET_INPUTS); do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /netbox and /postgresql)" >&2; exit 1; }; done
+	@for v in $(NETBOX_SECRET_INPUTS); do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /netbox, /postgresql and /authentik)" >&2; exit 1; }; done
 	@kubectl --context doku-lab create namespace netbox --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
 	@set -euo pipefail; kubectl --context doku-lab -n netbox create secret generic netbox-secrets --dry-run=client -o yaml \
 	  --from-env-file=<(printf 'secret_key=%s\napi_token_peppers={"1":"%s"}\nemail_password=\nusername=admin\nemail=admin@doku-lab.net\npassword=%s\napi_token=\nvalkey_password=%s\ndb_password=%s\n' \
 	    "$$NETBOX_SECRET_KEY" "$$NETBOX_API_TOKEN_PEPPER" "$$NETBOX_SUPERUSER_PASSWORD" "$$NETBOX_VALKEY_PASSWORD" "$$PG_APP_NETBOX_PASSWORD") \
 	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/netbox-secrets applied"
+	@set -euo pipefail; kubectl --context doku-lab -n netbox create secret generic netbox-sso --dry-run=client -o yaml \
+	  --from-file=oidc.yaml=<(printf 'SOCIAL_AUTH_OIDC_SECRET: "%s"\n' "$$SSO_NETBOX_CLIENT_SECRET") \
+	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/netbox-sso applied"
 	kubectl --context doku-lab apply -f services/argocd/apps/netbox.yaml
 	$(call ARGOCD_WAIT,netbox)
 
@@ -1139,7 +1149,7 @@ WINDMILL_K3S_CHART_VERSION := 4.0.324
 WINDMILL_K3S_REPO := https://windmill-labs.github.io/windmill-helm-charts/
 WINDMILL_ADMIN := $(VENV)/bin/python scripts/windmill-admin.py
 
-.PHONY: windmill-k3s-check windmill-deploy windmill-bootstrap windmill-push
+.PHONY: windmill-k3s-check windmill-deploy windmill-bootstrap windmill-sso windmill-push
 
 # Offline: renders the pinned chart with our values (needs the chart download) and checks the scripts of windmill/.
 windmill-k3s-check:
@@ -1163,6 +1173,14 @@ windmill-deploy:
 windmill-bootstrap:
 	@test "$(WINDMILL_BOOTSTRAP_APPROVED)" = yes || (echo "Approve the Windmill bootstrap with WINDMILL_BOOTSTRAP_APPROVED=yes" >&2; exit 1)
 	$(WINDMILL_ADMIN) bootstrap
+
+# Sign-in through Authentik (ADR-017): Windmill keeps this setting in its database, so it is written through
+# the API. WINDMILL_SSO_ADMINS lists the e-mail addresses of the Authentik accounts that administer Windmill.
+#   scripts/secrets.py run /windmill /authentik -- make windmill-sso WINDMILL_SSO_APPROVED=yes
+WINDMILL_SSO_ADMINS ?= admin@doku-lab.net
+windmill-sso:
+	@test "$(WINDMILL_SSO_APPROVED)" = yes || (echo "Approve the Windmill sign-in configuration with WINDMILL_SSO_APPROVED=yes" >&2; exit 1)
+	$(WINDMILL_ADMIN) sso $(WINDMILL_SSO_ADMINS)
 
 # Publishes the scripts of windmill/ to the workspace (creates or updates; never deletes).
 #   scripts/secrets.py run /windmill -- make windmill-push

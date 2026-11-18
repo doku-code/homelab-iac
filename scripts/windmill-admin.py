@@ -5,9 +5,12 @@
                                         automation token, give the workspace its read-only NetBox token
   scripts/windmill-admin.py push        publish the scripts of windmill/ (create or update; never delete)
   scripts/windmill-admin.py run <path> [json arguments]   run one script and print its result
+  scripts/windmill-admin.py sso [e-mail ...]   sign-in through Authentik (ADR-017); the listed Authentik accounts
+                                        become Windmill administrators at their first sign-in
 
 Credentials come from the environment only and are never printed: WINDMILL_ADMIN_PASSWORD and NETBOX_READ_TOKEN
-(bootstrap), WINDMILL_TOKEN (push, run). Store paths /windmill and /netbox.
+(bootstrap), WINDMILL_TOKEN (push, run, sso), SSO_WINDMILL_CLIENT_SECRET (sso). Store paths /windmill, /netbox
+and /authentik.
 """
 import hashlib
 import json
@@ -27,6 +30,7 @@ WORKSPACE = "homelab"
 ADMIN = "admin@windmill.dev"
 BUILT_IN_PASSWORD = "changeme"  # public default of every new Windmill; bootstrap replaces it
 LANGUAGES = {".py": "python3"}
+AUTHENTIK = os.environ.get("AUTHENTIK_URL", "https://auth.doku-lab.net")
 
 
 def die(message):
@@ -166,13 +170,53 @@ def cmd_run(args):
     die(f"job {job} did not finish within four minutes")
 
 
+def sso_client(secret):
+    """The entry Windmill's own settings page writes for Authentik (instance settings, key `oauths`)."""
+    base = f"{AUTHENTIK}/application/o"
+    return {"id": "windmill", "secret": secret, "display_name": "Authentik", "pkce": True,
+            "login_config": {"auth_url": f"{base}/authorize/", "token_url": f"{base}/token/", "userinfo_url": f"{base}/userinfo/",
+                             "scopes": ["openid", "profile", "email"]},
+            "connect_config": {"auth_url": f"{base}/authorize/", "token_url": f"{base}/token/", "scopes": ["openid"]}}
+
+
+def cmd_sso(emails):
+    token = os.environ.get("WINDMILL_TOKEN") or die("set WINDMILL_TOKEN in the environment (store path /windmill)")
+    secret = os.environ.get("SSO_WINDMILL_CLIENT_SECRET") or die("set SSO_WINDMILL_CLIENT_SECRET in the environment (store path /authentik)")
+    _, current = call("GET", "/settings/global/oauths", token)
+    clients = dict(current) if isinstance(current, dict) else {}
+    wanted = sso_client(secret)
+    if clients.get("authentik") == wanted:
+        print("sign-in through Authentik: already configured")
+    else:
+        clients["authentik"] = wanted  # other sign-in clients, if any, are kept
+        call("POST", "/settings/global/oauths", token, {"value": clients})
+        print("sign-in through Authentik: configured")
+    # People who sign in for the first time join the workspace; Authentik decides who may sign in at all.
+    call("POST", f"/w/{WORKSPACE}/workspaces/edit_auto_invite", token, {"auto_add": True, "invite_all": True, "operator": False})
+    print(f"workspace {WORKSPACE}: new accounts are added automatically")
+    # Windmill knows people by e-mail address and cannot read Authentik's groups in this edition, so its
+    # administrators are named here. The built-in administrator keeps its password.
+    for email in emails:
+        if email == ADMIN:
+            die(f"{ADMIN} is the local administrator and stays a password account")
+        _, exists = call("GET", f"/users/exists/{email}", token)
+        if exists is True:
+            call("POST", f"/users/update/{email}", token, {"is_super_admin": True})
+            print(f"{email}: administrator (account existed)")
+        else:
+            call("POST", "/users/create", token, {"email": email, "super_admin": True, "login_type": "pending_oauth", "skip_email": True})
+            print(f"{email}: administrator at the first sign-in through Authentik")
+
+
 def main(argv):
-    if not argv or argv[0] not in ("bootstrap", "push", "run"):
-        die("usage: windmill-admin.py bootstrap | push | run <path> [json arguments]")
+    if not argv or argv[0] not in ("bootstrap", "push", "run", "sso"):
+        die("usage: windmill-admin.py bootstrap | push | run <path> [json arguments] | sso [e-mail ...]")
     if argv[0] == "bootstrap":
         cmd_bootstrap()
     elif argv[0] == "push":
         cmd_push()
+    elif argv[0] == "sso":
+        cmd_sso(argv[1:])
     else:
         cmd_run(argv[1:])
 

@@ -99,3 +99,27 @@ spec:
         - name: netbox
           port: 80
   tls: {}
+---
+# The step added to NetBox's sign-in pipeline (values.yaml, SOCIAL_AUTH_PIPELINE): a person who signs in
+# through Authentik is a NetBox superuser exactly while Authentik lists them in homelab-admins. Accounts
+# with a local password (the administrator of the secret store) never pass through here.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbox-sso-pipeline
+  namespace: netbox
+data:
+  sso_pipeline.py: |
+    SUPERUSER_GROUP = "homelab-admins"
+
+
+    def claim_groups(response):
+        groups = response.get("groups") or []
+        return {groups} if isinstance(groups, str) else set(groups)
+
+
+    def set_superuser(response, user, backend, *args, **kwargs):
+        wanted = SUPERUSER_GROUP in claim_groups(response)
+        if user.is_superuser != wanted:
+            user.is_superuser = wanted
+            user.save(update_fields=["is_superuser"])

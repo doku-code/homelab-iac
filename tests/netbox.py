@@ -105,6 +105,34 @@ def access():
     assert {"name": "netbox"} in apps
 
 
+def sso_pipeline():
+    """The step added to the sign-in pipeline (ADR-017): superuser exactly while Authentik lists the person in
+    homelab-admins, and nothing written when nothing changes."""
+    (config,) = [d for d in yaml.safe_load_all((DIR / "access.yaml").read_text()) if d and d["kind"] == "ConfigMap"]
+    assert config["metadata"] == {"name": "netbox-sso-pipeline", "namespace": "netbox"}
+    module = {}
+    exec(compile(config["data"]["sso_pipeline.py"], "sso_pipeline.py", "exec"), module)  # noqa: S102 - our own file
+
+    class User:
+        def __init__(self, is_superuser):
+            self.is_superuser, self.saved = is_superuser, []
+
+        def save(self, update_fields):
+            self.saved.append(update_fields)
+
+    for groups, before, after, writes in ((["homelab-admins", "other"], False, True, 1), (["other"], True, False, 1),
+                                          ("homelab-admins", False, True, 1), (["homelab-admins"], True, True, 0),
+                                          (None, False, False, 0)):
+        user = User(before)
+        module["set_superuser"]({"groups": groups} if groups is not None else {}, user, backend=None)
+        assert user.is_superuser is after and len(user.saved) == writes, (groups, before)
+        assert all(fields == ["is_superuser"] for fields in user.saved)
+    values = yaml.safe_load((DIR / "values.yaml").read_text())
+    (mount,) = values["extraVolumeMounts"]
+    assert mount["mountPath"] == "/opt/netbox/netbox/netbox/sso_pipeline.py" and mount["subPath"] == "sso_pipeline.py"
+    assert values["extraVolumes"] == [{"name": "sso-pipeline", "configMap": {"name": "netbox-sso-pipeline"}}]
+
+
 def make_guards():
     make = (ROOT / "Makefile").read_text()
     for target, guard in (("netbox-deploy", "NETBOX_DEPLOY_APPROVED"), ("netbox-apply", "NETBOX_APPLY_APPROVED"),
@@ -414,6 +442,7 @@ def seed_and_inventory():
 def main():
     chart()
     access()
+    sso_pipeline()
     make_guards()
     reconciliation()
     discovery()

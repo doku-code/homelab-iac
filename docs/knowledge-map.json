@@ -1415,6 +1415,37 @@
       ]
     },
     {
+      "id": "ADR-017",
+      "title": "Authentik is the single sign-on of the platform, declared in Git, never a bootstrap dependency",
+      "summary": "Authentik on k3s signs people in to every web interface (OIDC first, forward authentication otherwise); applications and groups are blueprints in Git, people live in Authentik, each service keeps a local administrator.",
+      "importance": 3,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "decision",
+      "status": "proposed",
+      "path": "docs/decisions/ADR-017-authentik-is-the-single-sign-on-of-the-platform-declared-in.md",
+      "tags": [],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Authentik is the single sign-on of the platform, declared in Git, never a bootstrap dependency",
+        "Context",
+        "Decision",
+        "Alternatives considered",
+        "Consequences"
+      ],
+      "relations": {},
+      "backrefs": []
+    },
+    {
       "id": "ARCH-platform",
       "title": "Target homelab platform architecture",
       "summary": "Layers and owners of the rebuilt homelab: Proxmox cluster, k3s, Headlamp, external NVMe storage via CSI, PostgreSQL/Patroni, Phase, Argo CD, Windmill, runner; TrueNAS for backups.",
@@ -3364,6 +3395,40 @@
       ]
     },
     {
+      "id": "M014",
+      "title": "Single sign-on with Authentik",
+      "summary": "Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "milestone",
+      "status": "planned",
+      "path": "milestones/M014-single-sign-on-with-authentik.md",
+      "tags": [],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Single sign-on with Authentik",
+        "Objective",
+        "Scope",
+        "Expected deliverables",
+        "Dependencies",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Completion summary"
+      ],
+      "relations": {},
+      "backrefs": []
+    },
+    {
       "id": "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
       "title": "NetBox 4.7 REST API, chart 8.3.107 and the netbox.netbox collection",
       "summary": "What the NetBox deployment and reconciliation rely on: chart values, superuser and v2 tokens, filters used by the sync, nb_inventory behaviour.",
@@ -5242,6 +5307,40 @@
           "field": "related_tasks"
         }
       ]
+    },
+    {
+      "id": "TASK-026",
+      "title": "Authentik on k3s and single sign-on for Argo CD, Grafana, NetBox and Windmill",
+      "summary": "Authentik 2026.8.5 under Argo CD on the shared PostgreSQL; applications and groups as blueprints; OIDC sign-in wired for Argo CD, Grafana, NetBox and Windmill with local administrators kept.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "planned",
+      "path": "tasks/TASK-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb.md",
+      "tags": [],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Authentik on k3s and single sign-on for Argo CD, Grafana, NetBox and Windmill",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {},
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -5267,7 +5366,8 @@
       "ADR-013",
       "ADR-014",
       "ADR-015",
-      "ADR-016"
+      "ADR-016",
+      "ADR-017"
     ],
     "guide": [
       "GUIDE-handoff"
@@ -5291,7 +5391,8 @@
       "M010",
       "M011",
       "M012",
-      "M013"
+      "M013",
+      "M014"
     ],
     "overview": [
       "DOC-project-overview"
@@ -5321,7 +5422,8 @@
       "TASK-022",
       "TASK-023",
       "TASK-024",
-      "TASK-025"
+      "TASK-025",
+      "TASK-026"
     ]
   },
   "by_tag": {

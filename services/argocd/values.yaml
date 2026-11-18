@@ -27,6 +27,21 @@ configs:
         kinds: [CertificateSigningRequest]
       - apiGroups: [cert-manager.io]
         kinds: [CertificateRequest]
+    # Single sign-on through Authentik (ADR-017). The client secret is the key clientSecret of the Secret
+    # `argocd-sso`, written by `make argocd-deploy` from the secret store. The local account `admin` stays.
+    oidc.config: |
+      name: Authentik
+      issuer: https://auth.doku-lab.net/application/o/argocd/
+      clientID: argocd
+      clientSecret: $argocd-sso:clientSecret
+      requestedScopes: [openid, profile, email]
+  rbac:
+    # Rights come from the groups Authentik reports: its group homelab-admins administers Argo CD, anyone
+    # else who signs in gets nothing.
+    policy.default: ""
+    scopes: "[groups]"
+    policy.csv: |
+      g, homelab-admins, role:admin
   # Chart registries that are not plain Git or HTTPS Helm repositories. No credentials: all are public.
   repositories:
     netbox-chart:
@@ -35,7 +50,7 @@ configs:
       url: ghcr.io/netbox-community/netbox-chart
       enableOCI: "true"
 
-# Not needed yet: single sign-on (no identity provider exists), notifications, generated applications.
+# Not needed: the bundled identity broker (Argo CD talks to Authentik directly), notifications, generated applications.
 dex:
   enabled: false
 notifications:

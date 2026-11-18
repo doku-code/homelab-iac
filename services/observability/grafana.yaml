@@ -11,6 +11,13 @@ envValueFrom:
     secretKeyRef:
       name: grafana-db
       key: password
+  # Client secret of the single sign-on (Secret written by `make observability-deploy`). Optional: Grafana
+  # starts without it and the local administrator still works.
+  GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
+    secretKeyRef:
+      name: grafana-sso
+      key: clientSecret
+      optional: true
 persistence:
   enabled: false
 testFramework:
@@ -32,6 +39,25 @@ grafana.ini:
     check_for_plugin_updates: false
   users:
     allow_sign_up: false
+  # Single sign-on through Authentik (ADR-017). Members of its group homelab-admins are Grafana
+  # administrators; nobody else gets a role, so nobody else gets in. The login form stays for the local
+  # administrator.
+  auth:
+    signout_redirect_url: https://auth.doku-lab.net/application/o/grafana/end-session/
+  auth.generic_oauth:
+    enabled: true
+    name: Authentik
+    client_id: grafana
+    scopes: openid profile email
+    auth_url: https://auth.doku-lab.net/application/o/authorize/
+    token_url: https://auth.doku-lab.net/application/o/token/
+    api_url: https://auth.doku-lab.net/application/o/userinfo/
+    allow_sign_up: true
+    use_pkce: true
+    login_attribute_path: preferred_username
+    role_attribute_path: contains(groups[*], 'homelab-admins') && 'GrafanaAdmin'
+    allow_assign_grafana_admin: true
+    role_attribute_strict: true
   news:
     news_feed_enabled: false
 datasources:

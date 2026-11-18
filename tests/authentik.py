@@ -148,6 +148,51 @@ def blueprints():
     assert "password" not in str(users[0]["attrs"])
 
 
+def clients():
+    """Each application of AUTHENTIK_CLIENTS is configured on its own side with the same client name and the
+    addresses of its own provider, reads its client secret from a Secret or the environment, and keeps a local
+    administrator. A new client must be added here: that is the reminder to wire both sides."""
+    make = (ROOT / "Makefile").read_text()
+
+    argocd = yaml.safe_load((ROOT / "services/argocd/values.yaml").read_text())["configs"]
+    oidc = yaml.safe_load(argocd["cm"]["oidc.config"])
+    assert oidc["issuer"] == f"{ISSUER}/argocd/" and oidc["clientID"] == "argocd" and oidc["clientSecret"] == "$argocd-sso:clientSecret"
+    assert "groups" not in oidc["requestedScopes"], "Authentik sends the groups with the profile scope"
+    assert argocd["rbac"]["policy.default"] == "" and argocd["rbac"]["policy.csv"].strip() == "g, homelab-admins, role:admin"
+    assert "admin.enabled" not in argocd["cm"], "the local administrator stays"
+    deploy = recipe("argocd-deploy")
+    assert "argocd-sso" in deploy and "app.kubernetes.io/part-of=argocd" in deploy and "SSO_ARGOCD_CLIENT_SECRET" in deploy
+
+    grafana = yaml.safe_load((ROOT / "services/observability/grafana.yaml").read_text())
+    oauth = grafana["grafana.ini"]["auth.generic_oauth"]
+    assert oauth["enabled"] is True and oauth["client_id"] == "grafana" and "client_secret" not in oauth
+    assert (oauth["auth_url"], oauth["token_url"], oauth["api_url"]) == (f"{ISSUER}/authorize/", f"{ISSUER}/token/", f"{ISSUER}/userinfo/")
+    assert oauth["role_attribute_path"] == "contains(groups[*], 'homelab-admins') && 'GrafanaAdmin'" and oauth["role_attribute_strict"] is True
+    assert "oauth_auto_login" not in oauth and "disable_login_form" not in grafana["grafana.ini"].get("auth", {}), "the login form stays"
+    secret = grafana["envValueFrom"]["GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET"]["secretKeyRef"]
+    assert secret == {"name": "grafana-sso", "key": "clientSecret", "optional": True}, "Grafana starts without single sign-on"
+    assert "grafana-sso" in recipe("observability-deploy")
+
+    netbox = yaml.safe_load((ROOT / "services/netbox/values.yaml").read_text())
+    assert netbox["remoteAuth"] == {"enabled": True, "backends": ["social_core.backends.open_id_connect.OpenIdConnectAuth"]}
+    settings = netbox["extraConfig"][0]["values"]
+    assert settings["SOCIAL_AUTH_OIDC_OIDC_ENDPOINT"] == f"{ISSUER}/netbox/" and settings["SOCIAL_AUTH_OIDC_KEY"] == "netbox"
+    assert "SOCIAL_AUTH_OIDC_SECRET" not in str(netbox) and settings["SOCIAL_AUTH_PIPELINE"][-1] == "netbox.sso_pipeline.set_superuser"
+    assert netbox["extraConfig"][1] == {"secret": {"secretName": "netbox-sso", "optional": True}}, "NetBox starts without single sign-on"
+    assert "netbox-sso" in recipe("netbox-deploy") and "SOCIAL_AUTH_OIDC_SECRET" in recipe("netbox-deploy")
+
+    spec = importlib.util.spec_from_file_location("windmill_admin", ROOT / "scripts/windmill-admin.py")
+    windmill = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(windmill)
+    client = windmill.sso_client("synthetic")
+    assert client["id"] == "windmill" and client["secret"] == "synthetic" and client["pkce"] is True
+    assert client["login_config"]["token_url"] == f"{ISSUER}/token/" and "email" in client["login_config"]["scopes"]
+    assert 'test "$(WINDMILL_SSO_APPROVED)" = yes' in recipe("windmill-sso")
+
+    checked = {"ARGOCD", "GRAFANA", "NETBOX", "WINDMILL"}
+    assert set(make_var("AUTHENTIK_CLIENTS").split()) == checked, "add the new client's own side to this test"
+
+
 def tools():
     """ensure-secrets never replaces a value and gives up when the store cannot be read; the admin tool only reads
     and re-applies blueprints."""
@@ -190,9 +235,11 @@ def main():
     chart()
     access_database_and_make()
     blueprints()
+    clients()
     tools()
     print("PASS: Authentik chart pinned with single replicas, no Kubernetes credentials, shared PostgreSQL over TLS, LAN and pod "
-          "network route, blueprints with client secrets from the environment and group-restricted applications")
+          "network route, blueprints with client secrets from the environment and group-restricted applications, four "
+          "applications wired on both sides with their local administrator kept")
 
 
 if __name__ == "__main__":
