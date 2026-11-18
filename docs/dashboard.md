@@ -96,12 +96,13 @@ gantt
 - `.venv/bin/harness check` — harness-check
 - `.venv/bin/python scripts/check-quality.py` — quality
 - `terraform fmt -check -recursive terraform` — terraform-fmt
-- `d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do case "$r" in terraform/stacks/pve-management-control/|terraform/stacks/deploy-runner/|terraform/stacks/ci-disposable/|terraform/stacks/k3s/|terraform/stacks/storage/|terraform/stacks/postgresql/) continue;; esac; n="$d/$(basename "$r")"; TF_DATA_DIR="$n" terraform -chdir="$r" init -backend=false -input=false -lockfile=readonly >/dev/null && TF_DATA_DIR="$n" terraform -chdir="$r" validate >/dev/null || { echo "FAIL $r"; exit 1; }; done; rm -rf "$d"` — terraform-validate
+- `d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do case "$r" in terraform/stacks/pve-management-control/|terraform/stacks/deploy-runner/|terraform/stacks/ci-disposable/|terraform/stacks/k3s/|terraform/stacks/storage/|terraform/stacks/postgresql/|terraform/stacks/dns/) continue;; esac; n="$d/$(basename "$r")"; TF_DATA_DIR="$n" terraform -chdir="$r" init -backend=false -input=false -lockfile=readonly >/dev/null && TF_DATA_DIR="$n" terraform -chdir="$r" validate >/dev/null || { echo "FAIL $r"; exit 1; }; done; rm -rf "$d"` — terraform-validate
 - `make mgmt-check` — mgmt-check
 - `make deploy-runner-check` — deploy-runner-check
 - `make k3s-cluster-check` — k3s-cluster-check
 - `make storage-check` — storage-check
 - `make postgresql-check` — postgresql-check
+- `make dns-check` — dns-check
 - `make phase-check` — phase-check
 - `make observability-check` — observability-check
 - `make ingress-check` — ingress-check

@@ -37,7 +37,7 @@ spec:
     - websecure
   routes:
     - kind: Rule
-      match: Host(`phase.192.168.0.40.sslip.io`) && (Path(`/service`) || PathPrefix(`/service/`))
+      match: Host(`phase.doku-lab.net`) && (Path(`/service`) || PathPrefix(`/service/`))
       middlewares:
         - name: admin-lan
         - name: strip-service
@@ -45,7 +45,7 @@ spec:
         - name: phase-console-backend
           port: 8000
     - kind: Rule
-      match: Host(`phase.192.168.0.40.sslip.io`)
+      match: Host(`phase.doku-lab.net`)
       middlewares:
         - name: admin-lan
       services:

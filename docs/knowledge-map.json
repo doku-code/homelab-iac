@@ -4655,10 +4655,16 @@
         ],
         "related_implementations": [
           "services/ingress",
+          "terraform/stacks/dns",
+          "ansible/roles/adguard_home",
+          "ansible/playbooks/configure-dns.yml",
+          "ansible/vars/dns.yml",
           "Makefile"
         ],
         "related_tests": [
-          "tests/ingress.py"
+          "tests/ingress.py",
+          "tests/dns.py",
+          "terraform/stacks/dns/tests/dns.tftest.hcl"
         ],
         "milestone": [
           "M010"

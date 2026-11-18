@@ -29,7 +29,7 @@ BOOTSTRAP_PATHS = ("/pve-management", "/postgresql", "/k3s", "/ingress", "/phase
 INFISICAL_ENV = os.environ.get("INFISICAL_ENV", "dev")
 PHASE_APP = os.environ.get("PHASE_APP", "homelab-iac")
 PHASE_ENV = os.environ.get("PHASE_ENV", "development")
-PHASE_HOST = os.environ.get("PHASE_HOST", "https://phase.192.168.0.40.sslip.io")
+PHASE_HOST = os.environ.get("PHASE_HOST", "https://phase.doku-lab.net")
 BUNDLE = Path(os.environ.get("SECRETS_RECOVERY_BUNDLE", ROOT / ".local/recovery/secrets.json.age"))
 
 

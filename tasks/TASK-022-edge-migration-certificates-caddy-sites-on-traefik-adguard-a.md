@@ -12,10 +12,10 @@ tags: [ingress, traefik, cert-manager, caddy, adguard, dns]
 depends_on: [TASK-021]
 related: [ARCH-platform, GUIDE-handoff]
 related_decisions: [ADR-011]
-related_implementations: [services/ingress, Makefile]
-related_tests: [tests/ingress.py]
+related_implementations: [services/ingress, terraform/stacks/dns, ansible/roles/adguard_home, ansible/playbooks/configure-dns.yml, ansible/vars/dns.yml, Makefile]
+related_tests: [tests/ingress.py, tests/dns.py, terraform/stacks/dns/tests/dns.tftest.hcl]
 tests_justification: ""
-verification_commands: [make ingress-check]
+verification_commands: [make ingress-check, make dns-check]
 evidence: []
 ---
 
@@ -60,8 +60,9 @@ Proxmox host; the host itself is never changed. Copies of the files are in `.loc
 2. **Caddy sites on Traefik** (done, idle): `services/ingress/legacy-routes.yaml` holds one route per site in
    use, to the same backends outside k3s, with the same headers. Nothing uses them until DNS points a name
    at the cluster, so each name moves on its own and moves back by reverting one DNS answer.
-3. **AdGuard** (next): outside k3s, on its own small VM built from code with the same upstreams, lists and
-   rewrites. Reason: the k3s nodes themselves resolve through it (image pulls), so DNS inside the cluster
+3. **AdGuard** (done): outside k3s, on its own small VM (`dns-01`, VM 370, `192.168.0.70`, pve-infra, same
+   AdGuard Home release as before) built from code with the same upstreams, lists and rewrites; content in
+   `ansible/vars/dns.yml`, web login unchanged (hash in the store path `/dns`). Reason: the k3s nodes themselves resolve through it (image pulls), so DNS inside the cluster
    could not start after a full stop; it also needs port 53 on a fixed address. It takes over
    `192.168.0.20` at the cutover so no client and no DHCP setting changes; the old container is stopped,
    not deleted, and starting it again is the rollback.
@@ -77,8 +78,9 @@ between nodes is deferred with the other replica questions.
 
 - [x] Wildcard certificate issued and served by Traefik for `doku-lab.net` names
 - [x] Every Caddy site in use answers through Traefik like through Caddy
-- [ ] New AdGuard answers like the old one (rewrites, blocking, upstreams) and holds `192.168.0.20`
-- [ ] Names repointed to the cluster one by one; Phase, Grafana, Headlamp on `doku-lab.net` names
+- [x] New AdGuard answers like the old one (rewrites, blocking, upstreams) and holds `192.168.0.20`
+- [x] Phase, Grafana, Headlamp on `doku-lab.net` names; nine Caddy names repointed to the cluster
+- [ ] `git` and `cloud` repointed (their applications must trust the new proxy addresses first)
 - [ ] Tunnel moved; Caddy container stopped
 
 ## Verification
@@ -104,11 +106,22 @@ make ingress-routes-deploy INGRESS_ROUTES_DEPLOY_APPROVED=yes
 | Routes | 11 names compared through `192.168.0.24` and `192.168.0.40` with `curl --resolve`: same status and body size for all (`pbs` gives 502 on both, its host is off); the homepage metric paths answer 200 on both | `curl` | 2026-11-18 |
 | Legacy Grafana | VM 208 confirmed at `192.168.0.28` by its guest agent, shut down gracefully, `onboot` 0 | old Proxmox API | 2026-11-18 |
 
+| AdGuard build | `dns-01` created (plan 2 to add); first configure run failed on a missing drop-in directory, fixed; second run changed=21, third changed=0 | `.local/dns-*.log` | 2026-11-18 |
+| AdGuard comparison | 17 of 17 local names identical on old and new; blocked names blocked on both; DNSSEC `ad` flag on both; one lookup timed out once on the new server and answered on retry, 40 paced lookups all answered | `dig` against `.20` and `.70` | 2026-11-18 |
+| DNS cutover | Old container CT200 stopped (autostart off); `192.168.0.20` answered from `dns-01` 40 s later; workstation, a pod, a k3s node, a PostgreSQL member and the runner resolve | `.local/legacy/dns-cutover.sh`, `dig`, `getent` | 2026-11-18 |
+| Names | `phase`, `grafana`, `headlamp`, `home`, `homepage`, `wiki`, `vault`, `secrets`, `qbit`, `truenas`, `plex` answer through `192.168.0.40` with certificate verification on (200, or the same 302/401 as before); `git` and `cloud` still through `192.168.0.24`; the secret store works through Traefik | `curl` without `-k` | 2026-11-18 |
+| Phase rename | After the host change the pods kept the old name until restarted (CLI got HTTP 400); `make phase-deploy` now restarts them; the CLI reaches `https://phase.doku-lab.net` with a public certificate | `phase secrets list` with a dummy token: 401 | 2026-11-18 |
+
 ## Completion summary
 
-In progress. Certificates and routes are in place and idle; no DNS answer changed yet.
+In progress. The LAN resolves through `dns-01`; eleven names are served by Traefik with the Let's Encrypt
+wildcard; the Caddy container still serves `git`, `cloud`, the stale Proxmox names and the public tunnel.
+Not carried over: the old AdGuard's query log and statistics (they stay in the stopped container).
+Rollback of the DNS move: stop `dns-service-address` on `dns-01`, start CT200 on the old Proxmox host.
 
-Remaining: (1) AdGuard VM from code at a temporary address, compared with the old one, then the takeover of
-`192.168.0.20` with the operator aware of the moment; (2) repoint the names; `doku-lab.net` names for Phase
-(host change and a new CLI login), Grafana and Headlamp; (3) operator decides the names of the Proxmox UIs
-and what `dropper` and `penpot` should become; (4) tunnel to k3s, stop CT204.
+Remaining: (1) `git` and `cloud`: add the k3s node addresses to the trusted proxies of Forgejo and
+Nextcloud, then change their answers in `ansible/vars/dns.yml`; (2) operator decides the names of the
+Proxmox UIs and what `dropper` and `penpot` should become; (3) tunnel to k3s (one replica) with its public
+hostnames pointed at Traefik, then stop CT204; (4) move the ingestion names of the monitoring agents off
+sslip.io and drop the self-signed certificate; (5) a second DNS server and a shared ingress address are
+deferred with the other replica questions.

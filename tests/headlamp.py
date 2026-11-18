@@ -32,7 +32,7 @@ def main():
     annotations = ingress["metadata"]["annotations"]
     assert annotations["traefik.ingress.kubernetes.io/router.entrypoints"] == "websecure"
     assert annotations["traefik.ingress.kubernetes.io/router.middlewares"] == "headlamp-admin-lan@kubernetescrd"
-    assert [r["host"] for r in ingress["spec"]["rules"]] == ["headlamp.192.168.0.40.sslip.io"]
+    assert [r["host"] for r in ingress["spec"]["rules"]] == ["headlamp.doku-lab.net"]
     deployment = next(d for d in docs if d["kind"] == "Deployment")
     container = deployment["spec"]["template"]["spec"]["containers"][0]
     assert container["resources"]["limits"]["memory"] == "256Mi"

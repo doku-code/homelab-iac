@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-HOST = "phase.192.168.0.40.sslip.io"
+HOST = "phase.doku-lab.net"
 
 
 def make_var(name):

@@ -19,7 +19,7 @@ ingress:
   enabled: false # Traefik routes are in services/observability/access.yaml
 grafana.ini:
   server:
-    root_url: https://grafana.192.168.0.40.sslip.io/
+    root_url: https://grafana.doku-lab.net/
   database:
     type: postgres
     host: 192.168.0.60:5432

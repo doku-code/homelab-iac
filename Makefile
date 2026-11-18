@@ -747,6 +747,8 @@ phase-deploy:
 	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/phase-console-secret applied"
 	helm upgrade --install $(PHASE_HELM_ARGS) --kube-context doku-lab --timeout 10m
 	kubectl --context doku-lab -n phase patch deployment phase-console-frontend --patch-file services/phase/frontend-password-policy.yaml
+	@# The pods read host and settings from the ConfigMap and the Secret only when they start.
+	@for d in backend worker frontend; do kubectl --context doku-lab -n phase rollout restart "deployment/phase-console-$$d"; done
 	@for d in backend worker frontend; do kubectl --context doku-lab -n phase rollout status "deployment/phase-console-$$d" --timeout=600s; done
 
 # ─────────────────────────────────────────────

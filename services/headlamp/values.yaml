@@ -16,13 +16,13 @@ ingress:
   enabled: true
   ingressClassName: traefik
   annotations:
-    # HTTPS only (Traefik's own certificate for now), and only from the administration LAN.
+    # HTTPS only, and only from the administration LAN.
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/router.middlewares: headlamp-admin-lan@kubernetescrd
   hosts:
-    # No DNS record needed: sslip.io resolves the name to the embedded address (no change on AdGuard).
-    - host: headlamp.192.168.0.40.sslip.io
+    # DNS answer in ansible/vars/dns.yml; certificate: the *.doku-lab.net wildcard (services/ingress).
+    - host: headlamp.doku-lab.net
       paths:
         - path: /
           type: ImplementationSpecific

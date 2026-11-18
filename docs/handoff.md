@@ -102,8 +102,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   `k3s-server-02` (VM 311, .41, pve-core) and `k3s-server-03` (VM 312, .42, pve-lab), three etcd members,
   Traefik on every node. Two members are on pve-lab (operator decision): losing pve-lab stops the API,
   losing pve-core does not. kubeconfig and the published names still use `.40`.
-- **M005 completed** 2026-11-17: Headlamp at `https://headlamp.192.168.0.40.sslip.io/` (LAN only, self-signed
-  certificate); log in with `HEADLAMP_ADMIN_TOKEN` from Infisical `dev:/headlamp`. Redeploy: `make headlamp-deploy`.
+- **M005 completed** 2026-11-17: Headlamp at `https://headlamp.doku-lab.net/` (LAN only); log in with `HEADLAMP_ADMIN_TOKEN` from Infisical `dev:/headlamp`. Redeploy: `make headlamp-deploy`.
 - **M006 completed** 2026-11-17 ([TASK-017](../tasks/TASK-017-shared-nfs-storage-vm-on-pve-core-and-nvme-shared-storagecla.md)):
   `storage-01` (VM 350, 192.168.0.50, pve-core) exports NFS to the k3s nodes; **user data uses
   `storageClassName: nvme-shared`** (Retain), app data may use the default `local-path`. One host, one disk,
@@ -116,20 +115,27 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   store `PG_APP_<NAME>_PASSWORD` in the secret store path `/postgresql`, run `make postgresql-configure`.
   State of the cluster: `make postgresql-status`. No database backups yet (M012).
 - **M008 in progress** ([TASK-019](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md)):
-  Phase Console v2.79.0 runs at `https://phase.192.168.0.40.sslip.io/` (LAN only; certificate
-  `keys/k3s-ingress.crt`, trusted on the workstation, redeploy with `make ingress-tls-deploy`),
+  Phase Console v2.79.0 runs at `https://phase.doku-lab.net/` (LAN only),
   database on the shared PostgreSQL; minimum password length 10 through
   `services/phase/frontend-password-policy.yaml` (review it at every Console upgrade). It is **empty**: Infisical is still the active store
   (`.local/secret-store`). `scripts/secrets.py` is the store entry point (`run`, `set`, `inventory`,
   `migrate`, `verify`, `recovery-export`). **Waiting for the operator:** sign up in Phase and keep the recovery
-  kit, create the app `homelab-iac`, run `phase auth` on the workstation; provide an age public key for the
-  recovery copy of the bootstrap secrets. Then: migrate, verify, switch the store, and only after the
+  kit and create the app `homelab-iac` (done), run `phase auth` on the workstation with host
+  `https://phase.doku-lab.net` (open). The recovery bundle exists (`keys/operator-recovery.age.pub`). Then: migrate, verify, switch the store, and only after the
   operator's confirmation shut Infisical down.
 - **Observability deployed** 2026-11-17 ([TASK-020](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md)):
-  Grafana at `https://grafana.192.168.0.40.sslip.io/` (LAN only; `admin` with `GRAFANA_ADMIN_PASSWORD` from
+  Grafana at `https://grafana.doku-lab.net/` (LAN only; `admin` with `GRAFANA_ADMIN_PASSWORD` from
   store path `/monitoring`), dashboard "Homelab overview". Prometheus and Loki on k3s; Alloy in the cluster
   and on every VM, allow-listed metrics only (about 2,800 series with three k3s nodes). Redeploy: `make observability-deploy`;
   new VM: `make observability-agents`. Alerts are evaluated but not delivered anywhere yet.
+- **Edge migration in progress** 2026-11-18 ([TASK-022](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md)):
+  Traefik serves a Let's Encrypt wildcard for `*.doku-lab.net` (cert-manager, Cloudflare DNS-01:
+  `make ingress-certs-deploy`). **LAN DNS is `dns-01`** (VM 370, `192.168.0.70`, pve-infra; AdGuard Home from
+  `ansible/vars/dns.yml`, holding `192.168.0.20`): change a name there, then
+  `scripts/secrets.py run /dns -- make dns-configure DNS_CONFIGURE_APPROVED=yes`. Eleven names go through
+  Traefik (`services/ingress/legacy-routes.yaml` for the legacy backends); `git`, `cloud` and the public
+  tunnel are still on the legacy Caddy (CT204). The legacy AdGuard (CT200) and the legacy monitoring VM
+  (208) are stopped, not deleted. Operator rule of the day: one replica per k3s service for now.
 - **Operator roadmap (2026-11-17):** all items are deployed; what remains is the Phase cutover above.
 
 ## Commands

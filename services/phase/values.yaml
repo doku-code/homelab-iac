@@ -1,7 +1,7 @@
 # Phase Console (M008, ADR-004): official chart phase/phase, pinned in the Makefile. The database is the
 # shared PostgreSQL outside k3s (ADR-015); Redis is only a job queue and cache and stays in the cluster.
 global:
-  host: phase.192.168.0.40.sslip.io
+  host: phase.doku-lab.net
   httpProtocol: "https://"
   version: v2.79.0
 

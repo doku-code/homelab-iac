@@ -41,7 +41,7 @@ shut down (operator direction 2026-11-17; the shutdown itself needs the operator
   `phase` on the shared PostgreSQL (`192.168.0.60`, TLS), Redis in the cluster (queue and cache only).
   The chart's Ingress is for ingress-nginx, so `access.yaml` carries Traefik routes instead: `/service/*` to
   the backend without the prefix, the rest to the frontend, HTTPS only, administration LAN only.
-  URL: `https://phase.192.168.0.40.sslip.io/`.
+  URL: `https://phase.doku-lab.net/` since 2026-11-18 (Let's Encrypt wildcard, TASK-022).
 - **Certificate** (operator approval 2026-11-18): one self-signed certificate for `*.192.168.0.40.sslip.io`
   (not a CA, server authentication only, until 2028-11-17) is Traefik's default certificate
   (`services/ingress/tls-store.yaml`, `make ingress-tls-deploy`). Its public part is `keys/k3s-ingress.crt`,
@@ -139,7 +139,7 @@ scripts/secrets.py migrate --dry-run
 
 In progress. Phase is running and empty; Infisical is still the active store (`.local/secret-store`).
 
-Remaining: (1) operator: run `phase auth` on the workstation (host `https://phase.192.168.0.40.sslip.io`);
+Remaining: (1) operator: run `phase auth` on the workstation (host `https://phase.doku-lab.net`);
 (2) `scripts/secrets.py migrate` and `verify`, `recovery-export` again from Phase, switch
 `.local/secret-store` to `phase`, run the bootstrap targets through it, update the commands in the handoff;
 (3) operator: open the recovery bundle once with the age identity and keep a copy outside the homelab;

@@ -45,7 +45,7 @@ spec:
     - websecure
   routes:
     - kind: Rule
-      match: Host(`grafana.192.168.0.40.sslip.io`)
+      match: Host(`grafana.doku-lab.net`)
       middlewares:
         - name: admin-lan
       services:
