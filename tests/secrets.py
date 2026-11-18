@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/secrets.py"
 SOURCE = {
     "/": {"ROOT_KEY": "synthetic-root"},
+    "/ingress": {"INGRESS_TLS_CERT_B64": "c3ludGhldGlj"},
     "/k3s": {"K3S_TOKEN": "synthetic-" + "a" * 20},
     "/phase": {"PHASE_SERVER_SECRET": "synthetic-server", "PHASE_SECRET_KEY": "synthetic-key"},
     "/postgresql": {"PG_SUPERUSER_PASSWORD": "synthetic pass with 'quote' and $dollar", "MULTI": "line1\nline2 \"q\""},

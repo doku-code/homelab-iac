@@ -750,6 +750,25 @@ phase-deploy:
 	@for d in backend worker frontend; do kubectl --context doku-lab -n phase rollout status "deployment/phase-console-$$d" --timeout=600s; done
 
 # ─────────────────────────────────────────────
+# Ingress certificate: Traefik's default certificate for *.192.168.0.40.sslip.io (services/ingress).
+# Certificate and key come from the environment only (store path /ingress), e.g.
+#   scripts/secrets.py run /ingress -- make ingress-tls-deploy INGRESS_TLS_DEPLOY_APPROVED=yes
+# The deployed certificate must be the one in keys/k3s-ingress.crt, which the workstation trusts.
+# ─────────────────────────────────────────────
+
+.PHONY: ingress-tls-deploy
+
+ingress-tls-deploy:
+	@test "$(INGRESS_TLS_DEPLOY_APPROVED)" = yes || (echo "Approve the ingress certificate deployment with INGRESS_TLS_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@for v in INGRESS_TLS_CERT_B64 INGRESS_TLS_KEY_B64; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store path /ingress)" >&2; exit 1; }; done
+	@set -euo pipefail; diff -q <(printf '%s' "$$INGRESS_TLS_CERT_B64" | base64 -d | openssl x509 -outform der | sha256sum) <(openssl x509 -in keys/k3s-ingress.crt -outform der | sha256sum) >/dev/null \
+	  || { echo "The certificate in the store is not keys/k3s-ingress.crt" >&2; exit 1; }
+	@set -euo pipefail; kubectl --context doku-lab -n kube-system create secret tls ingress-default-tls --dry-run=client -o yaml \
+	  --cert=<(printf '%s' "$$INGRESS_TLS_CERT_B64" | base64 -d) --key=<(printf '%s' "$$INGRESS_TLS_KEY_B64" | base64 -d) \
+	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/ingress-default-tls applied"
+	kubectl --context doku-lab apply -f services/ingress/tls-store.yaml
+
+# ─────────────────────────────────────────────
 # Shared storage for k3s user data (M006, ADR-012): storage-01 on pve-core (NFS) + NFS CSI driver.
 # Same gates as the other workstation roots. The VM holds data: prevent_destroy, no replace target.
 # ─────────────────────────────────────────────

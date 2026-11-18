@@ -116,7 +116,8 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   store `PG_APP_<NAME>_PASSWORD` in the secret store path `/postgresql`, run `make postgresql-configure`.
   State of the cluster: `make postgresql-status`. No database backups yet (M012).
 - **M008 in progress** ([TASK-019](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md)):
-  Phase Console v2.79.0 runs at `https://phase.192.168.0.40.sslip.io/` (LAN only, self-signed certificate),
+  Phase Console v2.79.0 runs at `https://phase.192.168.0.40.sslip.io/` (LAN only; certificate
+  `keys/k3s-ingress.crt`, trusted on the workstation, redeploy with `make ingress-tls-deploy`),
   database on the shared PostgreSQL; minimum password length 10 through
   `services/phase/frontend-password-policy.yaml` (review it at every Console upgrade). It is **empty**: Infisical is still the active store
   (`.local/secret-store`). `scripts/secrets.py` is the store entry point (`run`, `set`, `inventory`,

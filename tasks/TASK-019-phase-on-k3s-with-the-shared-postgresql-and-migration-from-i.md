@@ -41,7 +41,12 @@ shut down (operator direction 2026-11-17; the shutdown itself needs the operator
   `phase` on the shared PostgreSQL (`192.168.0.60`, TLS), Redis in the cluster (queue and cache only).
   The chart's Ingress is for ingress-nginx, so `access.yaml` carries Traefik routes instead: `/service/*` to
   the backend without the prefix, the rest to the frontend, HTTPS only, administration LAN only.
-  URL: `https://phase.192.168.0.40.sslip.io/` (Traefik's self-signed certificate for now).
+  URL: `https://phase.192.168.0.40.sslip.io/`.
+- **Certificate** (operator approval 2026-11-18): one self-signed certificate for `*.192.168.0.40.sslip.io`
+  (not a CA, server authentication only, until 2028-11-17) is Traefik's default certificate
+  (`services/ingress/tls-store.yaml`, `make ingress-tls-deploy`). Its public part is `keys/k3s-ingress.crt`,
+  trusted system-wide on the workstation (`configure-mgmt-control.yml`); its key is in the store path
+  `/ingress`, which is a bootstrap path. The Phase CLI therefore verifies the server.
 - **Login**: email and password (no SSO provider exists yet; Authentik later). No outgoing email.
   Minimum password length **10** instead of Phase's built-in 16 (operator decision 2026-11-18). Phase has no
   setting for it and checks the length only in the browser, so `services/phase/frontend-password-policy.yaml`
@@ -57,7 +62,7 @@ shut down (operator direction 2026-11-17; the shutdown itself needs the operator
   - `inventory`, `migrate [--dry-run]`, `verify`: copy every Infisical secret into the Phase app
     `homelab-iac`, path by path, and compare by SHA256 of the values. Values are never printed.
   - `recovery-export`: age-encrypted copy of the bootstrap paths (`/pve-management`, `/postgresql`, `/k3s`,
-    `/phase`) for the operator's recipients; `SECRET_STORE=recovery` reads it with the operator's identity.
+    `/ingress`, `/phase`) for the operator's recipients; `SECRET_STORE=recovery` reads it with the operator's identity.
 - **Phase CLI** 2.3.3 in the workstation tool catalog (`mise`, command `phase`).
 
 ## Inventory (Infisical project Homelab-IaC, environment `dev`; `staging` and `prod` are empty)
@@ -123,6 +128,10 @@ scripts/secrets.py migrate --dry-run
 | CLI | `phase` 2.3.3 installed through the tool catalog | `phase --version` | 2026-11-17 |
 | Store script against Infisical | `inventory` lists 12 paths / 36 keys (names only); `run /k3s` injects the token; `make headlamp-token` stored and read back the token | script output | 2026-11-17 |
 | Password rule | Patched frontend rolled out; the served sign-up code says "at least 10 characters" (28 fields, 4 checks, 2 meters rewritten; nothing left at 16); `/signup`, `/login`, `/api/health` 200. Not tested by creating an account | `kubectl patch`, `curl` over the served chunks | 2026-11-18 |
+| Operator account | One user, one organisation, app `homelab-iac` exist (read-only count in database `phase`) | `psql` on the primary | 2026-11-18 |
+| CLI login | **Missing on the workstation**: the CLI refused Traefik's generated certificate (`x509: certificate is valid for …traefik.default`) | `phase secrets list` with a dummy token | 2026-11-18 |
+| Ingress certificate | Deployed; `curl` without `-k` gets 307/302/200 from Phase, Grafana, Headlamp and 200 through .41 and .42; the CLI now reaches the server (401 for the dummy token); 8 hosts still push metrics | `make ingress-tls-deploy`, `curl`, PromQL | 2026-11-18 |
+| Recovery bundle | Written from Infisical for the operator's recipient (`keys/operator-recovery.age.pub`): 5 bootstrap paths. Not opened: the identity is the operator's | `scripts/secrets.py recovery-export` | 2026-11-18 |
 | Account bootstrap | **Not done.** Automating the first sign-up with a headless browser was refused by the permission system; the owner account is the operator's to create | — | 2026-11-17 |
 | Phase side of the script | **Not verified** against a real Phase (needs the account): `phase secrets import/export` are exercised only with a fake | `tests/secrets.py` | 2026-11-17 |
 
@@ -130,10 +139,8 @@ scripts/secrets.py migrate --dry-run
 
 In progress. Phase is running and empty; Infisical is still the active store (`.local/secret-store`).
 
-Remaining: (1) operator: open `https://phase.192.168.0.40.sslip.io/`, sign up, keep the recovery kit, create
-the app `homelab-iac`, then run `phase auth` on the workstation (host `https://phase.192.168.0.40.sslip.io`);
-(2) operator: provide an age public key (`AGE_RECIPIENTS_FILE`) whose private key is kept outside the
-homelab; (3) `scripts/secrets.py migrate`, `recovery-export`, switch `.local/secret-store` to `phase`, run
-the bootstrap targets through it, update the commands in the handoff; (4) decide the certificate for
-`*.192.168.0.40.sslip.io` (the CLI must verify the server it sends secrets to); (5) operator confirms the
-Infisical shutdown.
+Remaining: (1) operator: run `phase auth` on the workstation (host `https://phase.192.168.0.40.sslip.io`);
+(2) `scripts/secrets.py migrate` and `verify`, `recovery-export` again from Phase, switch
+`.local/secret-store` to `phase`, run the bootstrap targets through it, update the commands in the handoff;
+(3) operator: open the recovery bundle once with the age identity and keep a copy outside the homelab;
+(4) operator confirms the Infisical shutdown.

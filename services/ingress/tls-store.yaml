@@ -1,0 +1,13 @@
+# Default certificate of the bundled Traefik: every IngressRoute with `tls: {}` serves it.
+# One self-signed certificate for *.192.168.0.40.sslip.io (public part: keys/k3s-ingress.crt, trusted by the
+# workstation), so clients verify the server they send secrets to. `make ingress-tls-deploy` creates the
+# Secret from the secret store path /ingress; the key is never in Git. Replace with an issuer when
+# certificates are automated.
+apiVersion: traefik.io/v1alpha1
+kind: TLSStore
+metadata:
+  name: default
+  namespace: kube-system
+spec:
+  defaultCertificate:
+    secretName: ingress-default-tls

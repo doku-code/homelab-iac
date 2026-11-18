@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STORES = ("infisical", "phase", "recovery")
 PATH_RE = re.compile(r"^/([a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*)*)?$")
 # Everything needed to rebuild the platform below Phase, and Phase itself.
-BOOTSTRAP_PATHS = ("/pve-management", "/postgresql", "/k3s", "/phase")
+BOOTSTRAP_PATHS = ("/pve-management", "/postgresql", "/k3s", "/ingress", "/phase")
 INFISICAL_ENV = os.environ.get("INFISICAL_ENV", "dev")
 PHASE_APP = os.environ.get("PHASE_APP", "homelab-iac")
 PHASE_ENV = os.environ.get("PHASE_ENV", "development")

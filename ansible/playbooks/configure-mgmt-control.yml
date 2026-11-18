@@ -51,11 +51,22 @@
         mode: "0644"
       register: mgmt_pve_ca
 
+    # Self-signed server certificate of the k3s ingress (not a CA): the Phase CLI, curl and helm then verify
+    # *.192.168.0.40.sslip.io without flags.
+    - name: Trust the k3s ingress certificate system-wide
+      ansible.builtin.copy:
+        src: ../../keys/k3s-ingress.crt
+        dest: /usr/local/share/ca-certificates/k3s-ingress.crt
+        owner: root
+        group: root
+        mode: "0644"
+      register: mgmt_ingress_cert
+
     - name: Rebuild the system trust store
       ansible.builtin.command:
         argv: [update-ca-certificates]
       changed_when: true
-      when: mgmt_pve_ca is changed
+      when: mgmt_pve_ca is changed or mgmt_ingress_cert is changed
 
     - name: Run the QEMU guest agent (address reporting to Proxmox)
       ansible.builtin.service:
