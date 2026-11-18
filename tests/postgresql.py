@@ -114,7 +114,10 @@ def test_role():
     assert "NOSUPERUSER" in role["community.postgresql.postgresql_user"]["role_attr_flags"]
     assert "PG_APP_" in role["community.postgresql.postgresql_user"]["password"]
     listed = yaml.safe_load((ROOT / "ansible/vars/postgresql-apps.yml").read_text())["postgresql_apps"]
-    assert all(set(app) == {"name"} for app in listed), "the application list holds names only, never credentials"
+    assert all(set(app) <= {"name", "helper_roles"} for app in listed), "the application list holds names only, never credentials"
+    helper = apps["Create the helper roles an application expects"]["community.postgresql.postgresql_user"]
+    assert helper["role_attr_flags"].startswith("NOLOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOREPLICATION"), "helper roles cannot log in"
+    assert "password" not in helper
 
     playbook = yaml.safe_load((ROOT / "ansible/playbooks/configure-postgresql.yml").read_text())[0]
     assert playbook["hosts"] == "postgresql" and playbook["roles"] == ["headless_baseline", "patroni_postgresql"]

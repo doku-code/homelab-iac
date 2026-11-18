@@ -97,6 +97,11 @@ verification:
     detected: false
     verified: true
     description: Renders the pinned Argo CD chart and checks route, project limits and every Application (workstation only; needs helm and the chart download)
+  - name: windmill-k3s-check
+    run: make windmill-k3s-check
+    detected: false
+    verified: true
+    description: Renders the pinned Windmill chart and checks route, database roles and the scripts of windmill/ (workstation only; needs helm and the chart download)
   - name: netbox-check
     run: make netbox-check
     detected: false

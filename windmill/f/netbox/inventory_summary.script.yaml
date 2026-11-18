@@ -1,0 +1,3 @@
+summary: "NetBox: inventory summary"
+description: "Counts the machines NetBox holds per role, status and host, and how many records still wait for a person's review. Read-only."
+kind: script

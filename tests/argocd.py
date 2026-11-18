@@ -65,6 +65,7 @@ PINS = {
     "cert-manager": ("INGRESS_CERT_MANAGER_REPO", "INGRESS_CERT_MANAGER_CHART"),
     "csi-driver-nfs": ("STORAGE_CSI_REPO", "STORAGE_CSI_CHART_VERSION"),
     "phase-console": ("PHASE_REPO", "PHASE_CHART_VERSION"),
+    "windmill": ("WINDMILL_K3S_REPO", "WINDMILL_K3S_CHART_VERSION"),
 }
 
 
@@ -118,7 +119,7 @@ def access_and_applications(registries):
     assert oci == registries, "every OCI chart registry of a project is declared to Argo CD"
 
     applications = sorted((DIR / "apps").glob("*.yaml"))
-    assert {p.stem for p in applications} == {"netbox", "headlamp", "monitoring", "phase", "ingress", "storage"}
+    assert {p.stem for p in applications} == {"netbox", "headlamp", "monitoring", "phase", "ingress", "storage", "windmill"}
     used_repos, used_namespaces = set(), set()
     for path in applications:
         (application,) = [d for d in yaml.safe_load_all(path.read_text()) if d]
@@ -173,7 +174,7 @@ def main():
     access_and_applications(registries)
     make_guards()
     print("PASS: Argo CD chart pinned with single replicas, LAN-only route behind Traefik, no credentials in Git, "
-          "two projects limited to this repository, this cluster and named namespaces, six applications pinned and never pruning")
+          "two projects limited to this repository, this cluster and named namespaces, seven applications pinned and never pruning")
 
 
 if __name__ == "__main__":

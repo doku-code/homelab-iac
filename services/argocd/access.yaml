@@ -48,11 +48,13 @@ spec:
     - https://prometheus-community.github.io/helm-charts
     - https://grafana.github.io/helm-charts
     - https://grafana-community.github.io/helm-charts
+    - https://windmill-labs.github.io/windmill-helm-charts/
   destinations:
     - {server: https://kubernetes.default.svc, namespace: netbox}
     - {server: https://kubernetes.default.svc, namespace: headlamp}
     - {server: https://kubernetes.default.svc, namespace: monitoring}
     - {server: https://kubernetes.default.svc, namespace: phase}
+    - {server: https://kubernetes.default.svc, namespace: windmill}
   clusterResourceWhitelist:
     - {group: "", kind: Namespace}
     - {group: rbac.authorization.k8s.io, kind: ClusterRole}

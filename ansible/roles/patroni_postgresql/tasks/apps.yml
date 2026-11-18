@@ -74,3 +74,53 @@
   loop: "{{ postgresql_apps }}"
   loop_control:
     label: "{{ item.name }}"
+
+# Some applications expect helper roles to exist (Windmill: windmill_user, windmill_admin). They cannot log
+# in and get no rights here beyond the one attribute asked for; the application role is made a member.
+- name: Validate the helper roles
+  ansible.builtin.assert:
+    that:
+      - item.1.name is match('^[a-z][a-z0-9_]{1,30}$')
+      - item.1.name not in ['postgres', 'replicator', 'rewinder', postgresql_app_group]
+      - item.1.name not in (postgresql_apps | map(attribute='name'))
+    fail_msg: "Helper role {{ item.1.name }} of {{ item.0.name }}: use a lowercase name that is not a login role."
+  loop: "{{ postgresql_apps | subelements('helper_roles', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.1.name }}"
+
+- name: Create the helper roles an application expects
+  community.postgresql.postgresql_user:
+    login_unix_socket: /var/run/postgresql
+    login_db: postgres
+    name: "{{ item.1.name }}"
+    role_attr_flags: "NOLOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOREPLICATION,{{ 'BYPASSRLS' if item.1.bypass_rls | default(false) else 'NOBYPASSRLS' }}"
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_apps | subelements('helper_roles', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.1.name }}"
+
+- name: Make each application a member of its helper roles
+  community.postgresql.postgresql_membership:
+    login_unix_socket: /var/run/postgresql
+    login_db: postgres
+    groups: ["{{ item.1.name }}"]
+    target_roles: ["{{ item.0.name }}"]
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_apps | subelements('helper_roles', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name }} in {{ item.1.name }}"
+
+- name: Nest the helper roles as the application expects
+  community.postgresql.postgresql_membership:
+    login_unix_socket: /var/run/postgresql
+    login_db: postgres
+    groups: "{{ item.1.member_of }}"
+    target_roles: ["{{ item.1.name }}"]
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_apps | subelements('helper_roles', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.1.name }}"
+  when: item.1.member_of is defined

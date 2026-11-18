@@ -1,0 +1,35 @@
+# Windmill under Argo CD (M009): the pinned chart with the values from this repository, plus the manifests of
+# services/windmill/access.yaml. The Secret `windmill-secrets` (database connection string) is not in Git:
+# `make windmill-deploy` writes it from the secret store before applying this file.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: windmill
+  namespace: argocd
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: windmill
+  sources:
+    - repoURL: https://windmill-labs.github.io/windmill-helm-charts/
+      chart: windmill
+      targetRevision: 4.0.324
+      helm:
+        releaseName: windmill
+        valueFiles:
+          - $values/services/windmill/values.yaml
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/windmill
+      directory:
+        include: access.yaml
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true

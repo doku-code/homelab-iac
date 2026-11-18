@@ -98,7 +98,7 @@ def access():
     assert rule["match"] == f"Host(`{HOST}`)" and rule["middlewares"] == [{"name": "admin-lan"}] and route["spec"]["tls"] == {}
     assert rule["services"] == [{"name": "netbox", "port": 80}] and route["spec"]["entryPoints"] == ["websecure"]
     (lan,) = [d for d in docs if d["kind"] == "Middleware"]
-    assert lan["spec"]["ipAllowList"]["sourceRange"] == ["192.168.0.0/24"]
+    assert lan["spec"]["ipAllowList"]["sourceRange"] == ["192.168.0.0/24", "10.42.0.0/16"], "the LAN and the pods of this cluster"
     rewrites = {r["domain"]: r["answer"] for r in yaml.safe_load((ROOT / "ansible/vars/dns.yml").read_text())["adguard_rewrites"]}
     assert rewrites[HOST] == "192.168.0.40"
     apps = yaml.safe_load((ROOT / "ansible/vars/postgresql-apps.yml").read_text())["postgresql_apps"]

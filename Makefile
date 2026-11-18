@@ -1128,3 +1128,43 @@ netbox-export:
 netbox-inventory:
 	@test -n "$${NETBOX_READ_TOKEN:-}" || { echo "Set NETBOX_READ_TOKEN in the environment (store path /netbox)" >&2; exit 1; }
 	NETBOX_TOKEN="$$NETBOX_READ_TOKEN" $(VENV)/bin/ansible-inventory -i ansible/inventories/netbox.yml --graph
+
+# ─────────────────────────────────────────────
+# Windmill on k3s (M009, ADR-005): forms, schedules and flows that read their data from NetBox (ADR-016).
+# Official chart, kept in sync by Argo CD (services/argocd/apps/windmill.yaml), database "windmill" on the
+# shared PostgreSQL. The targets of services/windmill/targets.mk belong to the retired Compose deployment.
+# ─────────────────────────────────────────────
+
+WINDMILL_K3S_CHART_VERSION := 4.0.324
+WINDMILL_K3S_REPO := https://windmill-labs.github.io/windmill-helm-charts/
+WINDMILL_ADMIN := $(VENV)/bin/python scripts/windmill-admin.py
+
+.PHONY: windmill-k3s-check windmill-deploy windmill-bootstrap windmill-push
+
+# Offline: renders the pinned chart with our values (needs the chart download) and checks the scripts of windmill/.
+windmill-k3s-check:
+	$(VENV)/bin/python tests/windmill-k3s.py
+
+# Writes the database connection string (environment only, never printed), then hands Windmill to Argo CD.
+#   scripts/secrets.py run /postgresql -- make windmill-deploy WINDMILL_DEPLOY_APPROVED=yes
+windmill-deploy:
+	@test "$(WINDMILL_DEPLOY_APPROVED)" = yes || (echo "Approve the Windmill deployment with WINDMILL_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@test -n "$${PG_APP_WINDMILL_PASSWORD:-}" || { echo "Set PG_APP_WINDMILL_PASSWORD in the environment (store path /postgresql)" >&2; exit 1; }
+	@kubectl --context doku-lab create namespace windmill --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	@set -euo pipefail; kubectl --context doku-lab -n windmill create secret generic windmill-secrets --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'url=postgres://windmill:%s@192.168.0.60:5432/windmill?sslmode=require\n' "$$PG_APP_WINDMILL_PASSWORD") \
+	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/windmill-secrets applied"
+	kubectl --context doku-lab apply -f services/argocd/apps/windmill.yaml
+	$(call ARGOCD_WAIT,windmill)
+
+# Once after the first deployment: replaces the built-in administrator password, creates the workspace and the
+# automation token (stored at /windmill, never printed) and gives the workspace its read-only NetBox access.
+#   scripts/secrets.py run /windmill /netbox -- make windmill-bootstrap WINDMILL_BOOTSTRAP_APPROVED=yes
+windmill-bootstrap:
+	@test "$(WINDMILL_BOOTSTRAP_APPROVED)" = yes || (echo "Approve the Windmill bootstrap with WINDMILL_BOOTSTRAP_APPROVED=yes" >&2; exit 1)
+	$(WINDMILL_ADMIN) bootstrap
+
+# Publishes the scripts of windmill/ to the workspace (creates or updates; never deletes).
+#   scripts/secrets.py run /windmill -- make windmill-push
+windmill-push:
+	$(WINDMILL_ADMIN) push

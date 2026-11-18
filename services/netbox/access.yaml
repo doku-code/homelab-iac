@@ -68,8 +68,9 @@ spec:
   ports:
     - {name: valkey, port: 6379, targetPort: valkey}
 ---
-# Only the administration LAN may reach NetBox (web interface and API). Needs the real client address: the
-# k3s role sets externalTrafficPolicy: Local on Traefik.
+# The administration LAN may reach NetBox (web interface and API), and so may pods of this cluster: automation
+# such as Windmill reads the inventory through the same address, with its own API token. Needs the real
+# client address: the k3s role sets externalTrafficPolicy: Local on Traefik.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -79,6 +80,7 @@ spec:
   ipAllowList:
     sourceRange:
       - 192.168.0.0/24
+      - 10.42.0.0/16
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute

@@ -2,7 +2,12 @@
 # Applications on the shared PostgreSQL platform (M007, ADR-015): one database and one login role of the
 # same name each. The password of "example" comes from PG_APP_EXAMPLE_PASSWORD in the environment
 # (secret store path /postgresql). Removing an entry never drops anything.
+# helper_roles: roles without login that the application expects to exist and to be a member of.
 postgresql_apps:
   - name: phase # Phase Console (M008)
   - name: grafana # Grafana users, folders and edited dashboards (TASK-020)
   - name: netbox # NetBox inventory and IPAM (M013)
+  - name: windmill # Windmill (M009); its migrations need these two roles to exist
+    helper_roles:
+      - {name: windmill_user}
+      - {name: windmill_admin, bypass_rls: true, member_of: [windmill_user]}

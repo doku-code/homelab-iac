@@ -1,0 +1,53 @@
+# Windmill on k3s (M009, ADR-005): official chart windmill-labs/windmill, pinned in the Makefile and kept in
+# sync by Argo CD (services/argocd/apps/windmill.yaml). One server, one worker for scripts, one for native
+# jobs. The database is the shared PostgreSQL outside k3s (ADR-015). Windmill triggers workflows and
+# schedules; it holds no infrastructure definitions and reads inventory data from NetBox (ADR-016).
+postgresql:
+  enabled: false
+minio:
+  enabled: false
+
+windmill:
+  tag: "1.876.1"
+  imagePullPolicy: IfNotPresent
+  baseDomain: windmill.doku-lab.net
+  baseProtocol: https
+  # The connection string holds the password: it comes from the Secret created by `make windmill-deploy`.
+  databaseUrlSecretName: windmill-secrets
+  databaseUrlSecretKey: url
+  appReplicas: 1
+  extraReplicas: 0
+  multiplayerReplicas: 0
+  # Enterprise-only components.
+  indexer:
+    enabled: false
+  app:
+    resources:
+      requests: {cpu: 100m, memory: 384Mi}
+      limits: {memory: 1536Mi}
+  workerGroups:
+    # Scripts run as ordinary processes of an unprivileged container: no process-namespace isolation, which
+    # would need a privileged pod.
+    - name: default
+      controller: Deployment
+      replicas: 1
+      privileged: false
+      disableUnsharePid: true
+      terminationGracePeriodSeconds: 300
+      resources:
+        requests: {cpu: 100m, memory: 512Mi}
+        limits: {memory: 2Gi}
+    - name: native
+      controller: Deployment
+      replicas: 1
+      privileged: false
+      resources:
+        requests: {cpu: 50m, memory: 128Mi}
+        limits: {memory: 1Gi}
+      extraEnv:
+        - {name: NATIVE_MODE, value: "true"}
+        - {name: SLEEP_QUEUE, value: "200"}
+
+# Routes are in services/windmill/access.yaml (Traefik, LAN only, wildcard certificate).
+ingress:
+  enabled: false

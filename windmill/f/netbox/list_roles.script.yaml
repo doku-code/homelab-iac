@@ -1,0 +1,3 @@
+summary: "NetBox: roles that can be provisioned"
+description: "Lists the machine roles for which NetBox holds provisioning rules (VMID range, address range, allowed Proxmox hosts, minimum size, OpenTofu root). Read-only."
+kind: script

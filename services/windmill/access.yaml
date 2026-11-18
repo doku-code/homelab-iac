@@ -1,0 +1,35 @@
+# Applied by Argo CD (services/argocd/apps/windmill.yaml): namespace and the Traefik route.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: windmill
+---
+# Only the administration LAN may reach Windmill (web interface and API). Needs the real client address: the
+# k3s role sets externalTrafficPolicy: Local on Traefik.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-lan
+  namespace: windmill
+spec:
+  ipAllowList:
+    sourceRange:
+      - 192.168.0.0/24
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: windmill
+  namespace: windmill
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`windmill.doku-lab.net`)
+      middlewares:
+        - name: admin-lan
+      services:
+        - name: windmill-app
+          port: 8000
+  tls: {}

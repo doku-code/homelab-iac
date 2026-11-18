@@ -1,0 +1,3 @@
+summary: "NetBox: next free address and VMID for a role"
+description: "Proposes the next free address and VMID for a new machine of a role, with gateway, DNS servers and allowed hosts, from NetBox. Read-only: nothing is reserved."
+kind: script
