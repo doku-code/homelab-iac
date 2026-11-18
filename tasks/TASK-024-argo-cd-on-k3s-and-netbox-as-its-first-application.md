@@ -1,7 +1,7 @@
 ---
 id: TASK-024
 title: Argo CD on k3s and every service of the cluster under it
-summary: Install Argo CD from the workstation, restrict it to this repository and named namespaces, and move NetBox, Headlamp, monitoring, Phase, certificates and routes and the storage driver under it without a restart.
+summary: Install Argo CD, restrict it to this repository and named namespaces, and move every service of the cluster under it without a restart.
 type: task
 status: completed
 priority: medium
