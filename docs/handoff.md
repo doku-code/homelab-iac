@@ -158,6 +158,16 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   written by `netbox-apply`, and read by the scripts `f/netbox/*`. Open: a private Forgejo repository and a
   token for the scheduled NetBox export (`make netbox-export` works locally); a flow that reserves an address
   and triggers the deployment runner.
+- **Authentik deployed** 2026-11-18 ([TASK-026](../tasks/TASK-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb.md),
+  [ADR-017](decisions/ADR-017-authentik-is-the-single-sign-on-of-the-platform-declared-in.md)):
+  `https://auth.doku-lab.net` (LAN only; user `akadmin`, password `AUTHENTIK_BOOTSTRAP_PASSWORD` at
+  `/authentik` in the secret store). Argo CD, Grafana, NetBox and Windmill sign in through it; members of
+  its group `homelab-admins` are administrators everywhere; every local administrator still works.
+  Applications are the blueprints of `services/authentik/blueprints`; `scripts/secrets.py run /authentik --
+  make sso-check` signs in to each one and reports. Open: Headlamp (needs the Kubernetes API servers to trust
+  Authentik: k3s setting and a restart of each server), the Proxmox hosts (OpenID realm), Forgejo (its
+  administrator adds the source), Phase (the operator links the account), forward authentication, the
+  operator's personal account with a second factor.
 - **Operator roadmap (2026-11-17):** all items are deployed.
 
 ## Commands

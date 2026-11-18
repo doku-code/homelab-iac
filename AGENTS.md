@@ -29,6 +29,10 @@ One owner per concern; never let two tools write the same object.
 - **NetBox** (ADR-016): inventory and IPAM. Git owns what the OpenTofu roots define, NetBox owns physical
   devices and what a person validated, Proxmox is only observed (`scripts/netbox-sync.py`: plan before
   apply, never deletes). No root may need NetBox to plan or apply; no credentials in NetBox.
+- **Authentik** (ADR-017): single sign-on. Git owns applications, clients and groups
+  (`services/authentik/blueprints`), Authentik owns people. A new service with a web interface gets its
+  blueprint, its name in `AUTHENTIK_CLIENTS` and its entry in `tests/authentik.py` in the change that deploys
+  it. Every service keeps its local administrator; no deployment tool may need Authentik.
 - **Makefile**: human-facing entrypoints; keep targets small, predictable and repository-local.
 
 New code goes into the target layout (`modules/`, `stacks/`, `services/<service>/service.yaml`,

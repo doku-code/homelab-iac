@@ -11,6 +11,24 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_DIRS = ("tools/agent-harness/harness/assets/workflows/",)
 
 
+BLUEPRINT_DIR = "services/authentik/blueprints/"
+
+
+class BlueprintLoader(yaml.SafeLoader):
+    """SafeLoader that accepts any application tag and builds the plain value under it."""
+
+
+def _plain(loader, _suffix, node):
+    if isinstance(node, yaml.ScalarNode):
+        return loader.construct_scalar(node)
+    if isinstance(node, yaml.SequenceNode):
+        return loader.construct_sequence(node, deep=True)
+    return loader.construct_mapping(node, deep=True)
+
+
+BlueprintLoader.add_multi_constructor("!", _plain)
+
+
 def main():
     paths = subprocess.check_output(
         ["git", "ls-files", "-z"], cwd=ROOT
@@ -21,7 +39,9 @@ def main():
         if path.suffix in (".yml", ".yaml"):
             if relative.startswith(TEMPLATE_DIRS):
                 continue
-            list(yaml.safe_load_all(path.read_text()))
+            # Authentik blueprints use their own tags (!Env, !Find, !KeyOf); tests/authentik.py checks their content.
+            loader = BlueprintLoader if relative.startswith(BLUEPRINT_DIR) else yaml.SafeLoader
+            list(yaml.load_all(path.read_text(), Loader=loader))  # noqa: S506 - both loaders are safe loaders
             counts["yaml"] += 1
         elif path.suffix == ".py":
             compile(path.read_text(), relative, "exec")

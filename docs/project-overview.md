@@ -98,8 +98,8 @@ Argo CD + Windmill → applications.** Layers and owners: [ARCH-platform](archit
 M001 management workstation (closing) → M002 new Proxmox cluster (**completed**) → **M003 dedicated
 deployment runner** → M004 k3s bootstrap → M005 Headlamp → M006 external NVMe-backed storage → M007
 PostgreSQL platform → M008 Phase → M009 Argo CD and Windmill → M010 rolling application migration → M011
-Ceph and expansion → M012 backups and finalization. M000 (inventory) and M013 (NetBox inventory and
-IPAM, added 2026-11-18) run alongside.
+Ceph and expansion → M012 backups and finalization. M000 (inventory), M013 (NetBox inventory and
+IPAM) and M014 (single sign-on with Authentik), both added 2026-11-18, run alongside.
 Progress: [dashboard](dashboard.md).
 
 ### Current status (2026-11-16)

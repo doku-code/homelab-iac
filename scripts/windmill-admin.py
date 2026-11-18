@@ -101,7 +101,7 @@ def cmd_bootstrap():
         print(f"variable {path}: created")
 
     if os.environ.get("WINDMILL_TOKEN"):
-        print("automation token: WINDMILL_TOKEN is already in the store, no new token")
+        print("automation access already in the store (WINDMILL_TOKEN), nothing created")
         return
     _, token = call("POST", "/users/tokens/create", session, {"label": "homelab-iac workstation (store path /windmill)"})
     stored = subprocess.run([sys.executable, str(ROOT / "scripts/secrets.py"), "set", "/windmill"], input=f"WINDMILL_TOKEN={token}\n", text=True)
@@ -202,10 +202,12 @@ def cmd_sso(emails):
         _, exists = call("GET", f"/users/exists/{email}", token)
         if exists is True:
             call("POST", f"/users/update/{email}", token, {"is_super_admin": True})
-            print(f"{email}: administrator (account existed)")
+            # An account signs in one way only; these are declared as Authentik accounts.
+            call("POST", f"/users/set_login_type/{email}", token, {"login_type": "authentik"})
+            print(f"{email}: administrator, signs in through Authentik (account existed)")
         else:
-            call("POST", "/users/create", token, {"email": email, "super_admin": True, "login_type": "pending_oauth", "skip_email": True})
-            print(f"{email}: administrator at the first sign-in through Authentik")
+            call("POST", "/users/create", token, {"email": email, "super_admin": True, "login_type": "authentik", "skip_email": True})
+            print(f"{email}: administrator, signs in through Authentik")
 
 
 def main(argv):

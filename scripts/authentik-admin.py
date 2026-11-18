@@ -59,7 +59,7 @@ def wait_for_api(token, minutes=10):
         if status == 200:
             return
         if status in (401, 403):
-            die("the API refuses the token: AUTHENTIK_BOOTSTRAP_TOKEN is read at the first start only")
+            die("the API refuses AUTHENTIK_BOOTSTRAP_TOKEN (Authentik reads it at its first start only)")
         time.sleep(5)
     die(f"{URL} did not answer within {minutes} minutes")
 

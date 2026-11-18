@@ -8,7 +8,8 @@ global:
 # Kubernetes Secret created by `make phase-deploy` from the environment, never from Git.
 phaseSecrets: phase-console-secret
 
-# Email + password login until Authentik exists; no outgoing email, so no verification step.
+# Email + password login; no outgoing email, so no verification step. Sign-in through Authentik (ADR-017) is
+# not configured yet: the owner of the existing account has to link it first.
 passwordAuth:
   enabled: true
 

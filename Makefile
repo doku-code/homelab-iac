@@ -1201,7 +1201,7 @@ AUTHENTIK_CLIENTS := ARGOCD GRAFANA NETBOX WINDMILL
 AUTHENTIK_SECRET_INPUTS := AUTHENTIK_SECRET_KEY AUTHENTIK_BOOTSTRAP_PASSWORD AUTHENTIK_BOOTSTRAP_TOKEN $(foreach c,$(AUTHENTIK_CLIENTS),SSO_$(c)_CLIENT_SECRET)
 AUTHENTIK_ADMIN := $(VENV)/bin/python scripts/authentik-admin.py
 
-.PHONY: authentik-check authentik-secrets authentik-deploy authentik-status
+.PHONY: authentik-check authentik-secrets authentik-deploy authentik-status sso-check
 
 # Offline: renders the pinned chart with our values and checks route, blueprints and client wiring (needs the chart download).
 authentik-check:
@@ -1243,3 +1243,10 @@ authentik-deploy:
 #   scripts/secrets.py run /authentik -- make authentik-status
 authentik-status:
 	$(AUTHENTIK_ADMIN) status
+
+# Signs in to every application through Authentik as a browser would, with Authentik's first administrator, and
+# prints what each application then says about the person. Works while that account has the store's password
+# and no second factor.
+#   scripts/secrets.py run /authentik -- make sso-check
+sso-check:
+	$(VENV)/bin/python scripts/sso-check.py $(SSO_APPLICATIONS)

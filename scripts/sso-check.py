@@ -39,11 +39,13 @@ class Browser:
         self.jar = http.cookiejar.CookieJar()
         self.opener = urllib.request.build_opener(NoRedirect, urllib.request.HTTPCookieProcessor(self.jar))
 
-    def request(self, method, url, body=None, headers=None):
+    def request(self, method, url, body=None, headers=None, form=None):
         data = None if body is None else json.dumps(body).encode()
+        if form is not None:
+            data = urllib.parse.urlencode(form).encode()
         request = urllib.request.Request(url, data=data, method=method, headers={"Accept": "application/json", **(headers or {})})
         if data is not None:
-            request.add_header("Content-Type", "application/json")
+            request.add_header("Content-Type", "application/x-www-form-urlencoded" if form is not None else "application/json")
         try:
             with self.opener.open(request, timeout=60) as response:
                 return response.status, dict(response.headers), response.read().decode(errors="replace")
@@ -93,13 +95,18 @@ class Browser:
             status, _, text = self.request("POST", executor, answer, {"X-authentik-CSRF": csrf} if csrf else None)
             if status == 200 and json.loads(text).get("response_errors"):
                 raise Stop(f"flow {slug}: {component} refused the answer")
+            for _ in range(6):  # accepted answers and steps without a question answer with a redirect to the same address
+                if status != 302:
+                    break
+                status, _, text = self.request("GET", executor)
         raise Stop(f"flow {slug}: did not finish")
 
-    def sign_in(self, start, password, callback_prefix):
-        """From the application's sign-in address to its callback address (with the authorization code)."""
+    def sign_in(self, start, password, callback_prefix, first_hop=None):
+        """From the application's sign-in address to its callback address (with the authorization code).
+        `first_hop` is the address the application already answered with when its sign-in is a form."""
         is_flow = lambda u: u.startswith(f"{AUTHENTIK}/if/flow/")  # noqa: E731
         is_callback = lambda u: u.startswith(callback_prefix)  # noqa: E731
-        url = self.follow(start, lambda u: is_flow(u) or is_callback(u))
+        url = self.follow(first_hop or start, lambda u: is_flow(u) or is_callback(u))
         for _ in range(4):
             if is_callback(url):
                 return url
@@ -133,12 +140,22 @@ def grafana(browser, password):
 
 def netbox(browser, password):
     base = "https://netbox.doku-lab.net"
-    callback = browser.sign_in(f"{base}/oauth/login/oidc/?next=/", password, f"{base}/oauth/complete/oidc/")
+    # NetBox's button is a form: the login page gives the token the form must carry.
+    browser.request("GET", f"{base}/login/", headers={"Accept": "text/html"})
+    status, headers, _ = browser.request("POST", f"{base}/oauth/login/oidc/", headers={"Referer": f"{base}/login/"},
+                                         form={"csrfmiddlewaretoken": browser.cookie("csrftoken") or "", "next": "/"})
+    if status != 302:
+        raise Stop(f"NetBox did not start the sign-in: HTTP {status}")
+    callback = browser.sign_in(None, password, f"{base}/oauth/complete/oidc/", first_hop=urllib.parse.urljoin(base, headers["Location"]))
     browser.follow(callback, lambda u: "/oauth/" not in u)
+    # NetBox's API does not show the superuser flag. An account without any NetBox permission can only list
+    # accounts and other people's API tokens when it is a superuser, so that is what is tested.
     status, _, text = browser.request("GET", f"{base}/api/users/users/?username={USER}")
     users = json.loads(text).get("results", []) if status == 200 else []
-    ok = len(users) == 1 and users[0].get("is_superuser") is True and users[0].get("is_active") is True
-    return ok, f"signed in (HTTP {status} on the API with the session), {USER} superuser: {users[0].get('is_superuser') if users else 'unknown'}"
+    tokens, _, _ = browser.request("GET", f"{base}/api/users/tokens/")
+    unprivileged = len(users) == 1 and not users[0].get("permissions") and not users[0].get("groups")
+    ok = status == 200 and tokens == 200 and unprivileged and users[0].get("is_active") is True
+    return ok, f"signed in as {USER}, reads accounts (HTTP {status}) and API tokens (HTTP {tokens}) without any assigned permission: superuser"
 
 
 def windmill(browser, password):

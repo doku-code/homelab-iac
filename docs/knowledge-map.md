@@ -23,10 +23,10 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M008 | active | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
 | M009 | active | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | completed: 2 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M013 | active | medium | [NetBox inventory and IPAM](../milestones/M013-netbox-inventory-and-ipam.md) | completed: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
+| M014 | active | medium | [Single sign-on with Authentik](../milestones/M014-single-sign-on-with-authentik.md) | completed: 1 | Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator. |
 | M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 1, in-progress: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](../milestones/M012-backups-and-finalization.md) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
-| M014 | planned | medium | [Single sign-on with Authentik](../milestones/M014-single-sign-on-with-authentik.md) | none | Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator. |
 | M001 | completed | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 4, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
 | M002 | completed | critical | [New Proxmox cluster (four nodes)](../milestones/M002-proxmox-compute-capacity.md) | completed: 1 | The new cluster doku-lab runs on pve-management, pve-core, pve-infra and the new pve-lab (.16), quorate, with its hardware and capacity inventoried. |
 | M003 | completed | high | [Dedicated Forgejo deployment runner](../milestones/M003-deployment-runner.md) | completed: 1 | A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials. |
@@ -49,7 +49,6 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-005 | planned | high | M010 | [Migration order and bootstrap credential requirements](../tasks/TASK-005-migration-order-and-bootstrap-credentials.md) | Decide the service migration order and list every bootstrap credential and recovery prerequisite. |
 | TASK-011 | planned | critical | M012 | [SOPS + age bootstrap secrets](../tasks/TASK-011-sops-age-bootstrap-secrets.md) | Introduce .sops.yaml, an encrypted secrets/bootstrap/ file for the Proxmox token and SSH material, and decryption in Ansible/OpenTofu workflows. |
 | TASK-012 | planned | high | M012 | [Independent bootstrap and recovery runbook](../tasks/TASK-012-bootstrap-and-recovery-runbook.md) | Write and exercise the runbook that rebuilds the management VM from a clean workstation. |
-| TASK-026 | planned | medium |  | [Authentik on k3s and single sign-on for Argo CD, Grafana, NetBox and Windmill](../tasks/TASK-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb.md) | Authentik 2026.8.5 under Argo CD on the shared PostgreSQL; applications and groups as blueprints; OIDC sign-in wired for Argo CD, Grafana, NetBox and Windmill with local administrators kept. |
 | TASK-007 | completed | critical | M001 | [Scoped Proxmox API token and SSH access for pve-management](../tasks/TASK-007-pve-management-access.md) | Define and verify the dedicated automation identity, role and token on pve-management, and SSH access for Ansible. |
 | TASK-008 | completed | critical | M001 | [Reusable OpenTofu guest module and management VM root](../tasks/TASK-008-proxmox-guest-module-and-management-vm.md) | Write modules/opentofu/proxmox-guest (bpg/proxmox, cloud-init) and the stacks/management root that creates the Ubuntu management VM. |
 | TASK-009 | completed | high | M001 | [Ansible baseline for the management VM (toolchain and runner)](../tasks/TASK-009-management-vm-ansible-baseline.md) | Configure the management VM with Ansible: SSH hardening, guest agent, OpenTofu, Ansible environment, SOPS/age. No runner in M001 (ADR-008). |
@@ -65,6 +64,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-023 | completed | medium | M013 | [NetBox on k3s, initial inventory, reconciliation and Ansible inventory](../tasks/TASK-023-netbox-on-k3s-initial-inventory-reconciliation-and-ansible-i.md) | Deploy NetBox with the official chart on the shared PostgreSQL, populate it from the OpenTofu outputs and read-only Proxmox discovery, and let Ansible read its inventory from it. |
 | TASK-024 | completed | medium | M009 | [Argo CD on k3s and every service of the cluster under it](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md) | Install Argo CD, restrict it to this repository and named namespaces, and move every service of the cluster under it without a restart. |
 | TASK-025 | completed | medium | M009 | [Windmill on k3s reading its data from NetBox](../tasks/TASK-025-windmill-on-k3s-reading-its-data-from-netbox.md) | Deploy Windmill under Argo CD on the shared PostgreSQL, bootstrap it without default credentials, and publish scripts from Git that read roles, ranges and free addresses from NetBox. |
+| TASK-026 | completed | medium | M014 | [Authentik on k3s and single sign-on for Argo CD, Grafana, NetBox and Windmill](../tasks/TASK-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb.md) | Authentik 2026.8.5 under Argo CD on the shared PostgreSQL; applications and groups as blueprints; OIDC sign-in wired for Argo CD, Grafana, NetBox and Windmill with local administrators kept. |
 
 ## Decisions
 
@@ -86,7 +86,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ADR-014 | accepted | [A dedicated Forgejo runner VM executes approved infrastructure workflows](decisions/ADR-014-dedicated-forgejo-deployment-runner.md) | execution | A runner VM created with OpenTofu and configured with Ansible runs approved OpenTofu, Ansible, k3s and Helm jobs with scoped credentials; CT301 stays validation-only. Amends ADR-008. |
 | ADR-015 | accepted | [PostgreSQL runs on three Patroni VMs outside k3s](decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md) | database | Operator decision 2026-11-17: the shared PostgreSQL platform is three Patroni VMs outside k3s with etcd and a virtual IP, not an operator inside k3s. |
 | ADR-016 | accepted | [NetBox is the inventory and IPAM source of truth, populated from Git and read-only discovery](decisions/ADR-016-netbox-is-the-inventory-and-ipam-source-of-truth-populated-f.md) | inventory | NetBox on k3s holds the intended inventory and address plan; Git owns what OpenTofu defines, Proxmox is only observed, NetBox is never a bootstrap dependency. |
-| ADR-017 | proposed | [Authentik is the single sign-on of the platform, declared in Git, never a bootstrap dependency](decisions/ADR-017-authentik-is-the-single-sign-on-of-the-platform-declared-in.md) |  | Authentik on k3s signs people in to every web interface (OIDC first, forward authentication otherwise); applications and groups are blueprints in Git, people live in Authentik, each service keeps a local administrator. |
+| ADR-017 | accepted | [Authentik is the single sign-on of the platform, declared in Git, never a bootstrap dependency](decisions/ADR-017-authentik-is-the-single-sign-on-of-the-platform-declared-in.md) | identity | Authentik on k3s signs people in to the web interfaces; applications and groups are blueprints in Git, people live in Authentik, and each service keeps a local administrator. |
 
 ## External references
 
@@ -129,7 +129,9 @@ _No commit records. Generate with `harness history sync`._
 - **ansible**: TASK-009, TASK-014, TASK-015, TASK-017, TASK-018
 - **architecture**: ARCH-platform
 - **archive**: ADR-007
-- **argocd**: ADR-006, ADR-011, TASK-024
+- **argocd**: ADR-006, ADR-011, TASK-024, TASK-026
+- **authentication**: ADR-017
+- **authentik**: ADR-017, M014, TASK-026
 - **automation**: TASK-025
 - **backup**: ADR-012, TASK-003, TASK-004, TASK-010
 - **bootstrap**: ADR-002, ADR-008, INV-pve-management-bootstrap, M001
@@ -142,7 +144,7 @@ _No commit records. Generate with `harness history sync`._
 - **compute**: TASK-013
 - **csi**: ADR-012
 - **database**: ADR-013, ADR-015
-- **decision**: ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-016
+- **decision**: ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-016, ADR-017
 - **dependencies**: TASK-003
 - **deployment**: ADR-014
 - **desktop**: ADR-009
@@ -152,7 +154,7 @@ _No commit records. Generate with `harness history sync`._
 - **flux**: ADR-006
 - **forgejo**: ADR-014, TASK-014
 - **gitops**: ADR-005, TASK-024
-- **grafana**: TASK-020
+- **grafana**: TASK-020, TASK-026
 - **guide**: GUIDE-handoff
 - **handoff**: GUIDE-handoff
 - **hardware**: INV-new-proxmox-cluster-inventory
@@ -172,7 +174,7 @@ _No commit records. Generate with `harness history sync`._
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, TASK-005, TASK-019
-- **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025
+- **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026
 - **nfs**: TASK-017
 - **nvme**: ADR-012
 - **observability**: TASK-020
@@ -193,13 +195,14 @@ _No commit records. Generate with `harness history sync`._
 - **recovery**: TASK-004, TASK-012
 - **reference**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll
 - **repository**: TASK-001
-- **roadmap**: M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012, M013
+- **roadmap**: M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012, M013, M014
 - **runbook**: TASK-012
 - **runner**: ADR-008, ADR-014, TASK-009, TASK-014
 - **secrets**: ADR-004, TASK-011, TASK-019
 - **security**: ADR-008
 - **service-catalog**: ADR-005
 - **sops**: ADR-004, TASK-011
+- **sso**: ADR-017, M014, TASK-026
 - **state**: ADR-007, TASK-010
 - **status**: DOC-project-overview
 - **storage**: ADR-012, TASK-017
@@ -208,7 +211,7 @@ _No commit records. Generate with `harness history sync`._
 - **traefik**: TASK-021, TASK-022
 - **truenas**: ADR-012
 - **vision**: DOC-project-overview
-- **windmill**: ADR-005, ADR-011, TASK-025
+- **windmill**: ADR-005, ADR-011, TASK-025, TASK-026
 - **workstation**: ADR-009, GUIDE-handoff
 
 ## By component
@@ -216,6 +219,7 @@ _No commit records. Generate with `harness history sync`._
 - **application**: ADR-006, ADR-011
 - **database**: ADR-013, ADR-015
 - **execution**: ADR-008, ADR-014
+- **identity**: ADR-017
 - **infrastructure**: ADR-003
 - **inventory**: ADR-016, INV-legacy-inventory
 - **orchestration**: ADR-005

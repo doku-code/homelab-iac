@@ -291,6 +291,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-017",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -307,6 +311,10 @@
           "field": "related_decisions"
         },
         {
+          "from": "M014",
+          "field": "related_decisions"
+        },
+        {
           "from": "TASK-005",
           "field": "related_decisions"
         },
@@ -320,6 +328,10 @@
         },
         {
           "from": "TASK-019",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-026",
           "field": "related_decisions"
         }
       ]
@@ -861,6 +873,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-017",
+          "field": "related"
+        },
+        {
           "from": "ARCH-platform",
           "field": "related_decisions"
         },
@@ -886,6 +902,10 @@
         },
         {
           "from": "M013",
+          "field": "related_decisions"
+        },
+        {
+          "from": "M014",
           "field": "related_decisions"
         },
         {
@@ -926,6 +946,10 @@
         },
         {
           "from": "TASK-025",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-026",
           "field": "related_decisions"
         }
       ]
@@ -1306,6 +1330,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-017",
+          "field": "related"
+        },
+        {
           "from": "M007",
           "field": "related_decisions"
         },
@@ -1335,6 +1363,10 @@
         },
         {
           "from": "TASK-025",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-026",
           "field": "related_decisions"
         }
       ]
@@ -1397,6 +1429,10 @@
       },
       "backrefs": [
         {
+          "from": "ADR-017",
+          "field": "related"
+        },
+        {
           "from": "M013",
           "field": "related_decisions"
         },
@@ -1417,33 +1453,67 @@
     {
       "id": "ADR-017",
       "title": "Authentik is the single sign-on of the platform, declared in Git, never a bootstrap dependency",
-      "summary": "Authentik on k3s signs people in to every web interface (OIDC first, forward authentication otherwise); applications and groups are blueprints in Git, people live in Authentik, each service keeps a local administrator.",
-      "importance": 3,
+      "summary": "Authentik on k3s signs people in to the web interfaces; applications and groups are blueprints in Git, people live in Authentik, and each service keeps a local administrator.",
+      "importance": 4,
       "lifecycle": "active",
-      "topics": [],
+      "topics": [
+        "authentik",
+        "single-sign-on",
+        "oidc",
+        "blueprints",
+        "break-glass"
+      ],
       "applies_to": [],
       "source_paths": [],
       "last_verified": null,
       "review_after": null,
       "type": "decision",
-      "status": "proposed",
+      "status": "accepted",
       "path": "docs/decisions/ADR-017-authentik-is-the-single-sign-on-of-the-platform-declared-in.md",
-      "tags": [],
-      "component": null,
+      "tags": [
+        "decision",
+        "authentik",
+        "sso",
+        "authentication"
+      ],
+      "component": "identity",
       "technology": null,
       "priority": null,
       "milestone": null,
       "source": null,
       "version": null,
       "headings": [
-        "Authentik is the single sign-on of the platform, declared in Git, never a bootstrap dependency",
+        "ADR-017: Authentik is the single sign-on of the platform, declared in Git, never a bootstrap dependency",
         "Context",
         "Decision",
         "Alternatives considered",
         "Consequences"
       ],
-      "relations": {},
-      "backrefs": []
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "ADR-004",
+          "ADR-011",
+          "ADR-015",
+          "ADR-016"
+        ],
+        "related_tasks": [
+          "TASK-026"
+        ],
+        "related_milestones": [
+          "M014"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "M014",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-026",
+          "field": "related_decisions"
+        }
+      ]
     },
     {
       "id": "ARCH-platform",
@@ -1588,6 +1658,10 @@
           "field": "related"
         },
         {
+          "from": "ADR-017",
+          "field": "related"
+        },
+        {
           "from": "DOC-project-overview",
           "field": "related"
         },
@@ -1661,6 +1735,10 @@
         },
         {
           "from": "M013",
+          "field": "related"
+        },
+        {
+          "from": "M014",
           "field": "related"
         },
         {
@@ -1761,6 +1839,10 @@
         },
         {
           "from": "TASK-025",
+          "field": "related"
+        },
+        {
+          "from": "TASK-026",
           "field": "related"
         }
       ]
@@ -1894,6 +1976,10 @@
         },
         {
           "from": "M013",
+          "field": "related"
+        },
+        {
+          "from": "M014",
           "field": "related"
         }
       ]
@@ -2742,6 +2828,10 @@
           "field": "depends_on"
         },
         {
+          "from": "M014",
+          "field": "depends_on"
+        },
+        {
           "from": "TASK-015",
           "field": "milestone"
         },
@@ -2966,6 +3056,10 @@
           "field": "depends_on"
         },
         {
+          "from": "M014",
+          "field": "depends_on"
+        },
+        {
           "from": "TASK-018",
           "field": "milestone"
         }
@@ -3096,6 +3190,10 @@
         },
         {
           "from": "M010",
+          "field": "depends_on"
+        },
+        {
+          "from": "M014",
           "field": "depends_on"
         },
         {
@@ -3406,9 +3504,13 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "planned",
+      "status": "active",
       "path": "milestones/M014-single-sign-on-with-authentik.md",
-      "tags": [],
+      "tags": [
+        "roadmap",
+        "authentik",
+        "sso"
+      ],
       "component": null,
       "technology": null,
       "priority": "medium",
@@ -3416,7 +3518,7 @@
       "source": null,
       "version": null,
       "headings": [
-        "Single sign-on with Authentik",
+        "M014 — Single sign-on with Authentik",
         "Objective",
         "Scope",
         "Expected deliverables",
@@ -3425,8 +3527,35 @@
         "Verification evidence",
         "Completion summary"
       ],
-      "relations": {},
-      "backrefs": []
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_tasks": [
+          "TASK-026"
+        ],
+        "related_decisions": [
+          "ADR-017",
+          "ADR-004",
+          "ADR-011"
+        ],
+        "depends_on": [
+          "M004",
+          "M007",
+          "M009"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-017",
+          "field": "related_milestones"
+        },
+        {
+          "from": "TASK-026",
+          "field": "milestone"
+        }
+      ]
     },
     {
       "id": "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
@@ -4774,6 +4903,10 @@
         {
           "from": "TASK-023",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-026",
+          "field": "depends_on"
         }
       ]
     },
@@ -5226,6 +5359,10 @@
         {
           "from": "TASK-025",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-026",
+          "field": "depends_on"
         }
       ]
     },
@@ -5320,27 +5457,81 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "planned",
+      "status": "completed",
       "path": "tasks/TASK-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb.md",
-      "tags": [],
+      "tags": [
+        "authentik",
+        "sso",
+        "argocd",
+        "grafana",
+        "netbox",
+        "windmill"
+      ],
       "component": null,
       "technology": null,
       "priority": "medium",
-      "milestone": null,
+      "milestone": "M014",
       "source": null,
       "version": null,
       "headings": [
-        "Authentik on k3s and single sign-on for Argo CD, Grafana, NetBox and Windmill",
+        "TASK-026 — Authentik on k3s and single sign-on for Argo CD, Grafana, NetBox and Windmill",
         "Goal",
         "Context",
+        "Design",
         "Acceptance criteria",
         "Verification",
         "Tests",
         "Evidence",
         "Completion summary"
       ],
-      "relations": {},
-      "backrefs": []
+      "relations": {
+        "related": [
+          "ARCH-platform"
+        ],
+        "related_decisions": [
+          "ADR-017",
+          "ADR-004",
+          "ADR-011",
+          "ADR-015"
+        ],
+        "depends_on": [
+          "TASK-024",
+          "TASK-018"
+        ],
+        "related_implementations": [
+          "services/authentik/values.yaml",
+          "services/authentik/access.yaml",
+          "services/authentik/kustomization.yaml",
+          "services/authentik/blueprints/",
+          "services/argocd/apps/authentik.yaml",
+          "services/argocd/values.yaml",
+          "services/observability/grafana.yaml",
+          "services/netbox/values.yaml",
+          "services/netbox/access.yaml",
+          "scripts/authentik-admin.py",
+          "scripts/ensure-secrets.py",
+          "scripts/sso-check.py",
+          "scripts/windmill-admin.py"
+        ],
+        "related_tests": [
+          "tests/authentik.py",
+          "tests/netbox.py",
+          "tests/argocd.py"
+        ],
+        "milestone": [
+          "M014"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "ADR-017",
+          "field": "related_tasks"
+        },
+        {
+          "from": "M014",
+          "field": "related_tasks"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -5456,7 +5647,16 @@
     "argocd": [
       "ADR-006",
       "ADR-011",
-      "TASK-024"
+      "TASK-024",
+      "TASK-026"
+    ],
+    "authentication": [
+      "ADR-017"
+    ],
+    "authentik": [
+      "ADR-017",
+      "M014",
+      "TASK-026"
     ],
     "automation": [
       "TASK-025"
@@ -5521,7 +5721,8 @@
       "ADR-013",
       "ADR-014",
       "ADR-015",
-      "ADR-016"
+      "ADR-016",
+      "ADR-017"
     ],
     "dependencies": [
       "TASK-003"
@@ -5554,7 +5755,8 @@
       "TASK-024"
     ],
     "grafana": [
-      "TASK-020"
+      "TASK-020",
+      "TASK-026"
     ],
     "guide": [
       "GUIDE-handoff"
@@ -5641,7 +5843,8 @@
       "M013",
       "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
       "TASK-023",
-      "TASK-025"
+      "TASK-025",
+      "TASK-026"
     ],
     "nfs": [
       "TASK-017"
@@ -5741,7 +5944,8 @@
       "M010",
       "M011",
       "M012",
-      "M013"
+      "M013",
+      "M014"
     ],
     "runbook": [
       "TASK-012"
@@ -5766,6 +5970,11 @@
     "sops": [
       "ADR-004",
       "TASK-011"
+    ],
+    "sso": [
+      "ADR-017",
+      "M014",
+      "TASK-026"
     ],
     "state": [
       "ADR-007",
@@ -5797,7 +6006,8 @@
     "windmill": [
       "ADR-005",
       "ADR-011",
-      "TASK-025"
+      "TASK-025",
+      "TASK-026"
     ],
     "workstation": [
       "ADR-009",

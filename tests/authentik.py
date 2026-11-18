@@ -170,8 +170,8 @@ def clients():
     assert (oauth["auth_url"], oauth["token_url"], oauth["api_url"]) == (f"{ISSUER}/authorize/", f"{ISSUER}/token/", f"{ISSUER}/userinfo/")
     assert oauth["role_attribute_path"] == "contains(groups[*], 'homelab-admins') && 'GrafanaAdmin'" and oauth["role_attribute_strict"] is True
     assert "oauth_auto_login" not in oauth and "disable_login_form" not in grafana["grafana.ini"].get("auth", {}), "the login form stays"
-    secret = grafana["envValueFrom"]["GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET"]["secretKeyRef"]
-    assert secret == {"name": "grafana-sso", "key": "clientSecret", "optional": True}, "Grafana starts without single sign-on"
+    reference = grafana["envValueFrom"]["GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET"]["secretKeyRef"]
+    assert reference == {"name": "grafana-sso", "key": "clientSecret", "optional": True}, "Grafana starts without single sign-on"
     assert "grafana-sso" in recipe("observability-deploy")
 
     netbox = yaml.safe_load((ROOT / "services/netbox/values.yaml").read_text())
@@ -227,6 +227,19 @@ def tools():
         raise AssertionError("an unreadable store must stop the generation")
     except SystemExit as stop:
         assert stop.code == 2 and len(stored) == 2, "nothing written when existing values cannot be seen"
+    # The end-to-end check covers every client, prints no credential and writes nothing but its own sign-in.
+    spec = importlib.util.spec_from_file_location("sso_check", ROOT / "scripts/sso-check.py")
+    check = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(check)
+    assert {name.upper() for name in check.CHECKS} == set(make_var("AUTHENTIK_CLIENTS").split()), "one sign-in check per client"
+    text = (ROOT / "scripts/sso-check.py").read_text()
+    assert "print(password" not in text and '"DELETE"' not in text and '"PUT"' not in text and '"PATCH"' not in text
+    browser = check.Browser()
+    try:
+        browser.follow("https://auth.doku-lab.net/x", lambda u: False, limit=0)
+        raise AssertionError("a redirect chain must end")
+    except check.Stop:
+        pass
     text = (ROOT / "scripts/authentik-admin.py").read_text()
     assert '"DELETE"' not in text and "print(token" not in text
     assert set(re.findall(r'call\("(\w+)"', text)) == {"GET", "POST"} and set(re.findall(r'call\("POST", f?"([^"]+)"', text)) == {"/managed/blueprints/{blueprint['pk']}/apply/"} and text.count('call("POST"') == 2, "the only write is re-applying a blueprint"
