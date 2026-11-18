@@ -1,0 +1,17 @@
+# What Argo CD applies beside the chart of services/argocd/apps/authentik.yaml: the route, and the
+# blueprints (applications, groups, access rules) as one ConfigMap built from the files of blueprints/.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - access.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: authentik-blueprints
+    namespace: authentik
+    files:
+      - blueprints/homelab-access.yaml
+      - blueprints/homelab-argocd.yaml
+      - blueprints/homelab-grafana.yaml
+      - blueprints/homelab-netbox.yaml
+      - blueprints/homelab-windmill.yaml

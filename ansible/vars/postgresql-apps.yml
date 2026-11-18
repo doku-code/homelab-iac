@@ -11,3 +11,4 @@ postgresql_apps:
     helper_roles:
       - {name: windmill_user}
       - {name: windmill_admin, bypass_rls: true, member_of: [windmill_user]}
+  - name: authentik # Authentik single sign-on (M014); sessions and tasks live here too, it needs no Redis

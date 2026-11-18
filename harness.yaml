@@ -102,6 +102,11 @@ verification:
     detected: false
     verified: true
     description: Renders the pinned Windmill chart and checks route, database roles and the scripts of windmill/ (workstation only; needs helm and the chart download)
+  - name: authentik-check
+    run: make authentik-check
+    detected: false
+    verified: true
+    description: Renders the pinned Authentik chart and checks route, blueprints and the single sign-on wiring of every application (workstation only; needs helm and the chart download)
   - name: netbox-check
     run: make netbox-check
     detected: false

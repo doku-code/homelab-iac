@@ -1,0 +1,33 @@
+# Authentik under Argo CD (M014, ADR-017): the pinned official chart with the values from this repository,
+# plus services/authentik/kustomization.yaml (route, blueprints). The Secret `authentik-secrets` is not in
+# Git: `make authentik-deploy` writes it from the secret store before applying this file.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: authentik
+  namespace: argocd
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: authentik
+  sources:
+    - repoURL: https://charts.goauthentik.io
+      chart: authentik
+      targetRevision: 2026.8.5
+      helm:
+        releaseName: authentik
+        valueFiles:
+          - $values/services/authentik/values.yaml
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/authentik
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true

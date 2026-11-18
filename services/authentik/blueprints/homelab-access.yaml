@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# Who may use what (ADR-017). Git owns the groups and what each group opens; Authentik owns the people:
+# accounts, passwords, second factors and group memberships are edited in Authentik, never here. The one
+# exception is the first administrator, created at the first start with the password of the secret store.
+version: 1
+metadata:
+  name: Homelab - access groups
+entries:
+  # Administrators of the platform: full rights in every application declared in this directory.
+  - model: authentik_core.group
+    id: admins
+    identifiers: {name: homelab-admins}
+    attrs:
+      is_superuser: false
+
+  # The first administrator keeps Authentik's own administration group and joins homelab-admins.
+  - model: authentik_core.user
+    identifiers: {username: akadmin}
+    attrs:
+      groups:
+        - !Find [authentik_core.group, [name, authentik Admins]]
+        - !KeyOf admins

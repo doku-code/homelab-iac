@@ -1168,3 +1168,55 @@ windmill-bootstrap:
 #   scripts/secrets.py run /windmill -- make windmill-push
 windmill-push:
 	$(WINDMILL_ADMIN) push
+
+# ─────────────────────────────────────────────
+# Authentik (M014, ADR-017): single sign-on for the web interfaces. Official chart, kept in sync by Argo CD
+# (services/argocd/apps/authentik.yaml), database "authentik" on the shared PostgreSQL. Applications, groups
+# and access rules are the blueprints of services/authentik/blueprints. Every application keeps its local
+# administrator: nothing needs Authentik to be rebuilt or repaired.
+# ─────────────────────────────────────────────
+
+AUTHENTIK_CHART_VERSION := 2026.8.5
+AUTHENTIK_REPO := https://charts.goauthentik.io
+# One OIDC client secret per application that signs in through Authentik: SSO_<NAME>_CLIENT_SECRET.
+AUTHENTIK_CLIENTS := ARGOCD GRAFANA NETBOX WINDMILL
+AUTHENTIK_SECRET_INPUTS := AUTHENTIK_SECRET_KEY AUTHENTIK_BOOTSTRAP_PASSWORD AUTHENTIK_BOOTSTRAP_TOKEN $(foreach c,$(AUTHENTIK_CLIENTS),SSO_$(c)_CLIENT_SECRET)
+AUTHENTIK_ADMIN := $(VENV)/bin/python scripts/authentik-admin.py
+
+.PHONY: authentik-check authentik-secrets authentik-deploy authentik-status
+
+# Offline: renders the pinned chart with our values and checks route, blueprints and client wiring (needs the chart download).
+authentik-check:
+	$(VENV)/bin/python tests/authentik.py
+
+# Generates the values the store does not hold yet (never replaces one, never prints one). Run again after
+# adding a name to AUTHENTIK_CLIENTS.
+authentik-secrets:
+	@test "$(AUTHENTIK_SECRETS_APPROVED)" = yes || (echo "Approve the creation of the missing Authentik secrets with AUTHENTIK_SECRETS_APPROVED=yes" >&2; exit 1)
+	scripts/ensure-secrets.py /postgresql PG_APP_AUTHENTIK_PASSWORD
+	scripts/ensure-secrets.py /authentik $(AUTHENTIK_SECRET_INPUTS)
+
+# Writes the Secret Authentik reads its configuration and the client secrets from (environment only, never
+# printed), hands Authentik to Argo CD, restarts the worker when a client secret was added, and waits until
+# every blueprint is applied.
+#   scripts/secrets.py run /authentik /postgresql -- make authentik-deploy AUTHENTIK_DEPLOY_APPROVED=yes
+authentik-deploy:
+	@test "$(AUTHENTIK_DEPLOY_APPROVED)" = yes || (echo "Approve the Authentik deployment with AUTHENTIK_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@for v in $(AUTHENTIK_SECRET_INPUTS) PG_APP_AUTHENTIK_PASSWORD; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /authentik and /postgresql; make authentik-secrets creates what is missing)" >&2; exit 1; }; done
+	@kubectl --context doku-lab create namespace authentik --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	@set -euo pipefail; k="kubectl --context doku-lab -n authentik"; \
+	before="$$($$k get secret authentik-secrets -o jsonpath='{.metadata.resourceVersion}' 2>/dev/null || true)"; \
+	$$k create secret generic authentik-secrets --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'AUTHENTIK_POSTGRESQL__PASSWORD=%s\n' "$$PG_APP_AUTHENTIK_PASSWORD"; for v in $(AUTHENTIK_SECRET_INPUTS); do printf '%s=%s\n' "$$v" "$${!v}"; done) \
+	  | $$k apply -f - >/dev/null; echo "secret/authentik-secrets applied"; \
+	after="$$($$k get secret authentik-secrets -o jsonpath='{.metadata.resourceVersion}')"; \
+	if [ -n "$$before" ] && [ "$$before" != "$$after" ]; then $$k rollout restart deployment/authentik-server deployment/authentik-worker; fi
+	kubectl --context doku-lab apply -f services/argocd/apps/authentik.yaml
+	$(call ARGOCD_WAIT,authentik)
+	kubectl --context doku-lab -n authentik rollout status deployment/authentik-server deployment/authentik-worker --timeout=900s
+	AUTHENTIK_EXPECTED_BLUEPRINTS=$(words $(wildcard services/authentik/blueprints/*.yaml)) $(AUTHENTIK_ADMIN) status --apply
+
+# Blueprints, applications and who may open them, as Authentik reports them (read-only).
+#   scripts/secrets.py run /authentik -- make authentik-status
+authentik-status:
+	$(AUTHENTIK_ADMIN) status

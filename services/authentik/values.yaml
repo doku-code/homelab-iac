@@ -1,0 +1,58 @@
+# Authentik (M014, ADR-017): single sign-on for the web interfaces of the platform. Values for the official
+# chart, pinned in services/argocd/apps/authentik.yaml. One server and one worker; the database, the sessions
+# and the task queue are in the shared PostgreSQL (ADR-015): this version needs no Redis.
+
+# Everything secret comes from the Secret `authentik-secrets`, written by `make authentik-deploy` from the
+# secret store: AUTHENTIK_SECRET_KEY, AUTHENTIK_POSTGRESQL__PASSWORD, the first administrator's password and
+# API token (read at the first start only), and one OIDC client secret per application (SSO_*_CLIENT_SECRET,
+# read by the blueprints).
+authentik:
+  enabled: false
+  existingSecret:
+    secretName: authentik-secrets
+
+global:
+  env:
+    - {name: AUTHENTIK_POSTGRESQL__HOST, value: "192.168.0.60"}
+    - {name: AUTHENTIK_POSTGRESQL__NAME, value: authentik}
+    - {name: AUTHENTIK_POSTGRESQL__USER, value: authentik}
+    - {name: AUTHENTIK_POSTGRESQL__SSLMODE, value: require}
+    - {name: AUTHENTIK_BOOTSTRAP_EMAIL, value: admin@doku-lab.net}
+    # Nothing leaves the LAN: no version check, no usage report, no error report, no Gravatar lookups.
+    - {name: AUTHENTIK_DISABLE_UPDATE_CHECK, value: "true"}
+    - {name: AUTHENTIK_DISABLE_STARTUP_ANALYTICS, value: "true"}
+    - {name: AUTHENTIK_ERROR_REPORTING__ENABLED, value: "false"}
+    - {name: AUTHENTIK_AVATARS, value: initials}
+
+# Applications, groups and access rules are declared in blueprints/ (kustomization.yaml builds the ConfigMap).
+blueprints:
+  configMaps:
+    - authentik-blueprints
+
+# Authentik gets no rights in the cluster: it deploys no outposts, the embedded one serves the forward
+# authentication and its Traefik middlewares are in Git.
+serviceAccount:
+  create: false
+
+server:
+  replicas: 1
+  # The chart only renders automountServiceAccountToken for the server when a name is given.
+  serviceAccountName: default
+  automountServiceAccountToken: false
+  resources:
+    requests: {cpu: 100m, memory: 640Mi}
+    limits: {memory: 1280Mi}
+  ingress:
+    enabled: false
+
+worker:
+  replicas: 1
+  automountServiceAccountToken: false
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {memory: 1024Mi}
+
+geoip:
+  enabled: false
+postgresql:
+  enabled: false
