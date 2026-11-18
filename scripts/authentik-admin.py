@@ -73,6 +73,11 @@ def cmd_status(args):
     apply = "--apply" in args
     wait_for_api(token)
     expected = int(os.environ.get("AUTHENTIK_EXPECTED_BLUEPRINTS", "0"))
+    if apply:
+        # Applying again is harmless and makes Authentik read the files as they are now.
+        for blueprint in blueprints(token):
+            call("POST", f"/managed/blueprints/{blueprint['pk']}/apply/", token, expect=None)
+        time.sleep(10)
     for attempt in range(40 if apply else 1):
         found = blueprints(token)
         pending = [b for b in found if b["status"] != "successful"]

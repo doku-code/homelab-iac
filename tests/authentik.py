@@ -131,6 +131,7 @@ def blueprints():
         assert attrs["client_type"] == "confidential" and attrs["client_id"] == slug
         assert attrs["client_secret"] == Tag("Env", f"SSO_{slug.upper()}_CLIENT_SECRET")
         assert attrs["signing_key"].name == "Find", "tokens are signed with a key pair, which every client can verify"
+        assert attrs["grant_types"] == ["authorization_code", "refresh_token"], "no grant is allowed unless listed (2026.5+)"
         assert attrs["redirect_uris"], slug
         for redirect in attrs["redirect_uris"]:
             assert redirect["matching_mode"] == "strict" and re.fullmatch(rf"https://{slug}\.doku-lab\.net/[\w/.-]*", redirect["url"]), redirect
@@ -228,7 +229,7 @@ def tools():
         assert stop.code == 2 and len(stored) == 2, "nothing written when existing values cannot be seen"
     text = (ROOT / "scripts/authentik-admin.py").read_text()
     assert '"DELETE"' not in text and "print(token" not in text
-    assert set(re.findall(r'call\("(\w+)"', text)) == {"GET", "POST"} and text.count('call("POST"') == 1, "the only write is re-applying a blueprint"
+    assert set(re.findall(r'call\("(\w+)"', text)) == {"GET", "POST"} and set(re.findall(r'call\("POST", f?"([^"]+)"', text)) == {"/managed/blueprints/{blueprint['pk']}/apply/"} and text.count('call("POST"') == 2, "the only write is re-applying a blueprint"
 
 
 def main():

@@ -1232,6 +1232,11 @@ authentik-deploy:
 	kubectl --context doku-lab apply -f services/argocd/apps/authentik.yaml
 	$(call ARGOCD_WAIT,authentik)
 	kubectl --context doku-lab -n authentik rollout status deployment/authentik-server deployment/authentik-worker --timeout=900s
+	@set -euo pipefail; want="$$(cat services/authentik/blueprints/*.yaml | sha256sum)"; have=; \
+	for i in $$(seq 1 48); do \
+	  have="$$(kubectl --context doku-lab -n authentik exec deploy/authentik-worker -- sh -c 'cat /blueprints/mounted/cm-authentik-blueprints/*.yaml' 2>/dev/null | sha256sum)"; \
+	  [ "$$want" = "$$have" ] && break; sleep 5; done; \
+	[ "$$want" = "$$have" ] || { echo "The worker does not see the blueprints of this checkout after four minutes: is main pushed?" >&2; exit 1; }
 	AUTHENTIK_EXPECTED_BLUEPRINTS=$(words $(wildcard services/authentik/blueprints/*.yaml)) $(AUTHENTIK_ADMIN) status --apply
 
 # Blueprints, applications and who may open them, as Authentik reports them (read-only).
