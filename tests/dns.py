@@ -33,12 +33,17 @@ def main():
     rewrites = {r["domain"]: r["answer"] for r in content["adguard_rewrites"]}
     assert len(rewrites) == len(content["adguard_rewrites"]) >= 17, "one answer per name"
     assert rewrites["adguard.doku-lab.net"] == "192.168.0.20" and rewrites["pfsense.doku-lab.net"] == "192.168.0.1"
-    assert "git.doku-lab.net" in rewrites and "secrets.doku-lab.net" in rewrites
+    assert "git.doku-lab.net" in rewrites and "secrets.doku-lab.net" not in rewrites, "Infisical is shut down"
 
     config = yaml.safe_load(render("AdGuardHome.yaml.j2"))
     assert config["schema_version"] == 34 and config["users"] == [{"name": "nith", "password": HASH}]
     assert config["dns"]["upstream_dns"] == ["https://dns10.quad9.net/dns-query", "https://cloudflare-dns.com/dns-query"]
-    assert config["dns"]["enable_dnssec"] is True and config["dns"]["upstream_mode"] == "load_balance"
+    assert config["dns"]["enable_dnssec"] is True
+    assert config["dns"]["ratelimit"] == 0, "the default limit is shared by the whole /24 and drops normal browsing"
+    # An internet dropout must not freeze resolution: parallel upstreams, plain fallback, short timeout, stale cache.
+    assert config["dns"]["upstream_mode"] == "parallel" and config["dns"]["fallback_dns"] == ["9.9.9.10", "1.1.1.1"]
+    assert config["dns"]["upstream_timeout"] == "3s" and config["dns"]["cache_optimistic"] is True
+    assert config["dns"]["use_private_ptr_resolvers"] is False, "reverse lookups of LAN addresses never go to the internet"
     assert [f["id"] for f in config["filters"]] == [1, 2, 3] and all(f["enabled"] for f in config["filters"])
     assert {r["domain"]: r["answer"] for r in config["filtering"]["rewrites"]} == rewrites
     assert config["filtering"]["protection_enabled"] and config["dhcp"]["enabled"] is False

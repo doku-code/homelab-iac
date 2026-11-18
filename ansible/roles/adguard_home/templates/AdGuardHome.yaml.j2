@@ -13,13 +13,22 @@ theme: auto
 dns:
   bind_hosts: [0.0.0.0]
   port: 53
-  ratelimit: 20
+  # No rate limit: AdGuard's default (20 answers per second) is counted per /24, so the whole LAN shared it and
+  # lookups were dropped as soon as a few devices loaded pages at once. Only LAN clients can reach this server.
+  ratelimit: 0
   refuse_any: true
   upstream_dns: {{ adguard_upstreams | to_json }}
   bootstrap_dns: {{ adguard_bootstrap | to_json }}
-  upstream_mode: load_balance
+  # Short internet dropouts must not freeze name resolution: both encrypted upstreams are asked at once, a
+  # plain-DNS fallback answers when neither does within the timeout, and known names are served from the cache
+  # (refreshed in the background) even when expired.
+  upstream_mode: parallel
+  fallback_dns: {{ adguard_fallback | to_json }}
+  upstream_timeout: {{ adguard_upstream_timeout }}
   cache_enabled: true
   cache_size: 4194304
+  cache_optimistic: true
+  use_private_ptr_resolvers: false
   enable_dnssec: true
   serve_plain_dns: true
   hostsfile_enabled: true

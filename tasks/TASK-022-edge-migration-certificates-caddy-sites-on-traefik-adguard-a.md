@@ -114,6 +114,10 @@ make ingress-routes-deploy INGRESS_ROUTES_DEPLOY_APPROVED=yes
 | Phase rename | After the host change the pods kept the old name until restarted (CLI got HTTP 400); `make phase-deploy` now restarts them; the CLI reaches `https://phase.doku-lab.net` with a public certificate | `phase secrets list` with a dummy token: 401 | 2026-11-18 |
 
 | Proxmox names | `pve-management`, `pve-core`, `pve-infra`, `pve-lab` (`.16`) answer 200 through Traefik, each page naming its own node; backend certificates verified against the cluster CA; LAN only | `curl`, `services/ingress/proxmox-routes.yaml` | 2026-11-18 |
+| DNS drops under load | Operator reported an unusable network. AdGuard's default rate limit (20 answers per second, counted per /24, so shared by the whole LAN) dropped 104 of 120 simultaneous lookups; with `ratelimit: 0` 300 of 300 cached and 150 of 150 uncached lookups were answered. The old AdGuard had the same limit | burst test from the workstation, `.local/dns-configure-ratelimit.log` | 2026-11-18 |
+| DNS during internet dropouts | Upstream queries hung for 30 s during dropouts (13:11–13:16, 13:20–13:21). Now: both encrypted upstreams in parallel, plain-DNS fallback, 3 s timeout, optimistic cache, private reverse lookups answered locally. Not yet observed through a real dropout | AdGuard journal, `.local/dns-configure-resilience.log` | 2026-11-18 |
+| Internet link | Not caused by the lab: every guest under 1 Mbit/s during the dropouts, no duplicate addresses, DNS volume normal. The tunnel and Tailscale logs show connection losses on most days since at least early October. Cause not identified (router, modem or ISP; pfSense is out of scope). A probe on the workstation (`systemctl --user status netprobe`, `.local/netprobe.log`) records the next dropout per hop | Proxmox RRD data, legacy guest journals | 2026-11-18 |
+| Infisical name | `secrets.doku-lab.net` removed from DNS and Traefik after the Infisical shutdown (TASK-019) | `kubectl -n legacy-edge get ingressroute` | 2026-11-18 |
 | `penpot` | One public CNAME to the tunnel found and deleted; none left | Cloudflare API | 2026-11-18 |
 
 ## Completion summary
@@ -127,5 +131,6 @@ Remaining: (1) the services hosted on TrueNAS (`git`, `cloud`, and the tunnel th
 the legacy Caddy until the operator takes them up; `dropper` is the operator's own; (2) the tunnel's entry
 for `penpot` in the Cloudflare dashboard, if any, is the operator's to remove (the DNS token cannot see
 tunnels); (3) move the ingestion names of the monitoring agents off sslip.io and drop the self-signed
-certificate; (4) a second DNS server and a shared ingress address are deferred with the other replica
+certificate; (4) read `.local/netprobe.log` after the next internet dropout to tell router from line, then stop
+the `netprobe` user service; (5) a second DNS server and a shared ingress address are deferred with the other replica
 questions; `pve-compute` gets a name when that host exists.

@@ -1,7 +1,7 @@
 # Sites of the legacy Caddy (CT204, 192.168.0.24) that are still in use, served by Traefik instead: same
 # names, same backends outside k3s, same headers. A name moves here when its DNS answer changes from
 # 192.168.0.24 to the cluster; until then these routes are idle. Remove a block when its service has
-# been redeployed on the platform. Not carried over: the three Proxmox names (they pointed at addresses
+# been redeployed on the platform (secrets: removed with the Infisical shutdown). Not carried over: the three Proxmox names (they pointed at addresses
 # that now belong to other hosts) and dropper (its backend address is now a k3s node).
 apiVersion: v1
 kind: Namespace
@@ -418,52 +418,6 @@ spec:
     services:
     - name: vault
       port: 8080
-    middlewares:
-    - name: hsts
-  tls: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: secrets
-  namespace: legacy-edge
-spec:
-  ports:
-  - name: backend
-    port: 80
-    targetPort: 80
-    protocol: TCP
----
-apiVersion: discovery.k8s.io/v1
-kind: EndpointSlice
-metadata:
-  name: secrets
-  namespace: legacy-edge
-  labels:
-    kubernetes.io/service-name: secrets
-addressType: IPv4
-ports:
-- name: backend
-  port: 80
-  protocol: TCP
-endpoints:
-- addresses:
-  - 192.168.0.27
----
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: secrets
-  namespace: legacy-edge
-spec:
-  entryPoints:
-  - websecure
-  routes:
-  - match: Host(`secrets.doku-lab.net`)
-    kind: Rule
-    services:
-    - name: secrets
-      port: 80
     middlewares:
     - name: hsts
   tls: {}

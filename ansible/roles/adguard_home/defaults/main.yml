@@ -13,6 +13,8 @@ adguard_upstreams:
   - https://dns10.quad9.net/dns-query
   - https://cloudflare-dns.com/dns-query
 adguard_bootstrap: [9.9.9.10, 9.9.9.9, 1.1.1.1, 149.112.112.10, "2620:fe::10", "2620:fe::fe:10"]
+adguard_fallback: [9.9.9.10, 1.1.1.1]   # plain DNS, used only when no encrypted upstream answers in time
+adguard_upstream_timeout: 3s
 adguard_querylog_interval: 90d
 
 # Block lists, local answers: ansible/vars/dns.yml.

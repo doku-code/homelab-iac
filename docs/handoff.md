@@ -120,8 +120,8 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   `services/phase/frontend-password-policy.yaml` (review it at every Console upgrade). **Phase is the active
   secret store** since 2026-11-18 (`.local/secret-store`; 42 keys migrated and verified):
   `scripts/secrets.py run /path… -- command`, `set /path`, `recovery-export`. Open: the operator opens the
-  recovery bundle once and keeps a copy outside the homelab; Infisical (VM 207, old host) is shut down only
-  after the operator's confirmation.
+  recovery bundle once and keeps a copy outside the homelab. Infisical (VM 207, old host) is shut down
+  since 2026-11-18, not deleted.
 - **Observability deployed** 2026-11-17 ([TASK-020](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md)):
   Grafana at `https://grafana.doku-lab.net/` (LAN only; `admin` with `GRAFANA_ADMIN_PASSWORD` from
   store path `/monitoring`), dashboard "Homelab overview". Prometheus and Loki on k3s; Alloy in the cluster
@@ -150,8 +150,11 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 
 ## Known issues
 
-- DNS has a single server (AdGuard 192.168.0.20); when it is down, internal names such as Infisical and
-  package downloads fail.
+- DNS has a single server (AdGuard 192.168.0.20 on `dns-01`); when it is down, internal names and package
+  downloads fail.
+- The internet link drops for one to two minutes at a time on most days (seen in the tunnel and Tailscale
+  logs since October 2026); cause not identified, pfSense is out of scope. The `netprobe` user service on
+  the workstation logs each dropout per hop to `.local/netprobe.log`.
 - `pve-management` runs kernel 7.0.14-28, the other nodes -29: reboot it during approved maintenance.
 - One corosync link on the shared 1 GbE LAN, one SSD per node: no physical HA yet.
 - GDM allows one graphical session per user: log out of a Proxmox console desktop before RDP.

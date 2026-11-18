@@ -24,7 +24,6 @@ adguard_rewrites:
   - {domain: cloud.doku-lab.net, answer: 192.168.0.24}
   - {domain: pve-lab.doku-lab.net, answer: 192.168.0.40}
   - {domain: vault.doku-lab.net, answer: 192.168.0.40}
-  - {domain: secrets.doku-lab.net, answer: 192.168.0.40}
   - {domain: git.doku-lab.net, answer: 192.168.0.24}
   - {domain: pbs.doku-lab.net, answer: 192.168.0.40}
   - {domain: tfstate.doku-lab.net, answer: 192.168.0.30}

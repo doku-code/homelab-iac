@@ -99,7 +99,7 @@ before the shutdown.
 - [ ] Recovery bundle written for the operator's age recipients (done) and opened once as a test (operator)
 - [x] Store switched to `phase`; Make targets run through it
 - [ ] Phase redeployed from the recovery bundle on a rebuilt cluster, or the procedure exercised without rebuild
-- [ ] Infisical shut down after the operator's confirmation
+- [x] Infisical shut down after the operator's confirmation
 
 ## Verification
 
@@ -136,16 +136,16 @@ scripts/secrets.py migrate --dry-run
 | Store switch | `.local/secret-store` is `phase`; through it: `k3s-cluster-plan` (No changes), `dns-configure` (changed=0), `ingress-tls-deploy` (unchanged), `headlamp-token` | Make output | 2026-11-18 |
 | Updating a key | First attempt failed: `phase secrets import` refuses an existing key (HTTP 409). `scripts/secrets.py` now imports new keys and updates existing ones with the value on standard input; create-then-update checked against the real Phase on a throw-away path | `tests/secrets.py`, probe path | 2026-11-18 |
 | Recovery bundle from Phase | Rewritten from Phase: 5 bootstrap paths. Not opened here: only the operator holds the identity | `scripts/secrets.py recovery-export` | 2026-11-18 |
+| Infisical shutdown | Operator confirmed. VM 207 on the old host shut down gracefully, `onboot` 0, not deleted; `scripts/secrets.py run` and `dns-configure` work through Phase afterwards; `verify` and `migrate` no longer apply (they read Infisical) | old Proxmox API, Make output | 2026-11-18 |
 | Account bootstrap | **Not done.** Automating the first sign-up with a headless browser was refused by the permission system; the owner account is the operator's to create | — | 2026-11-17 |
 | Phase side of the script (before the account existed) | **Not verified** against a real Phase (needs the account): `phase secrets import/export` are exercised only with a fake | `tests/secrets.py` | 2026-11-17 |
 
 ## Completion summary
 
-In progress. **Phase is the active store** since 2026-11-18; Infisical (VM 207 on the old host) still runs
-with the same keys, apart from the Headlamp token, which was refreshed in Phase only.
+In progress. **Phase is the only store** since 2026-11-18: Infisical (VM 207 on the old host) is shut down,
+autostart off, not deleted. Legacy targets with `*_INPUT_SOURCE=infisical` need `*_INPUT_SOURCE=env` under
+`scripts/secrets.py run`.
 
 Remaining: (1) operator: open the recovery bundle once (`age -d -i <identity> .local/recovery/secrets.json.age`)
-and keep a copy of the bundle and the Phase recovery kit outside the homelab; (2) operator confirms the
-Infisical shutdown (stop VM 207, not delete; legacy targets with `*_INPUT_SOURCE=infisical` then need
-`*_INPUT_SOURCE=env` under `scripts/secrets.py run`); (3) Phase redeployed from the recovery bundle on a
-rebuilt cluster, or the procedure exercised without a rebuild.
+and keep a copy of the bundle and the Phase recovery kit outside the homelab; (2) Phase redeployed from the
+recovery bundle on a rebuilt cluster, or the procedure exercised without a rebuild.
