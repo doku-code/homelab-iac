@@ -28,7 +28,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M001 | completed | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 4, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
 | M002 | completed | critical | [New Proxmox cluster (four nodes)](../milestones/M002-proxmox-compute-capacity.md) | completed: 1 | The new cluster doku-lab runs on pve-management, pve-core, pve-infra and the new pve-lab (.16), quorate, with its hardware and capacity inventoried. |
 | M003 | completed | high | [Dedicated Forgejo deployment runner](../milestones/M003-deployment-runner.md) | completed: 1 | A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials. |
-| M004 | completed | high | [k3s bootstrap](../milestones/M004-k3s-bootstrap.md) | completed: 1 | The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl. |
+| M004 | completed | high | [k3s bootstrap](../milestones/M004-k3s-bootstrap.md) | completed: 2 | The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl. |
 | M005 | completed | high | [Headlamp](../milestones/M005-headlamp.md) | completed: 1 | Headlamp is deployed with its official Helm chart, RBAC-based authentication and network restriction, and shows nodes, workloads, storage objects, events and logs. |
 | M006 | completed | high | [External NVMe-backed storage](../milestones/M006-external-nvme-storage.md) | completed: 1 | Kubernetes provisions PVCs through CSI from an NVMe-backed storage service outside k3s; data survives pod and k3s VM replacement; the failure domain is documented. |
 | M007 | completed | high | [PostgreSQL platform](../milestones/M007-postgresql-platform.md) | completed: 1 | PostgreSQL 17 runs on three Patroni VMs outside k3s (one per Proxmox host) with automatic failover and a virtual IP; per-application databases and roles. |
@@ -57,6 +57,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-017 | completed | high | M006 | [Shared NFS storage VM on pve-core and nvme-shared StorageClass](../tasks/TASK-017-shared-nfs-storage-vm-on-pve-core-and-nvme-shared-storagecla.md) | storage-01 (VM 350, .50, 300 GiB data disk) exports NFSv4 to the k3s nodes only; csi-driver-nfs 4.13.6 with a Retain class for user data; app data stays on local-path. |
 | TASK-018 | completed | high | M007 | [PostgreSQL platform: three Patroni VMs outside k3s with a virtual IP](../tasks/TASK-018-postgresql-platform-three-patroni-vms-outside-k3s-with-a-vir.md) | Three Debian 13 VMs (pg-01..03 on pve-core, pve-lab, pve-infra) run PostgreSQL 17 under Patroni with etcd and a virtual IP; per-application databases and roles. |
 | TASK-020 | completed | medium | M010 | [Lean observability: Prometheus, Loki, Grafana and Alloy](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md) | Prometheus, Loki and Grafana on k3s; Alloy collects a small allow-list of metrics and logs from the cluster and from every VM; Grafana state on the shared PostgreSQL. |
+| TASK-021 | completed | medium | M004 | [k3s servers on pve-core and pve-lab: three etcd members](../tasks/TASK-021-k3s-servers-on-pve-core-and-pve-lab-three-etcd-members.md) | k3s-server-02 on pve-core and k3s-server-03 on pve-lab join the embedded etcd; Traefik runs on every node so ingress survives a reschedule. |
 
 ## Decisions
 
@@ -128,7 +129,7 @@ _No commit records. Generate with `harness history sync`._
 - **dependencies**: TASK-003
 - **deployment**: ADR-014
 - **desktop**: ADR-009
-- **etcd**: TASK-018
+- **etcd**: TASK-018, TASK-021
 - **flux**: ADR-006
 - **forgejo**: ADR-014, TASK-014
 - **gitops**: ADR-005
@@ -141,7 +142,7 @@ _No commit records. Generate with `harness history sync`._
 - **infisical**: ADR-004, TASK-019
 - **inventory**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, TASK-002, TASK-003
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
-- **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017, TASK-019
+- **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017, TASK-019, TASK-021
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
 - **legacy**: ADR-007, INV-legacy-inventory
@@ -163,7 +164,7 @@ _No commit records. Generate with `harness history sync`._
 - **platform**: ARCH-platform
 - **postgresql**: ADR-013, ADR-015, TASK-018
 - **prometheus**: TASK-020
-- **proxmox**: ADR-002, ADR-010, INV-new-proxmox-cluster-inventory, TASK-002, TASK-013
+- **proxmox**: ADR-002, ADR-010, INV-new-proxmox-cluster-inventory, TASK-002, TASK-013, TASK-021
 - **pve-core**: ADR-010, TASK-013
 - **pve-management**: ADR-009, ADR-010, GUIDE-handoff, INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview
@@ -181,6 +182,7 @@ _No commit records. Generate with `harness history sync`._
 - **storage**: ADR-012, TASK-017
 - **strategy**: ADR-001
 - **terraform**: ADR-003
+- **traefik**: TASK-021
 - **truenas**: ADR-012
 - **vision**: DOC-project-overview
 - **windmill**: ADR-005, ADR-011

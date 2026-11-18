@@ -50,6 +50,10 @@ def test_config_template():
                                                      "k3s_api_url": "https://192.168.0.40:6443"}))
     assert agent["server"] == "https://192.168.0.40:6443" and "tls-san" not in agent
 
+    traefik = yaml.safe_load(yaml.safe_load(render("traefik-config.yaml.j2", base))["spec"]["valuesContent"])
+    assert traefik["service"]["spec"]["externalTrafficPolicy"] == "Local", "ingress allow-lists need the client address"
+    assert traefik["deployment"]["kind"] == "DaemonSet", "with the Local policy every node needs its own Traefik"
+
     unit = render("k3s.service.j2", base)
     assert "ExecStart=/usr/local/bin/k3s server --config /etc/rancher/k3s/config.yaml" in unit and "Type=notify" in unit
 

@@ -6,7 +6,7 @@ type: guide
 status: current
 importance: 5
 created: 2026-11-14
-updated: 2026-11-17
+updated: 2026-11-18
 tags: [guide, handoff, workstation, pve-management]
 related: [DOC-project-overview, ARCH-platform, ADR-009, ADR-010, ADR-012, ADR-014, INV-new-proxmox-cluster-inventory, INV-legacy-inventory, INV-pve-management-bootstrap, M001, M003]
 topics: [handoff, current-work, workstation, state, next-task]
@@ -98,6 +98,10 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   here (`~/.kube/config`, context `doku-lab`); token in Infisical `dev:/k3s`; state on this workstation only.
   Rebuild a node: `make k3s-cluster-plan K3S_CLUSTER_REPLACE=<name>` → apply → `k3s-cluster-hostkeys` →
   configure (commands in TASK-015). Add servers as tfvars entries in `terraform/stacks/k3s`.
+  **Three servers since 2026-11-18** ([TASK-021](../tasks/TASK-021-k3s-servers-on-pve-core-and-pve-lab-three-etcd-members.md)):
+  `k3s-server-02` (VM 311, .41, pve-core) and `k3s-server-03` (VM 312, .42, pve-lab), three etcd members,
+  Traefik on every node. Two members are on pve-lab (operator decision): losing pve-lab stops the API,
+  losing pve-core does not. kubeconfig and the published names still use `.40`.
 - **M005 completed** 2026-11-17: Headlamp at `https://headlamp.192.168.0.40.sslip.io/` (LAN only, self-signed
   certificate); log in with `HEADLAMP_ADMIN_TOKEN` from Infisical `dev:/headlamp`. Redeploy: `make headlamp-deploy`.
 - **M006 completed** 2026-11-17 ([TASK-017](../tasks/TASK-017-shared-nfs-storage-vm-on-pve-core-and-nvme-shared-storagecla.md)):
@@ -113,7 +117,8 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   State of the cluster: `make postgresql-status`. No database backups yet (M012).
 - **M008 in progress** ([TASK-019](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md)):
   Phase Console v2.79.0 runs at `https://phase.192.168.0.40.sslip.io/` (LAN only, self-signed certificate),
-  database on the shared PostgreSQL. It is **empty**: Infisical is still the active store
+  database on the shared PostgreSQL; minimum password length 10 through
+  `services/phase/frontend-password-policy.yaml` (review it at every Console upgrade). It is **empty**: Infisical is still the active store
   (`.local/secret-store`). `scripts/secrets.py` is the store entry point (`run`, `set`, `inventory`,
   `migrate`, `verify`, `recovery-export`). **Waiting for the operator:** sign up in Phase and keep the recovery
   kit, create the app `homelab-iac`, run `phase auth` on the workstation; provide an age public key for the
@@ -122,7 +127,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 - **Observability deployed** 2026-11-17 ([TASK-020](../tasks/TASK-020-lean-observability-prometheus-loki-grafana-and-alloy.md)):
   Grafana at `https://grafana.192.168.0.40.sslip.io/` (LAN only; `admin` with `GRAFANA_ADMIN_PASSWORD` from
   store path `/monitoring`), dashboard "Homelab overview". Prometheus and Loki on k3s; Alloy in the cluster
-  and on every VM, allow-listed metrics only (about 2,200 series). Redeploy: `make observability-deploy`;
+  and on every VM, allow-listed metrics only (about 2,800 series with three k3s nodes). Redeploy: `make observability-deploy`;
   new VM: `make observability-agents`. Alerts are evaluated but not delivered anywhere yet.
 - **Operator roadmap (2026-11-17):** all items are deployed; what remains is the Phase cutover above.
 

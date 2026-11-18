@@ -887,6 +887,10 @@
         {
           "from": "TASK-020",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-021",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1015,6 +1019,10 @@
         },
         {
           "from": "TASK-018",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-021",
           "field": "related_decisions"
         }
       ]
@@ -1556,6 +1564,10 @@
         {
           "from": "TASK-020",
           "field": "related"
+        },
+        {
+          "from": "TASK-021",
+          "field": "related"
         }
       ]
     },
@@ -1788,6 +1800,10 @@
         },
         {
           "from": "TASK-020",
+          "field": "related"
+        },
+        {
+          "from": "TASK-021",
           "field": "related"
         }
       ]
@@ -2521,6 +2537,10 @@
         },
         {
           "from": "TASK-015",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-021",
           "field": "milestone"
         }
       ]
@@ -4135,6 +4155,10 @@
         {
           "from": "M004",
           "field": "related_tasks"
+        },
+        {
+          "from": "TASK-021",
+          "field": "depends_on"
         }
       ]
     },
@@ -4408,6 +4432,7 @@
         ],
         "related_implementations": [
           "services/phase",
+          "services/phase/frontend-password-policy.yaml",
           "scripts/secrets.py",
           "ansible/vars/postgresql-apps.yml",
           "ansible/roles/admin_workstation/defaults/main.yml",
@@ -4493,6 +4518,69 @@
         ]
       },
       "backrefs": []
+    },
+    {
+      "id": "TASK-021",
+      "title": "k3s servers on pve-core and pve-lab: three etcd members",
+      "summary": "k3s-server-02 on pve-core and k3s-server-03 on pve-lab join the embedded etcd; Traefik runs on every node so ingress survives a reschedule.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "completed",
+      "path": "tasks/TASK-021-k3s-servers-on-pve-core-and-pve-lab-three-etcd-members.md",
+      "tags": [
+        "k3s",
+        "etcd",
+        "traefik",
+        "proxmox"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M004",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TASK-021 — k3s servers on pve-core and pve-lab: three etcd members",
+        "Goal",
+        "Context",
+        "Design",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-011",
+          "ADR-012"
+        ],
+        "depends_on": [
+          "TASK-015"
+        ],
+        "related_implementations": [
+          "terraform/stacks/k3s",
+          "ansible/roles/k3s/templates/traefik-config.yaml.j2"
+        ],
+        "related_tests": [
+          "terraform/stacks/k3s/tests/k3s.tftest.hcl",
+          "tests/k3s-cluster.py"
+        ],
+        "milestone": [
+          "M004"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -4562,7 +4650,8 @@
       "TASK-017",
       "TASK-018",
       "TASK-019",
-      "TASK-020"
+      "TASK-020",
+      "TASK-021"
     ]
   },
   "by_tag": {
@@ -4658,7 +4747,8 @@
       "ADR-009"
     ],
     "etcd": [
-      "TASK-018"
+      "TASK-018",
+      "TASK-021"
     ],
     "flux": [
       "ADR-006"
@@ -4711,7 +4801,8 @@
       "TASK-015",
       "TASK-016",
       "TASK-017",
-      "TASK-019"
+      "TASK-019",
+      "TASK-021"
     ],
     "kubernetes": [
       "ADR-006",
@@ -4798,7 +4889,8 @@
       "ADR-010",
       "INV-new-proxmox-cluster-inventory",
       "TASK-002",
-      "TASK-013"
+      "TASK-013",
+      "TASK-021"
     ],
     "pve-core": [
       "ADR-010",
@@ -4877,6 +4969,9 @@
     ],
     "terraform": [
       "ADR-003"
+    ],
+    "traefik": [
+      "TASK-021"
     ],
     "truenas": [
       "ADR-012"

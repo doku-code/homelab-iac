@@ -56,6 +56,13 @@ run "one_image_per_proxmox_node" {
     condition     = length(proxmox_download_file.debian) == 2 && output.ansible_inventory.all.children.k3s_cluster.vars.k3s_init_node == "k3s-server-01"
     error_message = "Each hosting Proxmox node gets one image; the first server by name initialises etcd."
   }
+  assert {
+    condition = (
+      proxmox_download_file.debian["pve-lab"].file_name == "debian-13-genericcloud-amd64-20261116-2664.qcow2" &&
+      proxmox_download_file.debian["pve-core"].file_name == "k3s-debian-13-genericcloud-amd64-20261116-2664.qcow2"
+    )
+    error_message = "pve-lab keeps the image name of the running first server; other nodes get this root's own prefixed copy."
+  }
 }
 
 run "rejects_old_environment" {

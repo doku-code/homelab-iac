@@ -12,12 +12,15 @@ locals {
 
 # Dated Debian 13 generic cloud image on every Proxmox node that hosts a k3s VM, verified by SHA512.
 resource "proxmox_download_file" "debian" {
-  for_each           = local.proxmox_nodes
-  node_name          = each.key
-  datastore_id       = var.image_datastore
-  content_type       = "import"
-  url                = var.image.url
-  file_name          = basename(var.image.url)
+  for_each     = local.proxmox_nodes
+  node_name    = each.key
+  datastore_id = var.image_datastore
+  content_type = "import"
+  url          = var.image.url
+  # A file on a node has one owner. pve-lab keeps the bare name this root created first (renaming it would
+  # touch the disk source of the running first server); elsewhere the bare name belongs to another root
+  # (deploy-runner on pve-core), so this root's copy is prefixed like the storage and postgresql ones.
+  file_name          = each.key == "pve-lab" ? basename(var.image.url) : "k3s-${basename(var.image.url)}"
   checksum           = var.image.sha512
   checksum_algorithm = "sha512"
   overwrite          = false

@@ -1,5 +1,7 @@
 # Managed by Ansible (role k3s). Customises the bundled Traefik without replacing it.
-# externalTrafficPolicy Local keeps the client address, so ingress allow-lists (admin LAN) work.
+# externalTrafficPolicy Local keeps the client address, so ingress allow-lists (admin LAN) work. It also
+# means a node answers only when Traefik runs on that node: with several nodes Traefik is a DaemonSet, so
+# the published names (192.168.0.40) keep working wherever pods are rescheduled.
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
 metadata:
@@ -7,6 +9,8 @@ metadata:
   namespace: kube-system
 spec:
   valuesContent: |-
+    deployment:
+      kind: DaemonSet
     service:
       spec:
         externalTrafficPolicy: Local

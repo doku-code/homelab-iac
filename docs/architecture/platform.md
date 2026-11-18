@@ -6,7 +6,7 @@ type: architecture
 status: current
 importance: 5
 created: 2026-11-12
-updated: 2026-11-17
+updated: 2026-11-18
 tags: [architecture, platform, rebuild]
 component: platform
 topics: [proxmox, cluster, k3s, headlamp, argocd, windmill, storage, nvme, csi, ceph, truenas, postgresql, patroni, phase, forgejo, runner, opentofu, ansible]
@@ -38,9 +38,9 @@ in [INV-legacy-inventory](../investigations/legacy-inventory.md); the current st
 flowchart TB
   subgraph phys["New Proxmox cluster doku-lab (ADR-010)"]
     pm["pve-management .10<br/>workstation"]
-    pc["pve-core .11<br/>1 TB NVMe, bootstrap runner"]
+    pc["pve-core .11<br/>1 TB NVMe, bootstrap runner, k3s-server-02"]
     pi["pve-infra .12<br/>light services"]
-    pl["pve-lab .16<br/>512 GB NVMe, k3s-server-01"]
+    pl["pve-lab .16<br/>512 GB NVMe, k3s-server-01 and -03"]
     px["pve-compute (future)<br/>old .14 reinstalled"]
   end
   old["Old environment<br/>pve-lab .14 (legacy services)"]
@@ -103,9 +103,9 @@ Verified facts: [INV-new-proxmox-cluster-inventory](../investigations/new-proxmo
 | Host | Now | Target |
 |------|-----|--------|
 | `pve-management` 192.168.0.10 | New cluster; i5-10500T, 16 GB; runs `mgmt-control-01` (VM 100) | Management node: workstation |
-| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe | Bootstrap deployment runner `deploy-runner-01` (VM 302, ADR-014), shared storage `storage-01` (VM 350, NFS for k3s user data, M006), PostgreSQL member `pg-01` (VM 361, M007), later a k3s node |
+| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe | Bootstrap deployment runner `deploy-runner-01` (VM 302, ADR-014), shared storage `storage-01` (VM 350, NFS for k3s user data, M006), PostgreSQL member `pg-01` (VM 361, M007), k3s server `k3s-server-02` (VM 311, .41) |
 | `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD | PostgreSQL member `pg-03` (VM 363, small, M007); lightweight services |
-| `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE | First k3s server `k3s-server-01` (VM 310, .40, M004); PostgreSQL member `pg-02` (VM 362, M007) |
+| `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE | k3s servers `k3s-server-01` (VM 310, .40, M004) and `k3s-server-03` (VM 312, .42); PostgreSQL member `pg-02` (VM 362, M007) |
 | `pve-lab` **192.168.0.14** | **Old environment**, independent; Ryzen 9 9950X3D; runs the legacy services | Emptied (M010), reinstalled as `pve-compute`, joined |
 | `pve-k8s-01/02` | Legacy | Reclaimed after migration |
 | TrueNAS SCALE | Serves Forgejo and datasets | Backup destination; current apps stay until replaced |
