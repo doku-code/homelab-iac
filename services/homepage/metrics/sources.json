@@ -33,7 +33,7 @@
     "argocd": {"label": "Argo CD", "url": "http://argocd-server.argocd.svc/api/version", "kind": "json-version", "field": "Version"},
     "authentik": {"label": "Authentik", "url": "http://authentik-server.authentik.svc/-/health/live/"},
     "grafana": {"label": "Grafana", "url": "http://grafana.monitoring.svc/api/health", "kind": "json-version"},
-    "netbox": {"label": "NetBox", "url": "http://netbox.netbox.svc/login/"},
+    "netbox": {"label": "NetBox", "url": "https://netbox.doku-lab.net/login/"},
     "windmill": {"label": "Windmill", "url": "http://windmill-app.windmill.svc:8000/api/version", "kind": "text-version"},
     "phase": {"label": "Phase", "url": "http://phase-console-frontend.phase.svc:3000/"},
     "headlamp": {"label": "Headlamp", "url": "http://headlamp.headlamp.svc/"},
