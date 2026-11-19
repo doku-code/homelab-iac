@@ -6,7 +6,7 @@
       "id": "doku-lab",
       "summary": true,
       "token_env": "PVE_TOKEN",
-      "ca_file": "pve-root-ca.pem",
+      "ca_file": "pve-root-ca.crt",
       "endpoints": ["https://192.168.0.10:8006", "https://192.168.0.11:8006", "https://192.168.0.12:8006", "https://192.168.0.16:8006"],
       "nodes": {
         "pve-management": {"key": "pve_management", "label": "PVE Management"},

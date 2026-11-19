@@ -21,7 +21,7 @@ configMapGenerator:
   - name: homepage-metrics
     namespace: homepage
     files:
-      - metrics/pve-root-ca.pem
+      - metrics/pve-root-ca.crt
       - metrics/server.py
       - metrics/sources.json
 generatorOptions:

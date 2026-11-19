@@ -10,6 +10,7 @@ import importlib.util
 import json
 import re
 import subprocess
+import sys
 import threading
 import urllib.request
 from http.server import ThreadingHTTPServer
@@ -26,14 +27,20 @@ def render():
     return [d for d in yaml.safe_load_all(subprocess.check_output(["kubectl", "kustomize", str(DIR)], text=True)) if d]
 
 
+def files():
+    """The files Argo CD turns into the two ConfigMaps."""
+    return sorted(p for p in [*DIR.glob("config/*"), *DIR.glob("metrics/*")] if p.is_file())
+
+
 def config_digest():
     digest = hashlib.sha256()
-    for path in sorted([*DIR.glob("config/*"), *DIR.glob("metrics/*")]):
+    for path in files():
         digest.update(path.name.encode() + b"\0" + path.read_bytes())
     return digest.hexdigest()[:16]
 
 
 def load_server():
+    sys.dont_write_bytecode = True  # no __pycache__ beside the files of the ConfigMap
     spec = importlib.util.spec_from_file_location("homelab_metrics", DIR / "metrics/server.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -76,8 +83,9 @@ def manifests():
     (claim,) = [o for o in objects if o["kind"] == "PersistentVolumeClaim"]
     assert claim["spec"]["storageClassName"] == "nvme-shared", "data lives on the NVMe-backed storage (ADR-012)"
     maps = {o["metadata"]["name"]: o for o in objects if o["kind"] == "ConfigMap"}
-    assert set(maps["homepage-config"]["data"]) == {p.name for p in DIR.glob("config/*")}
-    assert set(maps["homepage-metrics"]["data"]) == {p.name for p in DIR.glob("metrics/*")}
+    assert set(maps["homepage-config"]["data"]) | set(maps["homepage-metrics"]["data"]) == {p.name for p in files()}
+    ignored = subprocess.run(["git", "-C", str(ROOT), "check-ignore", *map(str, files())], capture_output=True, text=True).stdout.split()
+    assert not ignored, f"ignored by Git, so Argo CD would not find them: {ignored}"
     return objects
 
 
@@ -130,14 +138,14 @@ def cards_and_widgets():
     new = next(c for c in sources["proxmox"] if c["id"] == "doku-lab")
     assert new.get("verify", True) is True and (DIR / "metrics" / new["ca_file"]).read_text().startswith("-----BEGIN CERTIFICATE-----")
     assert all(e.startswith("https://192.168.0.14:") for c in sources["proxmox"] if c["id"] != "doku-lab" for e in c["endpoints"])
-    assert "PRIVATE KEY" not in "".join(p.read_text() for p in DIR.glob("metrics/*"))
+    assert "PRIVATE KEY" not in "".join(p.read_text() for p in files())
     # The page asks one address, on its own origin, with the visitor's session.
     assert re.findall(r'fetch\("([^"]+)"', script) == ["/api/snapshot"] and "192.168." not in script
     settings = yaml.safe_load((DIR / "config/settings.yaml").read_text())
     groups = [name for group in services for name in group]
     assert set(groups) <= set(settings["layout"]), "every group has a layout"
     # Nothing personal in a public repository: links and the weather location come from the Secret.
-    public = "".join(p.read_text() for p in DIR.glob("config/*")).lower()
+    public = "".join(p.read_text() for p in files()).lower()
     for word in ("linkedin", "latitude", "openmeteo:", "gmail", "d2jsp"):
         assert word not in public, f"{word}: personal additions belong in the Secret homepage-personal"
     for name in ("bookmarks.yaml", "docker.yaml", "kubernetes.yaml", "proxmox.yaml", "widgets.yaml"):
