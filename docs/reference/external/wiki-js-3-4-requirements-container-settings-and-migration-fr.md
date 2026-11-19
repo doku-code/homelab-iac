@@ -35,7 +35,7 @@ to k3s. Read on 2026-11-19, before any deployment: nothing here has been run in 
 Not deployed. The legacy wiki answers a guest's API request with the list of pages but not their source
 [observed: project], so its content can only leave it through its administration area or its database.
 
-## Key facts
+## Key APIs
 
 | Topic | Notes |
 |-------|-------|
