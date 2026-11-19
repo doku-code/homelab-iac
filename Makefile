@@ -1176,6 +1176,8 @@ windmill-bootstrap:
 
 # Sign-in through Authentik (ADR-017): Windmill keeps this setting in its database, so it is written through
 # the API. WINDMILL_SSO_ADMINS lists the e-mail addresses of the Authentik accounts that administer Windmill.
+# Personal addresses stay out of Git: the key WINDMILL_SSO_ADMINS at /windmill in the secret store, when it
+# exists, replaces the default below (the list is complete, not added to it).
 #   scripts/secrets.py run /windmill /authentik -- make windmill-sso WINDMILL_SSO_APPROVED=yes
 WINDMILL_SSO_ADMINS ?= admin@doku-lab.net
 windmill-sso:

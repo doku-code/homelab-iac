@@ -6,7 +6,7 @@ type: milestone
 status: active
 priority: medium
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-19
 tags: [roadmap, authentik, sso]
 related_tasks: [TASK-026]
 related_decisions: [ADR-017, ADR-004, ADR-011]
@@ -70,7 +70,8 @@ Out of scope:
 | Deployment, four applications, local administrators | See [TASK-026](../tasks/TASK-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb.md) | Done: `make sso-check` signs in to all four as administrator; the four local logins answer | 2026-11-18 |
 | Headlamp, Proxmox, Forgejo, Phase | | not started: each needs an approval or a step by the operator | |
 | Forward authentication | | not started | |
-| Personal account, second factor, test with Authentik stopped | | not verified | |
+| Personal account | Authentik API: groups and access check of the operator's account; `make windmill-sso` | Account exists in `homelab-admins` and `authentik Admins`, passes the access check of the four applications, declared as Windmill administrator (address kept in the secret store). It has not signed in yet and has no second factor | 2026-11-19 |
+| Second factor, test with Authentik stopped | | not verified | |
 
 ## Completion summary
 
