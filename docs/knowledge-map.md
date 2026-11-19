@@ -43,7 +43,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-006 | in-progress | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](../tasks/TASK-006-target-layout-and-service-contract.md) | Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check). |
 | TASK-019 | in-progress | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md) | Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account. |
 | TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
-| TASK-027 | in-progress | medium | M010 | [Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API](../tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md) | The dashboard moves from legacy CT201 to k3s under Argo CD, behind Authentik forward authentication, with cards for the new platform and a widget API fed by Proxmox, Prometheus and HTTP checks. |
+| TASK-027 | in-progress | medium | M010 | [Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API](../tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md) | The dashboard moved from legacy CT201 to k3s under Argo CD, behind Authentik forward authentication, with cards for the new platform and a widget API fed by Proxmox, Prometheus and HTTP checks. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -132,7 +132,7 @@ _No commit records. Generate with `harness history sync`._
 - **archive**: ADR-007
 - **argocd**: ADR-006, ADR-011, TASK-024, TASK-026
 - **authentication**: ADR-017
-- **authentik**: ADR-017, M014, TASK-026
+- **authentik**: ADR-017, M014, TASK-026, TASK-027
 - **automation**: TASK-025
 - **backup**: ADR-012, TASK-003, TASK-004, TASK-010
 - **bootstrap**: ADR-002, ADR-008, INV-pve-management-bootstrap, M001
@@ -144,6 +144,7 @@ _No commit records. Generate with `harness history sync`._
 - **compose**: ADR-006
 - **compute**: TASK-013
 - **csi**: ADR-012
+- **dashboard**: TASK-027
 - **database**: ADR-013, ADR-015
 - **decision**: ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-016, ADR-017
 - **dependencies**: TASK-003
@@ -154,6 +155,7 @@ _No commit records. Generate with `harness history sync`._
 - **external**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll
 - **flux**: ADR-006
 - **forgejo**: ADR-014, TASK-014
+- **forward-auth**: TASK-027
 - **gitops**: ADR-005, TASK-024
 - **grafana**: TASK-020, TASK-026
 - **guide**: GUIDE-handoff
@@ -161,6 +163,7 @@ _No commit records. Generate with `harness history sync`._
 - **hardware**: INV-new-proxmox-cluster-inventory
 - **harness**: TASK-001
 - **headlamp**: ADR-011, TASK-016
+- **homepage**: TASK-027
 - **infisical**: ADR-004, TASK-019
 - **ingress**: TASK-022
 - **inventory**: ADR-016, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, M013, TASK-002, TASK-003, TASK-023
@@ -174,7 +177,7 @@ _No commit records. Generate with `harness history sync`._
 - **m002**: TASK-013
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
-- **migration**: ADR-001, TASK-005, TASK-019
+- **migration**: ADR-001, TASK-005, TASK-019, TASK-027
 - **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026
 - **nfs**: TASK-017
 - **nvme**: ADR-012

@@ -59,7 +59,7 @@ Out of scope:
 - [x] Every connected application still accepts its local administrator
 - [ ] Headlamp signs in through it (the Kubernetes API servers trust Authentik)
 - [ ] The Proxmox hosts, Forgejo and Phase sign in through it
-- [ ] Forward authentication available for interfaces without a login, used by at least one
+- [x] Forward authentication available for interfaces without a login, used by at least one
 - [ ] The operator uses a personal account with a second factor
 - [ ] Local administrators tested with Authentik stopped
 
@@ -69,7 +69,7 @@ Out of scope:
 |-----------|-----------------|--------|------|
 | Deployment, four applications, local administrators | See [TASK-026](../tasks/TASK-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb.md) | Done: `make sso-check` signs in to all four as administrator; the four local logins answer | 2026-11-18 |
 | Headlamp, Proxmox, Forgejo, Phase | | not started: each needs an approval or a step by the operator | |
-| Forward authentication | | not started | |
+| Forward authentication | `make sso-check` (see [TASK-027](../tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md)) | Done: the dashboard answers 302 to Authentik without a session and 200 with one; embedded outpost, no Kubernetes connection | 2026-11-19 |
 | Personal account | Authentik API: groups and access check of the operator's account; `make windmill-sso` | Account exists in `homelab-admins` and `authentik Admins`, passes the access check of the four applications, declared as Windmill administrator (address kept in the secret store). It has not signed in yet and has no second factor | 2026-11-19 |
 | Second factor, test with Authentik stopped | | not verified | |
 

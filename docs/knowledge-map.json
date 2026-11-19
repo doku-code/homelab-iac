@@ -333,6 +333,10 @@
         {
           "from": "TASK-026",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-027",
+          "field": "related_decisions"
         }
       ]
     },
@@ -951,6 +955,10 @@
         {
           "from": "TASK-026",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-027",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1095,6 +1103,10 @@
         },
         {
           "from": "TASK-023",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-027",
           "field": "related_decisions"
         }
       ]
@@ -1512,6 +1524,10 @@
         {
           "from": "TASK-026",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-027",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1843,6 +1859,10 @@
         },
         {
           "from": "TASK-026",
+          "field": "related"
+        },
+        {
+          "from": "TASK-027",
           "field": "related"
         }
       ]
@@ -3558,6 +3578,10 @@
         {
           "from": "TASK-026",
           "field": "milestone"
+        },
+        {
+          "from": "TASK-027",
+          "field": "related"
         }
       ]
     },
@@ -5367,6 +5391,10 @@
         {
           "from": "TASK-026",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-027",
+          "field": "depends_on"
         }
       ]
     },
@@ -5534,13 +5562,17 @@
         {
           "from": "M014",
           "field": "related_tasks"
+        },
+        {
+          "from": "TASK-027",
+          "field": "depends_on"
         }
       ]
     },
     {
       "id": "TASK-027",
       "title": "Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API",
-      "summary": "The dashboard moves from legacy CT201 to k3s under Argo CD, behind Authentik forward authentication, with cards for the new platform and a widget API fed by Proxmox, Prometheus and HTTP checks.",
+      "summary": "The dashboard moved from legacy CT201 to k3s under Argo CD, behind Authentik forward authentication, with cards for the new platform and a widget API fed by Proxmox, Prometheus and HTTP checks.",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -5551,7 +5583,13 @@
       "type": "task",
       "status": "in-progress",
       "path": "tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md",
-      "tags": [],
+      "tags": [
+        "homepage",
+        "dashboard",
+        "authentik",
+        "forward-auth",
+        "migration"
+      ],
       "component": null,
       "technology": null,
       "priority": "medium",
@@ -5562,13 +5600,43 @@
         "Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API",
         "Goal",
         "Context",
+        "What was built",
         "Acceptance criteria",
         "Verification",
         "Tests",
         "Evidence",
+        "Not done",
         "Completion summary"
       ],
       "relations": {
+        "related": [
+          "ARCH-platform",
+          "M014"
+        ],
+        "related_decisions": [
+          "ADR-017",
+          "ADR-011",
+          "ADR-012",
+          "ADR-004"
+        ],
+        "depends_on": [
+          "TASK-026",
+          "TASK-024"
+        ],
+        "related_implementations": [
+          "services/homepage/",
+          "services/argocd/apps/homepage.yaml",
+          "services/authentik/blueprints/homelab-homepage.yaml",
+          "services/authentik/blueprints/homelab-outpost.yaml",
+          "services/authentik/access.yaml",
+          "services/ingress/legacy-routes.yaml",
+          "scripts/sso-check.py"
+        ],
+        "related_tests": [
+          "tests/homepage-k3s.py",
+          "tests/authentik.py",
+          "tests/argocd.py"
+        ],
         "milestone": [
           "M010"
         ]
@@ -5699,7 +5767,8 @@
     "authentik": [
       "ADR-017",
       "M014",
-      "TASK-026"
+      "TASK-026",
+      "TASK-027"
     ],
     "automation": [
       "TASK-025"
@@ -5743,6 +5812,9 @@
     ],
     "csi": [
       "ADR-012"
+    ],
+    "dashboard": [
+      "TASK-027"
     ],
     "database": [
       "ADR-013",
@@ -5793,6 +5865,9 @@
       "ADR-014",
       "TASK-014"
     ],
+    "forward-auth": [
+      "TASK-027"
+    ],
     "gitops": [
       "ADR-005",
       "TASK-024"
@@ -5816,6 +5891,9 @@
     "headlamp": [
       "ADR-011",
       "TASK-016"
+    ],
+    "homepage": [
+      "TASK-027"
     ],
     "infisical": [
       "ADR-004",
@@ -5879,7 +5957,8 @@
     "migration": [
       "ADR-001",
       "TASK-005",
-      "TASK-019"
+      "TASK-019",
+      "TASK-027"
     ],
     "netbox": [
       "ADR-016",
