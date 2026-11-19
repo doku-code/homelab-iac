@@ -231,8 +231,9 @@
   function renderSummary(data) {
     var box = ensureSummary();
     if (!box) return;
-    var compute = data.compute || {};
-    var storage = data.storage || {};
+    /* Without the read access to the cluster there is nothing to sum: dashes, not zeros. */
+    var compute = data.compute && data.compute.cores ? data.compute : {};
+    var storage = data.storage && data.storage.total_bytes ? data.storage : {};
     var load = missing(compute.cpu_load) ? "-" : Number(compute.cpu_load).toFixed(2);
     box.textContent = "";
     box.title = "The four nodes of the doku-lab cluster together";
