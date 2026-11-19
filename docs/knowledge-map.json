@@ -3287,6 +3287,10 @@
           "field": "depends_on"
         },
         {
+          "from": "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr",
+          "field": "related_milestones"
+        },
+        {
           "from": "TASK-003",
           "field": "milestone"
         },
@@ -3640,6 +3644,51 @@
           "field": "related"
         }
       ]
+    },
+    {
+      "id": "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr",
+      "title": "Wiki.js 3.4: requirements, container settings and migration from 2.x",
+      "summary": "Wiki.js 3 needs PostgreSQL 17 or 18 with ltree and pg_trgm; a 2.x wiki is not upgraded in place but exported as a package from its administration area and imported into a new 3.x instance.",
+      "importance": 3,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "library-reference",
+      "status": "current",
+      "path": "docs/reference/external/wiki-js-3-4-requirements-container-settings-and-migration-fr.md",
+      "tags": [
+        "reference",
+        "external",
+        "wiki",
+        "migration"
+      ],
+      "component": null,
+      "technology": "Wiki.js",
+      "priority": null,
+      "milestone": null,
+      "source": "https://docs.js.wiki/setup/requirements, https://docs.js.wiki/setup/installation, https://docs.js.wiki/setup/upgrade",
+      "version": "3.4.0",
+      "headings": [
+        "Wiki.js 3.4: requirements, container settings and migration from 2.x",
+        "Purpose",
+        "Usage in this project",
+        "Key facts",
+        "Migration from 2.x",
+        "Gotchas",
+        "Verification"
+      ],
+      "relations": {
+        "related_tasks": [
+          "TASK-027"
+        ],
+        "related_milestones": [
+          "M010"
+        ]
+      },
+      "backrefs": []
     },
     {
       "id": "TASK-001",
@@ -5641,7 +5690,12 @@
           "M010"
         ]
       },
-      "backrefs": []
+      "backrefs": [
+        {
+          "from": "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr",
+          "field": "related_tasks"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -5677,6 +5731,9 @@
       "INV-legacy-inventory",
       "INV-new-proxmox-cluster-inventory",
       "INV-pve-management-bootstrap"
+    ],
+    "library-reference": [
+      "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr"
     ],
     "milestone": [
       "M000",
@@ -5856,7 +5913,8 @@
       "TASK-021"
     ],
     "external": [
-      "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll"
+      "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
+      "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr"
     ],
     "flux": [
       "ADR-006"
@@ -5956,6 +6014,7 @@
     ],
     "migration": [
       "ADR-001",
+      "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr",
       "TASK-005",
       "TASK-019",
       "TASK-027"
@@ -6049,7 +6108,8 @@
       "TASK-012"
     ],
     "reference": [
-      "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll"
+      "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
+      "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr"
     ],
     "repository": [
       "TASK-001"
@@ -6124,6 +6184,9 @@
     ],
     "vision": [
       "DOC-project-overview"
+    ],
+    "wiki": [
+      "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr"
     ],
     "windmill": [
       "ADR-005",

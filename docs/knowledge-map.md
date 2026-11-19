@@ -97,6 +97,12 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 |----|------|--------|---------|-------|
 | REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll | api-reference | current | NetBox 4.7.5, chart netbox 8.3.107, netbox.netbox 3.24.0 | [NetBox 4.7 REST API, chart 8.3.107 and the netbox.netbox collection](reference/external/netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll.md) |
 
+### Wiki.js
+
+| ID | Type | Status | Version | Title |
+|----|------|--------|---------|-------|
+| REF-wiki-js-3-4-requirements-container-settings-and-migration-fr | library-reference | current | 3.4.0 | [Wiki.js 3.4: requirements, container settings and migration from 2.x](reference/external/wiki-js-3-4-requirements-container-settings-and-migration-fr.md) |
+
 ## Documents by type
 
 ### Project overview
@@ -152,7 +158,7 @@ _No commit records. Generate with `harness history sync`._
 - **desktop**: ADR-009
 - **dns**: TASK-022
 - **etcd**: TASK-018, TASK-021
-- **external**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll
+- **external**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
 - **flux**: ADR-006
 - **forgejo**: ADR-014, TASK-014
 - **forward-auth**: TASK-027
@@ -177,7 +183,7 @@ _No commit records. Generate with `harness history sync`._
 - **m002**: TASK-013
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
-- **migration**: ADR-001, TASK-005, TASK-019, TASK-027
+- **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027
 - **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026
 - **nfs**: TASK-017
 - **nvme**: ADR-012
@@ -197,7 +203,7 @@ _No commit records. Generate with `harness history sync`._
 - **pve-management**: ADR-009, ADR-010, GUIDE-handoff, INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview
 - **recovery**: TASK-004, TASK-012
-- **reference**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll
+- **reference**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
 - **repository**: TASK-001
 - **roadmap**: M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012, M013, M014
 - **runbook**: TASK-012
@@ -215,6 +221,7 @@ _No commit records. Generate with `harness history sync`._
 - **traefik**: TASK-021, TASK-022
 - **truenas**: ADR-012
 - **vision**: DOC-project-overview
+- **wiki**: REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
 - **windmill**: ADR-005, ADR-011, TASK-025, TASK-026
 - **workstation**: ADR-009, GUIDE-handoff
 
@@ -237,6 +244,7 @@ _No commit records. Generate with `harness history sync`._
 ## By technology
 
 - **NetBox**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll
+- **Wiki.js**: REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
 
 ## Broken references
 

@@ -175,7 +175,8 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   HOMEPAGE_DEPLOY_APPROVED=yes`; after a change under `config/` or `metrics/`, `make homepage-k3s-check` gives
   the digest to put in `deployment.yaml`. Open: the read-only Proxmox token for the four node cards (needs the
   operator's approval: `make homepage-pve-token`), the TrueNAS, Plex and qBittorrent credentials (only inside
-  CT201, which therefore still runs), then stopping CT201. Wiki.js (CT202) is next.
+  CT201, which therefore still runs), then stopping CT201. Wiki.js (CT202) is next and waits for the operator: version 2 or 3, and a way to get
+  its content out ([reference](reference/external/wiki-js-3-4-requirements-container-settings-and-migration-fr.md)).
 - **Operator roadmap (2026-11-17):** all items are deployed.
 
 ## Commands
