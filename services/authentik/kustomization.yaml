@@ -13,5 +13,7 @@ configMapGenerator:
       - blueprints/homelab-access.yaml
       - blueprints/homelab-argocd.yaml
       - blueprints/homelab-grafana.yaml
+      - blueprints/homelab-homepage.yaml
       - blueprints/homelab-netbox.yaml
+      - blueprints/homelab-outpost.yaml
       - blueprints/homelab-windmill.yaml

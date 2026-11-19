@@ -1,0 +1,22 @@
+# Homepage, the dashboard, under Argo CD (TASK-027): the manifests and files of services/homepage, no chart.
+# Secrets homepage-metrics and homepage-personal are written by make homepage-deploy and are optional.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: homepage
+  namespace: argocd
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: homepage
+  sources:
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/homepage
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true

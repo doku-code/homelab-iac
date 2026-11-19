@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# Authentik's embedded outpost answers Traefik's forward-authentication requests (ADR-017). It serves the
+# providers listed here and no other: this list is the whole list, so every application protected by forward
+# authentication is added to it. The outpost runs inside the Authentik server and deploys nothing.
+version: 1
+metadata:
+  name: Homelab - Embedded outpost
+entries:
+  # The providers must exist first.
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers: {name: Homelab - Homepage}
+      required: true
+
+  - model: authentik_outposts.outpost
+    identifiers: {managed: goauthentik.io/outposts/embedded}
+    attrs:
+      providers:
+        - !Find [authentik_providers_proxy.proxyprovider, [name, homepage]]

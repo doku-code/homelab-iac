@@ -1200,6 +1200,8 @@ AUTHENTIK_CHART_VERSION := 2026.8.5
 AUTHENTIK_REPO := https://charts.goauthentik.io
 # One OIDC client secret per application that signs in through Authentik: SSO_<NAME>_CLIENT_SECRET.
 AUTHENTIK_CLIENTS := ARGOCD GRAFANA NETBOX WINDMILL
+# Applications without a login of their own, protected by forward authentication at Traefik (no secret to share).
+AUTHENTIK_FORWARD_AUTH := HOMEPAGE
 AUTHENTIK_SECRET_INPUTS := AUTHENTIK_SECRET_KEY AUTHENTIK_BOOTSTRAP_PASSWORD AUTHENTIK_BOOTSTRAP_TOKEN $(foreach c,$(AUTHENTIK_CLIENTS),SSO_$(c)_CLIENT_SECRET)
 AUTHENTIK_ADMIN := $(VENV)/bin/python scripts/authentik-admin.py
 
@@ -1252,3 +1254,65 @@ authentik-status:
 #   scripts/secrets.py run /authentik -- make sso-check
 sso-check:
 	$(VENV)/bin/python scripts/sso-check.py $(SSO_APPLICATIONS)
+
+# ─────────────────────────────────────────────
+# Homepage, the dashboard (TASK-027): on k3s under Argo CD, behind Authentik (forward authentication at
+# Traefik, ADR-017). services/homepage holds the page, its cards and the widget data API. Outside Git:
+# credentials (store path /homepage, each one optional), personal links and the background images.
+# ─────────────────────────────────────────────
+HOMEPAGE_PVE_HOST ?= 192.168.0.10
+HOMEPAGE_IMAGES ?= .local/homepage/images
+
+.PHONY: homepage-k3s-check homepage-pve-token homepage-deploy homepage-images
+
+# Offline: renders the manifests and checks cards, widgets, route, sign-in and the widget API on canned data.
+homepage-k3s-check:
+	$(VENV)/bin/python tests/homepage-k3s.py
+
+# Read-only access to the doku-lab cluster for the node cards: user homepage@pve with the built-in role
+# PVEAuditor on /, one API token, written to the store (HOMEPAGE_PVE_TOKEN at /homepage) without being printed.
+# Does nothing when the store already holds one.
+homepage-pve-token:
+	@test "$(HOMEPAGE_PVE_TOKEN_APPROVED)" = yes || (echo "Approve the read-only Proxmox token of the dashboard with HOMEPAGE_PVE_TOKEN_APPROVED=yes" >&2; exit 1)
+	@set -euo pipefail; \
+	if scripts/secrets.py run /homepage -- bash -c 'test -n "$${HOMEPAGE_PVE_TOKEN:-}"' 2>/dev/null; then echo "HOMEPAGE_PVE_TOKEN is already in the store: nothing created"; exit 0; fi; \
+	ssh -o BatchMode=yes root@$(HOMEPAGE_PVE_HOST) 'set -e; pveum user list --output-format json | grep -q "\"homepage@pve\"" || pveum user add homepage@pve --comment "Dashboard, read-only (homelab-iac TASK-027)"; pveum acl modify / --users homepage@pve --roles PVEAuditor; pveum user token add homepage@pve metrics --privsep 0 --comment "Widget API of the dashboard" --output-format json' \
+	  | $(VENV)/bin/python -c 'import json, sys; t = json.load(sys.stdin); print("HOMEPAGE_PVE_TOKEN=%s=%s" % (t["full-tokenid"], t["value"]))' \
+	  | scripts/secrets.py set /homepage
+
+# Writes the two Secrets of the dashboard from the environment (never printed), hands it to Argo CD and
+# restarts it when a Secret changed. Every value is optional; a widget without its credential says so on the
+# page. Read from the environment:
+#   HOMEPAGE_PVE_TOKEN (make homepage-pve-token); PVE_EXPORTER_USER, _TOKEN_NAME, _TOKEN_VALUE (old host, path /);
+#   HOMEPAGE_TRUENAS_API_KEY, HOMEPAGE_PLEX_TOKEN, HOMEPAGE_QBIT_USERNAME, HOMEPAGE_QBIT_PASSWORD;
+#   HOMEPAGE_PERSONAL_SERVICES_B64, HOMEPAGE_PERSONAL_WIDGETS_B64: base64 of the YAML added to services.yaml
+#   and widgets.yaml (links and location that do not belong in a public repository).
+#   scripts/secrets.py run / /homepage -- make homepage-deploy HOMEPAGE_DEPLOY_APPROVED=yes
+homepage-deploy:
+	@test "$(HOMEPAGE_DEPLOY_APPROVED)" = yes || (echo "Approve the dashboard deployment with HOMEPAGE_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@kubectl --context doku-lab create namespace homepage --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	@set -euo pipefail; k="kubectl --context doku-lab -n homepage"; \
+	version() { $$k get secret homepage-metrics homepage-personal -o jsonpath='{.items[*].metadata.resourceVersion}' 2>/dev/null || true; }; \
+	before="$$(version)"; legacy=""; \
+	if [ -n "$${PVE_EXPORTER_TOKEN_VALUE:-}" ]; then legacy="$${PVE_EXPORTER_USER}!$${PVE_EXPORTER_TOKEN_NAME}=$${PVE_EXPORTER_TOKEN_VALUE}"; fi; \
+	$$k create secret generic homepage-metrics --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'PVE_TOKEN=%s\nPVE_LEGACY_TOKEN=%s\nTRUENAS_API_KEY=%s\nPLEX_TOKEN=%s\nQBIT_USERNAME=%s\nQBIT_PASSWORD=%s\n' \
+	    "$${HOMEPAGE_PVE_TOKEN:-}" "$$legacy" "$${HOMEPAGE_TRUENAS_API_KEY:-}" "$${HOMEPAGE_PLEX_TOKEN:-}" "$${HOMEPAGE_QBIT_USERNAME:-}" "$${HOMEPAGE_QBIT_PASSWORD:-}") \
+	  | $$k apply -f - >/dev/null; echo "secret/homepage-metrics applied"; \
+	$$k create secret generic homepage-personal --dry-run=client -o yaml \
+	  --from-file=services.yaml=<(printf '%s' "$${HOMEPAGE_PERSONAL_SERVICES_B64:-}" | base64 -d) \
+	  --from-file=widgets.yaml=<(printf '%s' "$${HOMEPAGE_PERSONAL_WIDGETS_B64:-}" | base64 -d) \
+	  | $$k apply -f - >/dev/null; echo "secret/homepage-personal applied"; \
+	kubectl --context doku-lab apply -f services/argocd/apps/homepage.yaml; \
+	if [ -n "$$before" ] && [ "$$before" != "$$(version)" ] && $$k get deployment homepage >/dev/null 2>&1; then $$k rollout restart deployment/homepage; fi
+	$(call ARGOCD_WAIT,homepage)
+	kubectl --context doku-lab -n homepage rollout status deployment/homepage --timeout=300s
+
+# Copies the background images (kept outside Git, in $(HOMEPAGE_IMAGES)) to the dashboard's volume.
+homepage-images:
+	@test "$(HOMEPAGE_DEPLOY_APPROVED)" = yes || (echo "Approve the copy of the background images with HOMEPAGE_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@test -d "$(HOMEPAGE_IMAGES)" || (echo "No directory $(HOMEPAGE_IMAGES): put the background images there" >&2; exit 1)
+	@set -euo pipefail; k="kubectl --context doku-lab -n homepage"; \
+	pod="$$($$k get pod -l app.kubernetes.io/name=homepage --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}')"; \
+	tar -C "$(HOMEPAGE_IMAGES)" -cf - . | $$k exec -i "$$pod" -c homepage -- tar -C /app/public/images -xf - ; \
+	$$k exec "$$pod" -c homepage -- ls -la /app/public/images

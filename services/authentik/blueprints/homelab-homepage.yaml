@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# The dashboard (Homepage) has no login of its own: Traefik asks Authentik before every request (ADR-017,
+# forward authentication; middleware "authentik" of services/homepage/access.yaml). This provider has no
+# secret to share with the application: the embedded outpost holds the session.
+version: 1
+metadata:
+  name: Homelab - Homepage
+  labels:
+    homelab/application: homepage
+entries:
+  # Authentik's own defaults this file refers to must exist first.
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers: {name: Default - Provider authorization flow (implicit consent)}
+      required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers: {name: Default - Provider invalidation flow}
+      required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers: {name: System - OAuth2 Provider - Scopes}
+      required: true
+
+  - model: authentik_core.group
+    id: admins
+    identifiers: {name: homelab-admins}
+
+  - model: authentik_providers_proxy.proxyprovider
+    id: provider
+    identifiers: {name: homepage}
+    attrs:
+      # One name, checked by Traefik on every request; Authentik never proxies the traffic itself.
+      mode: forward_single
+      external_host: https://home.doku-lab.net
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      access_token_validity: hours=24
+
+  - model: authentik_core.application
+    id: application
+    identifiers: {slug: homepage}
+    attrs:
+      name: Homepage
+      group: Platform
+      provider: !KeyOf provider
+      meta_launch_url: https://home.doku-lab.net/
+      policy_engine_mode: any
+
+  # Open to homelab-admins only.
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application
+      group: !KeyOf admins
+    attrs:
+      order: 0

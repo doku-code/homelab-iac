@@ -120,7 +120,7 @@ def access_and_applications(registries):
     assert oci == registries, "every OCI chart registry of a project is declared to Argo CD"
 
     applications = sorted((DIR / "apps").glob("*.yaml"))
-    assert {p.stem for p in applications} == {"netbox", "headlamp", "monitoring", "phase", "ingress", "storage", "windmill", "authentik"}
+    assert {p.stem for p in applications} == {"netbox", "headlamp", "monitoring", "phase", "ingress", "storage", "windmill", "authentik", "homepage"}
     used_repos, used_namespaces = set(), set()
     for path in applications:
         (application,) = [d for d in yaml.safe_load_all(path.read_text()) if d]
@@ -175,7 +175,7 @@ def main():
     access_and_applications(registries)
     make_guards()
     print("PASS: Argo CD chart pinned with single replicas, LAN-only route behind Traefik, no credentials in Git, "
-          "two projects limited to this repository, this cluster and named namespaces, eight applications pinned and never pruning")
+          "two projects limited to this repository, this cluster and named namespaces, nine applications pinned and never pruning")
 
 
 if __name__ == "__main__":

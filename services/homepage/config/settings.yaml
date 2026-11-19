@@ -1,0 +1,22 @@
+title: Doku Lab
+description: Dashboard of the doku-lab platform
+language: en
+theme: dark
+color: slate
+target: _blank
+statusStyle: dot
+hideVersion: true
+useEqualHeights: false
+cardBlur: xs
+headerStyle: clean
+disableCollapse: true
+# custom.js lets the visitor switch between the images of /images (kept outside Git, on the homepage-images volume).
+background:
+  image: /images/coffee-bg.png
+  opacity: 82
+layout:
+  Platform: {style: row, columns: 2, header: true}
+  Infrastructure: {style: row, columns: 2, header: true}
+  Apps: {style: row, columns: 2, header: true}
+  Remote desktop: {style: row, columns: 3, header: true}
+  Links: {style: row, columns: 5, header: true}

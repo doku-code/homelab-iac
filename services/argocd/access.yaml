@@ -57,6 +57,7 @@ spec:
     - {server: https://kubernetes.default.svc, namespace: phase}
     - {server: https://kubernetes.default.svc, namespace: authentik}
     - {server: https://kubernetes.default.svc, namespace: windmill}
+    - {server: https://kubernetes.default.svc, namespace: homepage}
   clusterResourceWhitelist:
     - {group: "", kind: Namespace}
     - {group: rbac.authorization.k8s.io, kind: ClusterRole}

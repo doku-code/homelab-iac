@@ -3281,6 +3281,10 @@
         {
           "from": "TASK-022",
           "field": "milestone"
+        },
+        {
+          "from": "TASK-027",
+          "field": "milestone"
         }
       ]
     },
@@ -5532,6 +5536,44 @@
           "field": "related_tasks"
         }
       ]
+    },
+    {
+      "id": "TASK-027",
+      "title": "Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API",
+      "summary": "The dashboard moves from legacy CT201 to k3s under Argo CD, behind Authentik forward authentication, with cards for the new platform and a widget API fed by Proxmox, Prometheus and HTTP checks.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md",
+      "tags": [],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "milestone": [
+          "M010"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -5614,7 +5656,8 @@
       "TASK-023",
       "TASK-024",
       "TASK-025",
-      "TASK-026"
+      "TASK-026",
+      "TASK-027"
     ]
   },
   "by_tag": {

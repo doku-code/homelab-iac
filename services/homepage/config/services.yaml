@@ -1,0 +1,147 @@
+# Cards of the dashboard. The "id" of a card is what custom.js and custom.css attach widgets and placement
+# to; services/homepage/metrics/sources.json says what each widget reads. Personal links are not in Git: the
+# Secret homepage-personal adds its own groups at the end of this file when the pod starts.
+- Platform:
+    - Argo CD:
+        id: argocd-service
+        icon: argo-cd.png
+        href: https://argocd.doku-lab.net
+        description: GitOps · keeps every k3s service in sync with Git
+    - Authentik:
+        id: authentik-service
+        icon: authentik.png
+        href: https://auth.doku-lab.net
+        description: Single sign-on · accounts and groups
+    - Grafana:
+        id: grafana-service
+        icon: grafana.png
+        href: https://grafana.doku-lab.net
+        description: Metrics and logs · Prometheus · Loki
+    - NetBox:
+        id: netbox-service
+        icon: netbox.png
+        href: https://netbox.doku-lab.net
+        description: Inventory and IP addresses · source of truth
+    - Windmill:
+        id: windmill-service
+        icon: windmill.png
+        href: https://windmill.doku-lab.net
+        description: Forms and schedules · automation
+    - Phase:
+        id: phase-service
+        icon: mdi-key-chain-variant
+        href: https://phase.doku-lab.net
+        description: Secret store
+    - Headlamp:
+        id: headlamp-service
+        icon: headlamp.png
+        href: https://headlamp.doku-lab.net
+        description: Kubernetes console
+    - Forgejo:
+        id: forgejo-service
+        icon: forgejo.png
+        href: https://git.doku-lab.net
+        description: Git hosting · CI
+    - Wiki.js:
+        id: wiki-service
+        icon: wikijs.png
+        href: https://wiki.doku-lab.net
+        description: Homelab documentation
+    - AdGuard DNS:
+        id: adguard-service
+        icon: adguard-home.png
+        href: http://192.168.0.20
+        description: Local DNS · ad blocking · dns-01
+
+- Infrastructure:
+    - PVE Management:
+        id: pve-management-service
+        icon: proxmox.png
+        href: https://pve-management.doku-lab.net
+        description: Workstation · control plane of the lab
+    - PVE Core:
+        id: pve-core-service
+        icon: proxmox.png
+        href: https://pve-core.doku-lab.net
+        description: k3s · storage · PostgreSQL · runner
+    - PVE Infra:
+        id: pve-infra-service
+        icon: proxmox.png
+        href: https://pve-infra.doku-lab.net
+        description: DNS · PostgreSQL
+    - PVE Lab:
+        id: pve-lab-service
+        icon: proxmox.png
+        href: https://pve-lab.doku-lab.net
+        description: k3s · PostgreSQL
+    - k3s:
+        id: k3s-service
+        icon: k3s.png
+        href: https://headlamp.doku-lab.net
+        description: Kubernetes cluster · three servers
+    - PostgreSQL:
+        id: postgres-service
+        icon: postgres.png
+        href: https://grafana.doku-lab.net
+        description: Shared database · Patroni · three members
+    - TrueNAS:
+        id: truenas-service
+        icon: truenas.png
+        href: https://truenas.doku-lab.net
+        description: ZFS · SMB · NFS · apps
+    - PVE Compute:
+        id: pve-compute-service
+        icon: proxmox.png
+        href: https://192.168.0.14:8006
+        description: Old host · legacy guests until they are replaced
+    - Router:
+        id: router-service
+        icon: mdi-router-network
+        href: https://192.168.0.1
+        description: Gateway · DHCP · internet
+    - Switch:
+        id: switch-service
+        icon: mdi-ethernet
+        href: https://192.168.0.2
+        description: 2.5G · 10G SFP+
+
+- Apps:
+    - Nextcloud:
+        id: nextcloud-service
+        icon: nextcloud.png
+        href: https://cloud.doku-lab.net
+        description: Files · TrueNAS app
+    - Vaultwarden:
+        id: vaultwarden-service
+        icon: vaultwarden.png
+        href: https://vault.doku-lab.net
+        description: Password vault
+    - qBittorrent VPN:
+        id: qbit-service
+        icon: qbittorrent.png
+        href: https://qbit.doku-lab.net
+        description: Downloads · Gluetun · ProtonVPN
+    - Plex:
+        id: plex-service
+        icon: plex.png
+        href: https://plex.doku-lab.net/web
+        description: Local streaming · media library
+
+- Remote desktop:
+    - Remote Desktop:
+        id: remote-desktop-service
+        icon: mdi-remote-desktop
+        href: "#"
+        description: RDP launchers · VM state from Proxmox
+    - Win11 Dev:
+        id: win11-dev-service
+        icon: si-windows11
+        href: /api/rdp/win11-dev
+        target: _self
+        description: w11-dev · VM 502 · 192.168.0.51
+    - Win11 Game:
+        id: win11-game-service
+        icon: si-windows11
+        href: /api/rdp/win11-game
+        target: _self
+        description: w11-game · VM 501 · 192.168.0.52

@@ -34,4 +34,14 @@ spec:
       services:
         - name: authentik-server
           port: 80
+    # Forward authentication (ADR-017): on every name of the domain, the paths under /outpost.goauthentik.io/
+    # belong to Authentik's embedded outpost (sign-in start, callback, sign-out of the protected application).
+    - kind: Rule
+      match: HostRegexp(`^[a-z0-9-]+\.doku-lab\.net$`) && PathPrefix(`/outpost.goauthentik.io/`)
+      priority: 1000
+      middlewares:
+        - name: admin-lan
+      services:
+        - name: authentik-server
+          port: 80
   tls: {}

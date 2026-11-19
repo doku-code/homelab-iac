@@ -1,0 +1,159 @@
+# The dashboard (TASK-027): Homepage and, beside it, the widget data API that custom.js reads. One replica.
+# Nothing here is a secret; credentials come from the Secret homepage-metrics and personal additions from the
+# Secret homepage-personal, both written by make homepage-deploy and both optional.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: homepage-images
+  namespace: homepage
+spec:
+  # Background images, kept outside Git (make homepage-images copies them here).
+  accessModes: [ReadWriteOnce]
+  storageClassName: nvme-shared
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+  namespace: homepage
+  labels:
+    app.kubernetes.io/name: homepage
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: homepage
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: homepage
+      annotations:
+        # Digest of config/ and metrics/: a new value restarts the pod with the new files. tests/homepage-k3s.py
+        # fails with the value to put here when the files changed.
+        homelab.doku-lab.net/config-digest: "70cee0903e4512e6"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # Homepage wants a writable configuration directory: the files of Git are copied into it, then the
+        # personal additions (links, weather location) are appended to the file of the same name.
+        - name: config
+          image: docker.io/library/python:3.13.18-alpine3.24
+          command:
+            - sh
+            - -ec
+            - |
+              cp /git/* /config/
+              for f in services.yaml widgets.yaml; do
+                if [ -s "/personal/$f" ]; then printf '\n' >> "/config/$f"; cat "/personal/$f" >> "/config/$f"; fi
+              done
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - {name: git-config, mountPath: /git, readOnly: true}
+            - {name: personal, mountPath: /personal, readOnly: true}
+            - {name: config, mountPath: /config}
+      containers:
+        - name: homepage
+          image: ghcr.io/gethomepage/homepage:v2.8.0
+          env:
+            - {name: HOMEPAGE_ALLOWED_HOSTS, value: home.doku-lab.net}
+          ports:
+            - {name: http, containerPort: 3000}
+          readinessProbe:
+            httpGet:
+              path: /api/healthcheck
+              port: http
+              httpHeaders:
+                - {name: Host, value: home.doku-lab.net}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/healthcheck
+              port: http
+              httpHeaders:
+                - {name: Host, value: home.doku-lab.net}
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: {cpu: 50m, memory: 192Mi}
+            limits: {memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - {name: config, mountPath: /app/config}
+            - {name: images, mountPath: /app/public/images}
+        - name: metrics
+          image: docker.io/library/python:3.13.18-alpine3.24
+          command: [python, /metrics/server.py]
+          env:
+            - {name: PYTHONUNBUFFERED, value: "1"}
+            - {name: PORT, value: "9101"}
+          envFrom:
+            - secretRef:
+                name: homepage-metrics
+                optional: true
+          ports:
+            - {name: metrics, containerPort: 9101}
+          readinessProbe:
+            httpGet: {path: /health, port: metrics}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /health, port: metrics}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - {name: metrics, mountPath: /metrics, readOnly: true}
+      volumes:
+        - name: config
+          emptyDir: {}
+        - name: git-config
+          configMap:
+            name: homepage-config
+        - name: personal
+          secret:
+            secretName: homepage-personal
+            optional: true
+        - name: metrics
+          configMap:
+            name: homepage-metrics
+        - name: images
+          persistentVolumeClaim:
+            claimName: homepage-images
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homepage
+  namespace: homepage
+spec:
+  selector:
+    app.kubernetes.io/name: homepage
+  ports:
+    - {name: http, port: 3000, targetPort: http}
+    - {name: metrics, port: 9101, targetPort: metrics}

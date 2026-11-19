@@ -1,0 +1,7 @@
+# Header widgets. The weather widget carries a location, so it is not in Git: the Secret homepage-personal adds
+# its entries at the end of this file when the pod starts.
+- search:
+    provider: google
+    target: _blank
+    focus: false
+    showSearchSuggestions: true

@@ -1,0 +1,55 @@
+{
+  "intervals": {"proxmox": 10, "k3s": 30, "postgres": 30, "services": 30, "truenas": 30, "plex": 10, "qbit": 5},
+  "prometheus": "http://prometheus-server.monitoring.svc",
+  "proxmox": [
+    {
+      "id": "doku-lab",
+      "summary": true,
+      "token_env": "PVE_TOKEN",
+      "ca_file": "pve-root-ca.pem",
+      "endpoints": ["https://192.168.0.10:8006", "https://192.168.0.11:8006", "https://192.168.0.12:8006", "https://192.168.0.16:8006"],
+      "nodes": {
+        "pve-management": {"key": "pve_management", "label": "PVE Management"},
+        "pve-core": {"key": "pve_core", "label": "PVE Core"},
+        "pve-infra": {"key": "pve_infra", "label": "PVE Infra"},
+        "pve-lab": {"key": "pve_lab", "label": "PVE Lab"}
+      }
+    },
+    {
+      "id": "legacy",
+      "token_env": "PVE_LEGACY_TOKEN",
+      "verify": false,
+      "endpoints": ["https://192.168.0.14:8006"],
+      "nodes": {
+        "pve-lab": {"key": "pve_compute", "label": "PVE Compute"}
+      }
+    }
+  ],
+  "remote": {
+    "win11-dev": {"card": "win11-dev-service", "label": "Win11 Dev", "cluster": "legacy", "vmid": 502, "host": "192.168.0.51"},
+    "win11-game": {"card": "win11-game-service", "label": "Win11 Game", "cluster": "legacy", "vmid": 501, "host": "192.168.0.52"}
+  },
+  "services": {
+    "argocd": {"label": "Argo CD", "url": "http://argocd-server.argocd.svc/api/version", "kind": "json-version", "field": "Version"},
+    "authentik": {"label": "Authentik", "url": "http://authentik-server.authentik.svc/-/health/live/"},
+    "grafana": {"label": "Grafana", "url": "http://grafana.monitoring.svc/api/health", "kind": "json-version"},
+    "netbox": {"label": "NetBox", "url": "http://netbox.netbox.svc/login/"},
+    "windmill": {"label": "Windmill", "url": "http://windmill-app.windmill.svc:8000/api/version", "kind": "text-version"},
+    "phase": {"label": "Phase", "url": "http://phase-console-frontend.phase.svc:3000/"},
+    "headlamp": {"label": "Headlamp", "url": "http://headlamp.headlamp.svc/"},
+    "prometheus": {"label": "Prometheus", "url": "http://prometheus-server.monitoring.svc/-/healthy"},
+    "forgejo": {"label": "Forgejo", "url": "https://git.doku-lab.net/api/v1/version", "kind": "forgejo"},
+    "wiki": {"label": "Wiki.js", "url": "https://wiki.doku-lab.net/"},
+    "adguard": {"label": "AdGuard Home", "url": "http://192.168.0.20/login.html"},
+    "nextcloud": {"label": "Nextcloud", "url": "https://cloud.doku-lab.net/status.php", "kind": "nextcloud"},
+    "vaultwarden": {"label": "Vaultwarden", "url": "https://vault.doku-lab.net/alive"},
+    "plex": {"label": "Plex", "url": "http://192.168.0.13:32400/identity"},
+    "qbit": {"label": "qBittorrent", "url": "https://qbit.doku-lab.net/"},
+    "truenas": {"label": "TrueNAS", "url": "https://192.168.0.13:444/ui/", "verify": false},
+    "router": {"label": "Router", "url": "https://192.168.0.1/", "verify": false},
+    "switch": {"label": "Switch", "url": "https://192.168.0.2/", "verify": false}
+  },
+  "truenas": {"url": "https://192.168.0.13:444", "verify": false},
+  "plex": {"url": "http://192.168.0.13:32400"},
+  "qbit": {"url": "https://qbit.doku-lab.net"}
+}

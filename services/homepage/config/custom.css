@@ -1,0 +1,682 @@
+/* Visual layer of the dashboard (TASK-027).
+   Homepage keeps its own layout (groups and columns come from settings.yaml). This file restyles the header
+   and the cards and draws the widgets that custom.js injects. Cards are addressed by the attributes custom.js
+   sets (data-nith-card, data-nith-group), never by their position. */
+
+:root {
+  --radius-card: 4px;
+  --card-bg: rgba(28, 48, 63, 0.66);
+  --card-bg-hover: rgba(34, 58, 75, 0.76);
+  --card-shadow: 0 2px 9px rgba(0, 0, 0, 0.22);
+  --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --stat-bg: rgba(10, 18, 28, 0.24);
+  --accent: rgba(125, 211, 252, 0.85);
+  --cpu: #38bdf8;
+  --ram: #818cf8;
+  --disk: #22d3ee;
+  --dl: #34d399;
+  --ul: #38bdf8;
+  --ok: #34d399;
+  --bad: #fb7185;
+  --text-strong: rgba(245, 248, 252, 0.98);
+  --text-desc: rgba(220, 230, 240, 0.86);
+  --text-label: rgba(190, 202, 218, 0.92);
+  --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  letter-spacing: 0;
+}
+
+/* ── Header: the injected summary, the search field, the weather ───────────────────────────────────────── */
+
+#information-widgets {
+  display: grid !important;
+  grid-template-columns: max-content minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 1.25rem !important;
+  margin: 0.9rem 2.25rem 0.6rem !important;
+  padding: 0.65rem 0 1rem !important;
+  border-bottom: 2px solid rgba(226, 232, 240, 0.85) !important;
+}
+
+#information-widgets #widgets-wrap,
+#information-widgets #information-widgets-right {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 1.25rem !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+#information-widgets .information-widget-search {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+#information-widgets .information-widget-search > div {
+  margin: 0 !important;
+  height: 2.4rem !important;
+}
+
+#information-widgets input {
+  height: 2.4rem !important;
+  background: rgba(8, 14, 24, 0.6) !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 0.85rem !important;
+  color: var(--text-strong) !important;
+}
+
+#information-widgets input::placeholder {
+  color: rgba(203, 213, 225, 0.55) !important;
+}
+
+#information-widgets [class*="information-widget-openmeteo"],
+#information-widgets [class*="information-widget-openmeteo"] * {
+  white-space: nowrap !important;
+}
+
+.nith-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.85rem;
+}
+
+.nith-summary-metric {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  flex: 0 0 auto;
+}
+
+.nith-summary .nith-ricon {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  color: rgba(226, 232, 240, 0.75) !important;
+}
+
+.nith-summary-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 86px;
+}
+
+.nith-summary-grid {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 0.36rem;
+  row-gap: 0.02rem;
+  align-items: baseline;
+}
+
+.nith-summary-grid .nith-sv {
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+.nith-summary-grid .nith-sl {
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-label);
+  white-space: nowrap;
+}
+
+.nith-summary .nith-progress {
+  height: 4px;
+}
+
+/* ── Groups and cards ──────────────────────────────────────────────────────────────────────────────────── */
+
+#layout-groups {
+  padding: 0 1.75rem !important;
+}
+
+.services-group {
+  margin-top: 0.75rem;
+  padding-bottom: 0.35rem !important;
+}
+
+.service-group-name {
+  display: flex !important;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: rgba(245, 248, 252, 0.9) !important;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+.service-group-name::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+}
+
+.services-list {
+  gap: 0.55rem !important;
+  margin-top: 0.6rem !important;
+  align-items: stretch;
+}
+
+.service {
+  display: flex;
+  min-width: 0;
+}
+
+.service .service-card {
+  position: relative !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 58px !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: var(--radius-card) !important;
+  background: var(--card-bg) !important;
+  box-shadow: var(--card-shadow) !important;
+  backdrop-filter: blur(4px) saturate(105%) !important;
+  -webkit-backdrop-filter: blur(4px) saturate(105%) !important;
+  transition: transform var(--transition), background var(--transition), box-shadow var(--transition) !important;
+}
+
+.service .service-card:hover {
+  transform: translateY(-1px);
+  background: var(--card-bg-hover) !important;
+  box-shadow: var(--card-shadow-hover) !important;
+}
+
+.service .service-title {
+  min-height: 58px;
+  align-items: center;
+  padding: 0 0.35rem;
+}
+
+.service .service-name {
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  color: var(--text-strong) !important;
+  line-height: 1.25;
+}
+
+.service .service-description {
+  margin-top: 0.1rem;
+  font-size: 0.72rem !important;
+  color: var(--text-desc) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Widgets under a card's title ──────────────────────────────────────────────────────────────────────── */
+
+.service-card [data-nith] {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 0.85rem 0.6rem;
+}
+
+.nith-note {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--text-label);
+}
+
+.service-card[data-nith-state="offline"] .nith-note {
+  color: #fca5a5;
+}
+
+.nith-ricon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  opacity: 0.95;
+}
+
+.nith-ricon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.nith-ricon.cpu { color: var(--cpu); }
+.nith-ricon.ram { color: var(--ram); }
+.nith-ricon.storage { color: var(--disk); }
+
+.nith-node-stats {
+  display: grid;
+  grid-template-columns: repeat(var(--nith-stats, 4), minmax(0, 1fr));
+  gap: 0.42rem;
+  margin-bottom: 0.7rem;
+}
+
+.nith-node-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 37px;
+  padding: 0.24rem 0.35rem;
+  border-radius: 3px;
+  background: var(--stat-bg);
+  line-height: 1.05;
+}
+
+.nith-node-stat-value {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.87rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+
+.nith-node-stat-label {
+  margin-top: 0.18rem;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  color: var(--text-label);
+}
+
+.nith-node-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.nith-resource-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.nith-rlabel {
+  flex: 0 0 2.4rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-label);
+}
+
+.nith-rval {
+  flex: 0 0 9.2rem;
+  text-align: right;
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-strong);
+}
+
+.nith-progress {
+  flex: 1 1 auto;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.nith-progress-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cpu), #0ea5e9);
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nith-progress-fill.ram { background: linear-gradient(90deg, var(--ram), #6366f1); }
+.nith-progress-fill.storage { background: linear-gradient(90deg, var(--disk), #818cf8); }
+
+/* ── One status line per service ───────────────────────────────────────────────────────────────────────── */
+
+.nith-service-health {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.66rem;
+  line-height: 1.15;
+  color: var(--text-desc);
+}
+
+.nith-service-dot {
+  flex: 0 0 auto;
+  width: 0.43rem;
+  height: 0.43rem;
+  border-radius: 999px;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+}
+
+.nith-service-health[data-online="false"] .nith-service-dot {
+  background: var(--bad);
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.12);
+}
+
+.nith-service-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* On a plain card the status sits at the right of the title; on a card with a widget it closes the card. */
+.service:not([data-nith-card]) .service-card > .nith-service-health {
+  position: absolute;
+  top: 50%;
+  right: 0.85rem;
+  width: auto;
+  max-width: 46%;
+  padding: 0;
+  transform: translateY(-50%);
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.service:not([data-nith-card]) .service-title-text {
+  max-width: 56%;
+}
+
+.service[data-nith-card] .service-card > .nith-service-health {
+  order: 9;
+  margin-top: auto;
+}
+
+.nith-node-content > .nith-service-health {
+  margin-top: 0.1rem;
+}
+
+/* ── TrueNAS ───────────────────────────────────────────────────────────────────────────────────────────── */
+
+.nith-truenas-pools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 0.9rem;
+}
+
+.nith-truenas-title {
+  grid-column: 1 / -1;
+  font-size: 0.61rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.075em;
+  color: var(--text-label);
+}
+
+.nith-truenas-pool {
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
+.nith-truenas-pool[data-healthy="false"] strong {
+  color: #fca5a5;
+}
+
+.nith-truenas-pool-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.6rem;
+}
+
+.nith-truenas-pool-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  color: var(--text-strong);
+}
+
+.nith-truenas-pool-name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
+  font-weight: 680;
+}
+
+.nith-truenas-pool-values {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 0.54rem;
+}
+
+.nith-storage-figure {
+  display: grid;
+  font-variant-numeric: tabular-nums;
+}
+
+.nith-storage-value {
+  font-size: 0.74rem;
+  font-weight: 670;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text-strong);
+}
+
+.nith-storage-caption {
+  font-size: 0.51rem;
+  line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-label);
+}
+
+.nith-truenas-meter {
+  height: 5px;
+}
+
+/* ── qBittorrent ───────────────────────────────────────────────────────────────────────────────────────── */
+
+.nith-qbit-chart svg {
+  display: block;
+  width: 100%;
+  height: 58px;
+}
+
+.nith-qline {
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.nith-qline.dl { stroke: var(--dl); }
+.nith-qline.ul { stroke: var(--ul); }
+
+.nith-qbit-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-desc);
+}
+
+.nith-qbit-legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.35rem;
+  border-radius: 999px;
+}
+
+.nith-qbit-legend .dot.dl { background: var(--dl); }
+.nith-qbit-legend .dot.ul { background: var(--ul); }
+
+/* ── Plex ──────────────────────────────────────────────────────────────────────────────────────────────── */
+
+.nith-plex-session {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.nith-plex-session:first-child {
+  border-top: none;
+}
+
+.nith-plex-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 1.15rem;
+}
+
+.nith-plex-title {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-strong);
+}
+
+.nith-plex-media {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nith-plex-device,
+.nith-plex-time {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-desc);
+}
+
+.nith-plex-session .nith-progress {
+  margin-top: 0.2rem;
+}
+
+.nith-plex-empty {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: var(--text-label);
+}
+
+/* ── Remote desktop: a state dot in the corner of the card ─────────────────────────────────────────────── */
+
+.nith-remote-dot {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.75);
+  box-shadow: 0 0 8px rgba(148, 163, 184, 0.25);
+}
+
+.service-card[data-remote-state="running"] .nith-remote-dot {
+  background: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.service-card[data-remote-state="missing"] .nith-remote-dot {
+  background: #f43f5e;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.45);
+}
+
+/* ── Footer controls ───────────────────────────────────────────────────────────────────────────────────── */
+
+#footer #style {
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.nith-bg-switcher {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(var(--color-theme-200));
+  opacity: 0.92;
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+.nith-bg-switcher svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nith-bg-switcher:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+/* ── Small polish ──────────────────────────────────────────────────────────────────────────────────────── */
+
+a {
+  text-decoration: none !important;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(125, 211, 252, 0.25); border-radius: 999px; }
+
+@media (max-width: 980px) {
+  #information-widgets {
+    grid-template-columns: 1fr !important;
+  }
+
+  .nith-truenas-pools {
+    grid-template-columns: 1fr;
+  }
+
+  .service:not([data-nith-card]) .service-card > .nith-service-health {
+    position: static;
+    max-width: none;
+    padding: 0 0.85rem 0.5rem 3.4rem;
+    transform: none;
+    justify-content: flex-start;
+  }
+
+  .service:not([data-nith-card]) .service-title-text {
+    max-width: none;
+  }
+}

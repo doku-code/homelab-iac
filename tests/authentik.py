@@ -84,7 +84,7 @@ def chart():
 def access_database_and_make():
     docs = [d for d in yaml.safe_load_all((DIR / "access.yaml").read_text()) if d]
     (route,) = [d for d in docs if d["kind"] == "IngressRoute"]
-    (rule,) = route["spec"]["routes"]
+    rule, _outpost = route["spec"]["routes"]  # the second route is checked by forward_auth()
     assert rule["match"] == f"Host(`{HOST}`)" and rule["middlewares"] == [{"name": "admin-lan"}] and route["spec"]["tls"] == {}
     assert rule["services"] == [{"name": "authentik-server", "port": 80}]
     (allow,) = [d for d in docs if d["kind"] == "Middleware"]
@@ -107,8 +107,8 @@ def blueprints():
     files = sorted(DIR.glob("blueprints/*.yaml"))
     assert sorted(generator["files"]) == [str(f.relative_to(DIR)) for f in files], "kustomization.yaml lists every blueprint"
     assert generator["name"] == "authentik-blueprints" and kustomization["generatorOptions"]["disableNameSuffixHash"] is True
-    clients = set(make_var("AUTHENTIK_CLIENTS").split())
-    declared, names = set(), set()
+    clients, forward = set(make_var("AUTHENTIK_CLIENTS").split()), set(make_var("AUTHENTIK_FORWARD_AUTH").split())
+    declared, protected, names = set(), set(), set()
     for file in files:
         text = file.read_text()
         assert not re.search(r"client_secret: (?!!Env SSO_[A-Z]+_CLIENT_SECRET$).*$", text, re.M), f"{file.name}: a client secret in Git"
@@ -118,7 +118,7 @@ def blueprints():
         names.add(blueprint["metadata"]["name"])
         entries = blueprint["entries"]
         assert not [e for e in entries if e.get("state") == "absent"], f"{file.name}: blueprints never delete"
-        providers = [e for e in entries if e["model"] == "authentik_providers_oauth2.oauth2provider"]
+        providers = [e for e in entries if e["model"] in ("authentik_providers_oauth2.oauth2provider", "authentik_providers_proxy.proxyprovider")]
         applications = [e for e in entries if e["model"] == "authentik_core.application"]
         if not applications:
             continue
@@ -128,6 +128,16 @@ def blueprints():
         slug = application["identifiers"]["slug"]
         assert file.name == f"homelab-{slug}.yaml" and provider["identifiers"] == {"name": slug}
         attrs = provider["attrs"]
+        assert application["attrs"]["provider"] == Tag("KeyOf", provider["id"])
+        bindings = [e for e in entries if e["model"] == "authentik_policies.policybinding"]
+        assert bindings and all(b["identifiers"]["target"] == Tag("KeyOf", application["id"]) and b["identifiers"]["group"].name == "KeyOf"
+                                for b in bindings), f"{slug}: open to named groups only"
+        if provider["model"] == "authentik_providers_proxy.proxyprovider":
+            # Forward authentication: one name of our domain, checked by Traefik; no secret shared with the application.
+            assert attrs["mode"] == "forward_single" and re.fullmatch(r"https://[a-z0-9-]+\.doku-lab\.net", attrs["external_host"]), slug
+            assert "client_secret" not in attrs and "internal_host" not in attrs
+            protected.add(slug.upper())
+            continue
         assert attrs["client_type"] == "confidential" and attrs["client_id"] == slug
         assert attrs["client_secret"] == Tag("Env", f"SSO_{slug.upper()}_CLIENT_SECRET")
         assert attrs["signing_key"].name == "Find", "tokens are signed with a key pair, which every client can verify"
@@ -135,12 +145,17 @@ def blueprints():
         assert attrs["redirect_uris"], slug
         for redirect in attrs["redirect_uris"]:
             assert redirect["matching_mode"] == "strict" and re.fullmatch(rf"https://{slug}\.doku-lab\.net/[\w/.-]*", redirect["url"]), redirect
-        assert application["attrs"]["provider"] == Tag("KeyOf", provider["id"])
-        bindings = [e for e in entries if e["model"] == "authentik_policies.policybinding"]
-        assert bindings and all(b["identifiers"]["target"] == Tag("KeyOf", application["id"]) and b["identifiers"]["group"].name == "KeyOf"
-                                for b in bindings), f"{slug}: open to named groups only"
         declared.add(slug.upper())
     assert declared == clients, f"AUTHENTIK_CLIENTS in the Makefile and the blueprints disagree: {declared ^ clients}"
+    assert protected == forward, f"AUTHENTIK_FORWARD_AUTH in the Makefile and the blueprints disagree: {protected ^ forward}"
+    # The embedded outpost serves exactly the forward-authentication providers, after their blueprints.
+    outpost = yaml.load((DIR / "blueprints/homelab-outpost.yaml").read_text(), Loader=BlueprintLoader)
+    (entry,) = [e for e in outpost["entries"] if e["model"] == "authentik_outposts.outpost"]
+    assert entry["identifiers"] == {"managed": "goauthentik.io/outposts/embedded"} and set(entry["attrs"]) == {"providers"}, "no Kubernetes connection, no other setting"
+    served = {p.value[1][1].upper() for p in entry["attrs"]["providers"]}
+    assert all(p.name == "Find" and p.value[0] == "authentik_providers_proxy.proxyprovider" for p in entry["attrs"]["providers"]) and served == forward
+    waits = {e["attrs"]["identifiers"]["name"] for e in outpost["entries"] if e["model"] == "authentik_blueprints.metaapplyblueprint" and e["attrs"]["required"]}
+    assert waits == {n for n in names if n.split(" - ")[1].upper() in forward}, "the outpost waits for the blueprint of each provider it serves"
     access = yaml.load((DIR / "blueprints/homelab-access.yaml").read_text(), Loader=BlueprintLoader)
     groups = [e for e in access["entries"] if e["model"] == "authentik_core.group"]
     assert [g["identifiers"]["name"] for g in groups] == ["homelab-admins"] and groups[0]["attrs"]["is_superuser"] is False
@@ -194,6 +209,28 @@ def clients():
     assert set(make_var("AUTHENTIK_CLIENTS").split()) == checked, "add the new client's own side to this test"
 
 
+def forward_auth():
+    """An application of AUTHENTIK_FORWARD_AUTH puts Authentik's check on every route of its name, and the sign-in
+    paths of every name of the domain reach the embedded outpost, from the LAN only."""
+    documents = [d for d in yaml.safe_load_all((DIR / "access.yaml").read_text()) if d]
+    (route,) = [d for d in documents if d["kind"] == "IngressRoute"]
+    (outpost,) = [r for r in route["spec"]["routes"] if "outpost.goauthentik.io" in r["match"]]
+    assert outpost["match"] == "HostRegexp(`^[a-z0-9-]+\\.doku-lab\\.net$`) && PathPrefix(`/outpost.goauthentik.io/`)"
+    assert outpost["middlewares"] == [{"name": "admin-lan"}] and outpost["services"] == [{"name": "authentik-server", "port": 80}]
+    assert outpost["priority"] >= 1000, "wins over the application's own routes"
+    for name in make_var("AUTHENTIK_FORWARD_AUTH").split():
+        service = ROOT / "services" / name.lower()
+        objects = [d for d in yaml.safe_load_all((service / "access.yaml").read_text()) if d]
+        (check,) = [d for d in objects if d["kind"] == "Middleware" and "forwardAuth" in d["spec"]]
+        assert check["spec"]["forwardAuth"]["address"] == "http://authentik-server.authentik.svc.cluster.local/outpost.goauthentik.io/auth/traefik"
+        blueprint = yaml.load((DIR / f"blueprints/homelab-{name.lower()}.yaml").read_text(), Loader=BlueprintLoader)
+        (provider,) = [e for e in blueprint["entries"] if e["model"] == "authentik_providers_proxy.proxyprovider"]
+        host = provider["attrs"]["external_host"].removeprefix("https://")
+        routes = [r for d in objects if d["kind"] == "IngressRoute" for r in d["spec"]["routes"] if f"Host(`{host}`)" in r["match"]]
+        assert routes and all({"name": check["metadata"]["name"]} in r["middlewares"] and {"name": "admin-lan"} in r["middlewares"]
+                              for r in routes), f"{name}: every route of {host} asks Authentik"
+
+
 def tools():
     """ensure-secrets never replaces a value and gives up when the store cannot be read; the admin tool only reads
     and re-applies blueprints."""
@@ -231,7 +268,7 @@ def tools():
     spec = importlib.util.spec_from_file_location("sso_check", ROOT / "scripts/sso-check.py")
     check = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(check)
-    assert {name.upper() for name in check.CHECKS} == set(make_var("AUTHENTIK_CLIENTS").split()), "one sign-in check per client"
+    assert {name.upper() for name in check.CHECKS} == set((make_var("AUTHENTIK_CLIENTS") + " " + make_var("AUTHENTIK_FORWARD_AUTH")).split()), "one sign-in check per application"
     text = (ROOT / "scripts/sso-check.py").read_text()
     assert "print(password" not in text and '"DELETE"' not in text and '"PUT"' not in text and '"PATCH"' not in text
     browser = check.Browser()
@@ -250,10 +287,12 @@ def main():
     access_database_and_make()
     blueprints()
     clients()
+    forward_auth()
     tools()
     print("PASS: Authentik chart pinned with single replicas, no Kubernetes credentials, shared PostgreSQL over TLS, LAN and pod "
           "network route, blueprints with client secrets from the environment and group-restricted applications, four "
-          "applications wired on both sides with their local administrator kept")
+          "applications wired on both sides with their local administrator kept, forward authentication on every route of "
+          "the applications without a login")
 
 
 if __name__ == "__main__":

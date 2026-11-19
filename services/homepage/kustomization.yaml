@@ -1,0 +1,30 @@
+# What Argo CD applies for the dashboard (services/argocd/apps/homepage.yaml): the manifests, and the page's
+# configuration and the widget API as ConfigMaps built from the files beside this one.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - access.yaml
+  - deployment.yaml
+configMapGenerator:
+  - name: homepage-config
+    namespace: homepage
+    files:
+      - config/bookmarks.yaml
+      - config/custom.css
+      - config/custom.js
+      - config/docker.yaml
+      - config/kubernetes.yaml
+      - config/proxmox.yaml
+      - config/services.yaml
+      - config/settings.yaml
+      - config/widgets.yaml
+  - name: homepage-metrics
+    namespace: homepage
+    files:
+      - metrics/pve-root-ca.pem
+      - metrics/server.py
+      - metrics/sources.json
+generatorOptions:
+  # Stable names: nothing is pruned automatically, so hashed names would pile up. The pod restarts on the
+  # config-digest annotation of deployment.yaml instead.
+  disableNameSuffixHash: true

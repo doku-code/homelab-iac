@@ -102,6 +102,11 @@ verification:
     detected: false
     verified: true
     description: Renders the pinned Windmill chart and checks route, database roles and the scripts of windmill/ (workstation only; needs helm and the chart download)
+  - name: homepage-k3s-check
+    run: make homepage-k3s-check
+    detected: false
+    verified: true
+    description: Renders the dashboard's manifests and checks route, sign-in, cards and the widget data API on canned data (workstation only; needs kubectl)
   - name: authentik-check
     run: make authentik-check
     detected: false

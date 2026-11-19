@@ -174,7 +174,23 @@ def windmill(browser, password):
     return ok, f"signed in as {me.get('email')}, administrator: {me.get('super_admin')}, workspaces {workspaces}"
 
 
-CHECKS = {"argocd": argocd, "grafana": grafana, "netbox": netbox, "windmill": windmill}
+def homepage(browser, password):
+    """Forward authentication: Traefik sends an unknown visitor to Authentik and lets the session through afterwards."""
+    base = "https://home.doku-lab.net"
+    outpost = f"{base}/outpost.goauthentik.io/"
+    anonymous, _, _ = browser.request("GET", f"{base}/api/snapshot")
+    if anonymous == 200:
+        return False, "the widget API answers without a session"
+    callback = browser.sign_in(f"{base}/", password, f"{outpost}callback")
+    browser.follow(callback, lambda u: not u.startswith(outpost))
+    page, _, text = browser.request("GET", f"{base}/")
+    status, _, snapshot = browser.request("GET", f"{base}/api/snapshot")
+    nodes = json.loads(snapshot).get("nodes", {}) if status == 200 else {}
+    ok = page == 200 and "__NEXT_DATA__" in text and status == 200 and bool(nodes)
+    return ok, f"HTTP {anonymous} without a session; signed in: page HTTP {page}, widget data for {len(nodes)} nodes"
+
+
+CHECKS = {"argocd": argocd, "grafana": grafana, "netbox": netbox, "windmill": windmill, "homepage": homepage}
 
 
 def main(argv):

@@ -1,0 +1,81 @@
+# Namespace, access restriction and route of the dashboard (TASK-027).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: homepage
+---
+# Only the administration LAN may reach the dashboard. Needs the real client address: the k3s role sets
+# externalTrafficPolicy: Local on Traefik (ansible/roles/k3s/templates/traefik-config.yaml.j2).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-lan
+  namespace: homepage
+spec:
+  ipAllowList:
+    sourceRange:
+      - 192.168.0.0/24
+---
+# Homepage has no login of its own: Traefik asks Authentik's embedded outpost before every request (ADR-017,
+# forward authentication). Someone who is not signed in is sent to Authentik; the paths under
+# /outpost.goauthentik.io/ of this name are routed to Authentik by services/authentik/access.yaml.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authentik
+  namespace: homepage
+spec:
+  forwardAuth:
+    address: http://authentik-server.authentik.svc.cluster.local/outpost.goauthentik.io/auth/traefik
+    trustForwardHeader: true
+    authResponseHeaders:
+      - X-authentik-username
+      - X-authentik-groups
+---
+# The sign-in session belongs to one name: the older name sends the visitor to it.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: canonical-name
+  namespace: homepage
+spec:
+  redirectRegex:
+    regex: ^https://homepage\.doku-lab\.net/(.*)
+    replacement: https://home.doku-lab.net/${1}
+    permanent: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homepage
+  namespace: homepage
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`homepage.doku-lab.net`)
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+        - name: canonical-name
+      services:
+        - name: homepage
+          port: 3000
+    # The widget data API (services/homepage/metrics) shares the name, so the page reads it with the same session.
+    - match: Host(`home.doku-lab.net`) && (Path(`/api/snapshot`) || PathPrefix(`/api/rdp/`))
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+        - name: authentik
+      services:
+        - name: homepage
+          port: 9101
+    - match: Host(`home.doku-lab.net`)
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+        - name: authentik
+      services:
+        - name: homepage
+          port: 3000
+  tls: {}
