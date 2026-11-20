@@ -1191,7 +1191,7 @@ wiki-status:
 NETBOX_SECRET_INPUTS := NETBOX_SECRET_KEY NETBOX_API_TOKEN_PEPPER NETBOX_SUPERUSER_PASSWORD NETBOX_VALKEY_PASSWORD PG_APP_NETBOX_PASSWORD SSO_NETBOX_CLIENT_SECRET
 NETBOX_SYNC := $(VENV)/bin/python scripts/netbox-sync.py
 
-.PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-plan netbox-apply netbox-inventory netbox-export
+.PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-discover-hardware netbox-plan netbox-apply netbox-prune netbox-inventory netbox-export
 
 # Offline: renders the pinned chart with our values (needs the chart download) and runs the inventory
 # reconciliation against an in-memory NetBox.
@@ -1231,6 +1231,12 @@ netbox-discover:
 	@test -n "$(NETBOX_SOURCE)" || (echo "Set NETBOX_SOURCE to a source of services/netbox/inventory.yaml (doku-lab or legacy)" >&2; exit 1)
 	$(NETBOX_SYNC) discover $(NETBOX_SOURCE)
 
+# Hardware facts of the Proxmox hosts of doku-lab into .local/netbox/ (scripts/host-facts.py over root SSH: reads,
+# listens for the switch's announcement, installs and leaves nothing; never the old host). One device or all:
+#   make netbox-discover-hardware [NETBOX_DEVICES="pve-core pve-lab"]
+netbox-discover-hardware:
+	$(NETBOX_SYNC) discover-hardware $(NETBOX_DEVICES)
+
 # What the reconciliation would change in NetBox, and what needs a human decision. Writes nothing.
 #   scripts/secrets.py run /netbox -- make netbox-plan
 netbox-plan:
@@ -1240,6 +1246,13 @@ netbox-plan:
 netbox-apply:
 	@test "$(NETBOX_APPLY_APPROVED)" = yes || (echo "Read 'make netbox-plan' first, then approve the inventory write with NETBOX_APPLY_APPROVED=yes" >&2; exit 1)
 	$(NETBOX_SYNC) apply
+
+# Removes the records services/netbox/inventory.yaml lists under `retired` (records an earlier version of that
+# file created and that are wrong), with a ten-minute superuser token. Nothing else is ever deleted.
+#   scripts/secrets.py run /netbox -- make netbox-prune NETBOX_PRUNE_APPROVED=yes
+netbox-prune:
+	@test "$(NETBOX_PRUNE_APPROVED)" = yes || (echo "Read the 'retired' lines of 'make netbox-plan' first, then approve their removal with NETBOX_PRUNE_APPROVED=yes" >&2; exit 1)
+	$(NETBOX_SYNC) prune
 
 # The whole inventory as sorted YAML files, one per kind, for a history in Git (read-only token):
 #   scripts/secrets.py run /netbox -- make netbox-export NETBOX_EXPORT_DIR=/path/to/a/private/checkout

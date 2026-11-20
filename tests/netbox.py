@@ -136,7 +136,7 @@ def sso_pipeline():
 def make_guards():
     make = (ROOT / "Makefile").read_text()
     for target, guard in (("netbox-deploy", "NETBOX_DEPLOY_APPROVED"), ("netbox-apply", "NETBOX_APPLY_APPROVED"),
-                          ("netbox-identities", "NETBOX_IDENTITIES_APPROVED")):
+                          ("netbox-identities", "NETBOX_IDENTITIES_APPROVED"), ("netbox-prune", "NETBOX_PRUNE_APPROVED")):
         recipe = re.search(rf"^{target}:.*?(?=^\S)", make, re.M | re.S).group(0)
         assert f'test "$({guard})" = yes' in recipe, target
         refused = subprocess.run(["make", "-C", str(ROOT), target], capture_output=True, text=True)
@@ -151,16 +151,25 @@ def make_guards():
 class FakeNetBox:
     """Stores what is posted and filters the way the reconciliation asks. Like the real client, it cannot delete."""
 
+    # Filters that do not carry the name of the stored field.
+    PARENTS = {("ipam/services", "virtual_machine_id"): ("parent_object_type", "virtualization.virtualmachine", "parent_object_id"),
+               ("ipam/services", "device_id"): ("parent_object_type", "dcim.device", "parent_object_id"),
+               ("dcim/mac-addresses", "interface_id"): ("assigned_object_type", "dcim.interface", "assigned_object_id"),
+               ("dcim/mac-addresses", "vminterface_id"): ("assigned_object_type", "virtualization.vminterface", "assigned_object_id")}
+
     def __init__(self):
         self.objects, self.writes, self.next_id = {}, [], 1
 
     def list(self, path, query=None):
         def matches(item):
             for key, value in (query or {}).items():
+                if (path, key) in self.PARENTS:
+                    kind_field, kind, id_field = self.PARENTS[(path, key)]
+                    if item.get(kind_field) != kind or item.get(id_field) != value:
+                        return False
+                    continue
                 if key.startswith("cf_"):
                     actual = item.get("custom_fields", {}).get(key[3:])
-                elif path == "ipam/services" and key == "virtual_machine_id":
-                    actual = item.get("parent_object_id")
                 elif key.endswith("_id"):
                     actual = item.get(key[:-3])
                 else:
@@ -175,6 +184,9 @@ class FakeNetBox:
         self.next_id += 1
         self.objects.setdefault(path, []).append(item)
         self.writes.append(("create", path, item["id"]))
+        if path == "dcim/cables":  # NetBox shows the cable on both ports
+            for end in item["a_terminations"] + item["b_terminations"]:
+                self.get("dcim/interfaces", id=end["object_id"])["cable"] = item["id"]
         return copy.deepcopy(item)
 
     def update(self, path, object_id, body):
@@ -192,35 +204,58 @@ MACHINES = [
     {"name": "k3s-server-01", "vmid": 310, "node": "pve-lab", "address": "192.168.0.40", "role": "k3s-server", "platform": "debian-13", "root": "k3s"},
     {"name": "dns-01", "vmid": 370, "node": "pve-infra", "address": "192.168.0.70", "role": "dns", "platform": "debian-13", "root": "dns"},
 ]
+SERIAL, HOST_MAC, GUEST_MAC = "SERIAL-SYNTHETIC-1", "6C:24:08:00:00:01", "BC:24:11:00:01:36"
 
 
-def guest(vmid, name, node, kind="qemu", status="running", ip=None, memory=4096):
+def guest(vmid, name, node, kind="qemu", status="running", ip=None, memory=4096, disks=(), ostype="l26"):
     return {"vmid": vmid, "name": name, "node": node, "type": kind, "status": status, "vcpus": 2, "memory_mb": memory,
-            "disk_mb": 32768, "nics": [{"name": "net0", "mac": "BC:24:11:00:00:01", "bridge": "vmbr0", "ip": ip}]}
+            "disk_mb": 32768, "ostype": ostype, "disks": [{"name": n, "storage": "local-lvm", "size_mb": s} for n, s in disks],
+            "nics": [{"name": "net0", "mac": f"BC:24:11:00:{vmid // 256:02X}:{vmid % 256:02X}", "bridge": "vmbr0", "ip": ip}]}
 
 
 def snapshots():
     return {
-        "doku-lab": {"age_hours": 0.1, "guests": [guest(310, "k3s-server-01", "pve-lab", ip="192.168.0.40/24"),
+        "doku-lab": {"age_hours": 0.1, "guests": [guest(310, "k3s-server-01", "pve-lab", ip="192.168.0.40/24", disks=[("scsi0", 65536), ("scsi1", 1024)]),
                                                    guest(370, "dns-01", "pve-infra", ip="192.168.0.70/24"),
                                                    guest(999, "scratch", "pve-core")]},
-        "legacy": {"age_hours": 0.1, "guests": [guest(204, "caddy", "pve-lab", kind="lxc", ip="192.168.0.24/24"),
-                                                 guest(208, "deb13-monitoring", "pve-lab", status="stopped")]},
+        "legacy": {"age_hours": 0.1, "guests": [guest(204, "caddy", "pve-lab", kind="lxc", ip="192.168.0.24/24", ostype="debian"),
+                                                 guest(208, "deb13-monitoring", "pve-lab", status="stopped"),
+                                                 guest(203, "print-server", "pve-lab", kind="lxc", status="stopped"),
+                                                 guest(501, "desktop", "pve-lab", status="stopped", ostype="win11")]},
     }
+
+
+def facts():
+    """What scripts/host-facts.py reports for one host: pve-core, plugged into port 8 of the switch."""
+    return {"pve-core": {
+        "system": {"manufacturer": "LENOVO", "product": "30EF006DUS", "version": "ThinkStation P350 Tiny", "serial": SERIAL},
+        "cpu": {"model": "11th Gen Intel(R) Core(TM) i7-11700 @ 2.50GHz", "sockets": 1, "cores": 8, "threads": 16},
+        "memory_modules": [{"slot": "DIMM 0", "size_mb": 16384, "type": "DDR4", "speed": "3200 MT/s", "manufacturer": "Kingston",
+                            "part_number": "9905700", "serial": "MEM-SYNTHETIC"},
+                           {"slot": "DIMM 0", "size_mb": 16384, "type": "DDR4", "speed": "3200 MT/s", "manufacturer": "Unknown",
+                            "part_number": "Unknown", "serial": "00000000"}],
+        "disks": [{"name": "nvme0n1", "model": "KINGSTON SNVS1000G", "serial": "DISK-SYNTHETIC", "size_gb": 1000, "transport": "nvme"}],
+        "interfaces": [{"name": "nic0", "kind": "physical", "mac": HOST_MAC, "carrier": True, "speed_mbps": 1000},
+                       {"name": "vmbr0", "kind": "bridge", "mac": HOST_MAC, "carrier": True, "speed_mbps": 10000},
+                       {"name": "wlo1", "kind": "wireless", "mac": "70:D8:23:00:00:01", "carrier": False, "speed_mbps": None},
+                       {"name": "enx0", "kind": "physical", "mac": "00:00:5E:00:53:01", "carrier": False, "speed_mbps": None}],
+        "neighbours": {"nic0": {"chassis_id": "24:5E:BE:00:00:01", "port_id": "8", "system_name": "QSW-M3216R-8S8T",
+                                "management_address": "192.168.0.116"}}}}
 
 
 def reconciliation():
     seed = yaml.safe_load((DIR / "inventory.yaml").read_text())
     api = FakeNetBox()
 
-    def run(apply, machines=MACHINES, observed=None):
-        return sync.reconcile(seed, machines, snapshots() if observed is None else observed, api, apply)
+    def run(apply, machines=MACHINES, observed=None, seen=None, inventory=seed):
+        return sync.reconcile(inventory, machines, snapshots() if observed is None else observed, api, apply, facts() if seen is None else seen)
 
     # A plan against an empty NetBox lists everything and writes nothing.
     plan = run(False)
-    assert not api.writes and len(plan.operations) > 60 and all(op.startswith(("create", "update")) for op in plan.operations)
+    assert not api.writes and len(plan.operations) > 150 and all(op.startswith(("create", "update")) for op in plan.operations)
     assert "create  vm k3s-server-01" in plan.operations and "create  device pve-core" in plan.operations
-    assert plan.operations.count("create  manufacturer Unknown") == 1, "a shared object is planned once"
+    assert plan.operations.count("create  manufacturer Lenovo") == 1, "a shared object is planned once"
+    assert "create  cable pve-core nic0 - switch 8" in plan.operations
     # Two machines claiming one address: the one Git defines keeps it, the other is reported (the old AdGuard
     # container still carries 192.168.0.20, which dns-01 serves now).
     clash = snapshots()
@@ -233,23 +268,37 @@ def reconciliation():
     assert api.writes and not hasattr(api, "delete") and not hasattr(sync.NetBox, "delete"), "the reconciliation cannot delete"
     again = run(False)
     assert again.operations == [], f"a second run changes nothing: {again.operations}"
+    # Serial numbers and hardware addresses go to NetBox, never to the output.
+    printed = "\n".join(plan.operations + applied.operations + applied.review)
+    assert not any(value in printed for value in (SERIAL, HOST_MAC, GUEST_MAC, "MEM-SYNTHETIC", "DISK-SYNTHETIC"))
 
-    vms, ips = "virtualization/virtual-machines", "ipam/ip-addresses"
+    vms, ips, ports = "virtualization/virtual-machines", "ipam/ip-addresses", "dcim/interfaces"
     tags = {t["slug"]: t["id"] for t in api.objects["extras/tags"]}
     cluster = {c["name"]: c["id"] for c in api.objects["virtualization/clusters"]}
+    role = {r["slug"]: r["id"] for r in api.objects["dcim/device-roles"]}
+    platform = {p["slug"]: p["id"] for p in api.objects["dcim/platforms"]}
+    device = {d["name"]: d for d in api.objects["dcim/devices"]}
     k3s = api.get(vms, name="k3s-server-01")
-    assert k3s["custom_fields"] == {"proxmox_vmid": 310} and k3s["cluster"] == cluster["doku-lab"] and k3s["tags"] == [tags["iac"]]
-    assert k3s["memory"] == 4096 and k3s["device"] == api.get("dcim/devices", name="pve-lab")["id"], "sizing observed, host from Git"
+    assert k3s["cluster"] == cluster["doku-lab"] and k3s["tags"] == [tags["iac"]]
+    assert k3s["custom_fields"] == {"proxmox_vmid": 310, "defined_in": sync.SOURCE_URL + "terraform/stacks/k3s"}
+    assert k3s["memory"] == 4096 and k3s["device"] == device["pve-lab"]["id"], "sizing observed, host from Git"
     address = api.get(ips, address="192.168.0.40/24")
     assert address["assigned_object_type"] == "virtualization.vminterface" and k3s["primary_ip4"] == address["id"]
     service = api.get(ips, address="192.168.0.20/24")
     assert service["role"] == "secondary" and service["assigned_object_id"] == api.get(
         "virtualization/interfaces", virtual_machine=api.get(vms, name="dns-01")["id"], name="net0")["id"]
     assert api.get(ips, address="192.168.0.60/24")["role"] == "vip" and "assigned_object_id" not in api.get(ips, address="192.168.0.60/24")
+    # Disks listed one by one: NetBox adds them up, so the total is not sent; without a list the total is.
+    disks = {d["name"]: d for d in api.objects["virtualization/virtual-disks"] if d["virtual_machine"] == k3s["id"]}
+    assert {n: d["size"] for n, d in disks.items()} == {"scsi0": 65536, "scsi1": 1024} and "disk" not in k3s
+    assert api.get(vms, name="dns-01")["disk"] == 32768
+    # A guest's hardware address is its port's primary one.
+    net0 = api.get("virtualization/interfaces", virtual_machine=k3s["id"], name="net0")
+    mac = api.get("dcim/mac-addresses", mac_address=GUEST_MAC)
+    assert (mac["assigned_object_type"], mac["assigned_object_id"]) == ("virtualization.vminterface", net0["id"]) and net0["primary_mac_address"] == mac["id"]
 
     # Parameters automation reads: per site, platform and role, with the values the roots enforce.
     contexts = {c["name"]: c for c in api.objects["extras/config-contexts"]}
-    role = {r["slug"]: r["id"] for r in api.objects["dcim/device-roles"]}
     assert contexts["role-k3s-server"]["roles"] == [role["k3s-server"]] and contexts["role-k3s-server"]["sites"] == []
     assert contexts["role-k3s-server"]["data"]["provisioning"]["vmid_range"] == [310, 349]
     assert contexts["site-network"]["data"]["network"]["dns_servers"] == ["192.168.0.20"]
@@ -259,9 +308,14 @@ def reconciliation():
     address_role = {r["slug"]: r["id"] for r in api.objects["ipam/roles"]}
     assert api.get("ipam/ip-ranges", start_address="192.168.0.40/24")["role"] == address_role["k3s-server"]
     assert "role" not in api.get("ipam/ip-ranges", start_address="192.168.0.100/24")
-    services = {(s["parent_object_id"], s["name"]): s for s in api.objects["ipam/services"]}
-    assert services[(k3s["id"], "Kubernetes API")]["ports"] == [6443] and services[(k3s["id"], "Ingress (Traefik)")]["ports"] == [80, 443]
-    assert services[(api.get(vms, name="dns-01")["id"], "DNS")]["protocol"] == "udp"
+    # Networks that exist only inside the cluster belong to no site.
+    pods = api.get("ipam/prefixes", prefix="10.42.0.0/16")
+    assert pods["role"] == address_role["kubernetes"] and "scope_id" not in pods and "scope_id" in api.get("ipam/prefixes", prefix="192.168.0.0/24")
+    services = {(s["parent_object_type"], s["parent_object_id"], s["name"]): s for s in api.objects["ipam/services"]}
+    machine = "virtualization.virtualmachine"
+    assert services[(machine, k3s["id"], "Kubernetes API")]["ports"] == [6443] and services[(machine, k3s["id"], "Ingress (Traefik)")]["ports"] == [80, 443]
+    assert services[(machine, api.get(vms, name="dns-01")["id"], "DNS")]["protocol"] == "udp"
+    assert services[("dcim.device", device["truenas"]["id"], "Forgejo")]["ports"] == [30142, 30143]
     # Git owns the contexts: a change made in NetBox is overwritten.
     api.get("extras/config-contexts", name="site-network")["data"] = {"network": {"gateway": "192.168.0.254"}}
     restored = run(True)
@@ -269,27 +323,104 @@ def reconciliation():
     assert api.get("extras/config-contexts", name="site-network")["data"]["network"]["gateway"] == "192.168.0.1"
     assert run(False).operations == []
 
-    # Guests no root defines: created once, flagged, on the right cluster and host; containers marked as such.
-    caddy = api.get(vms, name="caddy")
-    assert caddy["cluster"] == cluster["homelab"] and set(caddy["tags"]) == {tags["discovered"], tags["needs-review"], tags["lxc"]}
-    assert caddy["device"] == api.get("dcim/devices", name="pve-lab-legacy")["id"], "the old host is not the new pve-lab"
-    assert api.get(vms, name="deb13-monitoring")["status"] == "offline"
-    assert set(api.get(vms, name="scratch")["tags"]) == {tags["discovered"], tags["needs-review"]}
-    assert any("deb13-monitoring" in line and "no static address" in line for line in applied.review)
-    # Unverified seed records are flagged; verified ones are not; unknown hardware is called unknown.
-    assert api.get("dcim/devices", name="pfsense")["tags"] == [tags["needs-review"]] and api.get("dcim/devices", name="pve-core")["tags"] == []
-    assert api.get("dcim/device-types", slug="unknown-unknown")["model"] == "Unknown"
-    assert api.get("dcim/devices", name="pbs")["status"] == "offline"
+    # Hardware models: named, with their ports; a numbered range gives one port per number.
+    switch_type = api.get("dcim/device-types", slug="qnap-qsw-m3216r-8s8t")
+    assert switch_type["u_height"] == 1 and switch_type["model"] == "QSW-M3216R-8S8T"
+    templates = {t["name"]: t["type"] for t in api.objects["dcim/interface-templates"] if t["device_type"] == switch_type["id"]}
+    assert len(templates) == 17 and templates["1"] == "10gbase-t" and templates["16"] == "10gbase-x-sfpp" and templates["mgmt"] == "1000base-t"
+    assert not [t for t in api.objects["dcim/device-types"] if "unknown" in t["slug"]], "no device type is called unknown"
+    assert all(d["device_type"] == api.get("dcim/device-types", slug=e["type"])["id"] for e in seed["devices"] for d in [device[e["name"]]])
+    # A device has the ports of its type and its own; bridge, aggregate and parent tie them together.
+    port = {(p["device"], p["name"]): p for p in api.objects[ports]}
+    core, nas, switch = device["pve-core"]["id"], device["truenas"]["id"], device["switch"]["id"]
+    assert port[(core, "nic0")]["bridge"] == port[(core, "vmbr0")]["id"] and port[(core, "vmbr0")]["type"] == "bridge"
+    assert port[(core, "amt")]["parent"] == port[(core, "nic0")]["id"] and port[(core, "amt")]["mgmt_only"] is True
+    assert port[(nas, "enp1s0")]["lag"] == port[(nas, "bond0")]["id"] == port[(nas, "enp3s0")]["lag"]
+    assert port[(core, "wlo1")]["enabled"] is False and len([p for p in port if p[0] == switch]) == 18
+    assert device["pve-core"]["primary_ip4"] == api.get(ips, address="192.168.0.11/24")["id"]
+    assert api.get(ips, address="192.168.0.11/24")["assigned_object_id"] == port[(core, "vmbr0")]["id"]
+    assert api.get(ips, address="192.168.0.116/24")["status"] == "dhcp" and api.get(ips, address="192.168.0.1/24")["dns_name"] == "pfsense.doku-lab.net"
+    # Observed on the host: serial number, link speed, hardware address of the physical port (not of the bridge),
+    # processor, memory and disks; what the firmware calls unknown is left empty.
+    assert device["pve-core"]["serial"] == SERIAL and "serial" not in device["pve-lab"]
+    assert port[(core, "nic0")]["speed"] == 1000000 and "speed" not in port[(core, "vmbr0")]
+    host_mac = api.get("dcim/mac-addresses", mac_address=HOST_MAC)
+    assert host_mac["assigned_object_id"] == port[(core, "nic0")]["id"] and port[(core, "nic0")]["primary_mac_address"] == host_mac["id"]
+    assert len([m for m in api.objects["dcim/mac-addresses"] if m["mac_address"] == HOST_MAC]) == 1
+    items = {i["name"]: i for i in api.objects["dcim/inventory-items"] if i["device"] == core}
+    assert set(items) == {"CPU", "Memory 1", "Memory 2", "nvme0n1"} and items["CPU"]["part_id"].startswith("11th Gen Intel")
+    assert items["Memory 1"]["serial"] == "MEM-SYNTHETIC" and items["Memory 1"]["manufacturer"] == api.get("dcim/manufacturers", slug="kingston")["id"]
+    assert "serial" not in items["Memory 2"] and "manufacturer" not in items["Memory 2"] and items["Memory 2"]["part_id"] == ""
+    assert items["nvme0n1"]["description"] == "1000 GB nvme" and all(i["discovered"] is True for i in items.values())
+    assert any("pve-core" in line and "reports a port enx0" in line for line in applied.review)
+    assert any("pve-lab" in line and "no hardware facts read yet" in line for line in applied.review)
+    # The cable to the switch is the one the host heard the switch announce.
+    (cable,) = api.objects["dcim/cables"]
+    assert cable["a_terminations"] == [{"object_type": "dcim.interface", "object_id": port[(core, "nic0")]["id"]}]
+    assert cable["b_terminations"] == [{"object_type": "dcim.interface", "object_id": port[(switch, "8")]["id"]}]
+    assert cable["tags"] == [tags["observed"]] and cable["status"] == "connected"
+    moved = facts()
+    moved["pve-core"]["neighbours"]["nic0"]["port_id"] = "3"
+    replugged = run(True, seen=moved)
+    assert len(api.objects["dcim/cables"]) == 1 and any("already has another cable" in line for line in replugged.review)
+    stranger = facts()
+    stranger["pve-core"]["neighbours"]["nic0"]["management_address"] = "192.168.0.250"
+    assert any("not a device and port of inventory.yaml" in line for line in run(False, seen=stranger).review)
 
-    # NetBox is the authority for seed and discovered records: edits made there survive, differences are reported.
-    api.get("dcim/devices", name="pve-core")["description"] = "edited in NetBox"
-    api.get(vms, name="caddy")["memory"] = 1
-    api.get(vms, name="caddy")["tags"] = [tags["discovered"]]  # a person validated it
-    api.get(vms, name="k3s-server-01")["tags"].append(12345)   # a person's own tag on an IaC record
-    writes = len(api.writes)
-    edited = run(False)
-    assert edited.operations == [] and len(api.writes) == writes
-    assert any("caddy" in line and "memory is 1 in NetBox" in line and "not changed" in line for line in edited.review)
+    # Guests no root defines: created once, on the right cluster and host; containers marked as such. What
+    # inventory.yaml describes has a role and is not flagged; what nobody described is.
+    caddy, scratch = api.get(vms, name="caddy"), api.get(vms, name="scratch")
+    assert caddy["cluster"] == cluster["homelab"] and set(caddy["tags"]) == {tags["discovered"], tags["lxc"]}
+    assert caddy["role"] == role["legacy-service"] and caddy["description"].startswith("Caddy") and caddy["platform"] == platform["debian"]
+    assert caddy["device"] == device["pve-lab-legacy"]["id"], "the old host is not the new pve-lab"
+    assert api.get(vms, name="deb13-monitoring")["status"] == "offline" and api.get(vms, name="deb13-monitoring")["platform"] == platform["debian-13"]
+    assert set(scratch["tags"]) == {tags["discovered"], tags["needs-review"]} and "role" not in scratch
+    assert set(api.get(vms, name="print-server")["tags"]) == {tags["discovered"], tags["lxc"], tags["needs-review"]}, "described, but still to verify"
+    assert api.get(vms, name="desktop")["role"] == role["desktop"] and api.get(vms, name="desktop")["platform"] == platform["windows-11"]
+    assert any("scratch" in line and "no static address" in line for line in applied.review)
+    assert not any("deb13-monitoring" in line and "no static address" in line for line in applied.review), "a stopped guest is not worth a line"
+    # Unverified devices are flagged, verified ones are not; the backup server is a VM on the NAS, stopped.
+    assert device["pfsense"]["tags"] == [tags["needs-review"]] and device["pve-core"]["tags"] == [] and "pbs" not in device
+    pbs = api.get(vms, name="pbs")
+    assert (pbs["cluster"], pbs["device"], pbs["status"]) == (cluster["truenas"], device["truenas"]["id"], "offline")
+    assert api.get(ips, address="192.168.0.15/24")["status"] == "reserved" and pbs["primary_ip4"] == api.get(ips, address="192.168.0.15/24")["id"]
+
+    # A record flagged earlier loses the flag once inventory.yaml describes it; a person's own tag stays.
+    api.get(vms, name="caddy")["tags"] = [tags["discovered"], tags["lxc"], tags["needs-review"], 777]
+    api.get("dcim/devices", name="switch")["tags"] = [tags["needs-review"], 888]
+    cleared = run(True)
+    assert set(api.get(vms, name="caddy")["tags"]) == {tags["discovered"], tags["lxc"], 777}
+    assert api.get("dcim/devices", name="switch")["tags"] == [888] and len(cleared.operations) == 2
+
+    # What belongs to people survives: placement, asset tag, comments, tags, and the name of a discovered guest.
+    # What Git states or a machine reports is put back.
+    api.get("dcim/devices", name="pve-core").update(comments="left shelf", asset_tag="A-1", rack=55, description="edited in NetBox")
+    api.get(vms, name="caddy").update(memory=1, name="caddy-renamed", comments="mine")
+    api.get(vms, name="k3s-server-01")["tags"].append(12345)
+    edited = run(True)
+    assert len(edited.operations) == 2 and any(op.startswith("update  device pve-core: description:") for op in edited.operations)
+    assert any(op.startswith("update  lxc caddy (homelab 204): memory: 1 -> 4096") for op in edited.operations)
+    core_device = api.get("dcim/devices", name="pve-core")
+    assert (core_device["comments"], core_device["asset_tag"], core_device["rack"]) == ("left shelf", "A-1", 55)
+    assert api.get(vms, name="caddy-renamed")["comments"] == "mine" and api.get(vms, name="caddy-renamed")["memory"] == 4096
+    assert any("name is 'caddy-renamed' in NetBox and 'caddy' on Proxmox" in line for line in edited.review)
+    api.get(vms, name="caddy-renamed")["name"] = "caddy"
+
+    # A rack and a place in it, stated in inventory.yaml, are written while NetBox has none; afterwards the
+    # place belongs to NetBox.
+    racked = copy.deepcopy(seed)
+    racked["racks"] = [{"name": "rack-01", "u_height": 12, "width": 19}]
+    next(d for d in racked["devices"] if d["name"] == "switch").update(rack="rack-01", position=3, face="front")
+    placed = run(True, inventory=racked)
+    rack = api.get("dcim/racks", name="rack-01")
+    assert rack["u_height"] == 12 and any(op.startswith("update  device switch:") and "position" in op for op in placed.operations)
+    assert (api.get("dcim/devices", name="switch")["rack"], api.get("dcim/devices", name="switch")["position"]) == (rack["id"], 3)
+    api.get("dcim/devices", name="switch")["position"] = 7
+    assert run(True, inventory=racked).operations == [] and api.get("dcim/devices", name="switch")["position"] == 7
+    # A cable nobody can read from a machine is stated in inventory.yaml.
+    racked["cables"] = [{"a": ["truenas", "enp1s0"], "b": ["switch", 9], "type": "dac-passive"}]
+    assert run(True, inventory=racked).operations == ["create  cable truenas enp1s0 - switch 9"]
+    assert sorted(c.get("type", "") for c in api.objects["dcim/cables"]) == ["", "dac-passive"] and run(False, inventory=racked).operations == []
 
     # Git owns the IaC fields: a rename in Git is written, and the person's tag stays.
     renamed = [dict(MACHINES[0], name="k3s-server-99"), MACHINES[1]]
@@ -331,6 +462,46 @@ def reconciliation():
     else:
         raise AssertionError("a stale snapshot must not be applied")
 
+    # Retired records: reported by the plan, removed only by the separate command, one named record at a time.
+    api.create("dcim/manufacturers", {"name": "Unknown", "slug": "unknown"})
+    api.create("dcim/devices", {"name": "pbs"})
+    assert any("retired record still in NetBox: dcim/devices {'name': 'pbs'}" in line for line in run(False).review)
+    removed = []
+
+    def remove(path, object_id):
+        if path == "dcim/manufacturers":
+            raise RuntimeError("HTTP 409 Unable to delete object. 1 dependent objects were found")
+        removed.append((path, object_id))
+        api.objects[path] = [item for item in api.objects[path] if item["id"] != object_id]
+
+    lines, refused = sync.prune(seed, api, remove)
+    assert [path for path, _ in removed] == ["dcim/devices"] and refused == 1, "only what inventory.yaml retires, and NetBox may refuse"
+    assert any(line.startswith("removed  dcim/devices {'name': 'pbs'}") for line in lines)
+    assert any(line.startswith("refused  dcim/manufacturers {'slug': 'unknown'}") for line in lines)
+    assert sum(line.startswith("gone") for line in lines) == len(seed["retired"]) - 2
+
+
+def host_facts():
+    """The script run on the hosts only reads and listens; its decoding of the switch's announcement is checked
+    on a frame built here."""
+    path = ROOT / "scripts/host-facts.py"
+    source = path.read_text()
+    assert not re.search(r"open\([^)]*['\"][wa]\+?b?['\"]|\.write_text|\.send(to)?\(|subprocess\.(run|Popen)\([^)]*shell=True|os\.(remove|unlink|system)", source)
+    commands = set(re.findall(r'run\("([a-z0-9]+)"', source))
+    assert commands == {"dmidecode", "lsblk", "lspci", "ethtool", "ip", "pveversion"}, commands
+    spec_ = importlib.util.spec_from_file_location("host_facts", path)
+    module = importlib.util.module_from_spec(spec_)
+    spec_.loader.exec_module(module)
+
+    def tlv(kind, value):
+        return ((kind << 9) | len(value)).to_bytes(2, "big") + value
+
+    frame = (bytes(14) + tlv(1, b"\x04" + bytes.fromhex("245ebe000001")) + tlv(2, b"\x07" + b"8") + tlv(5, b"QSW-M3216R-8S8T")
+             + tlv(8, bytes([5, 1, 192, 168, 0, 116, 2, 0, 0, 0, 1, 0])) + tlv(0, b"") + tlv(5, b"after the end"))
+    assert module.decode_lldp(frame) == {"chassis_id": "24:5E:BE:00:00:01", "port_id": "8", "system_name": "QSW-M3216R-8S8T",
+                                         "management_address": "192.168.0.116"}
+    assert module.lldp([], 5) == {}, "nothing to listen on: returns at once"
+
 
 def discovery():
     """The Proxmox client can only read; the snapshot keeps what the API says and skips templates."""
@@ -354,9 +525,12 @@ def discovery():
             if path.endswith("/status"):
                 return {"cpuinfo": {"model": "cpu", "cpus": 16}, "memory": {"total": 32 * 2**30}, "pveversion": "pve-manager/9"}
             if path.endswith("/network"):
-                return [{"iface": "vmbr0", "type": "bridge", "cidr": "192.168.0.11/24"}, {"iface": "nic0", "type": "eth"}]
+                return [{"iface": "vmbr0", "type": "bridge", "cidr": "192.168.0.11/24", "bridge_ports": "nic0", "active": 1},
+                        {"iface": "nic0", "type": "eth", "active": 1}, {"iface": "tap311i0", "type": "unknown"}]
             if path.endswith("/qemu/311/config"):
-                return {"net0": "virtio=BC:24:11:AA:BB:CC,bridge=vmbr0", "ipconfig0": "ip=192.168.0.41/24,gw=192.168.0.1"}
+                return {"net0": "virtio=BC:24:11:AA:BB:CC,bridge=vmbr0", "ipconfig0": "ip=192.168.0.41/24,gw=192.168.0.1", "ostype": "l26",
+                        "scsi0": "local-lvm:vm-311-disk-0,iothread=1,size=64G", "scsi1": "local-lvm:vm-311-disk-1,size=512M",
+                        "ide2": "local:iso/debian.iso,media=cdrom,size=700M", "efidisk0": "local-lvm:vm-311-disk-2,size=4M"}
             raise AssertionError(path)
 
     class Limited(Client):
@@ -375,9 +549,16 @@ def discovery():
 
     snapshot = sync.discover("doku-lab", {}, Client())
     assert snapshot["cluster"] == "doku-lab" and [n["name"] for n in snapshot["nodes"]] == ["gone", "pve-core"]
-    assert snapshot["nodes"][1]["interfaces"] == [{"name": "vmbr0", "type": "bridge", "cidr": "192.168.0.11/24"}]
+    assert snapshot["nodes"][1]["interfaces"] == [
+        {"name": "nic0", "type": "eth", "cidr": None, "active": True, "ports": []},
+        {"name": "vmbr0", "type": "bridge", "cidr": "192.168.0.11/24", "active": True, "ports": ["nic0"]}], "bridges and ports, not what a guest adds"
     (found,) = snapshot["guests"]
     assert (found["vmid"], found["memory_mb"], found["disk_mb"], found["nics"][0]["ip"]) == (311, 8192, 65536, "192.168.0.41/24")
+    # Disks one by one, without the optical drive and the firmware volume; the system kind as Proxmox names it.
+    assert found["ostype"] == "l26" and found["disks"] == [{"name": "scsi0", "storage": "local-lvm", "size_mb": 65536},
+                                                           {"name": "scsi1", "storage": "local-lvm", "size_mb": 512}]
+    assert sync.parse_disk("rootfs", "local-lvm:vm-204-disk-0,size=8G") == {"name": "rootfs", "storage": "local-lvm", "size_mb": 8192}
+    assert sync.parse_disk("scsi2", "/dev/disk/by-id/ata-X,size=8T") is None and sync.parse_disk("mp0", "/mnt/data,mp=/data") is None
 
 
 def export():
@@ -419,9 +600,24 @@ def seed_and_inventory():
     names = [d["name"] for d in seed["devices"]]
     assert len(names) == len(set(names))
     roles, platforms = {r["slug"] for r in seed["roles"]}, {p["slug"] for p in seed["platforms"]}
+    types = {t["slug"]: t for t in seed["device_types"]}
+    assert len(types) == len(seed["device_types"]) and not [t for t in types.values() if re.search(r"(?i)unknown", t["model"] + t["manufacturer"])]
+    racks = {rack["name"] for rack in seed["racks"]}
+    old = seed["sources"]["legacy"]["endpoint"].split("//")[1].split(":")[0]
     for device in seed["devices"]:
-        assert device["role"] in roles and device.get("platform", "debian-13") in platforms, device["name"]
-        assert ("model" in device) or device.get("review"), f"{device['name']}: unknown hardware must be flagged for review"
+        assert device["role"] in roles and device.get("platform", "debian-13") in platforms and device["type"] in types, device["name"]
+        assert types[device["type"]]["manufacturer"] != "Unidentified" or device.get("review"), f"{device['name']}: unread hardware must be flagged for review"
+        assert device.get("rack") is None or device["rack"] in racks, device["name"]
+        assert device.get("facts") != old, "hardware facts are never read on the old host"
+        sync.device_ports(device, types[device["type"]])  # every member and parent is a port of the device
+    assert {d["name"] for d in seed["devices"] if d.get("facts")} == {"pve-management", "pve-core", "pve-infra", "pve-lab"}
+    assert not re.search(r"(?i)\b([0-9a-f]{2}:){5}[0-9a-f]{2}\b|serial\s*:", text), "hardware addresses and serial numbers stay out of Git"
+    for cluster, notes in seed["guests"].items():
+        assert cluster in {s["cluster"] for s in seed["sources"].values()}
+        assert all(n["role"] in roles and n.get("platform", "debian") in platforms and ("vmid" in n) != ("vmids" in n) for n in notes)
+    assert set(seed["ostypes"].values()) <= platforms and all(m["role"] in roles for m in seed["virtual_machines"])
+    assert all(set(e) == {"path", "reason", "name"} or set(e) == {"path", "reason", "slug"} for e in seed["retired"])
+    assert not {e.get("name") for e in seed["retired"] if e["path"] == "dcim/devices"} & set(names), "a retired device is not also declared"
     for root in seed["iac_roots"]:
         assert root["role"] in roles and root["platform"] in platforms and (ROOT / "terraform/stacks" / root["root"]).is_dir()
     for context in seed["config_contexts"]:
@@ -429,6 +625,7 @@ def seed_and_inventory():
         root = context["data"].get("provisioning", {}).get("opentofu_root")
         assert root is None or (ROOT / root).is_dir(), context["name"]
     assert set(seed["services"]) <= roles and all(r.get("role", "dns") in roles for r in seed["ranges"])
+    assert set(seed["device_services"]) <= set(names)
     # Ansible reads the inventory with the token from the environment and verifies the certificate.
     inventory = yaml.safe_load((ROOT / "ansible/inventories/netbox.yml").read_text())
     assert inventory["plugin"] == "netbox.netbox.nb_inventory" and inventory["api_endpoint"] == f"https://{HOST}"
@@ -445,11 +642,13 @@ def main():
     sso_pipeline()
     make_guards()
     reconciliation()
+    host_facts()
     discovery()
     export()
     seed_and_inventory()
     print("PASS: chart pinned with single replicas, shared PostgreSQL, pinned Valkey, no secret in Git, LAN-only route; "
-          "reconciliation idempotent, never deletes, never overwrites NetBox-owned records; discovery read-only")
+          "reconciliation idempotent, never deletes, never overwrites what people entered, never prints serial numbers or "
+          "hardware addresses; hosts report their hardware and switch port; discovery read-only")
 
 
 if __name__ == "__main__":

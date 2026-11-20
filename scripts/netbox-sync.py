@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
 """NetBox inventory reconciliation (M013, ADR-016).
 
-  scripts/netbox-sync.py discover <source>   read-only snapshot of one Proxmox environment into .local/netbox/
-  scripts/netbox-sync.py plan                what would change in NetBox, and what needs a human decision
-  scripts/netbox-sync.py apply               write those changes
-  scripts/netbox-sync.py identities          create the two service accounts and store their API tokens
-  scripts/netbox-sync.py export <directory>  write the whole inventory as sorted YAML files (for a history in Git)
+  scripts/netbox-sync.py discover <source>            read-only snapshot of one Proxmox environment into .local/netbox/
+  scripts/netbox-sync.py discover-hardware [device]   hardware facts of the hosts (scripts/host-facts.py over SSH, read-only)
+  scripts/netbox-sync.py plan                         what would change in NetBox, and what needs a human decision
+  scripts/netbox-sync.py apply                        write those changes
+  scripts/netbox-sync.py prune                        remove the records inventory.yaml lists under `retired`, nothing else
+  scripts/netbox-sync.py identities                   create the two service accounts and store their API tokens
+  scripts/netbox-sync.py export <directory>           write the whole inventory as sorted YAML files (for a history in Git)
 
 Three kinds of data, never mixed (services/netbox/inventory.yaml describes the ownership):
-  intended   the VMs of the OpenTofu roots (`tofu output`) and the foundation in inventory.yaml: written to NetBox
-  observed   what a Proxmox API reports (snapshot): fills the sizing of known VMs, creates unknown guests once
-             as "discovered, needs-review", and is otherwise only compared and reported
-  NetBox     everything a person entered or validated there: never overwritten outside the fields Git owns
+  intended   the VMs of the OpenTofu roots (`tofu output`) and what inventory.yaml states (models, devices, ports,
+             addresses, what the old guests are): written to NetBox
+  observed   what the machines report: a Proxmox API (state, size, disks and hardware addresses of guests; unknown
+             guests are created once as "discovered") and the hosts themselves (serial number, processor, memory,
+             disks, hardware addresses, link speed, the switch port they are plugged into)
+  NetBox     everything a person entered there (rack positions, asset tags, comments, tags, contacts): never
+             overwritten outside the fields Git and the observations own
 
-The script creates and updates; it never deletes. Credentials come from the environment only:
-PROXMOX_VE_API_TOKEN (discover), NETBOX_SYNC_TOKEN (plan, apply), NETBOX_SUPERUSER_PASSWORD (identities).
+plan and apply create and update; they never delete (`prune` removes only what inventory.yaml retires).
+Credentials come from the environment only: PROXMOX_VE_API_TOKEN (discover), NETBOX_SYNC_TOKEN (plan, apply),
+NETBOX_SUPERUSER_PASSWORD (identities, prune).
 """
 import datetime
 import ipaddress
@@ -41,12 +47,16 @@ TAGS = {
     "discovered": ("Discovered", "ff9800", "Found on a Proxmox host, not defined in Git; created once, then only compared"),
     "needs-review": ("Needs review", "f44336", "Not verified by a person yet; remove this tag once the record is validated"),
     "lxc": ("LXC", "9e9e9e", "Proxmox container (not a virtual machine)"),
+    "observed": ("Observed", "03a9f4", "Recorded from what a machine reported (a cable heard through LLDP), not entered by a person"),
 }
+ITEM_ROLES = {"processor": ("Processor", "607d8b"), "memory": ("Memory", "3f51b5"), "disk": ("Disk", "795548")}
+SOURCE_URL = "https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/"
 # What the write account may touch (view, add, change; never delete) and what the read account may see.
-SYNC_MODELS = ["dcim.site", "dcim.manufacturer", "dcim.devicetype", "dcim.devicerole", "dcim.platform", "dcim.device",
-               "dcim.interface", "virtualization.clustertype", "virtualization.cluster", "virtualization.virtualmachine",
-               "virtualization.vminterface", "ipam.prefix", "ipam.iprange", "ipam.ipaddress", "ipam.role",
-               "ipam.service", "extras.tag", "extras.customfield", "extras.configcontext"]
+SYNC_MODELS = ["dcim.site", "dcim.manufacturer", "dcim.devicetype", "dcim.interfacetemplate", "dcim.devicerole", "dcim.platform",
+               "dcim.rack", "dcim.device", "dcim.interface", "dcim.macaddress", "dcim.cable", "dcim.inventoryitem",
+               "dcim.inventoryitemrole", "virtualization.clustertype", "virtualization.cluster", "virtualization.virtualmachine",
+               "virtualization.vminterface", "virtualization.virtualdisk", "ipam.prefix", "ipam.iprange", "ipam.ipaddress",
+               "ipam.role", "ipam.service", "extras.tag", "extras.customfield", "extras.configcontext"]
 READ_APPS = ("dcim", "ipam", "virtualization", "tenancy", "extras")
 
 
@@ -121,6 +131,20 @@ def parse_nic(value):
     return {"mac": mac.upper() if mac else None, "bridge": parts.get("bridge"), "ip": ip}
 
 
+DISK_KEY = re.compile(r"(scsi|virtio|sata|ide|nvme|mp)\d+|rootfs")
+SIZE_MB = {"M": 1, "G": 1024, "T": 1024 * 1024}
+
+
+def parse_disk(key, value):
+    """'local-lvm:vm-310-disk-0,size=64G,ssd=1' -> name, storage, size in MB. Optical drives and passed-through
+    paths are not disks of the guest."""
+    volume, _, options = value.partition(",")
+    size = re.search(r"(?:^|,)size=(\d+)([MGT])", "," + options)
+    if "media=cdrom" in value or ":" not in volume or volume.startswith("/") or not size:
+        return None
+    return {"name": key, "storage": volume.split(":", 1)[0], "size_mb": int(size.group(1)) * SIZE_MB[size.group(2)]}
+
+
 def discover(source_name, source, client):
     # Cluster and node details need Sys.Audit, which a provisioning token may not have: they are optional.
     try:
@@ -138,8 +162,11 @@ def discover(source_name, source, client):
                 info = client.get(f"/nodes/{node['name']}/status")
                 node.update(cpu_model=info["cpuinfo"]["model"], cores=info["cpuinfo"]["cpus"],
                             memory_mb=info["memory"]["total"] // 2**20, version=info.get("pveversion"))
-                node["interfaces"] = [{"name": n["iface"], "type": n["type"], "cidr": n["cidr"]}
-                                      for n in client.get(f"/nodes/{node['name']}/network") if n.get("cidr")]
+                # Bridges, bonds and physical ports; what Proxmox itself creates per guest is left out.
+                node["interfaces"] = [{"name": n["iface"], "type": n["type"], "cidr": n.get("cidr"), "active": bool(n.get("active")),
+                                       "ports": (n.get("bridge_ports") or n.get("slaves") or "").split()}
+                                      for n in sorted(client.get(f"/nodes/{node['name']}/network"), key=lambda n: n["iface"])
+                                      if n["type"] in ("bridge", "bond", "eth")]
             except RuntimeError:
                 pass
         nodes.append(node)
@@ -149,7 +176,7 @@ def discover(source_name, source, client):
             continue  # images, not machines
         guest = {"vmid": item["vmid"], "name": item.get("name"), "node": item["node"], "type": item["type"],
                  "status": item["status"], "vcpus": item.get("maxcpu"), "memory_mb": item.get("maxmem", 0) // 2**20,
-                 "disk_mb": item.get("maxdisk", 0) // 2**20, "nics": []}
+                 "disk_mb": item.get("maxdisk", 0) // 2**20, "nics": [], "disks": [], "ostype": None}
         try:
             config = client.get(f"/nodes/{item['node']}/{item['type']}/{item['vmid']}/config")
         except RuntimeError:
@@ -159,6 +186,8 @@ def discover(source_name, source, client):
             static = parse_nic(config.get("ipconfig" + key[3:], "")).get("ip")
             nic["ip"] = nic["ip"] or static
             guest["nics"].append(nic)
+        guest["ostype"] = config.get("ostype")
+        guest["disks"] = [disk for key in sorted(k for k in config if DISK_KEY.fullmatch(k)) if (disk := parse_disk(key, config[key]))]
         guests.append(guest)
     return {"source": source_name, "taken": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
             "cluster": cluster, "nodes": nodes, "guests": guests}
@@ -241,8 +270,6 @@ def norm(value):
 
 
 def differs(existing, desired, key):
-    if key == "tags":  # required tags must be present; other tags belong to people
-        return not set(desired) <= set(norm(existing or []))
     if key == "custom_fields":
         return any((existing or {}).get(name) != value for name, value in desired.items())
     if key == "data":  # configuration context: free-form JSON, compared as it is
@@ -254,6 +281,14 @@ def differs(existing, desired, key):
         except (TypeError, ValueError):
             return True
     return current != desired
+
+
+def empty(value):
+    return value in (None, "", [], {})
+
+
+def real(values):
+    return [value for value in values if not isinstance(value, Pending)]
 
 
 class Reconciler:
@@ -270,27 +305,38 @@ class Reconciler:
             die(f"{path} {query}: {len(found)} objects match; remove the duplicate in NetBox first")
         return found[0] if found else None
 
-    def ensure(self, label, path, query, fields, update=True):
-        """Create the object when missing. update=True: Git owns `fields`; update=False: created once, then NetBox's."""
+    def ensure(self, label, path, query, fields, update=True, fill=None, drop_tags=()):
+        """Create the object when missing. `fields` are written whenever they differ (update=False: only at
+        creation); `fill` only while NetBox holds nothing for them; tags are added, never removed, except the
+        ones named in `drop_tags`."""
         key = (path, tuple(sorted(query.items(), key=str)))
         if key in self.planned:  # asked for twice in one plan (a manufacturer shared by two devices)
             return self.planned[key]
         existing = self.find(path, query)
         if existing is None:
             self.operations.append(f"create  {label}")
+            body = {**(fill or {}), **fields}
             if not self.apply:
                 self.planned[key] = Pending(label)
                 return self.planned[key]
-            if any(isinstance(value, Pending) for value in fields.values()):
+            if any(isinstance(value, Pending) for value in body.values()):
                 die(f"{label}: depends on an object that could not be created")
-            return self.api.create(path, fields)
-        if not update:
-            return existing
-        changes = {key: value for key, value in fields.items() if not isinstance(value, Pending) and differs(existing.get(key), value, key)}
-        if "tags" in changes:
-            changes["tags"] = sorted(set(norm(existing.get("tags") or [])) | set(changes["tags"]))
+            return self.api.create(path, body)
+        changes = {}
+        if update:
+            changes = {name: value for name, value in fields.items()
+                       if name != "tags" and not isinstance(value, Pending) and differs(existing.get(name), value, name)}
+            current = set(norm(existing.get("tags") or []))
+            wanted = (current | set(real(fields.get("tags", [])))) - set(real(drop_tags))
+            if wanted != current:
+                changes["tags"] = sorted(wanted)
+        for name, value in (fill or {}).items():
+            if name != "tags" and not isinstance(value, Pending) and not empty(value) and empty(norm(existing.get(name))):
+                changes[name] = value
         if changes:
-            shown = ", ".join(f"{key}: {norm(existing.get(key))!r} -> {value!r}" for key, value in sorted(changes.items()))
+            # A serial number goes to NetBox only: the plan says that it changes, not to what.
+            shown = ", ".join(f"{name}: changed" if name == "serial" else f"{name}: {norm(existing.get(name))!r} -> {value!r}"
+                              for name, value in sorted(changes.items()))
             self.operations.append(f"update  {label}: {shown}")
             if self.apply:
                 return self.api.update(path, existing["id"], changes)
@@ -315,16 +361,97 @@ class Reconciler:
                 return None
         return self.ensure(label, "ipam/ip-addresses", {"address": address}, {"address": address, "status": "active", **fields}, update)
 
+    def primary(self, label, path, machine, ip, address):
+        if ip is None:
+            return
+        if isinstance(machine, Pending) or isinstance(ip, Pending) or norm(machine.get("primary_ip4")) != ip["id"]:
+            self.operations.append(f"update  {label}: primary_ip4 -> {address}")
+            if self.apply:
+                self.api.update(path, machine["id"], {"primary_ip4": ip["id"]})
+
+    def hardware_address(self, label, path, filter_name, kind, interface, mac):
+        """The hardware address a machine reports for one of its ports, as that port's primary one. The value is
+        never printed: it goes to NetBox only."""
+        if not mac:
+            return
+        if isinstance(interface, Pending):
+            self.operations.append(f"create  {label} hardware address")
+            return
+        found = self.api.list("dcim/mac-addresses", {"mac_address": mac, filter_name: interface["id"]})
+        if not found:
+            self.operations.append(f"create  {label} hardware address")
+            if not self.apply:
+                return
+            found = [self.api.create("dcim/mac-addresses", {"mac_address": mac, "assigned_object_type": kind, "assigned_object_id": interface["id"]})]
+        elif norm(interface.get("primary_mac_address")) != found[0]["id"]:
+            self.operations.append(f"update  {label}: primary hardware address")
+        if self.apply and norm(interface.get("primary_mac_address")) != found[0]["id"]:
+            self.api.update(path, interface["id"], {"primary_mac_address": found[0]["id"]})
+
+    def cable(self, label, a, b, fields):
+        """A cable between two device ports. A port that already has another cable is left alone and reported."""
+        if isinstance(a, Pending) or isinstance(b, Pending):
+            self.operations.append(f"create  {label}")
+            return
+        ends = [norm(self.find("dcim/interfaces", {"id": port["id"]}).get("cable")) for port in (a, b)]
+        if ends[0] and ends[0] == ends[1]:
+            return
+        if ends[0] or ends[1]:
+            self.review.append(f"{label}: one of the two ports already has another cable in NetBox; not changed")
+            return
+        self.operations.append(f"create  {label}")
+        if self.apply:
+            self.api.create("dcim/cables", {"a_terminations": [{"object_type": "dcim.interface", "object_id": a["id"]}],
+                                            "b_terminations": [{"object_type": "dcim.interface", "object_id": b["id"]}],
+                                            "status": "connected", **fields})
+
 
 def slugify(text):
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
-def reconcile(seed, machines, snapshots, api, apply):
+def expand_ports(entries):
+    """Ports as inventory.yaml lists them; a `range` gives one port per number."""
+    ports = []
+    for entry in entries or []:
+        if "range" in entry:
+            first, last = entry["range"]
+            ports += [{**{k: v for k, v in entry.items() if k != "range"}, "name": str(number)} for number in range(first, last + 1)]
+        else:
+            ports.append(dict(entry))
+    return ports
+
+
+def device_ports(device, device_type):
+    """The ports of a device: those of its type, refined and extended by its own list. Bridges and aggregates
+    come first so that their members can refer to them, ports with a parent last."""
+    ports = {port["name"]: port for port in expand_ports(device_type.get("ports"))}
+    for port in expand_ports(device.get("ports")):
+        ports[port["name"]] = {**ports.get(port["name"], {}), **port}
+    for port in list(ports.values()):
+        for member in port.get("members", []):
+            if member not in ports:
+                die(f"device {device['name']}: {port['name']} lists the member {member}, which is not a port of the device")
+            ports[member] = {**ports[member], "bridge" if port["type"] == "bridge" else "lag": port["name"]}
+    order = lambda port: (0 if port.get("type") in ("bridge", "lag") else 2 if port.get("parent") else 1)  # noqa: E731
+    return sorted(ports.values(), key=order)
+
+
+def guest_note(seed, cluster, vmid):
+    """What inventory.yaml says about a guest no root defines (`guests`), or None."""
+    for entry in seed.get("guests", {}).get(cluster, []):
+        first, last = entry.get("vmids") or (entry["vmid"], entry["vmid"])
+        if first <= vmid <= last:
+            return entry
+    return None
+
+
+def reconcile(seed, machines, snapshots, api, apply, facts=None):
     r = Reconciler(api, apply)
+    facts = facts or {}
     lan = ipaddress.ip_network(seed["prefixes"][0]["prefix"])
 
-    # Schema: tags, the one custom field, site, roles, platforms, clusters, prefix, ranges.
+    # Schema: tags, custom fields, site, roles, platforms, clusters, prefixes, ranges.
     tags = {slug: r.ensure(f"tag {slug}", "extras/tags", {"slug": slug}, {"name": name, "slug": slug, "color": color, "description": text})
             for slug, (name, color, text) in TAGS.items()}
     tag = {slug: ref(value) for slug, value in tags.items()}
@@ -335,26 +462,46 @@ def reconcile(seed, machines, snapshots, api, apply):
     r.ensure("custom field proxmox_vmid", "extras/custom-fields", {"name": "proxmox_vmid"},
              {"name": "proxmox_vmid", "label": "Proxmox VMID", "type": "integer", "object_types": ["virtualization.virtualmachine"],
               "description": "Guest ID on its Proxmox cluster; with the cluster it identifies the guest for the reconciliation"})
+    r.ensure("custom field defined_in", "extras/custom-fields", {"name": "defined_in"},
+             {"name": "defined_in", "label": "Defined in", "type": "url", "object_types": ["virtualization.virtualmachine"],
+              "description": "The OpenTofu root of this repository that defines the machine"})
     site = r.ensure(f"site {seed['site']['slug']}", "dcim/sites", {"slug": seed["site"]["slug"]}, {**seed["site"], "status": "active"})
     roles = {e["slug"]: r.ensure(f"role {e['slug']}", "dcim/device-roles", {"slug": e["slug"]}, {**e, "vm_role": True}) for e in seed["roles"]}
     platforms = {e["slug"]: r.ensure(f"platform {e['slug']}", "dcim/platforms", {"slug": e["slug"]}, dict(e)) for e in seed["platforms"]}
-    cluster_type = r.ensure("cluster type proxmox-ve", "virtualization/cluster-types", {"slug": "proxmox-ve"}, {"name": "Proxmox VE", "slug": "proxmox-ve"})
     clusters = {}
+
+    def cluster_of(name, type_name, description):
+        kind = r.ensure(f"cluster type {slugify(type_name)}", "virtualization/cluster-types", {"slug": slugify(type_name)},
+                        {"name": type_name, "slug": slugify(type_name)})
+        clusters[name] = r.ensure(f"cluster {name}", "virtualization/clusters", {"name": name},
+                                  {"name": name, "type": ref(kind), "status": "active", "scope_type": "dcim.site",
+                                   "scope_id": ref(site), "description": description})
+
     for source in seed["sources"].values():
-        clusters[source["cluster"]] = r.ensure(
-            f"cluster {source['cluster']}", "virtualization/clusters", {"name": source["cluster"]},
-            {"name": source["cluster"], "type": ref(cluster_type), "status": "active", "scope_type": "dcim.site",
-             "scope_id": ref(site), "description": source["description"]})
+        cluster_of(source["cluster"], "Proxmox VE", source["description"])
+    for entry in seed.get("clusters", []):
+        cluster_of(entry["name"], entry["type"], entry["description"])
+    address_roles = {}
+
+    def address_role(slug, name):
+        if slug not in address_roles:
+            address_roles[slug] = r.ensure(f"address role {slug}", "ipam/roles", {"slug": slug}, {"name": name, "slug": slug})
+        return ref(address_roles[slug])
+
+    for entry in seed.get("address_roles", []):
+        address_role(entry["slug"], entry["name"])
     for entry in seed["prefixes"]:
-        r.ensure(f"prefix {entry['prefix']}", "ipam/prefixes", {"prefix": entry["prefix"]},
-                 {"prefix": entry["prefix"], "status": "active", "scope_type": "dcim.site", "scope_id": ref(site), "description": entry["description"]})
+        fields = {"prefix": entry["prefix"], "status": entry.get("status", "active"), "description": entry["description"]}
+        if entry.get("site", True):
+            fields.update(scope_type="dcim.site", scope_id=ref(site))
+        if entry.get("role"):
+            fields["role"] = address_role(entry["role"], entry["role"])
+        r.ensure(f"prefix {entry['prefix']}", "ipam/prefixes", {"prefix": entry["prefix"]}, fields)
     for entry in seed["ranges"]:
         start, end = f"{entry['start']}/{lan.prefixlen}", f"{entry['end']}/{lan.prefixlen}"
         fields = {"start_address": start, "end_address": end, "status": "active", "description": entry["description"]}
         if entry.get("role"):  # the IPAM role carries the slug of the machine role the range is for
-            role_name = next(e["name"] for e in seed["roles"] if e["slug"] == entry["role"])
-            fields["role"] = ref(r.ensure(f"address role {entry['role']}", "ipam/roles", {"slug": entry["role"]},
-                                          {"name": role_name, "slug": entry["role"]}))
+            fields["role"] = address_role(entry["role"], next(e["name"] for e in seed["roles"] if e["slug"] == entry["role"]))
         if entry.get("review"):
             fields["tags"] = tagged("needs-review")
         r.ensure(f"range {entry['start']}-{entry['end'].rsplit('.', 1)[1]}", "ipam/ip-ranges", {"start_address": start, "end_address": end}, fields)
@@ -370,16 +517,38 @@ def reconcile(seed, machines, snapshots, api, apply):
             continue
         r.ensure(f"config context {entry['name']}", "extras/config-contexts", {"name": entry["name"]}, fields)
 
-    # Seed: physical devices, created once.
-    devices = {}
+    # Hardware models and their ports.
+    manufacturers, device_types = {}, {}
+
+    def manufacturer(name):
+        if name not in manufacturers:
+            manufacturers[name] = r.ensure(f"manufacturer {name}", "dcim/manufacturers", {"slug": slugify(name)}, {"name": name, "slug": slugify(name)})
+        return manufacturers[name]
+
+    for entry in seed["device_types"]:
+        made = r.ensure(f"device type {entry['slug']}", "dcim/device-types", {"slug": entry["slug"]},
+                        {"manufacturer": ref(manufacturer(entry["manufacturer"])), "model": entry["model"], "slug": entry["slug"],
+                         "u_height": entry["u_height"], "is_full_depth": entry.get("is_full_depth", False),
+                         "part_number": entry.get("part_number", ""), "comments": entry.get("comments", "")})
+        device_types[entry["slug"]] = (entry, made)
+        for port in expand_ports(entry.get("ports")):
+            r.ensure(f"device type {entry['slug']} port {port['name']}", "dcim/interface-templates",
+                     {"device_type_id": ref(made), "name": port["name"]},
+                     {"device_type": ref(made), "name": port["name"], "type": port["type"], "mgmt_only": bool(port.get("mgmt_only")),
+                      "enabled": port.get("enabled", True), "description": port.get("description", "")})
+    racks = {entry["name"]: r.ensure(f"rack {entry['name']}", "dcim/racks", {"site_id": ref(site), "name": entry["name"]},
+                                     {"name": entry["name"], "site": ref(site), "status": "active", "u_height": entry["u_height"],
+                                      "width": entry.get("width", 19), "description": entry.get("description", "")})
+             for entry in seed.get("racks", [])}
+    item_roles = {slug: r.ensure(f"inventory item role {slug}", "dcim/inventory-item-roles", {"slug": slug}, {"name": name, "slug": slug, "color": color})
+                  for slug, (name, color) in ITEM_ROLES.items()} if facts else {}
+
+    # Devices: what they are comes from this file, where they are belongs to NetBox, the rest is observed.
+    devices, ports, managed_at = {}, {}, {}
     for entry in seed["devices"]:
-        manufacturer_name, model = entry.get("manufacturer", "Unknown"), entry.get("model", "Unknown")
-        manufacturer = r.ensure(f"manufacturer {manufacturer_name}", "dcim/manufacturers", {"slug": slugify(manufacturer_name)},
-                                {"name": manufacturer_name, "slug": slugify(manufacturer_name)}, update=False)
-        type_slug = slugify(f"{manufacturer_name}-{model}")
-        device_type = r.ensure(f"device type {manufacturer_name} {model}", "dcim/device-types", {"slug": type_slug},
-                               {"manufacturer": ref(manufacturer), "model": model, "slug": type_slug, "u_height": 0,
-                                "part_number": entry.get("part_number", "")}, update=False)
+        label = f"device {entry['name']}"
+        type_entry, device_type = device_types[entry["type"]]
+        seen = facts.get(entry["name"])
         fields = {"name": entry["name"], "device_type": ref(device_type), "role": ref(roles[entry["role"]]), "site": ref(site),
                   "status": entry.get("status", "active"), "description": entry["description"],
                   "tags": tagged("needs-review") if entry.get("review") else []}
@@ -387,16 +556,75 @@ def reconcile(seed, machines, snapshots, api, apply):
             fields["platform"] = ref(platforms[entry["platform"]])
         if entry.get("cluster"):
             fields["cluster"] = ref(clusters[entry["cluster"]])
-        device = devices[entry["name"]] = r.ensure(f"device {entry['name']}", "dcim/devices", {"name": entry["name"], "site_id": ref(site)}, fields, update=False)
-        if entry.get("address"):
-            interface = r.ensure(f"device {entry['name']} interface {entry['interface']}", "dcim/interfaces",
-                                 {"device_id": ref(device), "name": entry["interface"]},
-                                 {"device": ref(device), "name": entry["interface"], "type": "bridge"}, update=False)
-            ip = r.address(f"device {entry['name']} address", entry["address"], {"description": entry["name"]}, ("dcim.interface", interface), update=False)
-            if ip is not None and (isinstance(device, Pending) or not device.get("primary_ip4")):
-                r.operations.append(f"update  device {entry['name']}: primary_ip4 -> {entry['address']}")
-                if apply:
-                    api.update("dcim/devices", device["id"], {"primary_ip4": ip["id"]})
+        if seen and seen["system"].get("serial"):
+            fields["serial"] = seen["system"]["serial"]
+        fill = {}
+        if entry.get("rack"):
+            fill = {"rack": ref(racks[entry["rack"]]), **{key: entry[key] for key in ("position", "face") if key in entry}}
+        device = devices[entry["name"]] = r.ensure(label, "dcim/devices", {"name": entry["name"], "site_id": ref(site)}, fields, fill=fill,
+                                                   drop_tags=[] if entry.get("review") else tagged("needs-review"))
+        heard = {port["name"]: port for port in (seen or {}).get("interfaces", [])}
+        own_ports = device_ports(entry, type_entry)
+        for port in own_ports:
+            port_label = f"{label} port {port['name']}"
+            if "type" not in port:
+                die(f"{label}: the port {port['name']} has no type (it is not a port of {entry['type']})")
+            fields = {"device": ref(device), "name": port["name"], "type": port["type"], "mgmt_only": bool(port.get("mgmt_only")),
+                      "enabled": port.get("enabled", True), "description": port.get("description", "")}
+            for relation in ("bridge", "lag", "parent"):
+                if port.get(relation):
+                    fields[relation] = ref(ports[(entry["name"], port[relation])])
+            port_facts = heard.get(port["name"])
+            if port_facts and port_facts.get("carrier") and port_facts.get("speed_mbps") and port_facts["kind"] == "physical":
+                fields["speed"] = port_facts["speed_mbps"] * 1000
+            interface = ports[(entry["name"], port["name"])] = r.ensure(
+                port_label, "dcim/interfaces", {"device_id": ref(device), "name": port["name"]}, fields)
+            if port_facts and port_facts["kind"] != "bridge":
+                r.hardware_address(port_label, "dcim/interfaces", "interface_id", "dcim.interface", interface, port_facts.get("mac"))
+            if port.get("address"):
+                address_fields = {"description": entry["name"], "status": port.get("address_status", "active")}
+                if port.get("dns_name"):
+                    address_fields["dns_name"] = port["dns_name"]
+                ip = r.address(f"{label} address {port['address']}", port["address"], address_fields, ("dcim.interface", interface))
+                managed_at[port["address"].split("/")[0]] = entry["name"]
+                if port.get("primary"):
+                    r.primary(label, "dcim/devices", device, ip, port["address"])
+        if seen:
+            for name in sorted(set(heard) - {port["name"] for port in own_ports}):
+                r.review.append(f"{label}: the host reports a port {name} that inventory.yaml does not list for {entry['type']}")
+            for name in sorted({port["name"] for port in own_ports if port["type"] != "virtual"} - set(heard)):
+                r.review.append(f"{label}: inventory.yaml lists a port {name} that the host does not report")
+            for item in hardware_items(seen):
+                item_label = f"{label} {item['name']}"
+                fields = {"device": ref(device), "name": item["name"], "role": ref(item_roles[item.pop("role")]), "discovered": True, **item}
+                if item.get("manufacturer"):
+                    fields["manufacturer"] = ref(manufacturer(item["manufacturer"]))
+                r.ensure(item_label, "dcim/inventory-items", {"device_id": ref(device), "name": item["name"]}, fields)
+        elif entry.get("facts"):
+            r.review.append(f"{label}: no hardware facts read yet; run `make netbox-discover-hardware`")
+        for service in seed.get("device_services", {}).get(entry["name"], []):
+            r.ensure(f"{label} service {service['name']}", "ipam/services", {"device_id": ref(device), "name": service["name"]},
+                     {"parent_object_type": "dcim.device", "parent_object_id": ref(device), "name": service["name"],
+                      "protocol": service["protocol"], "ports": service["ports"], "description": service.get("description", "")})
+
+    # Cables: the ones a host heard the switch announce (LLDP), then the ones inventory.yaml states.
+    for name, seen in sorted(facts.items()):
+        for local, neighbour in sorted(seen.get("neighbours", {}).items()):
+            far = managed_at.get(neighbour.get("management_address"))
+            far_port = ports.get((far, neighbour.get("port_id")))
+            if (name, local) not in ports or far_port is None:
+                r.review.append(f"device {name}: port {local} hears {neighbour.get('system_name') or 'a neighbour'} "
+                                f"(port {neighbour.get('port_id')}) which is not a device and port of inventory.yaml; no cable recorded")
+                continue
+            r.cable(f"cable {name} {local} - {far} {neighbour['port_id']}", ports[(name, local)], far_port,
+                    {"tags": tagged("observed"), "description": f"As announced by {neighbour.get('system_name') or far} (LLDP)"})
+    for entry in seed.get("cables", []):
+        (a_device, a_port), (b_device, b_port) = entry["a"], entry["b"]
+        for end in ((a_device, str(a_port)), (b_device, str(b_port))):
+            if end not in ports:
+                die(f"cables: {end[0]} has no port {end[1]} in inventory.yaml")
+        r.cable(f"cable {a_device} {a_port} - {b_device} {b_port}", ports[(a_device, str(a_port))], ports[(b_device, str(b_port))],
+                {key: entry[key] for key in ("type", "label", "color", "description") if key in entry})
 
     def node_device(source_name, node):
         name = seed["sources"][source_name].get("device_names", {}).get(node, node)
@@ -405,17 +633,30 @@ def reconcile(seed, machines, snapshots, api, apply):
             return None
         return devices[name]
 
-    def machine(label, source_name, cluster, vmid, fields, update):
-        fields = {**fields, "cluster": ref(clusters[cluster]), "site": ref(site), "custom_fields": {"proxmox_vmid": vmid}}
-        return r.ensure(label, "virtualization/virtual-machines", {"cluster_id": ref(clusters[cluster]), "cf_proxmox_vmid": vmid}, fields, update)
+    vms = "virtualization/virtual-machines"
 
-    def primary(label, vm, ip, address):
-        if ip is None:
-            return
-        if isinstance(vm, Pending) or norm(vm.get("primary_ip4")) != ref(ip):
-            r.operations.append(f"update  {label}: primary_ip4 -> {address}")
-            if apply:
-                api.update("virtualization/virtual-machines", vm["id"], {"primary_ip4": ip["id"]})
+    def machine(label, cluster, vmid, fields, **options):
+        fields = {**fields, "cluster": ref(clusters[cluster]), "site": ref(site),
+                  "custom_fields": {**fields.get("custom_fields", {}), "proxmox_vmid": vmid}}
+        return r.ensure(label, vms, {"cluster_id": ref(clusters[cluster]), "cf_proxmox_vmid": vmid}, fields, **options)
+
+    def network_port(label, vm, name, mac=None):
+        interface = r.ensure(f"{label} interface {name}", "virtualization/interfaces", {"virtual_machine_id": ref(vm), "name": name},
+                             {"virtual_machine": ref(vm), "name": name})
+        r.hardware_address(f"{label} interface {name}", "virtualization/interfaces", "vminterface_id", "virtualization.vminterface", interface, mac)
+        return interface
+
+    def disks(label, vm, seen):
+        for disk in seen.get("disks", []):
+            r.ensure(f"{label} disk {disk['name']}", "virtualization/virtual-disks", {"virtual_machine_id": ref(vm), "name": disk["name"]},
+                     {"virtual_machine": ref(vm), "name": disk["name"], "size": disk["size_mb"], "description": f"Proxmox storage {disk['storage']}"})
+
+    def sizing(seen):
+        """What Proxmox reports. With disks listed one by one, NetBox adds them up itself."""
+        size = {"vcpus": seen["vcpus"], "memory": seen["memory_mb"]}
+        if not seen.get("disks"):
+            size["disk"] = seen["disk_mb"]
+        return size
 
     # Intended: the VMs of the OpenTofu roots. They live on the new cluster, the first source.
     new_source = next(iter(seed["sources"]))
@@ -426,13 +667,14 @@ def reconcile(seed, machines, snapshots, api, apply):
         claimed.add(m["vmid"])
         label = f"vm {m['name']}"
         fields = {"name": m["name"], "status": "active", "role": ref(roles[m["role"]]), "platform": ref(platforms[m["platform"]]),
-                  "tags": tagged("iac"), "description": f"terraform/stacks/{m['root']}"}
+                  "tags": tagged("iac"), "description": f"terraform/stacks/{m['root']}",
+                  "custom_fields": {"defined_in": f"{SOURCE_URL}terraform/stacks/{m['root']}"}}
         host = node_device(new_source, m["node"])
         if host is not None:
             fields["device"] = ref(host)
         seen = observed.get(m["vmid"])
         if seen:  # sizing is what Proxmox reports; identity and addressing are what Git says
-            fields.update(vcpus=seen["vcpus"], memory=seen["memory_mb"], disk=seen["disk_mb"])
+            fields.update(sizing(seen))
             for what, git, proxmox in (("name", m["name"], seen["name"]), ("host", m["node"], seen["node"])):
                 if git != proxmox:
                     r.review.append(f"{label}: {what} is {git!r} in Git and {proxmox!r} on Proxmox")
@@ -443,12 +685,12 @@ def reconcile(seed, machines, snapshots, api, apply):
                 r.review.append(f"{label}: defined in Git but {seen['status']} on Proxmox")
         elif new_source in snapshots:
             r.review.append(f"{label}: defined in Git (VMID {m['vmid']}) but not found on Proxmox")
-        vm = by_name[m["name"]] = machine(label, new_source, new_cluster, m["vmid"], fields, update=True)
-        interface = r.ensure(f"{label} interface net0", "virtualization/interfaces", {"virtual_machine_id": ref(vm), "name": "net0"},
-                             {"virtual_machine": ref(vm), "name": "net0"})
+        vm = by_name[m["name"]] = machine(label, new_cluster, m["vmid"], fields)
+        interface = network_port(label, vm, "net0", next((nic["mac"] for nic in (seen or {}).get("nics", []) if nic["name"] == "net0"), None))
+        disks(label, vm, seen or {})
         address = f"{m['address']}/{lan.prefixlen}"
         ip = r.address(f"{label} address", address, {"tags": tagged("iac"), "description": m["name"]}, ("virtualization.vminterface", interface))
-        primary(label, vm, ip, address)
+        r.primary(label, vms, vm, ip, address)
         for service in seed.get("services", {}).get(m["role"], []):
             r.ensure(f"{label} service {service['name']}", "ipam/services",
                      {"virtual_machine_id": ref(vm), "name": service["name"]},
@@ -456,7 +698,24 @@ def reconcile(seed, machines, snapshots, api, apply):
                       "protocol": service["protocol"], "ports": service["ports"], "description": service.get("description", ""),
                       "tags": tagged("iac")})
 
-    # Addresses outside the VM interfaces: iac ones follow Git, the others are seed.
+    # Machines on other clusters than the Proxmox ones: what inventory.yaml says is all there is to know.
+    for entry in seed.get("virtual_machines", []):
+        label = f"vm {entry['name']}"
+        fields = {"name": entry["name"], "cluster": ref(clusters[entry["cluster"]]), "site": ref(site), "status": entry.get("status", "active"),
+                  "role": ref(roles[entry["role"]]), "description": entry["description"],
+                  **{key: entry[key] for key in ("vcpus", "memory") if key in entry}}
+        if entry.get("platform"):
+            fields["platform"] = ref(platforms[entry["platform"]])
+        if entry.get("device"):
+            fields["device"] = ref(devices[entry["device"]])
+        vm = by_name[entry["name"]] = r.ensure(label, vms, {"cluster_id": ref(clusters[entry["cluster"]]), "name": entry["name"]}, fields)
+        if entry.get("address"):
+            interface = network_port(label, vm, "net0")
+            ip = r.address(f"{label} address", entry["address"], {"description": entry["name"], "status": entry.get("address_status", "active")},
+                           ("virtualization.vminterface", interface))
+            r.primary(label, vms, vm, ip, entry["address"])
+
+    # Addresses outside the ports above: iac ones follow Git, the others are written once.
     for entry in seed["addresses"]:
         fields = {key: entry[key] for key in ("status", "role", "dns_name", "description") if key in entry}
         owner = None
@@ -470,10 +729,11 @@ def reconcile(seed, machines, snapshots, api, apply):
             owner = ("virtualization.vminterface", interface or Pending(f"{entry['vm']} net0"))
         r.address(f"address {entry['address']}", entry["address"], fields, owner, update=bool(entry.get("iac")))
 
-    # Observed: guests no root defines are created once and flagged; afterwards differences are only reported.
+    # Observed: guests no root defines are created once; afterwards Proxmox keeps deciding their state, size and
+    # host, inventory.yaml what they are (when it describes them), and NetBox the rest.
     known = {}
     if not isinstance(tag["discovered"], Pending):
-        for vm in api.list("virtualization/virtual-machines", {}):
+        for vm in api.list(vms, {}):
             known[(norm(vm.get("cluster")), (vm.get("custom_fields") or {}).get("proxmox_vmid"))] = vm
     for source_name, snapshot in snapshots.items():
         cluster = seed["sources"][source_name]["cluster"]
@@ -488,32 +748,36 @@ def reconcile(seed, machines, snapshots, api, apply):
             if source_name == new_source and guest["vmid"] in claimed:
                 continue
             label = f"{guest['type']} {guest['name']} ({cluster} {guest['vmid']})"
-            status = "active" if guest["status"] == "running" else "offline"
+            note = guest_note(seed, cluster, guest["vmid"]) or {}
+            flagged = not note or bool(note.get("review"))
             current = known.get((cluster_id, guest["vmid"]))
-            if current is not None:
-                for what, netbox, proxmox in (("name", current["name"], guest["name"]), ("status", norm(current["status"]), status),
-                                              ("memory", current.get("memory"), guest["memory_mb"]), ("vcpus", current.get("vcpus"), guest["vcpus"])):
-                    if differs(netbox, proxmox, what):
-                        r.review.append(f"{label}: {what} is {netbox!r} in NetBox and {proxmox!r} on Proxmox (not changed)")
-                continue
-            fields = {"name": guest["name"], "status": status, "vcpus": guest["vcpus"], "memory": guest["memory_mb"],
-                      "disk": guest["disk_mb"], "tags": tagged("discovered", "needs-review", *(["lxc"] if guest["type"] == "lxc" else [])),
-                      "description": f"Found on Proxmox node {guest['node']} ({source_name}); not defined in Git"}
+            if current is not None and current["name"] != guest["name"]:
+                r.review.append(f"{label}: name is {current['name']!r} in NetBox and {guest['name']!r} on Proxmox (not changed)")
+            fields = {"status": "active" if guest["status"] == "running" else "offline", **sizing(guest)}
+            fill = {"name": guest["name"], "description": f"Found on Proxmox node {guest['node']} ({source_name}); not defined in Git",
+                    "tags": tagged("discovered", *(["needs-review"] if flagged else []), *(["lxc"] if guest["type"] == "lxc" else []))}
+            if note.get("role"):
+                fields["role"] = ref(roles[note["role"]])
+            if note.get("description"):
+                fields["description"] = note["description"]
+            platform = note.get("platform") or seed.get("ostypes", {}).get(guest.get("ostype"))
+            if platform:
+                (fields if note.get("platform") else fill)["platform"] = ref(platforms[platform])
             host = node_device(source_name, guest["node"])
             if host is not None:
                 fields["device"] = ref(host)
-            vm = machine(label, source_name, cluster, guest["vmid"], fields, update=False)
+            vm = machine(label, cluster, guest["vmid"], fields, fill=fill, drop_tags=[] if flagged else tagged("needs-review"))
+            disks(label, vm, guest)
             first = None
             for nic in guest["nics"]:
-                interface = r.ensure(f"{label} interface {nic['name']}", "virtualization/interfaces",
-                                     {"virtual_machine_id": ref(vm), "name": nic["name"]}, {"virtual_machine": ref(vm), "name": nic["name"]}, update=False)
+                interface = network_port(label, vm, nic["name"], nic.get("mac"))
                 if nic["ip"] and ipaddress.ip_interface(nic["ip"]).ip in lan:
                     ip = r.address(f"{label} address", nic["ip"], {"tags": tagged("discovered"), "description": guest["name"]},
                                    ("virtualization.vminterface", interface), update=False)
                     first = first or (ip, nic["ip"])
-            if first:
-                primary(label, vm, *first)
-            elif not guest["nics"] or not any(nic["ip"] for nic in guest["nics"]):
+            if first and (isinstance(vm, Pending) or not vm.get("primary_ip4")):
+                r.primary(label, vms, vm, *first)
+            elif not first and guest["status"] == "running" and not any(nic["ip"] for nic in guest["nics"]):
                 r.review.append(f"{label}: no static address in the Proxmox configuration (DHCP or set inside the guest); add it in NetBox")
         # Records whose guest is gone, and IaC records no root defines any more: reported, never deleted.
         for (known_cluster, vmid), vm in known.items():
@@ -524,7 +788,78 @@ def reconcile(seed, machines, snapshots, api, apply):
                 r.review.append(f"vm {vm['name']} ({cluster} {vmid}): in NetBox but no longer on Proxmox; set its status or delete it in NetBox")
             elif tag["iac"] in vm_tags and source_name == new_source and vmid not in claimed:
                 r.review.append(f"vm {vm['name']} ({cluster} {vmid}): tagged iac in NetBox but no root defines it")
+
+    # Records this file retired and that are still there.
+    for entry in seed.get("retired", []):
+        query = {key: entry[key] for key in ("name", "slug") if key in entry}
+        if api.list(entry["path"], query):
+            r.review.append(f"retired record still in NetBox: {entry['path']} {query} ({entry['reason']}); remove it with `make netbox-prune`")
     return r
+
+
+def hardware_items(seen):
+    """Processor, memory modules and disks of a host as inventory items (role, name, part, serial, description)."""
+    items = []
+    cpu = seen.get("cpu") or {}
+    if cpu.get("model"):
+        items.append({"role": "processor", "name": "CPU", "part_id": cpu["model"][:50],
+                      "description": f"{cpu.get('cores')} cores, {cpu.get('threads')} threads"})
+    for number, module in enumerate(seen.get("memory_modules", []), 1):
+        maker = module.get("manufacturer") or ""
+        item = {"role": "memory", "name": f"Memory {number}", "label": (module.get("slot") or "")[:64],
+                "part_id": "" if (module.get("part_number") or "Unknown") == "Unknown" else module["part_number"][:50],
+                "description": " ".join(str(part) for part in (f"{module['size_mb'] // 1024} GB", module.get("type"), module.get("speed")) if part)}
+        if module.get("serial") and not re.fullmatch(r"(?i)unknown|0+|none|not specified", module["serial"]):
+            item["serial"] = module["serial"][:50]
+        if maker and not re.fullmatch(r"(?i)unknown|0x[0-9a-f]+|not specified", maker):
+            item["manufacturer"] = maker
+        items.append(item)
+    for disk in seen.get("disks", []):
+        item = {"role": "disk", "name": disk["name"], "part_id": (disk.get("model") or "")[:50],
+                "description": f"{disk['size_gb']} GB {disk.get('transport') or ''}".strip()}
+        if disk.get("serial"):
+            item["serial"] = disk["serial"][:50]
+        items.append(item)
+    return items
+
+
+def load_facts(seed):
+    """Hardware facts read by `discover-hardware`, per device name."""
+    facts = {}
+    for device in seed["devices"]:
+        path = SNAPSHOTS / f"hardware-{device.get('facts')}.json"
+        if device.get("facts") and path.exists():
+            facts[device["name"]] = json.loads(path.read_text())
+    return facts
+
+
+def cmd_discover_hardware(seed, args):
+    """Runs scripts/host-facts.py on every device that has `facts` (root SSH, read-only, nothing left behind)."""
+    old = {urllib.parse.urlparse(source["endpoint"]).hostname for name, source in seed["sources"].items() if name != next(iter(seed["sources"]))}
+    script = (ROOT / "scripts/host-facts.py").read_bytes()
+    SNAPSHOTS.mkdir(parents=True, exist_ok=True)
+    failed = 0
+    for device in seed["devices"]:
+        address = device.get("facts")
+        if not address or (args and device["name"] not in args):
+            continue
+        if address in old:
+            die(f"{device['name']}: {address} is the old environment; this command never logs in to it")
+        result = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", f"root@{address}", "python3 - --lldp-seconds 35"],
+                                input=script, capture_output=True, timeout=180)
+        try:
+            read = json.loads(result.stdout)
+        except ValueError:
+            failed += 1
+            print(f"{device['name']}: no facts ({result.stderr.decode(errors='replace').strip()[:200]})")
+            continue
+        target = SNAPSHOTS / f"hardware-{address}.json"
+        target.write_text(json.dumps(read, indent=1) + "\n")
+        target.chmod(0o600)
+        neighbours = ", ".join(f"{port} on {n.get('system_name')} port {n.get('port_id')}" for port, n in sorted(read["neighbours"].items()))
+        print(f"{device['name']}: {read['system'].get('manufacturer')} {read['system'].get('version') or read['system'].get('product')}, "
+              f"{len(read['interfaces'])} port(s), {len(read['disks'])} disk(s); {neighbours or 'no neighbour heard'} -> {target.relative_to(ROOT)}")
+    sys.exit(1 if failed else 0)
 
 
 def report(r, notes, apply):
@@ -539,7 +874,7 @@ def report(r, notes, apply):
 def cmd_reconcile(seed, apply):
     token = os.environ.get("NETBOX_SYNC_TOKEN") or die("set NETBOX_SYNC_TOKEN in the environment (store path /netbox)")
     snapshots, notes = load_snapshots(seed)
-    r = reconcile(seed, load_iac(seed), snapshots, NetBox(NETBOX_URL, token), apply)
+    r = reconcile(seed, load_iac(seed), snapshots, NetBox(NETBOX_URL, token), apply, load_facts(seed))
     report(r, notes, apply)
 
 
@@ -552,14 +887,48 @@ def token_value(created):
     return created.get("token") or created.get("key") or die("NetBox returned no token value")
 
 
-def cmd_identities(seed):
+def administrator(purpose):
+    """The superuser has no standing API token: one that expires in ten minutes is provisioned from the password."""
     password = os.environ.get("NETBOX_SUPERUSER_PASSWORD") or die("set NETBOX_SUPERUSER_PASSWORD in the environment (store path /netbox)")
-    # The superuser has no standing API token: one that expires in ten minutes is provisioned from the password.
     expires = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
     admin = http("POST", f"{NETBOX_URL}/api/users/tokens/provision/", {}, {
         "username": "admin", "password": password, "expires": expires, "write_enabled": True,
-        "description": "netbox-sync.py identities (expires after ten minutes)"})
-    api = NetBox(NETBOX_URL, token_value(admin))
+        "description": f"netbox-sync.py {purpose} (expires after ten minutes)"})
+    return NetBox(NETBOX_URL, token_value(admin))
+
+
+def prune(seed, api, remove):
+    """Removes the records inventory.yaml lists under `retired`, and nothing else. `remove(path, id)` deletes one
+    record; NetBox refuses when something still refers to it, which is reported and left as it is."""
+    lines, refused = [], 0
+    for entry in seed.get("retired", []):
+        query = {key: entry[key] for key in ("name", "slug") if key in entry}
+        if set(query) != {"name"} and set(query) != {"slug"}:
+            die(f"retired: {entry} must name exactly one record by name or by slug")
+        found = api.list(entry["path"], query)
+        if len(found) > 1:
+            die(f"retired: {entry['path']} {query} matches {len(found)} records")
+        if not found:
+            lines.append(f"gone     {entry['path']} {query}")
+            continue
+        try:
+            remove(entry["path"], found[0]["id"])
+            lines.append(f"removed  {entry['path']} {query} ({entry['reason']})")
+        except RuntimeError as error:
+            refused += 1
+            lines.append(f"refused  {entry['path']} {query}: {str(error)[:300]}")
+    return lines, refused
+
+
+def cmd_prune(seed):
+    api = administrator("prune")
+    lines, refused = prune(seed, api, lambda path, object_id: http("DELETE", f"{api.url}/api/{path}/{object_id}/", api.headers))
+    print("\n".join(lines) or "nothing is listed under retired")
+    sys.exit(1 if refused else 0)
+
+
+def cmd_identities(seed):
+    api = administrator("identities")
     readable = sorted(f"{t['app_label']}.{t['model']}" for app in READ_APPS for t in api.list("core/object-types", {"app_label": app}))
     accounts = (("inventory-sync", "NETBOX_SYNC_TOKEN", True, SYNC_MODELS, ["view", "add", "change"]),
                 ("automation-read", "NETBOX_READ_TOKEN", False, readable, ["view"]))
@@ -585,9 +954,10 @@ def cmd_identities(seed):
 
 # ───────────────────────── export (a readable copy for a history in Git) ─────────────────────────
 
-EXPORTED = ("dcim/sites", "dcim/manufacturers", "dcim/device-types", "dcim/device-roles", "dcim/platforms", "dcim/devices",
-            "dcim/interfaces", "virtualization/cluster-types", "virtualization/clusters", "virtualization/virtual-machines",
-            "virtualization/interfaces", "ipam/roles", "ipam/prefixes", "ipam/ip-ranges", "ipam/ip-addresses", "ipam/services",
+EXPORTED = ("dcim/sites", "dcim/manufacturers", "dcim/device-types", "dcim/interface-templates", "dcim/device-roles", "dcim/platforms",
+            "dcim/racks", "dcim/devices", "dcim/interfaces", "dcim/cables", "dcim/inventory-items", "virtualization/cluster-types",
+            "virtualization/clusters", "virtualization/virtual-machines", "virtualization/interfaces", "virtualization/virtual-disks",
+            "ipam/roles", "ipam/prefixes", "ipam/ip-ranges", "ipam/ip-addresses", "ipam/services",
             "extras/tags", "extras/custom-fields", "extras/config-contexts")
 VOLATILE = ("url", "display", "display_url", "created", "last_updated", "config_context", "owner")
 
@@ -634,11 +1004,15 @@ def cmd_export(args):
 def main(argv):
     if argv and argv[0] == "export":
         return cmd_export(argv[1:])
-    if not argv or argv[0] not in ("discover", "plan", "apply", "identities"):
-        die("usage: netbox-sync.py discover <source> | plan | apply | identities | export <directory>")
+    if not argv or argv[0] not in ("discover", "discover-hardware", "plan", "apply", "prune", "identities"):
+        die("usage: netbox-sync.py discover <source> | discover-hardware [device ...] | plan | apply | prune | identities | export <directory>")
     seed = yaml.safe_load(SEED.read_text())
     if argv[0] == "discover":
         cmd_discover(seed, argv[1:])
+    elif argv[0] == "discover-hardware":
+        cmd_discover_hardware(seed, argv[1:])
+    elif argv[0] == "prune":
+        cmd_prune(seed)
     elif argv[0] == "identities":
         cmd_identities(seed)
     else:

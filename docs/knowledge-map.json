@@ -3545,6 +3545,10 @@
         {
           "from": "TASK-023",
           "field": "milestone"
+        },
+        {
+          "from": "TASK-030",
+          "field": "milestone"
         }
       ]
     },
@@ -5399,6 +5403,10 @@
         {
           "from": "TASK-025",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-030",
+          "field": "depends_on"
         }
       ]
     },
@@ -5873,6 +5881,51 @@
         ]
       },
       "backrefs": []
+    },
+    {
+      "id": "TASK-030",
+      "title": "NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins",
+      "summary": "NetBox holds named hardware models, ports, hardware addresses, the cables heard from the switch, what every guest is, and shows topology and rack diagrams through plugins; the roots check their addresses and VMIDs against it.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md",
+      "tags": [
+        "netbox",
+        "inventory",
+        "hardware"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M013",
+      "source": null,
+      "version": null,
+      "headings": [
+        "NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "depends_on": [
+          "TASK-023"
+        ],
+        "milestone": [
+          "M013"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -5961,7 +6014,8 @@
       "TASK-026",
       "TASK-027",
       "TASK-028",
-      "TASK-029"
+      "TASK-029",
+      "TASK-030"
     ]
   },
   "by_tag": {
@@ -6127,7 +6181,8 @@
       "GUIDE-handoff"
     ],
     "hardware": [
-      "INV-new-proxmox-cluster-inventory"
+      "INV-new-proxmox-cluster-inventory",
+      "TASK-030"
     ],
     "harness": [
       "TASK-001"
@@ -6154,7 +6209,8 @@
       "M013",
       "TASK-002",
       "TASK-003",
-      "TASK-023"
+      "TASK-023",
+      "TASK-030"
     ],
     "investigation": [
       "INV-legacy-inventory",
@@ -6212,7 +6268,8 @@
       "REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll",
       "TASK-023",
       "TASK-025",
-      "TASK-026"
+      "TASK-026",
+      "TASK-030"
     ],
     "nfs": [
       "TASK-017"

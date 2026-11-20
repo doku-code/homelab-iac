@@ -1,14 +1,23 @@
-# Foundation of the NetBox inventory (M013, ADR-016), read by scripts/netbox-sync.py.
+# Foundation of the NetBox inventory (M013, ADR-016, ADR-018), read by scripts/netbox-sync.py.
 #
 # Who owns what:
-#   schema       site, clusters, roles, platforms, tags, prefix, ranges: this file; the script creates and updates them.
+#   schema       site, clusters, roles, platforms, tags, prefixes, ranges, device types and their ports: this file;
+#                the script creates and updates them.
+#   devices      what a device is: name, type, role, platform, cluster, status, description, the ports and
+#                addresses listed here. This file owns that (change it here). Where a device is and what people
+#                note about it belongs to NetBox: rack, position, asset tag, comments, contacts, extra tags.
+#                The `rack`, `position` and `face` given here are written only while NetBox has none.
+#   observed     what a machine reports about itself (`make netbox-discover-hardware`, `make netbox-discover`):
+#                serial number, processor, memory modules, disks, hardware addresses, link speed, the switch port
+#                a host is plugged into, and for guests their state, size, disks and hardware addresses. Written
+#                as observed; serial numbers and hardware addresses go to NetBox only, never to Git.
 #   iac          VMs of the OpenTofu roots listed under iac_roots, and addresses marked iac: Git owns name, VMID,
-#                host, role, platform and addresses; the script creates and updates them (tag "iac").
-#   seed         physical devices and the addresses of unmanaged equipment: created once from this file, then
-#                NetBox is the authority (edit them there; the script never updates them).
+#                host, role, platform and addresses (tag "iac").
 #   discovered   guests found on a Proxmox host that no root defines: created once (tags "discovered" and
-#                "needs-review"), later differences are only reported.
-# Nothing is ever deleted by the script. No secrets belong in this file or in NetBox.
+#                "needs-review"); name differences are only reported. `guests` below says what the known ones
+#                are; a guest described there is no longer "needs-review".
+# The reconciliation never deletes. Records this file names under `retired` are removed by a separate, approved
+# command (`make netbox-prune`). No secrets belong in this file or in NetBox.
 
 site: {name: doku-lab, slug: doku-lab, description: "Homelab, one location, one LAN"}
 
@@ -26,8 +35,16 @@ sources:
     description: "Old environment, 192.168.0.14 only; its guests move to doku-lab one at a time (ADR-001)"
     device_names: {pve-lab: pve-lab-legacy}   # the node is also named pve-lab; NetBox needs one name per device
 
+# "site: false": not a network of the location (it exists inside the cluster or at a provider).
 prefixes:
   - {prefix: 192.168.0.0/24, description: "LAN, gateway 192.168.0.1 (pfSense)"}
+  - {prefix: 10.42.0.0/16, site: false, role: kubernetes, description: "k3s pod network (ansible/roles/k3s/defaults); exists only inside the cluster"}
+  - {prefix: 10.43.0.0/16, site: false, role: kubernetes, description: "k3s service network (ansible/roles/k3s/defaults); exists only inside the cluster"}
+  - {prefix: 100.64.0.0/10, site: false, role: overlay, status: container, description: "Tailscale addresses (tailnet); ts-router-01 and ts-router-02 route the LAN to it"}
+
+address_roles:
+  - {name: Kubernetes, slug: kubernetes}
+  - {name: Overlay network, slug: overlay}
 
 # Address plan as enforced by the variable validations of the OpenTofu roots (terraform/stacks/*/variables.tf).
 # "role" ties a range to the machines that use it (an IPAM role with the slug of the machine role).
@@ -36,17 +53,28 @@ ranges:
   - {start: 192.168.0.50, end: 192.168.0.59, role: storage, description: "Storage VMs (VMIDs 350-359)"}
   - {start: 192.168.0.60, end: 192.168.0.69, role: postgresql, description: "PostgreSQL: .60 virtual IP, .61-.69 members (VMIDs 360-369)"}
   - {start: 192.168.0.70, end: 192.168.0.79, role: dns, description: "DNS VMs (VMIDs 370-379)"}
-  - {start: 192.168.0.100, end: 192.168.0.200, description: "DHCP pool (pfSense), as stated in the k3s root; not verified on pfSense", review: true}
+  - {start: 192.168.0.100, end: 192.168.0.200, description: "DHCP pool (pfSense), as stated in the k3s root; leases seen between .101 and .130 on 2026-11-20, the limits are not read from pfSense", review: true}
 
 platforms:
   - {name: Proxmox VE 9, slug: proxmox-ve-9}
   - {name: Debian 13, slug: debian-13}
   - {name: Ubuntu 26.04, slug: ubuntu-26-04}
+  - {name: Debian, slug: debian}
+  - {name: Linux, slug: linux}
+  - {name: Windows 11, slug: windows-11}
+  - {name: TrueNAS 25.10, slug: truenas-25-10}
+  - {name: pfSense, slug: pfsense}
+  - {name: QNAP QSS, slug: qnap-qss}
+  - {name: Proxmox Backup Server, slug: proxmox-backup-server}
+
+# What Proxmox says about a guest's system, as a platform. Only used while NetBox has none for the guest.
+ostypes: {win11: windows-11, debian: debian, l26: linux}
 
 roles:
   - {name: Hypervisor, slug: hypervisor, color: 2196f3}
   - {name: Router, slug: router, color: f44336}
   - {name: Switch, slug: switch, color: ff9800}
+  - {name: Access point, slug: access-point, color: ff5722}
   - {name: NAS, slug: nas, color: 795548}
   - {name: Backup server, slug: backup-server, color: 607d8b}
   - {name: k3s server, slug: k3s-server, color: 4caf50}
@@ -55,71 +83,260 @@ roles:
   - {name: DNS, slug: dns, color: 9c27b0}
   - {name: Deployment runner, slug: deploy-runner, color: ffc107}
   - {name: Admin workstation, slug: admin-workstation, color: 00bcd4}
+  - {name: Legacy service, slug: legacy-service, color: 9e9e9e}
+  - {name: Tailscale router, slug: tailscale-router, color: 8bc34a}
+  - {name: Desktop, slug: desktop, color: 673ab7}
+  - {name: Template, slug: template, color: cddc39}
 
-# Seed: created once, then maintained in NetBox. Manufacturer and model are what the firmware reports
-# (dmidecode on 2026-11-18); "review: true" marks what nobody has verified.
-devices:
-  - name: pve-management
+# Hardware models. Manufacturer and model are what the firmware reports (scripts/host-facts.py) or what the
+# device announces; "u_height: 0" is a machine that sits on a shelf. `ports` are created on the type and on
+# every device of the type; a `range` gives numbered ports.
+device_types:
+  - slug: lenovo-thinkcentre-m90q
     manufacturer: Lenovo
     model: ThinkCentre M90q
     part_number: 11DGS0UW00
-    role: hypervisor
-    platform: proxmox-ve-9
-    cluster: doku-lab
-    interface: vmbr0
-    address: 192.168.0.10/24
-    description: "Intel Core i5-10500T, 16 GB RAM, 256 GB NVMe; hosts the admin workstation (ADR-002)"
-  - name: pve-core
+    u_height: 0
+    comments: "One-litre desktop (Tiny). Machine type 11DG."
+    ports:
+      - {name: nic0, type: 1000base-t, description: "Intel I219-LM"}
+  - slug: lenovo-thinkstation-p350-tiny
     manufacturer: Lenovo
     model: ThinkStation P350 Tiny
     part_number: 30EF006DUS
-    role: hypervisor
-    platform: proxmox-ve-9
-    cluster: doku-lab
-    interface: vmbr0
-    address: 192.168.0.11/24
-    description: "Intel Core i7-11700, 32 GB RAM, 1 TB NVMe"
-  - name: pve-infra
-    manufacturer: AZW
-    model: MINI S
-    role: hypervisor
-    platform: proxmox-ve-9
-    cluster: doku-lab
-    interface: vmbr0
-    address: 192.168.0.12/24
-    description: "Intel Celeron N5095A, 8 GB RAM, 256 GB SATA SSD"
-  - name: pve-lab
+    u_height: 0
+    comments: "One-litre workstation (Tiny). Machine type 30EF."
+    ports:
+      - {name: nic0, type: 1000base-t, description: "Intel I219-LM"}
+      - {name: wlo1, type: ieee802.11ax, enabled: false, description: "Intel Wi-Fi (Tiger Lake CNVi), not used"}
+  - slug: beelink-mini-s
+    manufacturer: Beelink
+    model: Mini S
+    part_number: MINI S
+    u_height: 0
+    comments: "The firmware reports the manufacturer as AZW (Shenzhen AZW Technology, the company behind Beelink)."
+    ports:
+      - {name: nic0, type: 1000base-t, description: "Realtek RTL8111/8168"}
+      - {name: wlp1s0, type: ieee802.11ac, enabled: false, description: "Intel Wireless 3165, not used"}
+  - slug: origimagic-nebula-series
     manufacturer: ORIGIMAGIC
     model: Nebula Series
+    part_number: ARB51
+    u_height: 0
+    comments: "Mini PC; the firmware reports board and family ARB51."
+    ports:
+      - {name: nic0, type: 2.5gbase-t, description: "Realtek RTL8125"}
+      - {name: wlp3s0, type: ieee802.11ax, enabled: false, description: "Intel AX210, not used"}
+  - slug: custom-ryzen-9-9950x3d-tower
+    manufacturer: Custom build
+    model: Tower, ASUS mainboard, Ryzen 9 9950X3D
+    u_height: 0
+    comments: "Built from parts. The firmware reports an ASUS mainboard and no model name; ports as Proxmox lists them."
+    ports:
+      - {name: enp1s0f0np0, type: other, description: "Add-in card, port 1; kind of port not read"}
+      - {name: enp1s0f1np1, type: other, description: "Add-in card, port 2; kind of port not read"}
+      - {name: nic0, type: other, enabled: false, description: "On the mainboard, not used; kind of port not read"}
+      - {name: nic1, type: other, enabled: false, description: "On the mainboard, not used; kind of port not read"}
+      - {name: nic2, type: other, enabled: false, description: "On the mainboard, not used; kind of port not read"}
+      - {name: wlp9s0, type: other-wireless, enabled: false, description: "Wi-Fi, not used"}
+  - slug: custom-asrock-n100m-nas
+    manufacturer: Custom build
+    model: NAS, ASRock N100M mainboard
+    u_height: 0
+    comments: "Built from parts: Intel N100, 16 GB, a 10 Gb SFP+ card. Read through the TrueNAS API on 2026-11-20."
+    ports:
+      - {name: enp1s0, type: 10gbase-x-sfpp, description: "Add-in 10 Gb card (SFP+)"}
+      - {name: enp3s0, type: 1000base-t, description: "On the mainboard, no link"}
+  - slug: qnap-qsw-m3216r-8s8t
+    manufacturer: QNAP
+    model: QSW-M3216R-8S8T
+    part_number: QSW-M3216R-8S8T
+    u_height: 1
+    is_full_depth: false
+    comments: "Managed 10 Gb switch, half the width of a rack unit: 8 RJ45 ports (10G/5G/2.5G/1G), 8 SFP+ ports, one management port. Ports 5 to 8 carry copper links at 1 and 2.5 Gb (seen 2026-11-20), so 1 to 8 are taken as the RJ45 ports; check 9 to 16 against the front panel."
+    ports:
+      - {range: [1, 8], type: 10gbase-t}
+      - {range: [9, 16], type: 10gbase-x-sfpp}
+      - {name: mgmt, type: 1000base-t, mgmt_only: true, description: "Dedicated management port"}
+  - slug: tp-link-eap220
+    manufacturer: TP-Link
+    model: EAP220
+    part_number: EAP220
+    u_height: 0
+    comments: "Dual-band 802.11n access point; the model is what its own sign-in page shows."
+    ports:
+      - {name: eth0, type: 1000base-t, description: "Uplink, power over Ethernet (802.3af)"}
+      - {name: wlan0, type: ieee802.11n, description: "2.4 GHz radio"}
+      - {name: wlan1, type: ieee802.11n, description: "5 GHz radio"}
+  - slug: unidentified-firewall-appliance
+    manufacturer: Unidentified
+    model: Firewall appliance
+    u_height: 0
+    comments: "Hardware not read: automation never signs in to pfSense. Its LAN port carries a hardware address of the same maker as the NAS's 10 Gb card."
+    ports:
+      - {name: lan, type: other, description: "LAN side; kind of port not read"}
+      - {name: wan, type: other, description: "Internet side; kind of port not read"}
+
+# Racks: none recorded yet. The operator states the rack (name, height in units, width 10 or 19 inches) and
+# where each device sits; then, for example:
+#   racks:
+#     - {name: rack-01, u_height: 12, width: 19, description: "..."}
+# and on a device: `rack: rack-01`, plus `position: 3` and `face: front` for a device with a height.
+racks: []
+
+# Devices. "facts": the address `make netbox-discover-hardware` reads the hardware from (root SSH, read-only;
+# never the old host). "review: true" marks what nobody has verified. A port listed under `ports` adds to
+# the ports of the type; `address` puts an address on it, `primary: true` makes it the device's address.
+devices:
+  - name: pve-management
+    type: lenovo-thinkcentre-m90q
     role: hypervisor
     platform: proxmox-ve-9
     cluster: doku-lab
-    interface: vmbr0
-    address: 192.168.0.16/24
+    facts: 192.168.0.10
+    description: "Intel Core i5-10500T, 16 GB RAM, 256 GB NVMe; hosts the admin workstation (ADR-002)"
+    ports:
+      - {name: vmbr0, type: bridge, members: [nic0], address: 192.168.0.10/24, primary: true}
+  - name: pve-core
+    type: lenovo-thinkstation-p350-tiny
+    role: hypervisor
+    platform: proxmox-ve-9
+    cluster: doku-lab
+    facts: 192.168.0.11
+    description: "Intel Core i7-11700, 32 GB RAM, 1 TB NVMe"
+    ports:
+      - {name: vmbr0, type: bridge, members: [nic0], address: 192.168.0.11/24, primary: true}
+      - {name: amt, type: virtual, parent: nic0, mgmt_only: true, address: 192.168.0.9/24,
+         description: "Intel AMT: the management engine answers on nic0's hardware address (ports 623 and 16992 open on 2026-11-20)"}
+  - name: pve-infra
+    type: beelink-mini-s
+    role: hypervisor
+    platform: proxmox-ve-9
+    cluster: doku-lab
+    facts: 192.168.0.12
+    description: "Intel Celeron N5095A, 8 GB RAM, 256 GB SATA SSD"
+    ports:
+      - {name: vmbr0, type: bridge, members: [nic0], address: 192.168.0.12/24, primary: true}
+  - name: pve-lab
+    type: origimagic-nebula-series
+    role: hypervisor
+    platform: proxmox-ve-9
+    cluster: doku-lab
+    facts: 192.168.0.16
     description: "AMD Ryzen 7 6800H, 28 GB usable RAM, 512 GB NVMe"
+    ports:
+      - {name: vmbr0, type: bridge, members: [nic0], address: 192.168.0.16/24, primary: true}
   - name: pve-lab-legacy
-    manufacturer: ASUS
-    model: Custom-built PC
+    type: custom-ryzen-9-9950x3d-tower
     role: hypervisor
     platform: proxmox-ve-9
     cluster: homelab
-    interface: vmbr0
-    address: 192.168.0.14/24
-    description: "Old environment (Proxmox node name pve-lab, future pve-compute). AMD Ryzen 9 9950X3D; the firmware reports an ASUS mainboard and no model name"
+    description: "Old environment (Proxmox node name pve-lab, future pve-compute). AMD Ryzen 9 9950X3D, 32 GB RAM"
     review: true
-  - {name: pfsense, role: router, description: "pfSense, LAN gateway 192.168.0.1; never changed by automation", review: true}
-  - {name: switch, role: switch, description: "Network switch, management address 192.168.0.3", review: true}
-  - {name: truenas, role: nas, description: "TrueNAS at 192.168.0.13: Forgejo, Nextcloud, Plex, qBittorrent; backup destination (ADR-012)", review: true}
-  - {name: pbs, role: backup-server, status: offline, description: "Proxmox Backup Server at 192.168.0.15, powered off (backup disk failed in November 2026)", review: true}
+    ports:
+      - {name: vmbr0, type: bridge, members: [enp1s0f1np1], address: 192.168.0.14/24, primary: true}
+  - name: pfsense
+    type: unidentified-firewall-appliance
+    role: router
+    platform: pfsense
+    description: "pfSense, LAN gateway and DHCP; never changed or signed in to by automation"
+    review: true
+    ports:
+      - {name: lan, address: 192.168.0.1/24, primary: true, dns_name: pfsense.doku-lab.net}
+  - name: switch
+    type: qnap-qsw-m3216r-8s8t
+    role: switch
+    platform: qnap-qss
+    description: "Core switch; every Proxmox host of doku-lab is plugged into it. Its address is a DHCP lease"
+    ports:
+      - {name: vlan1, type: virtual, mgmt_only: true, address: 192.168.0.116/24, address_status: dhcp, primary: true,
+         description: "Management address as the switch announces it (LLDP)"}
+  - name: access-point
+    type: tp-link-eap220
+    role: access-point
+    description: "Wi-Fi access point, managed on its own web interface"
+    review: true
+    ports:
+      - {name: eth0, address: 192.168.0.2/24, primary: true}
+  - name: truenas
+    type: custom-asrock-n100m-nas
+    role: nas
+    platform: truenas-25-10
+    cluster: truenas
+    description: "TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent; pools tank (2 x 8 TB mirror), fastpool (1 TB), apps-pool (180 GB). Not built from this repository"
+    ports:
+      - {name: bond0, type: lag, members: [enp1s0, enp3s0], address: 192.168.0.13/24, primary: true,
+         description: "Failover pair; the 10 Gb port carries the traffic"}
 
-# Addresses that belong to no VM interface of a root. "iac: true": owned by Git; the others are seed.
+# Cables nobody can read from a machine. Those between the Proxmox hosts and the switch are not listed here:
+# the hosts hear the switch name its port (LLDP) and the reconciliation records them (tag "observed").
+#   - {a: [truenas, enp1s0], b: [switch, "9"], type: dac-passive}
+cables: []
+
+# Other clusters than the Proxmox ones, and the machines on them that no Proxmox API lists.
+clusters:
+  - {name: truenas, type: TrueNAS, description: "Virtual machines run by TrueNAS itself"}
+virtual_machines:
+  - name: pbs
+    cluster: truenas
+    device: truenas
+    role: backup-server
+    platform: proxmox-backup-server
+    status: offline
+    vcpus: 2
+    memory: 4096
+    address: 192.168.0.15/24
+    address_status: reserved
+    description: "Proxmox Backup Server, a VM on TrueNAS. Stopped: its backup disk failed in November 2026"
+
+# Application services on machines that are not VMs of a root (those come from `services` below).
+device_services:
+  truenas:
+    - {name: TrueNAS web interface, protocol: tcp, ports: [81, 444]}
+    - {name: Forgejo, protocol: tcp, ports: [30142, 30143], description: "git.doku-lab.net, through the legacy Caddy"}
+    - {name: Nextcloud, protocol: tcp, ports: [30027], description: "cloud.doku-lab.net, through the legacy Caddy"}
+  switch:
+    - {name: Web interface, protocol: tcp, ports: [80, 443]}
+  access-point:
+    - {name: Web interface, protocol: tcp, ports: [443]}
+
+# Addresses that belong to no port listed above. "iac: true": owned by Git; the others are written once.
 addresses:
   - {address: 192.168.0.60/24, role: vip, iac: true, description: "PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql)"}
   - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address (ansible/vars/dns.yml)"}
-  - {address: 192.168.0.1/24, dns_name: pfsense.doku-lab.net, description: "pfSense (LAN gateway)"}
-  - {address: 192.168.0.3/24, dns_name: switch.doku-lab.net, description: "Network switch (management)"}
-  - {address: 192.168.0.13/24, description: "TrueNAS"}
-  - {address: 192.168.0.15/24, status: reserved, description: "Proxmox Backup Server (powered off)"}
+  - {address: 192.168.0.3/24, iac: true, status: deprecated, dns_name: switch.doku-lab.net, description: "Nothing answers here (2026-11-20). The name switch.doku-lab.net still points to it; the switch is at 192.168.0.116"}
+
+# What the guests of the old environment are (cluster, then VMID or a range of VMIDs). A guest described
+# here gets this role and description and is no longer "needs-review", unless "review: true" keeps the flag.
+guests:
+  homelab:
+    - {vmid: 200, role: legacy-service, description: "AdGuard Home; replaced by dns-01 on 2026-11-18, stopped and kept"}
+    - {vmid: 201, role: legacy-service, description: "Homepage; replaced by the dashboard on k3s on 2026-11-19, stopped and kept"}
+    - {vmid: 202, role: legacy-service, description: "Wiki.js 2; replaced by the wiki on k3s on 2026-11-20, content not carried over, stopped and kept"}
+    - {vmid: 203, role: legacy-service, description: "Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19", review: true}
+    - {vmid: 204, role: legacy-service, description: "Caddy: still serves git and cloud and the public tunnel (TASK-022)"}
+    - {vmid: 206, role: legacy-service, description: "Vaultwarden (vault.doku-lab.net, through the k3s ingress); not migrated yet"}
+    - {vmid: 207, role: legacy-service, platform: debian-13, description: "Infisical; replaced by Phase on k3s (TASK-019), stopped and kept"}
+    - {vmid: 208, role: legacy-service, platform: debian-13, description: "Monitoring (Docker Compose); replaced by the monitoring on k3s, stopped and kept"}
+    - {vmid: 209, role: legacy-service, description: "Garage object storage (ansible/playbooks/configure-garage.yml); stopped", review: true}
+    - {vmid: 210, role: legacy-service, description: "Windmill (Docker Compose); replaced by Windmill on k3s (TASK-025), stopped and kept"}
+    - {vmid: 300, role: legacy-service, description: "OpenTofu state backups (tfstate.doku-lab.net); stopped", review: true}
+    - {vmid: 301, role: deploy-runner, description: "Forgejo Actions runner of this repository (CT301); never holds Proxmox credentials (ADR-008)"}
+    - {vmids: [303, 305], role: k3s-server, platform: debian-13, description: "Stage A k3s of the old environment; replaced by the doku-lab cluster, stopped and kept"}
+    - {vmids: [306, 307], role: tailscale-router, description: "Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml)"}
+    - {vmids: [400, 699], role: desktop, description: "Desktop or development VM of the old environment, started by hand when needed"}
+    - {vmids: [8000, 8999], role: template, description: "Image other VMs of the old environment were cloned from"}
+
+# Records an earlier version of this file created and that are wrong: removed by `make netbox-prune` (the
+# reconciliation itself never deletes). NetBox refuses to remove a record something still refers to.
+retired:
+  - {path: dcim/devices, name: pbs, reason: "The backup server is a VM on TrueNAS, not a device"}
+  - {path: dcim/device-types, slug: unknown-unknown, reason: "Every device has a named type now"}
+  - {path: dcim/device-types, slug: asus-custom-built-pc, reason: "Replaced by custom-ryzen-9-9950x3d-tower"}
+  - {path: dcim/device-types, slug: azw-mini-s, reason: "Replaced by beelink-mini-s"}
+  - {path: dcim/manufacturers, slug: unknown, reason: "No device type uses it"}
+  - {path: dcim/manufacturers, slug: azw, reason: "The maker is recorded as Beelink"}
+  - {path: dcim/manufacturers, slug: asus, reason: "No device type uses it"}
 
 # OpenTofu roots whose VMs are inventoried from `tofu output -json ansible_inventory` (state on the workstation).
 iac_roots:
