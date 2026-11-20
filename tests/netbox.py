@@ -71,11 +71,49 @@ def chart():
     assert (database["HOST"], database["NAME"], database["USER"]) == ("192.168.0.60", "netbox", "netbox"), "shared PostgreSQL (ADR-015)"
     assert database["OPTIONS"]["sslmode"] == "require"
     assert settings["REDIS"]["tasks"]["HOST"] == settings["REDIS"]["caching"]["HOST"] == "netbox-valkey"
-    assert settings["PLUGINS"] == [], "native models only"
+    plugins(deployments, settings)
     (claim,) = [d for d in docs if d["kind"] == "PersistentVolumeClaim"]
-    assert claim["spec"]["storageClassName"] == "nvme-shared" and claim["spec"]["accessModes"] == ["ReadWriteMany"], \
+    assert claim["metadata"]["name"] == "netbox-media" and claim["spec"]["storageClassName"] == "nvme-shared" and claim["spec"]["accessModes"] == ["ReadWriteMany"], \
         "web and worker share the media volume; live data on the NVMe storage outside k3s (ADR-012)"
     assert not [d for d in docs if d["kind"] in ("Ingress", "HTTPRoute")], "the route is in access.yaml"
+
+
+def plugins(deployments, settings):
+    """The diagram plugins (ADR-018): pinned files with checksums, installed once per release on a volume by an
+    init container of the same image, read from there by the web and the worker; nothing else changes."""
+    import hashlib
+
+    access = {(d["kind"], d["metadata"]["name"]): d for d in yaml.safe_load_all((DIR / "access.yaml").read_text()) if d}
+    data = access[("ConfigMap", "netbox-plugins")]["data"]
+    lines = data["requirements.txt"].split("\n")[:-1]
+    assert all(re.fullmatch(r"[a-z-]+==\d+\.\d+\.\d+ --hash=sha256:[0-9a-f]{64}", line) for line in lines), "one pinned file each, by checksum"
+    assert [line.split("==")[0] for line in lines] == ["netbox-topology-views", "netbox-floorplan-plugin", "netbox-reorder-rack"]
+    assert settings["PLUGINS"] == ["netbox_topology_views", "netbox_floorplan", "netbox_reorder_rack"]
+    install = data["install.sh"]
+    assert "--require-hashes --no-deps --only-binary :all:" in install and "-r /config/requirements.txt" in install
+    assert not re.search(r"curl|wget|pip install [a-z]|sudo|chmod", install), "nothing but the pinned files is fetched"
+    claim = access[("PersistentVolumeClaim", "netbox-plugins")]["spec"]
+    assert claim["storageClassName"] == "nvme-shared" and claim["accessModes"] == ["ReadWriteMany"], "web and worker read the same volume"
+    # A change of NetBox's version or of the pinned files changes the release, and with it the directory read.
+    release = "v4.7.5-" + hashlib.sha256((data["requirements.txt"] + install).encode()).hexdigest()[:12]
+    for name, deployment in deployments.items():
+        pod = deployment["spec"]["template"]["spec"]
+        main = pod["containers"][0]
+        (init,) = [c for c in pod["initContainers"] if c["name"] == "plugins"]
+        assert init["image"] == main["image"], "the plugins are installed with the interpreter that will load them"
+        assert init["command"] == ["sh", "/config/install.sh"] and init["env"] == [{"name": "PLUGINS_RELEASE", "value": release}], \
+            f"{name}: the release name in values.yaml must be {release}"
+        security = init["securityContext"]
+        assert security["readOnlyRootFilesystem"] and security["runAsNonRoot"] and security["capabilities"] == {"drop": ["ALL"]}
+        assert {m["name"]: m["mountPath"] for m in init["volumeMounts"]} == {"plugins": "/plugins", "plugins-config": "/config", "plugins-tmp": "/tmp"}
+        volumes = {v["name"]: v for v in pod["volumes"]}
+        assert volumes["plugins"]["persistentVolumeClaim"] == {"claimName": "netbox-plugins"} and volumes["plugins-config"]["configMap"] == {"name": "netbox-plugins"}
+        mounts = {m["mountPath"]: m for m in main["volumeMounts"] if m["name"] == "plugins"}
+        assert mounts["/opt/netbox/plugins"] == {"name": "plugins", "mountPath": "/opt/netbox/plugins", "subPath": f"{release}/packages", "readOnly": True}
+        assert {e["name"]: e.get("value") for e in main["env"]}["PYTHONPATH"] == "/opt/netbox/plugins"
+        # Only the web serves static files: NetBox's own and the plugins', from the same release.
+        static = mounts.get("/opt/netbox/netbox/static")
+        assert (static == {"name": "plugins", "mountPath": "/opt/netbox/netbox/static", "subPath": f"{release}/static", "readOnly": True}) == (name == "netbox")
 
 
 def secret_keys():
@@ -108,7 +146,8 @@ def access():
 def sso_pipeline():
     """The step added to the sign-in pipeline (ADR-017): superuser exactly while Authentik lists the person in
     homelab-admins, and nothing written when nothing changes."""
-    (config,) = [d for d in yaml.safe_load_all((DIR / "access.yaml").read_text()) if d and d["kind"] == "ConfigMap"]
+    (config,) = [d for d in yaml.safe_load_all((DIR / "access.yaml").read_text())
+                 if d and d["kind"] == "ConfigMap" and d["metadata"]["name"] == "netbox-sso-pipeline"]
     assert config["metadata"] == {"name": "netbox-sso-pipeline", "namespace": "netbox"}
     module = {}
     exec(compile(config["data"]["sso_pipeline.py"], "sso_pipeline.py", "exec"), module)  # noqa: S102 - our own file
@@ -128,9 +167,9 @@ def sso_pipeline():
         assert user.is_superuser is after and len(user.saved) == writes, (groups, before)
         assert all(fields == ["is_superuser"] for fields in user.saved)
     values = yaml.safe_load((DIR / "values.yaml").read_text())
-    (mount,) = values["extraVolumeMounts"]
+    mount = values["extraVolumeMounts"][0]
     assert mount["mountPath"] == "/opt/netbox/netbox/netbox/sso_pipeline.py" and mount["subPath"] == "sso_pipeline.py"
-    assert values["extraVolumes"] == [{"name": "sso-pipeline", "configMap": {"name": "netbox-sso-pipeline"}}]
+    assert values["extraVolumes"][0] == {"name": "sso-pipeline", "configMap": {"name": "netbox-sso-pipeline"}}
 
 
 def make_guards():
@@ -647,7 +686,7 @@ def main():
     export()
     seed_and_inventory()
     print("PASS: chart pinned with single replicas, shared PostgreSQL, pinned Valkey, no secret in Git, LAN-only route; "
-          "reconciliation idempotent, never deletes, never overwrites what people entered, never prints serial numbers or "
+          "diagram plugins pinned by checksum and installed on a volume; reconciliation idempotent, never deletes, never overwrites what people entered, never prints serial numbers or "
           "hardware addresses; hosts report their hardware and switch port; discovery read-only")
 
 

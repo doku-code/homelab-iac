@@ -56,11 +56,69 @@ extraVolumes:
   - name: sso-pipeline
     configMap:
       name: netbox-sso-pipeline
+  - &plugins-volume
+    name: plugins
+    persistentVolumeClaim:
+      claimName: netbox-plugins
+  - &plugins-config
+    name: plugins-config
+    configMap:
+      name: netbox-plugins
+  - &plugins-tmp
+    name: plugins-tmp
+    emptyDir: {}
 extraVolumeMounts:
   - name: sso-pipeline
     mountPath: /opt/netbox/netbox/netbox/sso_pipeline.py
     subPath: sso_pipeline.py
     readOnly: true
+  - &plugins-packages
+    name: plugins
+    mountPath: /opt/netbox/plugins
+    subPath: v4.7.5-d787f1278b51/packages
+    readOnly: true
+  # NetBox's own static files with those of the plugins, in place of the image's.
+  - name: plugins
+    mountPath: /opt/netbox/netbox/static
+    subPath: v4.7.5-d787f1278b51/static
+    readOnly: true
+
+# Plugins (ADR-018): diagrams of the network (from the cables) and of the room, and rack reordering by
+# dragging. They are not part of the image: the init container below installs the pinned files of the
+# ConfigMap netbox-plugins (services/netbox/access.yaml) once per release into the volume netbox-plugins, and
+# the web and worker containers read them from there. The release name is the NetBox version and a checksum
+# of that ConfigMap's files; it changes with either, which makes the next start install again. PyPI is needed
+# for that one start only. Database changes of the plugins are applied by NetBox when it starts.
+plugins:
+  - netbox_topology_views
+  - netbox_floorplan
+  - netbox_reorder_rack
+pluginsConfig:
+  netbox_topology_views:
+    # Positions arranged by hand in the diagram are kept.
+    allow_coordinates_saving: true
+initContainers:
+  - &plugins-install
+    name: plugins
+    image: ghcr.io/netbox-community/netbox:v4.7.5
+    command: [sh, /config/install.sh]
+    env:
+      - {name: PLUGINS_RELEASE, value: v4.7.5-d787f1278b51}
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      capabilities: {drop: [ALL]}
+      seccompProfile: {type: RuntimeDefault}
+    resources:
+      requests: {cpu: 50m, memory: 128Mi}
+      limits: {memory: 512Mi}
+    volumeMounts:
+      - {name: plugins, mountPath: /plugins}
+      - {name: plugins-config, mountPath: /config, readOnly: true}
+      - {name: plugins-tmp, mountPath: /tmp}
 
 # Routes are in services/netbox/access.yaml (Traefik, LAN only, wildcard certificate).
 ingress:
@@ -104,11 +162,23 @@ replicaCount: 1
 # The image starts four web workers by default (about 1.5 GiB together); two are plenty for one household.
 extraEnvs:
   - {name: GRANIAN_WORKERS, value: "2"}
+  - &plugins-path {name: PYTHONPATH, value: /opt/netbox/plugins}
 resources:
   requests: {cpu: 200m, memory: 768Mi}
   limits: {cpu: 2000m, memory: 2Gi}
 worker:
   replicaCount: 1
+  # The worker loads the same plugins (background jobs import them).
+  initContainers:
+    - *plugins-install
+  extraVolumes:
+    - *plugins-volume
+    - *plugins-config
+    - *plugins-tmp
+  extraVolumeMounts:
+    - *plugins-packages
+  extraEnvs:
+    - *plugins-path
   resources:
     requests: {cpu: 100m, memory: 512Mi}
     limits: {cpu: 1000m, memory: 1536Mi}

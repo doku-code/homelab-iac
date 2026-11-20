@@ -123,3 +123,57 @@ data:
         if user.is_superuser != wanted:
             user.is_superuser = wanted
             user.save(update_fields=["is_superuser"])
+---
+# Plugins (ADR-018): the topology diagram, the floor plan and the rack reordering. The chart runs the image
+# with a read-only file system, so the plugins are installed on this volume instead of into the image: once
+# per release (NetBox version and the two files below), by an init container of the web and worker pods
+# (values.yaml). The shared NVMe storage already carries NetBox's uploads (ADR-012).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: netbox-plugins
+  namespace: netbox
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: nvme-shared
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Versions are pinned with the checksum of the file PyPI serves: a different file is refused. To change a
+# version: change the line and its checksum, then the release name in values.yaml (tests/netbox.py tells it).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbox-plugins
+  namespace: netbox
+data:
+  requirements.txt: |
+    netbox-topology-views==5.0.2 --hash=sha256:84975803e0972fa2c5fab463b009a8b5154784562275e8488e65fd45b1ab7eff
+    netbox-floorplan-plugin==0.10.0 --hash=sha256:23ccac3ac1c071e5b1214044e537f87c5d2a7ecf2e72beb46e379c1e00803357
+    netbox-reorder-rack==1.1.5 --hash=sha256:fc3a700c35648222aa8b49586d4f48014ba2b5bc3175333452ca75d43910e805
+  install.sh: |
+    #!/bin/sh
+    # Installs the pinned plugins once per release into the shared volume, then does nothing at later starts:
+    # /plugins/<release>/packages (on PYTHONPATH) and /plugins/<release>/static (NetBox's own static files plus
+    # those of the plugins). Web and worker pods may run this at the same time: each builds its own copy and
+    # the first rename wins.
+    set -eu
+    target="/plugins/${PLUGINS_RELEASE}"
+    if [ -f "$target/.complete" ]; then
+      echo "plugins ${PLUGINS_RELEASE}: already installed"
+      exit 0
+    fi
+    build="$target.$(hostname).tmp"
+    rm -rf "$build"
+    mkdir -p "$build/packages" "$build/static"
+    uv pip install --python /opt/netbox/venv/bin/python --target "$build/packages" \
+      --require-hashes --no-deps --only-binary :all: --compile-bytecode -r /config/requirements.txt
+    cp -a /opt/netbox/netbox/static/. "$build/static/"
+    for directory in "$build"/packages/*/static; do
+      if [ -d "$directory" ]; then cp -a "$directory/." "$build/static/"; fi
+    done
+    touch "$build/.complete"
+    mv -T "$build" "$target" 2>/dev/null || rm -rf "$build"
+    test -f "$target/.complete"
+    echo "plugins ${PLUGINS_RELEASE}: installed"
