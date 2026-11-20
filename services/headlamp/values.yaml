@@ -1,11 +1,22 @@
 # Headlamp (ADR-011, M005): official chart kubernetes-sigs/headlamp, version pinned in the Makefile.
-# Headlamp itself gets NO cluster rights: every user logs in with a Kubernetes token and sees what that
-# token's RBAC allows (the admin token belongs to the ServiceAccount in access.yaml).
+# Headlamp itself gets NO cluster rights: every user sees what the Kubernetes API allows their identity.
+# Two ways in: "Sign in" through Authentik (ADR-017; the API servers accept Authentik's identity tokens,
+# ansible/roles/k3s), or a Kubernetes token pasted into the login page (the admin token of the ServiceAccount
+# in access.yaml, kept in the secret store: it works without Authentik).
 replicaCount: 1
 clusterRoleBinding:
   create: false
 config:
   enableHelm: false
+  oidc:
+    # Client, secret, issuer and scopes come from the Secret `headlamp-oidc`, written by `make headlamp-deploy`
+    # from the environment (store path /authentik), never from Git.
+    secret:
+      create: false
+    externalSecret:
+      enabled: true
+      name: headlamp-oidc
+      hasScopes: true
 resources:
   requests:
     cpu: 20m

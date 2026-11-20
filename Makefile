@@ -734,6 +734,9 @@ k3s-cluster-configure:
 
 HEADLAMP_CHART_VERSION := 0.46.0
 HEADLAMP_REPO := https://kubernetes-sigs.github.io/headlamp/
+# The same issuer and client the API servers accept (ansible/roles/k3s/defaults/main.yml).
+HEADLAMP_OIDC_ISSUER := https://auth.doku-lab.net/application/o/headlamp/
+HEADLAMP_OIDC_SCOPES := openid,profile,email,offline_access
 
 .PHONY: headlamp-check headlamp-deploy headlamp-token
 
@@ -741,8 +744,20 @@ HEADLAMP_REPO := https://kubernetes-sigs.github.io/headlamp/
 headlamp-check:
 	$(VENV)/bin/python tests/headlamp.py
 
+# Writes the Secret Headlamp reads its Authentik client from (environment only, never printed), hands Headlamp
+# to Argo CD and restarts it when the Secret changed.
+#   scripts/secrets.py run /authentik -- make headlamp-deploy HEADLAMP_DEPLOY_APPROVED=yes
 headlamp-deploy:
 	@test "$(HEADLAMP_DEPLOY_APPROVED)" = yes || (echo "Approve the Headlamp deployment with HEADLAMP_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@test -n "$${SSO_HEADLAMP_CLIENT_SECRET:-}" || { echo "Set SSO_HEADLAMP_CLIENT_SECRET in the environment (store path /authentik; make authentik-secrets creates it)" >&2; exit 1; }
+	@kubectl --context doku-lab create namespace headlamp --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	@set -euo pipefail; k="kubectl --context doku-lab -n headlamp"; \
+	before="$$($$k get secret headlamp-oidc -o jsonpath='{.metadata.resourceVersion}' 2>/dev/null || true)"; \
+	$$k create secret generic headlamp-oidc --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'OIDC_CLIENT_ID=headlamp\nOIDC_ISSUER_URL=%s\nOIDC_SCOPES=%s\nOIDC_CLIENT_SECRET=%s\n' "$(HEADLAMP_OIDC_ISSUER)" "$(HEADLAMP_OIDC_SCOPES)" "$$SSO_HEADLAMP_CLIENT_SECRET") \
+	  | $$k apply -f - >/dev/null; echo "secret/headlamp-oidc applied"; \
+	after="$$($$k get secret headlamp-oidc -o jsonpath='{.metadata.resourceVersion}')"; \
+	if [ -n "$$before" ] && [ "$$before" != "$$after" ]; then $$k rollout restart deployment/headlamp; fi
 	kubectl --context doku-lab apply -f services/argocd/apps/headlamp.yaml
 	$(call ARGOCD_WAIT,headlamp)
 
@@ -1298,7 +1313,7 @@ windmill-push:
 AUTHENTIK_CHART_VERSION := 2026.8.5
 AUTHENTIK_REPO := https://charts.goauthentik.io
 # One OIDC client secret per application that signs in through Authentik: SSO_<NAME>_CLIENT_SECRET.
-AUTHENTIK_CLIENTS := ARGOCD GRAFANA NETBOX PROXMOX WIKI WINDMILL
+AUTHENTIK_CLIENTS := ARGOCD GRAFANA HEADLAMP NETBOX PROXMOX WIKI WINDMILL
 # Applications without a login of their own, protected by forward authentication at Traefik (no secret to share).
 AUTHENTIK_FORWARD_AUTH := HOMEPAGE
 AUTHENTIK_SECRET_INPUTS := AUTHENTIK_SECRET_KEY AUTHENTIK_BOOTSTRAP_PASSWORD AUTHENTIK_BOOTSTRAP_TOKEN $(foreach c,$(AUTHENTIK_CLIENTS),SSO_$(c)_CLIENT_SECRET)

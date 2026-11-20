@@ -2,7 +2,7 @@
 """Signs in to every application through Authentik, as a browser would, and reports what each application
 then says about the person (M014, ADR-017).
 
-  scripts/sso-check.py [application ...]      default: all of argocd grafana netbox windmill
+  scripts/sso-check.py [application ...]      default: every application
 
 It uses Authentik's first administrator (akadmin) with the password of the secret store, so it works as long as
 that account keeps this password and has no second factor; give the account a second factor and this check
@@ -190,6 +190,25 @@ def homepage(browser, password):
     return ok, f"HTTP {anonymous} without a session; signed in: page HTTP {page}, widget data for {len(nodes)} nodes"
 
 
+def headlamp(browser, password):
+    """Headlamp keeps the identity token in a cookie and hands it to the Kubernetes API, which is asked who it sees."""
+    base = "https://headlamp.doku-lab.net"
+    callback = browser.sign_in(f"{base}/oidc?dt=headlamp&cluster=main", password, f"{base}/oidc-callback")
+    browser.follow(callback, lambda u: "/oidc-callback" not in u)
+    if not any(c.name.startswith("headlamp-auth-main") for c in browser.jar):
+        raise Stop("Headlamp did not keep a token after the sign-in")
+    api = f"{base}/clusters/main"
+    status, _, text = browser.request("POST", f"{api}/apis/authentication.k8s.io/v1/selfsubjectreviews",
+                                      {"apiVersion": "authentication.k8s.io/v1", "kind": "SelfSubjectReview"})
+    if status != 201:
+        raise Stop(f"the Kubernetes API does not accept the token: HTTP {status}")
+    who = json.loads(text)["status"]["userInfo"]
+    status, _, text = browser.request("GET", f"{api}/api/v1/nodes")
+    nodes = len(json.loads(text).get("items") or []) if status == 200 else 0
+    ok = who.get("username") == f"oidc:{USER}" and f"oidc:{GROUP}" in (who.get("groups") or []) and nodes > 0
+    return ok, f"Kubernetes sees {who.get('username')}, groups {[g for g in who.get('groups') or [] if g.startswith('oidc:')]}, lists {nodes} nodes"
+
+
 def proxmox(browser, password):
     """Proxmox asks Authentik through its API: an address to send the browser to, then the code it came back with."""
     base, realm = "https://pve-management.doku-lab.net", "authentik"
@@ -232,7 +251,8 @@ def wiki(browser, password):
     return ok, f"signed in as {who.get('email') or who.get('name')}, groups {groups}, administration API HTTP {pages}"
 
 
-CHECKS = {"argocd": argocd, "grafana": grafana, "netbox": netbox, "windmill": windmill, "homepage": homepage, "proxmox": proxmox, "wiki": wiki}
+CHECKS = {"argocd": argocd, "grafana": grafana, "netbox": netbox, "windmill": windmill, "homepage": homepage, "proxmox": proxmox, "wiki": wiki,
+          "headlamp": headlamp}
 
 
 def main(argv):

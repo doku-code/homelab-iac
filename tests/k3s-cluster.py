@@ -40,6 +40,13 @@ def test_config_template():
     assert init["token"] == TOKEN and init["node-ip"] == "192.168.0.40" and init["tls-san"] == ["192.168.0.40"]
     assert init["write-kubeconfig-mode"] == "0600" and "disable" not in init, "Traefik and ServiceLB stay (M004)"
     assert init["cluster-cidr"] == "10.42.0.0/16" and init["service-cidr"] == "10.43.0.0/16"
+    # People sign in through Authentik (ADR-017): the API accepts tokens of the client `headlamp`, and what a
+    # token says is prefixed, so it can never name a built-in identity.
+    assert init["kube-apiserver-arg"] == [
+        "oidc-issuer-url=https://auth.doku-lab.net/application/o/headlamp/", "oidc-client-id=headlamp",
+        "oidc-username-claim=preferred_username", "oidc-username-prefix=oidc:",
+        "oidc-groups-claim=groups", "oidc-groups-prefix=oidc:"]
+    assert "kube-apiserver-arg" not in yaml.safe_load(render("config.yaml.j2", {**base, "k3s_oidc_issuer": ""}))
 
     # A later server joins the first one through its API (hostvars of the init node).
     join = yaml.safe_load(render("config.yaml.j2", {**base, "k3s_init_node": "other",
@@ -48,7 +55,8 @@ def test_config_template():
     assert "cluster-init" not in join and join["server"] == "https://192.168.0.40:6443"
     agent = yaml.safe_load(render("config.yaml.j2", {**base, "k3s_role": "agent", "k3s_init_node": "other",
                                                      "k3s_api_url": "https://192.168.0.40:6443"}))
-    assert agent["server"] == "https://192.168.0.40:6443" and "tls-san" not in agent
+    assert agent["server"] == "https://192.168.0.40:6443" and "tls-san" not in agent and "kube-apiserver-arg" not in agent
+    assert join["kube-apiserver-arg"] == init["kube-apiserver-arg"], "every API server accepts the same tokens"
 
     traefik = yaml.safe_load(yaml.safe_load(render("traefik-config.yaml.j2", base))["spec"]["valuesContent"])
     assert traefik["service"]["spec"]["externalTrafficPolicy"] == "Local", "ingress allow-lists need the client address"

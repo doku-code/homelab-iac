@@ -15,3 +15,11 @@ k3s_api_url: "https://{{ hostvars[k3s_init_node].ansible_host }}:6443"
 k3s_disable: []
 k3s_cluster_cidr: 10.42.0.0/16
 k3s_service_cidr: 10.43.0.0/16
+
+# Sign-in of people through Authentik (ADR-017, M014): the API servers accept identity tokens issued to this
+# client. Names and groups get the prefix, so nothing a token says can collide with a built-in identity
+# (system:masters, a node, a ServiceAccount). Rights come from RBAC only (services/headlamp/access.yaml).
+# The issuer is looked up when a token arrives: the API starts and serves without Authentik. Empty: off.
+k3s_oidc_issuer: https://auth.doku-lab.net/application/o/headlamp/
+k3s_oidc_client_id: headlamp
+k3s_oidc_prefix: "oidc:"

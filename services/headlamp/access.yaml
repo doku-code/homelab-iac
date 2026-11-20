@@ -36,6 +36,21 @@ subjects:
     name: headlamp-admin
     namespace: headlamp
 ---
+# People who sign in through Authentik: the API servers prefix what the token says with "oidc:"
+# (ansible/roles/k3s/defaults). Members of Authentik's homelab-admins administer the cluster.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-homelab-admins
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: oidc:homelab-admins
+---
 apiVersion: v1
 kind: Secret
 metadata:

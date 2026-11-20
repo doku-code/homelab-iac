@@ -38,6 +38,7 @@ def main():
     assert container["resources"]["limits"]["memory"] == "256Mi"
     assert container["securityContext"]["runAsNonRoot"] is True
 
+    makefile = (ROOT / "Makefile").read_text()
     access = {(d["kind"], d["metadata"]["name"]): d for d in yaml.safe_load_all((ROOT / "services/headlamp/access.yaml").read_text())}
     middleware = access[("Middleware", "admin-lan")]
     assert middleware["metadata"]["namespace"] == "headlamp"
@@ -47,10 +48,27 @@ def main():
     assert access[("Secret", "headlamp-admin-token")]["type"] == "kubernetes.io/service-account-token"
     assert "data" not in access[("Secret", "headlamp-admin-token")], "no token value in Git"
 
+    # Sign-in through Authentik (ADR-017): Headlamp reads its client from a Secret that is not in Git, and the
+    # people's rights are a binding of the prefixed group, which only the API servers' setting can produce.
+    assert container["envFrom"] == [{"secretRef": {"name": "headlamp-oidc"}}]
+    args = container["args"]
+    assert {"-oidc-client-id=$(OIDC_CLIENT_ID)", "-oidc-client-secret=$(OIDC_CLIENT_SECRET)",
+            "-oidc-idp-issuer-url=$(OIDC_ISSUER_URL)", "-oidc-scopes=$(OIDC_SCOPES)"} <= set(args), args
+    assert "-unsafe-use-service-account-token" not in args and "-oidc-auto-login=$(OIDC_AUTO_LOGIN)" not in args, "the token login stays offered"
+    assert not [d for d in docs if d["kind"] == "Secret"], "the chart writes no Secret: the client secret is not in Git"
+    people = access[("ClusterRoleBinding", "oidc-homelab-admins")]
+    assert people["roleRef"]["name"] == "cluster-admin"
+    assert people["subjects"] == [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": "oidc:homelab-admins"}]
+    defaults = yaml.safe_load((ROOT / "ansible/roles/k3s/defaults/main.yml").read_text())
+    assert defaults["k3s_oidc_prefix"] == "oidc:" and defaults["k3s_oidc_client_id"] == "headlamp"
+    assert defaults["k3s_oidc_issuer"] == make_var("HEADLAMP_OIDC_ISSUER"), "Headlamp and the API servers name the same issuer"
+    assert make_var("HEADLAMP_OIDC_SCOPES").split(",") == ["openid", "profile", "email", "offline_access"]
+    recipe = re.search(r"^headlamp-deploy:.*?(?=^\S)", makefile + "\nend:\n", re.M | re.S).group(0)
+    assert "headlamp-oidc" in recipe and "SSO_HEADLAMP_CLIENT_SECRET" in recipe and "--from-env-file=<(" in recipe
+
     # The allow-list only works when Traefik sees the real client address.
     traefik = (ROOT / "ansible/roles/k3s/templates/traefik-config.yaml.j2").read_text()
     assert "externalTrafficPolicy: Local" in traefik
-    makefile = (ROOT / "Makefile").read_text()
     assert "HEADLAMP_DEPLOY_APPROVED" in makefile and "jsonpath='{.data.token}'" in makefile
     print("PASS: Headlamp chart pinned, no cluster rights for the app, HTTPS + admin-LAN ingress, token never in Git")
 

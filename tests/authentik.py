@@ -234,7 +234,19 @@ def clients():
     assert config["useDiscovery"] is True and "email" in config["scopes"]
     assert 'test "$(WIKI_CONFIGURE_APPROVED)" = yes' in recipe("wiki-configure")
 
-    checked = {"ARGOCD", "GRAFANA", "NETBOX", "PROXMOX", "WIKI", "WINDMILL"}
+    # Headlamp: its client comes from a Secret written by the deployment target; the API servers accept the
+    # same issuer and client, and rights are a binding of the prefixed group (tests/headlamp.py renders the chart).
+    headlamp = yaml.safe_load((ROOT / "services/headlamp/values.yaml").read_text())["config"]["oidc"]
+    assert headlamp["secret"] == {"create": False} and headlamp["externalSecret"] == {"enabled": True, "name": "headlamp-oidc", "hasScopes": True}
+    assert make_var("HEADLAMP_OIDC_ISSUER") == f"{ISSUER}/headlamp/"
+    k3s = yaml.safe_load((ROOT / "ansible/roles/k3s/defaults/main.yml").read_text())
+    assert (k3s["k3s_oidc_issuer"], k3s["k3s_oidc_client_id"]) == (f"{ISSUER}/headlamp/", "headlamp")
+    bound = [d for d in yaml.safe_load_all((ROOT / "services/headlamp/access.yaml").read_text())
+             if d["kind"] == "ClusterRoleBinding" and d["subjects"][0]["kind"] == "Group"]
+    assert [b["subjects"][0]["name"] for b in bound] == [k3s["k3s_oidc_prefix"] + "homelab-admins"]
+    assert "headlamp-admin-token" in (ROOT / "services/headlamp/access.yaml").read_text(), "the token login stays"
+
+    checked = {"ARGOCD", "GRAFANA", "HEADLAMP", "NETBOX", "PROXMOX", "WIKI", "WINDMILL"}
     assert set(make_var("AUTHENTIK_CLIENTS").split()) == checked, "add the new client's own side to this test"
 
 
