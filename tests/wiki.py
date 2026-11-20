@@ -1,0 +1,223 @@
+#!/usr/bin/env python3
+"""Wiki.js (TASK-029): render the pinned official chart with our values, check the route and the wiring, run
+the documentation export on this repository and the configuration tool against an in-memory wiki.
+
+Needs `helm` and the chart download; no cluster, wiki or Forgejo access.
+"""
+import importlib.util
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+DIR = ROOT / "services/wiki"
+HOST = "wiki.doku-lab.net"
+sys.dont_write_bytecode = True
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, ROOT / path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+export = load("wiki_export", "scripts/wiki-export.py")
+admin = load("wiki_admin", "scripts/wiki-admin.py")
+
+
+def recipe(target):
+    match = re.search(rf"^{target}:.*\n((?:\t.*\n)+)", (ROOT / "Makefile").read_text(), re.M)
+    assert match, target
+    return match.group(1)
+
+
+def chart():
+    application = yaml.safe_load((ROOT / "services/argocd/apps/wiki.yaml").read_text())
+    source = application["spec"]["sources"][0]
+    assert re.fullmatch(r"\d+\.\d+\.\d+", source["targetRevision"]) and source["helm"]["releaseName"] == "wiki"
+    assert application["spec"]["syncPolicy"]["automated"] == {"prune": False, "selfHeal": True}
+    result = subprocess.run(["helm", "template", "wiki", f"oci://{source['repoURL']}/{source['chart']}", "--version", source["targetRevision"],
+                             "--namespace", "wiki", "-f", str(DIR / "values.yaml")], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    docs = [d for d in yaml.safe_load_all(result.stdout) if d]
+    kinds = [d["kind"] for d in docs]
+    assert "Secret" not in kinds, "every credential comes from the Secret made by `make wiki-deploy`"
+    assert "StatefulSet" not in kinds and "PersistentVolumeClaim" not in kinds, "no bundled PostgreSQL, no volume: the pages come from Git"
+    assert "Ingress" not in kinds and "HTTPRoute" not in kinds, "the route is in access.yaml"
+    (deployment,) = [d for d in docs if d["kind"] == "Deployment"]
+    assert deployment["spec"]["replicas"] == 1, "one replica per service for now"
+    pod = deployment["spec"]["template"]["spec"]
+    assert pod["automountServiceAccountToken"] is False, "the wiki needs no Kubernetes credentials"
+    (main,) = pod["containers"]
+    assert main["image"] == f"ghcr.io/requarks/wiki:{source['targetRevision']}", "image and chart are pinned together"
+    assert main["securityContext"]["readOnlyRootFilesystem"] and main["securityContext"]["runAsNonRoot"]
+    assert main["resources"]["requests"]["memory"] and main["resources"]["limits"]["memory"]
+    assert main["readinessProbe"]["httpGet"]["path"] == "/_ready" and main["livenessProbe"]["httpGet"]["path"] == "/_live"
+    references = {(e["valueFrom"]["secretKeyRef"]["name"], e["valueFrom"]["secretKeyRef"]["key"]) for e in main["env"] if "valueFrom" in e}
+    assert references == {("wiki-secrets", "db-password"), ("wiki-secrets", "admin-password")}
+    written = recipe("wiki-deploy")
+    assert "admin-password=%s" in written and "db-password=%s" in written and 'test "$(WIKI_DEPLOY_APPROVED)" = yes' in written
+    (config,) = [d for d in docs if d["kind"] == "ConfigMap"]
+    settings = yaml.safe_load(config["data"]["config.yml"])
+    assert settings["db"]["host"] == "192.168.0.60" and settings["db"]["db"] == "wiki" and settings["db"]["user"] == "wiki"
+    assert settings["db"]["ssl"] is True, "the connection to the shared PostgreSQL is encrypted"
+    assert settings["offline"] is True, "no update check and no downloads from the internet"
+    assert settings["db"]["pass"] == "$(DB_PASS)", "the password is substituted from the Secret when the file is read"
+    (service,) = [d for d in docs if d["kind"] == "Service"]
+    return service["metadata"]["name"], service["spec"]["ports"][0]["port"]
+
+
+def access_and_database(service, port):
+    docs = {(d["kind"], d["metadata"]["name"]): d for d in yaml.safe_load_all((DIR / "access.yaml").read_text()) if d}
+    assert ("Namespace", "wiki") in docs
+    assert docs[("Middleware", "admin-lan")]["spec"]["ipAllowList"]["sourceRange"] == ["192.168.0.0/24", "10.42.0.0/16"]
+    route = docs[("IngressRoute", "wiki")]["spec"]
+    (rule,) = route["routes"]
+    assert route["entryPoints"] == ["websecure"] and rule["match"] == f"Host(`{HOST}`)" and route["tls"] == {}
+    assert rule["middlewares"] == [{"name": "admin-lan"}], "LAN only"
+    assert rule["services"] == [{"name": service, "port": port}], "the route points at the chart's Service"
+    apps = yaml.safe_load((ROOT / "ansible/vars/postgresql-apps.yml").read_text())["postgresql_apps"]
+    assert "wiki" in [a["name"] for a in apps]
+    legacy = (ROOT / "services/ingress/legacy-routes.yaml").read_text()
+    assert HOST not in legacy and "192.168.0.22" not in legacy, "the route to the old container is gone"
+    project = (ROOT / "services/argocd/access.yaml").read_text()
+    assert "namespace: wiki}" in project and "ghcr.io/requarks/charts" in project
+    assert "wiki-chart" in (ROOT / "services/argocd/values.yaml").read_text()
+
+
+def exported_tree():
+    with tempfile.TemporaryDirectory(prefix="wiki-export-test-") as first, tempfile.TemporaryDirectory(prefix="wiki-export-test-") as second:
+        files = export.build(first)
+        assert files == export.build(second), "same commit, same tree"
+        for name in files:
+            assert (Path(first) / name).read_bytes() == (Path(second) / name).read_bytes(), f"{name}: not reproducible"
+        assert "README.md" in files and "docs/handoff.md" in files and "tasks.md" in files and "docs/decisions.md" in files
+        assert not [f for f in files if f.startswith("docs/archive")], "the archive is not published"
+        assert all(f == "README.md" or (f == f.lower() and "_" not in f) for f in files), "paths as the wiki files them"
+        pages = {f[:-3] for f in files}
+        for name in files:
+            text = (Path(first) / name).read_text()
+            match = export.FRONT_MATTER.match(text)
+            assert match, name
+            meta = yaml.safe_load(match.group(1))
+            assert meta["editor"] == "markdown", f"{name}: without an editor the wiki keeps the front matter in the body"
+            assert meta["title"] and meta["published"] is True and isinstance(meta["tags"], list) and len(meta["description"]) <= 250, name
+            body = text[match.end():].lstrip("\n")
+            assert body.startswith(f"# {meta['title']}\n"), f"{name}: the first heading is the page title"
+            fenced = False
+            for line in body.split("\n"):
+                if line.lstrip().startswith(("```", "~~~")):
+                    fenced = not fenced
+                    continue
+                if fenced:
+                    continue
+                for _, link, _ in export.LINK.findall(line):
+                    if link.startswith("/"):
+                        assert link.split("#")[0].lstrip("/") in pages, f"{name}: {link} leads to no page"
+                    else:
+                        relative = not re.match(r"[a-z][a-z0-9+.-]*:|#", link, re.I)
+                        assert not (relative and link.split("#")[0].endswith(".md")
+                                    and (ROOT / Path(name).parent / link.split("#")[0]).exists()), f"{name}: {link} was not rewritten"
+    # Link rules on a made-up document.
+    pages = {"docs/a.md": "docs/a", "tasks/TASK-001-x.md": "tasks/task-001-x"}
+    body = "[t](../tasks/TASK-001-x.md#goal) [d](../tasks/) [s](../Makefile) [e](https://example.org/x.md) [h](#here)\n```\n[c](../tasks/TASK-001-x.md)\n```"
+    out = export.rewrite_links(body, "docs/a.md", pages, {"tasks"})
+    assert "[t](/tasks/task-001-x#goal)" in out and "[d](/tasks)" in out and f"[s]({export.SOURCE_URL}Makefile)" in out
+    assert "[e](https://example.org/x.md)" in out and "[h](#here)" in out and "[c](../tasks/TASK-001-x.md)" in out, "code blocks are left alone"
+    assert export.page_path("docs/Some_File.md") == "docs/some-file" and export.page_path("README.md") == "README"
+    workflow = (ROOT / ".forgejo/workflows/harness-wiki-publish.yml").read_text()
+    assert 'scripts/wiki-export.py --publish "$WIKI_EXPORT_REMOTE"' in workflow and "WIKI_EXPORT_TOKEN: ${{ forgejo.token }}" in workflow
+    source = (ROOT / "scripts/wiki-export.py").read_text()
+    assert "GIT_CONFIG_VALUE_0" in source and "--force" not in source, "the token travels in the environment; history is kept"
+
+
+class FakeWiki(admin.Wiki):
+    """Answers like the wiki's API for the calls the tool makes; records what was written."""
+
+    def __init__(self):
+        super().__init__("https://wiki.test")
+        self.site = "site-1"
+        self.writes = []
+        self.site_settings = {"title": "Default Site", "description": ""}
+        self.storage = {"localePrefix": True, "stripLeadingH1": False, "mapReadmeToHome": False, "syncInterval": "5m"}
+        self.target = {"id": "git-1", "module": "git", "isEnabled": False, "config": {"authType": "ssh", "repoUrl": "", "syncMode": "sync"},
+                       "contentTypes": {"activeTypes": ["pages", "images"]}}
+        self.strategies = [{"id": admin.LOCAL_STRATEGY, "module": "local", "displayName": "Local Authentication", "isEnabled": True}]
+        self.pages = 0
+
+    def call(self, method, path, body=None, expect=(200,)):
+        if method != "GET":
+            self.writes.append((method, path, body))
+        if path == "/_api/sites/site-1" and method == "GET":
+            return dict(self.site_settings)
+        if path == "/_api/sites/site-1" and method == "PUT":
+            self.site_settings.update(body)
+            return {"ok": True}
+        if path == "/_api/sites/site-1/storage" and method == "GET":
+            return {**self.storage, "targets": [dict(self.target)]}
+        if path == "/_api/sites/site-1/storage" and method == "PUT":
+            (patch,) = body["targets"]
+            self.storage.update({k: v for k, v in body.items() if k != "targets"})
+            self.target.update(patch)
+            return {"ok": True}
+        if path == "/_api/groups":
+            return [{"id": "group-admin", "name": "Administrators"}, {"id": "group-users", "name": "Users"}]
+        if path == "/_api/authentication/strategies" and method == "GET":
+            return [dict(s, config=dict(s.get("config", {}), clientSecret="********")) for s in self.strategies]
+        if path == "/_api/authentication/strategies" and method == "POST":
+            self.strategies.append({"id": "oidc-1", **body})
+            return {"ok": True, "id": "oidc-1"}
+        if path == "/_api/authentication/strategies/oidc-1" and method == "PUT":
+            self.strategies[-1].update(body)
+            return {"ok": True}
+        if path.endswith("/actions/sync"):
+            return {"message": "taken up as it stands. Run Import Everything if needed."}
+        if path.endswith("/actions/importAll"):
+            self.pages = 82
+            return {"message": "Imported 82 page(s) and 0 asset(s)."}
+        if path == "/_api/system/info":
+            return {"pagesTotal": self.pages}
+        raise AssertionError(f"unexpected call {method} {path}")
+
+
+def configuration():
+    assert admin.GIT["syncMode"] == "pull" and admin.GIT["branch"] == export.BRANCH, "the wiki only reads, from the branch the export writes"
+    assert admin.GIT["repoUrl"].startswith("https://git.doku-lab.net/") and admin.GIT["basicPassword"] == "" and admin.GIT["verifySSL"] is True
+    assert admin.STORAGE == {"localePrefix": False, "stripLeadingH1": True, "mapReadmeToHome": True, "syncInterval": "5m"}
+    admin.time.sleep = lambda _seconds: None
+    wiki = FakeWiki()
+    assert "updated" in admin.configure_site(wiki) and wiki.site_settings["title"] == "Doku Lab"
+    assert "pull wiki" in admin.configure_storage(wiki)
+    assert wiki.target["isEnabled"] and wiki.target["config"] == admin.GIT and wiki.target["contentTypes"]["activeTypes"] == ["pages"]
+    assert "created" in admin.configure_sso(wiki, "synthetic-secret")
+    oidc = wiki.strategies[-1]
+    assert oidc["module"] == "oidc" and oidc["autoEnrollGroups"] == ["group-admin"] and oidc["config"]["clientSecret"] == "synthetic-secret"
+    assert wiki.site_settings["authStrategies"][0] == {"id": admin.LOCAL_STRATEGY, "order": 0, "isVisible": True}, "the local sign-in stays offered"
+    assert "82 pages" in admin.pull(wiki)
+    # A second run writes the sign-in method again (its secret cannot be read back) and nothing else.
+    wiki.writes.clear()
+    assert "unchanged" in admin.configure_site(wiki) and "unchanged" in admin.configure_storage(wiki)
+    assert wiki.writes == []
+    assert "updated" in admin.configure_sso(wiki, "synthetic-secret") and len(wiki.strategies) == 2
+    assert 'test "$(WIKI_CONFIGURE_APPROVED)" = yes' in recipe("wiki-configure") and 'test "$(WIKI_PUBLISH_APPROVED)" = yes' in recipe("wiki-publish")
+    text = (ROOT / "scripts/wiki-admin.py").read_text()
+    assert "print(secret" not in text and "print(password" not in text
+
+
+def main():
+    service, port = chart()
+    access_and_database(service, port)
+    exported_tree()
+    configuration()
+    print("PASS: Wiki.js chart pinned with one replica, no volume and no bundled database, encrypted connection to the shared "
+          "PostgreSQL, LAN-only route, legacy route removed, reproducible export with wiki front matter and working links, "
+          "configuration tool idempotent with pull-only Git storage and the local sign-in kept")
+
+
+if __name__ == "__main__":
+    main()

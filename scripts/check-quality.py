@@ -94,8 +94,11 @@ def main():
     assert job["steps"][0]["with"] == {"persist-credentials": "false", "fetch-depth": "0"}
     assert "-r requirements-agents.txt" in source
     token_steps = [s for s in job["steps"] if "forgejo.token" in str(s)]
-    assert len(token_steps) == 1 and "forgejo.token" not in token_steps[0]["run"]
+    # Two steps push with the job's own token (repository wiki, Wiki.js page tree): from the environment only.
+    assert len(token_steps) == 2 and all("forgejo." not in s["run"] for s in token_steps)
     assert token_steps[0]["env"]["HARNESS_WIKI_TOKEN"] == "${{ forgejo.token }}"
+    assert token_steps[1]["env"]["WIKI_EXPORT_TOKEN"] == "${{ forgejo.token }}"
+    assert token_steps[1]["run"].endswith('scripts/wiki-export.py --publish "$WIKI_EXPORT_REMOTE"')
     print(f"PASS: {counts}; main-only activation gate and workflow configuration guards")
 
 

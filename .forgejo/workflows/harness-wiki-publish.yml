@@ -16,6 +16,8 @@ on:
     branches: [main]
     paths:
       - "README.md"
+      - "AGENTS.md"
+      - "scripts/wiki-export.py"
       - "docs/**"
       - "milestones/**"
       - "tasks/**"
@@ -61,3 +63,11 @@ jobs:
           set -euo pipefail
           /tmp/harness-venv/bin/harness docs index >/dev/null
           /tmp/harness-venv/bin/harness docs publish-wiki
+
+      # The same documentation as the page tree the Wiki.js instance pulls (services/wiki, TASK-029): pushed to
+      # the branch `wiki` of this repository with the job's own token, sent as a header from the environment.
+      - name: Export and publish the Wiki.js page tree
+        env:
+          WIKI_EXPORT_TOKEN: ${{ forgejo.token }}
+          WIKI_EXPORT_REMOTE: ${{ forgejo.server_url }}/${{ forgejo.repository }}.git
+        run: /tmp/harness-venv/bin/python scripts/wiki-export.py --publish "$WIKI_EXPORT_REMOTE"

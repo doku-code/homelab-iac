@@ -1148,7 +1148,7 @@ wiki-configure:
 
 # The documentation as the wiki's page tree: wiki-export writes it to WIKI_EXPORT_DIR to look at it,
 # wiki-publish pushes it to the branch `wiki` of WIKI_REMOTE (CI does this on every change of main:
-# .forgejo/workflows/wiki-js-publish.yml), wiki-sync makes the wiki pull now.
+# .forgejo/workflows/harness-wiki-publish.yml), wiki-sync makes the wiki pull now.
 WIKI_EXPORT_DIR ?= .local/wiki-export
 WIKI_REMOTE ?= https://git.doku-lab.net/Homelab/homelab-iac.git
 
