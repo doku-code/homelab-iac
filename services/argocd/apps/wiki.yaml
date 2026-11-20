@@ -1,0 +1,35 @@
+# Wiki.js under Argo CD (TASK-029): the pinned official chart with the values from this repository, plus the
+# manifests of services/wiki/access.yaml. The Secret `wiki-secrets` is not in Git: `make wiki-deploy` writes it
+# from the secret store before applying this file.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wiki
+  namespace: argocd
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wiki
+  sources:
+    - repoURL: ghcr.io/requarks/charts
+      chart: wiki
+      targetRevision: 3.5.0
+      helm:
+        releaseName: wiki
+        valueFiles:
+          - $values/services/wiki/values.yaml
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/wiki
+      directory:
+        include: access.yaml
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true

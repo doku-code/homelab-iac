@@ -49,6 +49,11 @@ configs:
       type: helm
       url: ghcr.io/netbox-community/netbox-chart
       enableOCI: "true"
+    wiki-chart:
+      name: wiki-chart
+      type: helm
+      url: ghcr.io/requarks/charts
+      enableOCI: "true"
 
 # Not needed: the bundled identity broker (Argo CD talks to Authentik directly), notifications, generated applications.
 dex:

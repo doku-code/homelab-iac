@@ -5766,6 +5766,40 @@
         ]
       },
       "backrefs": []
+    },
+    {
+      "id": "TASK-029",
+      "title": "Wiki.js 3 on k3s showing this repository's documentation",
+      "summary": "Wiki.js 3.5 on k3s under Argo CD with the shared PostgreSQL and Authentik sign-in; its pages are generated from this repository and pulled by the wiki's Git storage.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "planned",
+      "path": "tasks/TASK-029-wiki-js-3-on-k3s-showing-this-repository-s-documentation.md",
+      "tags": [],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Wiki.js 3 on k3s showing this repository's documentation",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {},
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -5853,7 +5887,8 @@
       "TASK-025",
       "TASK-026",
       "TASK-027",
-      "TASK-028"
+      "TASK-028",
+      "TASK-029"
     ]
   },
   "by_tag": {

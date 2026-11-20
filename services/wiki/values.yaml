@@ -1,0 +1,50 @@
+# Wiki.js 3 (TASK-029): the place where this repository's documentation is read. Values for the official
+# chart, pinned in services/argocd/apps/wiki.yaml. One replica; the pages come from Git (scripts/wiki-export.py
+# writes the branch the wiki pulls), so the wiki holds nothing that cannot be rebuilt and needs no volume.
+# Everything secret comes from the Secret `wiki-secrets`, written by `make wiki-deploy` from the secret store.
+replicaCount: 1
+
+image:
+  tag: "3.5.0"
+
+config:
+  # Nothing leaves the LAN: no update check, no icon downloads.
+  offline: true
+
+# The first administrator, created at the first start against the empty database only. It stays the local
+# administrator beside the sign-in through Authentik (ADR-017).
+admin:
+  email: admin@doku-lab.net
+  existingSecret: wiki-secrets
+  existingSecretPasswordKey: admin-password
+
+# The shared PostgreSQL (ADR-015): database and role `wiki`, declared in ansible/vars/postgresql-apps.yml.
+postgresql:
+  enabled: false
+externalDatabase:
+  parameters:
+    host: "192.168.0.60"
+    port: 5432
+    database: wiki
+    user: wiki
+    existingSecret: wiki-secrets
+    existingSecretPasswordKey: db-password
+  ssl:
+    enabled: true
+    # Encrypted, like every application of the platform (sslmode=require); the members present a
+    # self-signed certificate, so there is no authority to verify against.
+    rejectUnauthorized: false
+
+serviceAccount:
+  automount: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 512Mi
+  limits:
+    memory: 2Gi
+
+# The route is services/wiki/access.yaml (Traefik IngressRoute, LAN only).
+ingress:
+  enabled: false

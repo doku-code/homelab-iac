@@ -48,7 +48,7 @@ def chart():
     assert "EndpointSlice" not in excluded and {"Endpoints", "Lease"} <= excluded, "the routes to outside services need EndpointSlices"
     # Repository entries are rendered as Secrets by the chart: they must carry addresses only, no credentials.
     repositories = [d for d in docs if d["kind"] == "Secret" and d["metadata"].get("labels", {}).get("argocd.argoproj.io/secret-type") == "repository"]
-    assert len(repositories) == 1
+    assert len(repositories) == 2, "one entry per OCI chart registry"
     for repository in repositories:
         assert set(repository["data"]) == {"name", "type", "url", "enableOCI"}, repository["data"].keys()
     assert not [d for d in docs if d["kind"] in ("Ingress", "HTTPRoute")], "the route is in access.yaml"
@@ -120,7 +120,7 @@ def access_and_applications(registries):
     assert oci == registries, "every OCI chart registry of a project is declared to Argo CD"
 
     applications = sorted((DIR / "apps").glob("*.yaml"))
-    assert {p.stem for p in applications} == {"netbox", "headlamp", "monitoring", "phase", "ingress", "storage", "windmill", "authentik", "homepage"}
+    assert {p.stem for p in applications} == {"netbox", "headlamp", "monitoring", "phase", "ingress", "storage", "windmill", "authentik", "homepage", "wiki"}
     used_repos, used_namespaces = set(), set()
     for path in applications:
         (application,) = [d for d in yaml.safe_load_all(path.read_text()) if d]
@@ -175,7 +175,7 @@ def main():
     access_and_applications(registries)
     make_guards()
     print("PASS: Argo CD chart pinned with single replicas, LAN-only route behind Traefik, no credentials in Git, "
-          "two projects limited to this repository, this cluster and named namespaces, nine applications pinned and never pruning")
+          "two projects limited to this repository, this cluster and named namespaces, ten applications pinned and never pruning")
 
 
 if __name__ == "__main__":

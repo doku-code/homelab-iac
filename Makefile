@@ -1106,6 +1106,40 @@ argocd-password:
 	$$k delete secret argocd-initial-admin-secret
 
 # ─────────────────────────────────────────────
+# Wiki.js (TASK-029): the wiki that shows this repository's documentation, on k3s (services/wiki), official
+# chart, shared PostgreSQL. Installed and kept in sync by Argo CD (services/argocd/apps/wiki.yaml pins the
+# chart). The wiki holds nothing of its own: its pages are pulled from the branch written by
+# scripts/wiki-export.py, its settings are written by `make wiki-configure`.
+# ─────────────────────────────────────────────
+
+WIKI_SECRET_INPUTS := WIKI_ADMIN_PASSWORD PG_APP_WIKI_PASSWORD
+
+.PHONY: wiki-check wiki-secrets wiki-deploy
+
+# Offline: renders the pinned chart with our values and checks route and wiring (needs the chart download).
+wiki-check:
+	$(VENV)/bin/python tests/wiki.py
+
+# Generates the values the store does not hold yet (never replaces one, never prints one).
+wiki-secrets:
+	@test "$(WIKI_SECRETS_APPROVED)" = yes || (echo "Approve the creation of the missing wiki secrets with WIKI_SECRETS_APPROVED=yes" >&2; exit 1)
+	scripts/ensure-secrets.py /postgresql PG_APP_WIKI_PASSWORD
+	scripts/ensure-secrets.py /wiki WIKI_ADMIN_PASSWORD
+
+# Writes the Secret the wiki needs (environment only, never printed), then hands the wiki to Argo CD and
+# waits until it is in sync and healthy. The administrator's password is read at the first start only.
+#   scripts/secrets.py run /wiki /postgresql -- make wiki-deploy WIKI_DEPLOY_APPROVED=yes
+wiki-deploy:
+	@test "$(WIKI_DEPLOY_APPROVED)" = yes || (echo "Approve the wiki deployment with WIKI_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@for v in $(WIKI_SECRET_INPUTS); do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /wiki and /postgresql; make wiki-secrets creates what is missing)" >&2; exit 1; }; done
+	@kubectl --context doku-lab create namespace wiki --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	@set -euo pipefail; kubectl --context doku-lab -n wiki create secret generic wiki-secrets --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'admin-password=%s\ndb-password=%s\n' "$$WIKI_ADMIN_PASSWORD" "$$PG_APP_WIKI_PASSWORD") \
+	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/wiki-secrets applied"
+	kubectl --context doku-lab apply -f services/argocd/apps/wiki.yaml
+	$(call ARGOCD_WAIT,wiki)
+
+# ─────────────────────────────────────────────
 # NetBox (M013, ADR-016): inventory and IPAM on k3s (services/netbox), official chart, shared PostgreSQL.
 # Installed and kept in sync by Argo CD (services/argocd/apps/netbox.yaml pins the chart). Nothing below is
 # needed to build or rebuild the platform: every root keeps its own variables and inventory, NetBox is

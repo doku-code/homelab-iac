@@ -76,6 +76,7 @@ gantt
 | TASK-004 | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) |
 | TASK-005 | high | M010 | [Migration order and bootstrap credential requirements](../tasks/TASK-005-migration-order-and-bootstrap-credentials.md) |
 | TASK-012 | high | M012 | [Independent bootstrap and recovery runbook](../tasks/TASK-012-bootstrap-and-recovery-runbook.md) |
+| TASK-029 | medium |  | [Wiki.js 3 on k3s showing this repository's documentation](../tasks/TASK-029-wiki-js-3-on-k3s-showing-this-repository-s-documentation.md) |
 
 ### completed
 

@@ -1,0 +1,36 @@
+# Namespace, access restriction and route of the wiki (TASK-029).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wiki
+---
+# Only the administration LAN may reach the wiki, and the pods of the cluster (the dashboard checks it).
+# Needs the real client address: the k3s role sets externalTrafficPolicy: Local on Traefik.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-lan
+  namespace: wiki
+spec:
+  ipAllowList:
+    sourceRange:
+      - 192.168.0.0/24
+      - 10.42.0.0/16
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wiki
+  namespace: wiki
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`wiki.doku-lab.net`)
+      middlewares:
+        - name: admin-lan
+      services:
+        - name: wiki
+          port: 80
+  tls: {}
