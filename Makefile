@@ -1237,13 +1237,13 @@ windmill-push:
 AUTHENTIK_CHART_VERSION := 2026.8.5
 AUTHENTIK_REPO := https://charts.goauthentik.io
 # One OIDC client secret per application that signs in through Authentik: SSO_<NAME>_CLIENT_SECRET.
-AUTHENTIK_CLIENTS := ARGOCD GRAFANA NETBOX WINDMILL
+AUTHENTIK_CLIENTS := ARGOCD GRAFANA NETBOX PROXMOX WINDMILL
 # Applications without a login of their own, protected by forward authentication at Traefik (no secret to share).
 AUTHENTIK_FORWARD_AUTH := HOMEPAGE
 AUTHENTIK_SECRET_INPUTS := AUTHENTIK_SECRET_KEY AUTHENTIK_BOOTSTRAP_PASSWORD AUTHENTIK_BOOTSTRAP_TOKEN $(foreach c,$(AUTHENTIK_CLIENTS),SSO_$(c)_CLIENT_SECRET)
 AUTHENTIK_ADMIN := $(VENV)/bin/python scripts/authentik-admin.py
 
-.PHONY: authentik-check authentik-secrets authentik-deploy authentik-status sso-check
+.PHONY: authentik-check authentik-secrets authentik-deploy authentik-status sso-check proxmox-sso
 
 # Offline: renders the pinned chart with our values and checks route, blueprints and client wiring (needs the chart download).
 authentik-check:
@@ -1292,6 +1292,32 @@ authentik-status:
 #   scripts/secrets.py run /authentik -- make sso-check
 sso-check:
 	$(VENV)/bin/python scripts/sso-check.py $(SSO_APPLICATIONS)
+
+# Sign-in to the Proxmox hosts through Authentik: the OpenID realm "authentik" of the doku-lab cluster (one
+# setting for every node), written as root over SSH because no API token may change realms. People and their
+# groups are created at first sign-in, named <name>@authentik and <group>-authentik; the members of
+# homelab-admins are Administrator. The default realm, root@pam, the other users and the API tokens are
+# untouched: Proxmox stays reachable without Authentik. The client secret is read from the environment and
+# sent on standard input, never printed. Run again after a change of the secret or of the settings below.
+#   scripts/secrets.py run /authentik -- make proxmox-sso PROXMOX_SSO_APPROVED=yes
+PROXMOX_SSO_HOST ?= 192.168.0.10
+PROXMOX_SSO_REALM := authentik
+PROXMOX_SSO_ISSUER := https://auth.doku-lab.net/application/o/proxmox/
+PROXMOX_SSO_GROUP := homelab-admins-$(PROXMOX_SSO_REALM)
+PROXMOX_SSO_SETTINGS := --issuer-url $(PROXMOX_SSO_ISSUER) --client-id proxmox --autocreate 1 --groups-claim groups --groups-autocreate 1 --groups-overwrite 1 --scopes "email profile" --comment "Authentik"
+
+proxmox-sso:
+	@test "$(PROXMOX_SSO_APPROVED)" = yes || (echo "Approve the Authentik sign-in realm of the Proxmox cluster with PROXMOX_SSO_APPROVED=yes" >&2; exit 1)
+	@test -n "$${SSO_PROXMOX_CLIENT_SECRET:-}" || { echo "Set SSO_PROXMOX_CLIENT_SECRET in the environment (store path /authentik; make authentik-secrets creates it)" >&2; exit 1; }
+	@printf '%s\n' "$$SSO_PROXMOX_CLIENT_SECRET" | ssh -o BatchMode=yes root@$(PROXMOX_SSO_HOST) 'set -eu; IFS= read -r key; \
+	if pveum realm list --output-format json | grep -q "\"realm\":\"$(PROXMOX_SSO_REALM)\""; then \
+	  pveum realm modify $(PROXMOX_SSO_REALM) $(PROXMOX_SSO_SETTINGS) --client-key "$$key"; \
+	else \
+	  pveum realm add $(PROXMOX_SSO_REALM) --type openid --username-claim preferred_username $(PROXMOX_SSO_SETTINGS) --client-key "$$key"; \
+	fi; \
+	pveum group list --output-format json | grep -q "\"groupid\":\"$(PROXMOX_SSO_GROUP)\"" || pveum group add $(PROXMOX_SSO_GROUP) --comment "Members of homelab-admins in Authentik"; \
+	pveum acl modify / --groups $(PROXMOX_SSO_GROUP) --roles Administrator; \
+	pveum realm list --output-format json | grep -o "\"realm\":\"[a-z]*\"" | tr "\n" " "; echo'
 
 # ─────────────────────────────────────────────
 # Homepage, the dashboard (TASK-027): on k3s under Argo CD, behind Authentik (forward authentication at

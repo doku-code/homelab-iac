@@ -190,7 +190,29 @@ def homepage(browser, password):
     return ok, f"HTTP {anonymous} without a session; signed in: page HTTP {page}, widget data for {len(nodes)} nodes"
 
 
-CHECKS = {"argocd": argocd, "grafana": grafana, "netbox": netbox, "windmill": windmill, "homepage": homepage}
+def proxmox(browser, password):
+    """Proxmox asks Authentik through its API: an address to send the browser to, then the code it came back with."""
+    base, realm = "https://pve-management.doku-lab.net", "authentik"
+    status, _, text = browser.request("POST", f"{base}/api2/json/access/openid/auth-url", form={"realm": realm, "redirect-url": base})
+    if status != 200:
+        raise Stop(f"Proxmox did not start the sign-in: HTTP {status}")
+    callback = browser.sign_in(None, password, f"{base}/?", first_hop=json.loads(text)["data"])
+    query = urllib.parse.parse_qs(urllib.parse.urlparse(callback).query)
+    status, _, text = browser.request("POST", f"{base}/api2/json/access/openid/login",
+                                      form={"code": query["code"][0], "state": query["state"][0], "redirect-url": base})
+    if status != 200:
+        raise Stop(f"Proxmox refused the sign-in: HTTP {status}")
+    session = json.loads(text)["data"]
+    cookie = {"Cookie": "PVEAuthCookie=" + urllib.parse.quote(session["ticket"], safe="")}
+    status, _, text = browser.request("GET", f"{base}/api2/json/access/permissions?path=/", headers=cookie)
+    rights = json.loads(text)["data"].get("/", {}) if status == 200 else {}
+    _, _, text = browser.request("GET", f"{base}/api2/json/access/users/{urllib.parse.quote(session['username'])}", headers=cookie)
+    groups = json.loads(text).get("data", {}).get("groups", [])
+    ok = session["username"] == f"{USER}@{realm}" and f"{GROUP}-{realm}" in groups and rights.get("Sys.Modify") == 1 and rights.get("VM.Allocate") == 1
+    return ok, f"signed in as {session['username']}, groups {groups}, {len(rights)} privileges on /"
+
+
+CHECKS = {"argocd": argocd, "grafana": grafana, "netbox": netbox, "windmill": windmill, "homepage": homepage, "proxmox": proxmox}
 
 
 def main(argv):

@@ -143,8 +143,11 @@ def blueprints():
         assert attrs["signing_key"].name == "Find", "tokens are signed with a key pair, which every client can verify"
         assert attrs["grant_types"] == ["authorization_code", "refresh_token"], "no grant is allowed unless listed (2026.5+)"
         assert attrs["redirect_uris"], slug
+        # Proxmox sends the browser's own address without a path: its four names and its four node addresses.
+        allowed = {"proxmox": r"https://(pve-(management|core|infra|lab)\.doku-lab\.net|192\.168\.0\.1[0126]:8006)"}.get(
+            slug, rf"https://{slug}\.doku-lab\.net/[\w/.-]*")
         for redirect in attrs["redirect_uris"]:
-            assert redirect["matching_mode"] == "strict" and re.fullmatch(rf"https://{slug}\.doku-lab\.net/[\w/.-]*", redirect["url"]), redirect
+            assert redirect["matching_mode"] == "strict" and re.fullmatch(allowed, redirect["url"]), redirect
         declared.add(slug.upper())
     assert declared == clients, f"AUTHENTIK_CLIENTS in the Makefile and the blueprints disagree: {declared ^ clients}"
     assert protected == forward, f"AUTHENTIK_FORWARD_AUTH in the Makefile and the blueprints disagree: {protected ^ forward}"
@@ -205,7 +208,19 @@ def clients():
     assert client["login_config"]["token_url"] == f"{ISSUER}/token/" and "email" in client["login_config"]["scopes"]
     assert 'test "$(WINDMILL_SSO_APPROVED)" = yes' in recipe("windmill-sso")
 
-    checked = {"ARGOCD", "GRAFANA", "NETBOX", "WINDMILL"}
+    # Proxmox: one realm for the cluster, written over SSH; the secret travels on standard input, people and
+    # groups come from Authentik, only homelab-admins gets rights, and nothing existing is changed.
+    proxmox = recipe("proxmox-sso")
+    settings = make_var("PROXMOX_SSO_SETTINGS")
+    assert 'test "$(PROXMOX_SSO_APPROVED)" = yes' in proxmox and make_var("PROXMOX_SSO_ISSUER") == f"{ISSUER}/proxmox/"
+    assert "--client-id proxmox" in settings and "--groups-claim groups" in settings and "--autocreate 1" in settings
+    assert "--default" not in settings + proxmox, "the sign-in page keeps its default realm"
+    assert "SSO_PROXMOX_CLIENT_SECRET" in proxmox and "IFS= read -r key" in proxmox and "--username-claim preferred_username" in proxmox
+    assert proxmox.count("acl modify") == 1 and "--groups $(PROXMOX_SSO_GROUP) --roles Administrator" in proxmox
+    assert make_var("PROXMOX_SSO_GROUP") == "homelab-admins-$(PROXMOX_SSO_REALM)"
+    assert not re.search(r"pveum (user|realm) (delete|del)|passwd|root@pam", proxmox), "root@pam and the other accounts are untouched"
+
+    checked = {"ARGOCD", "GRAFANA", "NETBOX", "PROXMOX", "WINDMILL"}
     assert set(make_var("AUTHENTIK_CLIENTS").split()) == checked, "add the new client's own side to this test"
 
 
@@ -290,7 +305,7 @@ def main():
     forward_auth()
     tools()
     print("PASS: Authentik chart pinned with single replicas, no Kubernetes credentials, shared PostgreSQL over TLS, LAN and pod "
-          "network route, blueprints with client secrets from the environment and group-restricted applications, four "
+          "network route, blueprints with client secrets from the environment and group-restricted applications, five "
           "applications wired on both sides with their local administrator kept, forward authentication on every route of "
           "the applications without a login")
 

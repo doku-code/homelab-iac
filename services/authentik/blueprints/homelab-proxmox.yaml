@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# The Proxmox hosts sign people in through Authentik (ADR-017): realm "authentik" of the cluster, written by
+# `make proxmox-sso`. Proxmox creates the person and the group at first sign-in; the group
+# "homelab-admins-authentik" is Administrator there. root@pam and the API tokens are untouched.
+# Proxmox sends the address the browser is on as redirect address, without a path: one entry per name and
+# per node address. The client secret is read from the environment of the worker; nothing secret is here.
+version: 1
+metadata:
+  name: Homelab - Proxmox
+  labels:
+    homelab/application: proxmox
+entries:
+  # Authentik's own defaults this file refers to must exist first.
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers: {name: Default - Provider authorization flow (implicit consent)}
+      required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers: {name: Default - Provider invalidation flow}
+      required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers: {name: System - OAuth2 Provider - Scopes}
+      required: true
+
+  - model: authentik_core.group
+    id: admins
+    identifiers: {name: homelab-admins}
+
+  - model: authentik_providers_oauth2.oauth2provider
+    id: provider
+    identifiers: {name: proxmox}
+    attrs:
+      client_type: confidential
+      client_id: proxmox
+      client_secret: !Env SSO_PROXMOX_CLIENT_SECRET
+      # Since Authentik 2026.5 a provider allows no grant unless it is listed.
+      grant_types: [authorization_code, refresh_token]
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+      redirect_uris:
+        - {matching_mode: strict, url: "https://pve-management.doku-lab.net"}
+        - {matching_mode: strict, url: "https://pve-core.doku-lab.net"}
+        - {matching_mode: strict, url: "https://pve-infra.doku-lab.net"}
+        - {matching_mode: strict, url: "https://pve-lab.doku-lab.net"}
+        - {matching_mode: strict, url: "https://192.168.0.10:8006"}
+        - {matching_mode: strict, url: "https://192.168.0.11:8006"}
+        - {matching_mode: strict, url: "https://192.168.0.12:8006"}
+        - {matching_mode: strict, url: "https://192.168.0.16:8006"}
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+
+  - model: authentik_core.application
+    id: application
+    identifiers: {slug: proxmox}
+    attrs:
+      name: Proxmox
+      group: Infrastructure
+      provider: !KeyOf provider
+      meta_launch_url: https://pve-management.doku-lab.net/
+      policy_engine_mode: any
+
+  # Only members of homelab-admins may open the application.
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf application, group: !KeyOf admins}
+    attrs: {order: 0}
