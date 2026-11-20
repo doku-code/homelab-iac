@@ -20,7 +20,6 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ID | Status | Priority | Title | Tasks | Summary |
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](../milestones/M000-inventory-and-migration-planning.md) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
-| M008 | active | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
 | M009 | active | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | completed: 2 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M013 | active | medium | [NetBox inventory and IPAM](../milestones/M013-netbox-inventory-and-ipam.md) | completed: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
 | M014 | active | medium | [Single sign-on with Authentik](../milestones/M014-single-sign-on-with-authentik.md) | completed: 1 | Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator. |
@@ -34,6 +33,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M005 | completed | high | [Headlamp](../milestones/M005-headlamp.md) | completed: 1 | Headlamp is deployed with its official Helm chart, RBAC-based authentication and network restriction, and shows nodes, workloads, storage objects, events and logs. |
 | M006 | completed | high | [External NVMe-backed storage](../milestones/M006-external-nvme-storage.md) | completed: 1 | Kubernetes provisions PVCs through CSI from an NVMe-backed storage service outside k3s; data survives pod and k3s VM replacement; the failure domain is documented. |
 | M007 | completed | high | [PostgreSQL platform](../milestones/M007-postgresql-platform.md) | completed: 1 | PostgreSQL 17 runs on three Patroni VMs outside k3s (one per Proxmox host) with automatic failover and a virtual IP; per-application databases and roles. |
+| M008 | completed | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
 
 ## Tasks
 

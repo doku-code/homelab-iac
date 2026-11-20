@@ -3121,7 +3121,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "milestone",
-      "status": "active",
+      "status": "completed",
       "path": "milestones/M008-phase.md",
       "tags": [
         "roadmap"

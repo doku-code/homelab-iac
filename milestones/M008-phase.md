@@ -3,7 +3,7 @@ id: M008
 title: "Phase"
 summary: "Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it."
 type: milestone
-status: active
+status: completed
 priority: high
 created: 2026-11-12
 updated: 2026-11-17
@@ -46,15 +46,16 @@ Out of scope:
 
 ## Acceptance criteria
 
-- [ ] A new deployment consumes a secret from Phase
+- [x] A new deployment consumes a secret from Phase
 - [x] Infisical consumers listed with their migration state (TASK-019, 2026-11-17)
 
 ## Verification evidence
 
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
-| | | not verified | |
+| A new deployment consumes a secret from Phase | `make wiki-secrets`, then `scripts/secrets.py run /wiki /postgresql -- make wiki-deploy` ([TASK-029](../tasks/TASK-029-wiki-js-3-on-k3s-showing-this-repository-s-documentation.md)) | The wiki's administrator and database passwords were generated into Phase and read from it at deployment; never printed, never in Git. Same path for the dashboard ([TASK-027](../tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md)) and the Proxmox sign-in secret | 2026-11-20 |
+| Infisical consumers listed | [TASK-019](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md) | Listed with their migration state; Infisical is stopped | 2026-11-17 |
 
 ## Completion summary
 
-_Not completed._
+Completed 2026-11-20: Phase is the store every new deployment reads its secrets from. Left to the operator, by their own choice: keeping a copy of the recovery bundle outside the homelab (TASK-019).
