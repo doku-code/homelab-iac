@@ -1,5 +1,5 @@
 ---
-title: Workstation VM renders on the host's graphics adapter
+title: TASK-028 — Workstation VM renders on the host's graphics adapter
 description: VM 100 gets the Intel UHD 630 of pve-management through a resource mapping, all twelve host threads and Proxmox protection; cold start with automatic rollback.
 published: true
 tags:
@@ -14,7 +14,7 @@ date: '2026-11-20T00:00:00.000Z'
 dateCreated: '2026-11-20T00:00:00.000Z'
 ---
 
-# Workstation VM renders on the host's graphics adapter
+# TASK-028 — Workstation VM renders on the host's graphics adapter
 
 > **ID:** TASK-028 · **Type:** task · **Status:** completed · **Updated:** 2026-11-20 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md)
 

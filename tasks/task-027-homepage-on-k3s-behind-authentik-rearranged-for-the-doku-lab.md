@@ -1,5 +1,5 @@
 ---
-title: Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API
+title: TASK-027 — Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API
 description: The dashboard moved from legacy CT201 to k3s under Argo CD, behind Authentik forward authentication, with cards for the new platform and a widget API fed by Proxmox, Prometheus and HTTP checks.
 published: true
 tags:
@@ -15,7 +15,7 @@ date: '2026-11-19T00:00:00.000Z'
 dateCreated: '2026-11-19T00:00:00.000Z'
 ---
 
-# Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API
+# TASK-027 — Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API
 
 > **ID:** TASK-027 · **Type:** task · **Status:** completed · **Updated:** 2026-11-19 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md)
 
