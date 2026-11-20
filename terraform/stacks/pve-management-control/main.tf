@@ -33,6 +33,7 @@ resource "proxmox_virtual_environment_vm" "workstation" {
   started             = true
   on_boot             = true
   reboot_after_update = false
+  protection          = true # Proxmox refuses to remove this VM or its disk
   machine             = "q35"
   bios                = "seabios"
   scsi_hardware       = "virtio-scsi-single"
@@ -53,6 +54,19 @@ resource "proxmox_virtual_environment_vm" "workstation" {
   vga {
     type   = "std" # the Proxmox console shows the GDM login screen and the desktop
     memory = 32
+  }
+  # The host's graphics adapter, through a Proxmox resource mapping (`make mgmt-gpu-mapping`): GNOME, the
+  # editors and the browsers then render on it instead of on the CPU. The virtual display above stays for
+  # the Proxmox console. Proxmox takes the device from the host's driver when the VM starts.
+  dynamic "hostpci" {
+    for_each = var.profile.gpu_mapping == null ? [] : [var.profile.gpu_mapping]
+    content {
+      device  = "hostpci0"
+      mapping = hostpci.value
+      pcie    = false
+      rombar  = true
+      xvga    = false
+    }
   }
   disk {
     datastore_id = var.profile.disk_datastore

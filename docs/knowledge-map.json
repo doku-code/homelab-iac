@@ -690,6 +690,10 @@
         {
           "from": "M001",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-028",
+          "field": "related_decisions"
         }
       ]
     },
@@ -2615,6 +2619,10 @@
         },
         {
           "from": "TASK-010",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-028",
           "field": "milestone"
         }
       ]
@@ -5696,6 +5704,62 @@
           "field": "related_tasks"
         }
       ]
+    },
+    {
+      "id": "TASK-028",
+      "title": "Workstation VM renders on the host's graphics adapter",
+      "summary": "VM 100 gets the Intel UHD 630 of pve-management through a resource mapping, all twelve host threads and Proxmox protection; cold start with automatic rollback.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md",
+      "tags": [
+        "workstation",
+        "proxmox",
+        "gpu",
+        "performance"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M001",
+      "source": null,
+      "version": null,
+      "headings": [
+        "Workstation VM renders on the host's graphics adapter",
+        "Goal",
+        "Context",
+        "What was changed",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related_decisions": [
+          "ADR-009"
+        ],
+        "related_implementations": [
+          "terraform/stacks/pve-management-control/main.tf",
+          "terraform/stacks/pve-management-control/variables.tf",
+          "scripts/mgmt-gpu-switch.sh",
+          "ansible/roles/admin_workstation/defaults/main.yml"
+        ],
+        "related_tests": [
+          "terraform/stacks/pve-management-control/tests/profile.tftest.hcl"
+        ],
+        "milestone": [
+          "M001"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -5782,7 +5846,8 @@
       "TASK-024",
       "TASK-025",
       "TASK-026",
-      "TASK-027"
+      "TASK-027",
+      "TASK-028"
     ]
   },
   "by_tag": {
@@ -5930,6 +5995,9 @@
       "ADR-005",
       "TASK-024"
     ],
+    "gpu": [
+      "TASK-028"
+    ],
     "grafana": [
       "TASK-020",
       "TASK-026"
@@ -6056,6 +6124,9 @@
     "pbs": [
       "TASK-004"
     ],
+    "performance": [
+      "TASK-028"
+    ],
     "phase": [
       "ADR-004",
       "TASK-019"
@@ -6084,7 +6155,8 @@
       "INV-new-proxmox-cluster-inventory",
       "TASK-002",
       "TASK-013",
-      "TASK-021"
+      "TASK-021",
+      "TASK-028"
     ],
     "pve-core": [
       "ADR-010",
@@ -6196,7 +6268,8 @@
     ],
     "workstation": [
       "ADR-009",
-      "GUIDE-handoff"
+      "GUIDE-handoff",
+      "TASK-028"
     ]
   },
   "broken_references": []

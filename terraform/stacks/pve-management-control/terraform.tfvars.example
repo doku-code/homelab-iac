@@ -15,6 +15,7 @@ profile = {
   cores           = 8                # GNOME admin workstation running Claude Code / Codex (ADR-009)
   memory          = 10240            # MiB; ~3.5 GiB left for later management VMs after host overhead
   disk_gb         = 120
+  # gpu_mapping   = "igpu"           # host graphics adapter (make mgmt-gpu-mapping); omit for none
 }
 
 desktop_iso = {

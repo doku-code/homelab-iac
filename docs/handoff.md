@@ -177,6 +177,10 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   operator's approval: `make homepage-pve-token`), the TrueNAS, Plex and qBittorrent credentials (only inside
   CT201, which therefore still runs), then stopping CT201. Wiki.js (CT202) is next and waits for the operator: version 2 or 3, and a way to get
   its content out ([reference](reference/external/wiki-js-3-4-requirements-container-settings-and-migration-fr.md)).
+- **Workstation graphics** 2026-11-20 ([TASK-028](../tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md),
+  in progress): VM 100 gets the host's Intel adapter (`profile.gpu_mapping`, `make mgmt-gpu-mapping`), 12 cores
+  and Proxmox protection. Applied, effective at the cold start done by `make mgmt-gpu-switch`; **first thing
+  to do in the next session: read `/root/vm-100-gpu-switch.log` on `pve-management`** and finish the task.
 - **Operator roadmap (2026-11-17):** all items are deployed.
 
 ## Commands

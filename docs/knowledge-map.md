@@ -27,7 +27,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 1, in-progress: 2, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](../milestones/M012-backups-and-finalization.md) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
-| M001 | completed | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 4, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
+| M001 | completed | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 4, in-progress: 2 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
 | M002 | completed | critical | [New Proxmox cluster (four nodes)](../milestones/M002-proxmox-compute-capacity.md) | completed: 1 | The new cluster doku-lab runs on pve-management, pve-core, pve-infra and the new pve-lab (.16), quorate, with its hardware and capacity inventoried. |
 | M003 | completed | high | [Dedicated Forgejo deployment runner](../milestones/M003-deployment-runner.md) | completed: 1 | A dedicated runner VM, built with OpenTofu and Ansible, executes approved infrastructure workflows from the existing Forgejo with scoped credentials. |
 | M004 | completed | high | [k3s bootstrap](../milestones/M004-k3s-bootstrap.md) | completed: 2 | The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl. |
@@ -44,6 +44,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-019 | in-progress | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md) | Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account. |
 | TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
 | TASK-027 | in-progress | medium | M010 | [Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API](../tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md) | The dashboard moved from legacy CT201 to k3s under Argo CD, behind Authentik forward authentication, with cards for the new platform and a widget API fed by Proxmox, Prometheus and HTTP checks. |
+| TASK-028 | in-progress | medium | M001 | [Workstation VM renders on the host's graphics adapter](../tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md) | VM 100 gets the Intel UHD 630 of pve-management through a resource mapping, all twelve host threads and Proxmox protection; cold start with automatic rollback. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -163,6 +164,7 @@ _No commit records. Generate with `harness history sync`._
 - **forgejo**: ADR-014, TASK-014
 - **forward-auth**: TASK-027
 - **gitops**: ADR-005, TASK-024
+- **gpu**: TASK-028
 - **grafana**: TASK-020, TASK-026
 - **guide**: GUIDE-handoff
 - **handoff**: GUIDE-handoff
@@ -192,13 +194,14 @@ _No commit records. Generate with `harness history sync`._
 - **overview**: DOC-project-overview
 - **patroni**: ADR-013, ADR-015, TASK-018
 - **pbs**: TASK-004
+- **performance**: TASK-028
 - **phase**: ADR-004, TASK-019
 - **plan**: INV-pve-management-bootstrap
 - **planning**: M000, TASK-005
 - **platform**: ARCH-platform
 - **postgresql**: ADR-013, ADR-015, TASK-018
 - **prometheus**: TASK-020
-- **proxmox**: ADR-002, ADR-010, INV-new-proxmox-cluster-inventory, TASK-002, TASK-013, TASK-021
+- **proxmox**: ADR-002, ADR-010, INV-new-proxmox-cluster-inventory, TASK-002, TASK-013, TASK-021, TASK-028
 - **pve-core**: ADR-010, TASK-013
 - **pve-management**: ADR-009, ADR-010, GUIDE-handoff, INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview
@@ -223,7 +226,7 @@ _No commit records. Generate with `harness history sync`._
 - **vision**: DOC-project-overview
 - **wiki**: REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
 - **windmill**: ADR-005, ADR-011, TASK-025, TASK-026
-- **workstation**: ADR-009, GUIDE-handoff
+- **workstation**: ADR-009, GUIDE-handoff, TASK-028
 
 ## By component
 

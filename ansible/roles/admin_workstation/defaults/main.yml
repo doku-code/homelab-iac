@@ -13,6 +13,8 @@ admin_workstation_apt:
   - gnome-remote-desktop
   - flatpak
   - fonts-jetbrains-mono
+  - intel-media-va-driver # video encoding and decoding on the passed-through Intel adapter
+  - vainfo
   - ufw # restricts RDP to the trusted networks below
   # Build and language tooling
   - build-essential

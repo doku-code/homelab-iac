@@ -540,6 +540,41 @@ mgmt-configure:
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-mgmt-control.yml \
 	--diff -e mgmt_source_commit="$(MGMT_SOURCE_COMMIT)" -e mgmt_secrets_dir="$(MGMT_SECRETS_DIR)"
 
+# The host's graphics adapter for the workstation VM (profile.gpu_mapping). Run as root on the host over SSH,
+# because the token of this root may only use a mapping, not define one:
+#   mgmt-gpu-mapping  declares the adapter as the cluster resource mapping MGMT_GPU_MAPPING and lets the
+#                     token use that one mapping. Changes nothing on a running VM.
+#   mgmt-gpu-switch   cold-starts the VM so that pending hardware changes (make mgmt-apply) take effect. It
+#                     runs on the host, detached: the workstation and every session on it stop. When the VM
+#                     does not answer afterwards, the host takes the adapter out of it and starts it again
+#                     (scripts/mgmt-gpu-switch.sh; log /root/vm-<id>-gpu-switch.log on the host).
+MGMT_GPU_HOST ?= 192.168.0.10
+MGMT_GPU_MAPPING ?= igpu
+MGMT_GPU_DEVICE ?= 0000:00:02.0
+MGMT_GPU_VM ?= 100
+MGMT_GPU_VM_ADDRESS ?= 192.168.0.39
+MGMT_GPU_DELAY ?= 120
+
+.PHONY: mgmt-gpu-mapping mgmt-gpu-switch
+
+mgmt-gpu-mapping:
+	@test "$(MGMT_GPU_MAPPING_APPROVED)" = yes || (echo "Approve the resource mapping and its permission with MGMT_GPU_MAPPING_APPROVED=yes" >&2; exit 1)
+	@ssh -o BatchMode=yes root@$(MGMT_GPU_HOST) 'set -eu; d=$(MGMT_GPU_DEVICE); s=/sys/bus/pci/devices/$$d; \
+	id="$$(cut -c3- $$s/vendor):$$(cut -c3- $$s/device)"; sub="$$(cut -c3- $$s/subsystem_vendor):$$(cut -c3- $$s/subsystem_device)"; \
+	group="$$(basename "$$(readlink $$s/iommu_group)")"; \
+	test "$$(ls $$s/iommu_group/devices | wc -l)" = 1 || { echo "$$d shares its IOMMU group with other devices" >&2; exit 1; }; \
+	pvesh get /cluster/mapping/pci --output-format json | grep -q "\"id\":\"$(MGMT_GPU_MAPPING)\"" \
+	  || pvesh create /cluster/mapping/pci --id $(MGMT_GPU_MAPPING) --description "Graphics adapter of pve-management for the workstation VM" \
+	       --map "node=$$(hostname),path=$$d,id=$$id,subsystem-id=$$sub,iommugroup=$$group"; \
+	pveum acl modify /mapping/pci/$(MGMT_GPU_MAPPING) --users tofu@pve --tokens "tofu@pve!mgmt" --roles PVEMappingUser; \
+	pvesh get /cluster/mapping/pci/$(MGMT_GPU_MAPPING) --output-format json'
+
+mgmt-gpu-switch:
+	@test "$(MGMT_GPU_SWITCH_APPROVED)" = yes || (echo "This stops the workstation VM and every session on it: approve with MGMT_GPU_SWITCH_APPROVED=yes" >&2; exit 1)
+	@scp -q -o BatchMode=yes scripts/mgmt-gpu-switch.sh root@$(MGMT_GPU_HOST):/usr/local/sbin/mgmt-gpu-switch.sh
+	@ssh -o BatchMode=yes root@$(MGMT_GPU_HOST) 'systemd-run --unit=mgmt-gpu-switch-$$(date +%s) --on-active=$(MGMT_GPU_DELAY) --timer-property=AccuracySec=1s /usr/local/sbin/mgmt-gpu-switch.sh $(MGMT_GPU_VM) $(MGMT_GPU_VM_ADDRESS)'
+	@echo "VM $(MGMT_GPU_VM) is shut down and started again in $(MGMT_GPU_DELAY) seconds"
+
 # Encrypted, dated off-machine copy of the local state (age public recipients only).
 mgmt-state-backup:
 	@command -v age >/dev/null || (echo "Install age first" >&2; exit 1)

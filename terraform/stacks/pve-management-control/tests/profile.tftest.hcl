@@ -155,3 +155,35 @@ run "rejects_plain_http_endpoint" {
   }
   expect_failures = [var.proxmox_endpoint]
 }
+
+run "graphics_adapter_passed_through_a_mapping" {
+  command = plan
+  variables {
+    profile = {
+      node            = "pve-management"
+      vm_id           = 990
+      name            = "mgmt-control-01"
+      image_datastore = "mock-images"
+      disk_datastore  = "mock-disks"
+      bridge          = "mock-bridge"
+      ipv4            = "192.0.2.50/24"
+      gateway         = "192.0.2.1"
+      dns_servers     = ["192.0.2.53"]
+      cores           = 2
+      memory          = 4096
+      disk_gb         = 40
+      gpu_mapping     = "mock-gpu"
+    }
+  }
+  assert {
+    condition = (
+      length(proxmox_virtual_environment_vm.workstation[0].hostpci) == 1 &&
+      proxmox_virtual_environment_vm.workstation[0].hostpci[0].mapping == "mock-gpu" &&
+      proxmox_virtual_environment_vm.workstation[0].hostpci[0].id == null &&
+      !proxmox_virtual_environment_vm.workstation[0].hostpci[0].xvga &&
+      proxmox_virtual_environment_vm.workstation[0].vga[0].type == "std" &&
+      proxmox_virtual_environment_vm.workstation[0].protection
+    )
+    error_message = "The graphics adapter must come from a resource mapping, beside the console display, on a protected VM."
+  }
+}

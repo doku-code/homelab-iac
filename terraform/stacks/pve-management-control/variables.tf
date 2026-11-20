@@ -22,6 +22,7 @@ variable "profile" {
     cores           = number
     memory          = number
     disk_gb         = number
+    gpu_mapping     = optional(string) # Proxmox PCI resource mapping passed to the VM; null: none
   })
   validation {
     condition     = var.profile.node == "pve-management"
