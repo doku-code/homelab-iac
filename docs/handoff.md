@@ -35,7 +35,7 @@ secrets or state in Git, never destroy a workload before its replacement works.
 | New cluster `doku-lab` | Proxmox VE 9.2, quorate, 4 nodes: `pve-management` .10, `pve-core` .11, `pve-infra` .12, new `pve-lab` .16 ([inventory](investigations/new-proxmox-cluster-inventory.md)); only VM 100 exists |
 | `mgmt-control-01` VM 100, 192.168.0.39 on `pve-management` | Ubuntu Desktop 26.04.1, 8 vCPU, 10 GiB, 120 GiB; OpenTofu + autoinstall + Ansible; **the operator workstation and the only OpenTofu executor** |
 | Old environment: `pve-lab` **192.168.0.14** | Ryzen 9 9950X3D, independent, runs the legacy services; never join, rename or reconfigure it. Future `pve-compute` after M010 |
-| Legacy services | On the old host and TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent, Vaultwarden, Wiki.js (CT202), Caddy (CT204, only `git`, `cloud` and the public tunnel). Replaced and stopped: Infisical, AdGuard (CT200), monitoring (VM 208), Homepage (CT201). Stopped, not replaced yet: Wiki.js (CT202) |
+| Legacy services | On the old host and TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent, Vaultwarden, Wiki.js (CT202), Caddy (CT204, only `git`, `cloud` and the public tunnel). Replaced and stopped: Infisical, AdGuard (CT200), monitoring (VM 208), Homepage (CT201), Wiki.js (CT202; its content was not carried over, by the operator's decision) |
 
 Two hosts are named `pve-lab` and `pve-lab.doku-lab.net` resolves to the old side's proxy (.24): **always
 use IPs**. The new nodes have no DNS records.
@@ -177,6 +177,15 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   the digest to put in `deployment.yaml`. Completed 2026-11-20: read-only Proxmox token `homepage@pve`,
   credentials of the old dashboard copied from CT201 to the store, CT201 stopped. qBittorrent shows offline
   because its application is stopped on TrueNAS.
+- **Wiki on k3s** 2026-11-20 ([TASK-029](../tasks/TASK-029-wiki-js-3-on-k3s-showing-this-repository-s-documentation.md),
+  completed): `https://wiki.doku-lab.net` is Wiki.js 3.5 (`services/wiki`, official chart, shared PostgreSQL,
+  no volume). Its pages are this repository's documentation: `scripts/wiki-export.py` writes the page tree to
+  the branch `wiki` (CI does it on every change of `main`), the wiki pulls that branch every five minutes.
+  **Edit the repository, never the wiki**: a page changed in the wiki is overwritten. Redeploy:
+  `scripts/secrets.py run /wiki /postgresql -- make wiki-deploy WIKI_DEPLOY_APPROVED=yes`, then
+  `scripts/secrets.py run /wiki /authentik -- make wiki-configure WIKI_CONFIGURE_APPROVED=yes` (site, proxy
+  trust, Git storage, Authentik sign-in, through the wiki's API). Local administrator: `admin@doku-lab.net`,
+  password at `/wiki` in the store.
 - **Workstation graphics** 2026-11-20 ([TASK-028](../tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md),
   completed): VM 100 gets the host's Intel adapter (`profile.gpu_mapping`, `make mgmt-gpu-mapping`), 12 cores
   and Proxmox protection. Running since 2026-11-20 after a failed first start (see Known issues): GNOME

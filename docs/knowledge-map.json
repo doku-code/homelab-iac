@@ -963,6 +963,10 @@
         {
           "from": "TASK-027",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-029",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1384,6 +1388,10 @@
         {
           "from": "TASK-026",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-029",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1531,6 +1539,10 @@
         },
         {
           "from": "TASK-027",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-029",
           "field": "related_decisions"
         }
       ]
@@ -1867,6 +1879,10 @@
         },
         {
           "from": "TASK-027",
+          "field": "related"
+        },
+        {
+          "from": "TASK-029",
           "field": "related"
         }
       ]
@@ -3598,6 +3614,10 @@
         {
           "from": "TASK-027",
           "field": "related"
+        },
+        {
+          "from": "TASK-029",
+          "field": "related"
         }
       ]
     },
@@ -3700,7 +3720,12 @@
           "M010"
         ]
       },
-      "backrefs": []
+      "backrefs": [
+        {
+          "from": "TASK-029",
+          "field": "related"
+        }
+      ]
     },
     {
       "id": "TASK-001",
@@ -5456,6 +5481,10 @@
         {
           "from": "TASK-027",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-029",
+          "field": "depends_on"
         }
       ]
     },
@@ -5783,9 +5812,14 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-029-wiki-js-3-on-k3s-showing-this-repository-s-documentation.md",
-      "tags": [],
+      "tags": [
+        "wiki",
+        "documentation",
+        "authentik",
+        "migration"
+      ],
       "component": null,
       "technology": null,
       "priority": "medium",
@@ -5796,13 +5830,44 @@
         "Wiki.js 3 on k3s showing this repository's documentation",
         "Goal",
         "Context",
+        "What was built",
         "Acceptance criteria",
         "Verification",
         "Tests",
         "Evidence",
+        "Not done",
         "Completion summary"
       ],
       "relations": {
+        "related": [
+          "ARCH-platform",
+          "M014",
+          "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr"
+        ],
+        "related_decisions": [
+          "ADR-017",
+          "ADR-015",
+          "ADR-011"
+        ],
+        "depends_on": [
+          "TASK-024"
+        ],
+        "related_implementations": [
+          "services/wiki/",
+          "services/argocd/apps/wiki.yaml",
+          "services/authentik/blueprints/homelab-wiki.yaml",
+          "scripts/wiki-export.py",
+          "scripts/wiki-admin.py",
+          "scripts/sso-check.py",
+          ".forgejo/workflows/harness-wiki-publish.yml",
+          "ansible/vars/postgresql-apps.yml",
+          "services/ingress/legacy-routes.yaml"
+        ],
+        "related_tests": [
+          "tests/wiki.py",
+          "tests/authentik.py",
+          "tests/argocd.py"
+        ],
         "milestone": [
           "M010"
         ]
@@ -5939,7 +6004,8 @@
       "ADR-017",
       "M014",
       "TASK-026",
-      "TASK-027"
+      "TASK-027",
+      "TASK-029"
     ],
     "automation": [
       "TASK-025"
@@ -6021,6 +6087,9 @@
     ],
     "dns": [
       "TASK-022"
+    ],
+    "documentation": [
+      "TASK-029"
     ],
     "etcd": [
       "TASK-018",
@@ -6134,7 +6203,8 @@
       "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr",
       "TASK-005",
       "TASK-019",
-      "TASK-027"
+      "TASK-027",
+      "TASK-029"
     ],
     "netbox": [
       "ADR-016",
@@ -6307,7 +6377,8 @@
       "DOC-project-overview"
     ],
     "wiki": [
-      "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr"
+      "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr",
+      "TASK-029"
     ],
     "windmill": [
       "ADR-005",

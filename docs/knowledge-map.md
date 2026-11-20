@@ -24,7 +24,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M009 | active | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | completed: 2 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M013 | active | medium | [NetBox inventory and IPAM](../milestones/M013-netbox-inventory-and-ipam.md) | completed: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
 | M014 | active | medium | [Single sign-on with Authentik](../milestones/M014-single-sign-on-with-authentik.md) | completed: 1 | Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator. |
-| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 2, in-progress: 2, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
+| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 3, in-progress: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](../milestones/M012-backups-and-finalization.md) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
 | M001 | completed | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 5, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
@@ -43,7 +43,6 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-006 | in-progress | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](../tasks/TASK-006-target-layout-and-service-contract.md) | Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check). |
 | TASK-019 | in-progress | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md) | Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account. |
 | TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
-| TASK-029 | in-progress | medium | M010 | [Wiki.js 3 on k3s showing this repository's documentation](../tasks/TASK-029-wiki-js-3-on-k3s-showing-this-repository-s-documentation.md) | Wiki.js 3.5 on k3s under Argo CD with the shared PostgreSQL and Authentik sign-in; its pages are generated from this repository and pulled by the wiki's Git storage. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -68,6 +67,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-026 | completed | medium | M014 | [Authentik on k3s and single sign-on for Argo CD, Grafana, NetBox and Windmill](../tasks/TASK-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb.md) | Authentik 2026.8.5 under Argo CD on the shared PostgreSQL; applications and groups as blueprints; OIDC sign-in wired for Argo CD, Grafana, NetBox and Windmill with local administrators kept. |
 | TASK-027 | completed | medium | M010 | [Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API](../tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md) | The dashboard moved from legacy CT201 to k3s under Argo CD, behind Authentik forward authentication, with cards for the new platform and a widget API fed by Proxmox, Prometheus and HTTP checks. |
 | TASK-028 | completed | medium | M001 | [Workstation VM renders on the host's graphics adapter](../tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md) | VM 100 gets the Intel UHD 630 of pve-management through a resource mapping, all twelve host threads and Proxmox protection; cold start with automatic rollback. |
+| TASK-029 | completed | medium | M010 | [Wiki.js 3 on k3s showing this repository's documentation](../tasks/TASK-029-wiki-js-3-on-k3s-showing-this-repository-s-documentation.md) | Wiki.js 3.5 on k3s under Argo CD with the shared PostgreSQL and Authentik sign-in; its pages are generated from this repository and pulled by the wiki's Git storage. |
 
 ## Decisions
 
@@ -140,7 +140,7 @@ _No commit records. Generate with `harness history sync`._
 - **archive**: ADR-007
 - **argocd**: ADR-006, ADR-011, TASK-024, TASK-026
 - **authentication**: ADR-017
-- **authentik**: ADR-017, M014, TASK-026, TASK-027
+- **authentik**: ADR-017, M014, TASK-026, TASK-027, TASK-029
 - **automation**: TASK-025
 - **backup**: ADR-012, TASK-003, TASK-004, TASK-010
 - **bootstrap**: ADR-002, ADR-008, INV-pve-management-bootstrap, M001
@@ -159,6 +159,7 @@ _No commit records. Generate with `harness history sync`._
 - **deployment**: ADR-014
 - **desktop**: ADR-009
 - **dns**: TASK-022
+- **documentation**: TASK-029
 - **etcd**: TASK-018, TASK-021
 - **external**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
 - **flux**: ADR-006
@@ -186,7 +187,7 @@ _No commit records. Generate with `harness history sync`._
 - **m002**: TASK-013
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
-- **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027
+- **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029
 - **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026
 - **nfs**: TASK-017
 - **nvme**: ADR-012
@@ -225,7 +226,7 @@ _No commit records. Generate with `harness history sync`._
 - **traefik**: TASK-021, TASK-022
 - **truenas**: ADR-012
 - **vision**: DOC-project-overview
-- **wiki**: REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
+- **wiki**: REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-029
 - **windmill**: ADR-005, ADR-011, TASK-025, TASK-026
 - **workstation**: ADR-009, GUIDE-handoff, TASK-028
 
