@@ -69,6 +69,7 @@ Out of scope:
 |-----------|-----------------|--------|------|
 | Deployment, four applications, local administrators | See [TASK-026](/tasks/task-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb) | Done: `make sso-check` signs in to all four as administrator; the four local logins answer | 2026-11-18 |
 | Proxmox | `make proxmox-sso`, `make sso-check` | Done: realm `authentik` on the doku-lab cluster (approved by the operator 2026-11-20); `ok proxmox signed in as akadmin@authentik, groups ['homelab-admins-authentik'], 47 privileges on /`. The default realm, `root@pam` and the API tokens are unchanged | 2026-11-20 |
+| Wiki | `make wiki-configure`, `make sso-check` | Done: `ok wiki signed in as admin@doku-lab.net, groups ['Administrators']`; the local sign-in stays offered | 2026-11-20 |
 | Headlamp | | not started: the Kubernetes API servers must be told to trust Authentik (a k3s setting and a restart of each server); waits for the operator's approval | |
 | Forgejo | | not started: Forgejo declares sign-in sources only in its administration pages or with its command line inside the container (no API), and the token on the workstation has no administration scope | |
 | Phase | | not started: the operator links their own account | |

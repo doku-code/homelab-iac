@@ -43,14 +43,15 @@ Out of scope:
 
 ## Acceptance criteria
 
-- [ ] At least one legacy service migrated and its old workload retired
+- [x] At least one legacy service migrated and its old workload retired
 - [ ] A reclaimed host joined through the M002 procedure
 
 ## Verification evidence
 
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
-| | | not verified | |
+| Legacy service migrated, old workload retired | [TASK-027](/tasks/task-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab), [TASK-029](/tasks/task-029-wiki-js-3-on-k3s-showing-this-repository-s-documentation) | Homepage and the wiki run on k3s under Argo CD behind Authentik; CT201 and CT202 are stopped (kept, not deleted). The applications hosted on TrueNAS are outside this milestone by the operator's decision of 2026-11-20 | 2026-11-20 |
+| Reclaimed host joined | | not started: the old host still runs the legacy Caddy, Vaultwarden, the Tailscale routers and the migration runner | |
 
 ## Completion summary
 

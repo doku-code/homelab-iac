@@ -25,8 +25,27 @@ to k3s. Read on 2026-11-19, before any deployment: nothing here has been run in 
 
 ## Usage in this project
 
-Not deployed. The legacy wiki answers a guest's API request with the list of pages but not their source
-[observed: project], so its content can only leave it through its administration area or its database.
+Deployed 2026-11-20 as 3.5.0 (TASK-029): `services/wiki` (official chart), configured by `scripts/wiki-admin.py`,
+content from `scripts/wiki-export.py`. The old wiki's content was not migrated (operator's decision). Observed
+with 3.5.0 [observed: project]:
+
+- The API is REST under `/_api` (OpenAPI document at `/_api/json`); a session comes from
+  `PUT /_api/sites/{site}/auth/login` with the local strategy's fixed identifier, user name and password.
+- Every setting used here has an endpoint: site (`PUT /_api/sites/{site}`), security
+  (`PUT /_api/system/security`), storage (`PUT /_api/sites/{site}/storage`, actions `sync` and `importAll`
+  under `.../storage/targets/{id}/actions/`), sign-in methods (`/_api/authentication/strategies`).
+- Behind a proxy that ends TLS, `trustProxy` must be on, or the callback address of a sign-in method starts
+  with `http://`.
+- Git storage: no sub-directory setting (the branch root is the page tree); a file is read as a page with
+  front matter only when the front matter has `editor:`; `stripLeadingH1` takes the first heading as title;
+  `mapReadmeToHome` files `README.md` as the home page; with `localePrefix` off the tree has no language
+  folder. The first sync takes the remote as it stands and imports nothing until `importAll` is called.
+- The callback address of an OIDC method is `/_api/auth/<identifier>/callback`, the identifier being generated
+  by the wiki at creation. A sign-in whose e-mail address matches an existing account lands on that account.
+- `GET /_api/sites/{site}/pages` is not implemented (always empty); the number of pages is `pagesTotal` in
+  `GET /_api/system/info`.
+- The chart's own PostgreSQL is off; the wiki's role owns its database and creates `ltree` and `pg_trgm`
+  without being superuser. A server certificate that cannot be verified needs `ssl.rejectUnauthorized: false`.
 
 ## Key APIs
 
