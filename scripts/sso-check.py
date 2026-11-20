@@ -212,7 +212,27 @@ def proxmox(browser, password):
     return ok, f"signed in as {session['username']}, groups {groups}, {len(rights)} privileges on /"
 
 
-CHECKS = {"argocd": argocd, "grafana": grafana, "netbox": netbox, "windmill": windmill, "homepage": homepage, "proxmox": proxmox}
+def wiki(browser, password):
+    base = "https://wiki.doku-lab.net"
+    _, _, text = browser.request("GET", f"{base}/_api/sites/wiki.doku-lab.net")
+    site = json.loads(text)["id"]
+    _, _, text = browser.request("GET", f"{base}/_api/sites/{site}/auth/strategies")
+    offered = [s["id"] for s in json.loads(text) if (s.get("activeStrategy") or {}).get("displayName") == "Authentik"]
+    if not offered:
+        raise Stop("the wiki does not offer Authentik on its sign-in page")
+    strategy = offered[0]
+    callback = browser.sign_in(f"{base}/_api/auth/{strategy}/authorize", password, f"{base}/_api/auth/{strategy}/callback")
+    browser.follow(callback, lambda u: "/_api/auth/" not in u)
+    status, _, text = browser.request("GET", f"{base}/_api/users/whoami")
+    who = json.loads(text) if status == 200 else {}
+    status, _, text = browser.request("GET", f"{base}/_api/users/profile/groups")
+    groups = [g.get("name") for g in json.loads(text)] if status == 200 else []
+    pages, _, _ = browser.request("GET", f"{base}/_api/system/info")
+    ok = who.get("authenticated") is True and "Administrators" in groups and pages == 200
+    return ok, f"signed in as {who.get('email') or who.get('name')}, groups {groups}, administration API HTTP {pages}"
+
+
+CHECKS = {"argocd": argocd, "grafana": grafana, "netbox": netbox, "windmill": windmill, "homepage": homepage, "proxmox": proxmox, "wiki": wiki}
 
 
 def main(argv):

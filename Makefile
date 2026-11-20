@@ -1114,7 +1114,7 @@ argocd-password:
 
 WIKI_SECRET_INPUTS := WIKI_ADMIN_PASSWORD PG_APP_WIKI_PASSWORD
 
-.PHONY: wiki-check wiki-secrets wiki-deploy
+.PHONY: wiki-check wiki-secrets wiki-deploy wiki-configure wiki-export wiki-publish wiki-sync wiki-status
 
 # Offline: renders the pinned chart with our values and checks route and wiring (needs the chart download).
 wiki-check:
@@ -1138,6 +1138,33 @@ wiki-deploy:
 	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/wiki-secrets applied"
 	kubectl --context doku-lab apply -f services/argocd/apps/wiki.yaml
 	$(call ARGOCD_WAIT,wiki)
+
+# Site name, Git storage and sign-in through Authentik, written through the wiki's API as its local
+# administrator; then one pull of the whole tree. Changes only what differs.
+#   scripts/secrets.py run /wiki /authentik -- make wiki-configure WIKI_CONFIGURE_APPROVED=yes
+wiki-configure:
+	@test "$(WIKI_CONFIGURE_APPROVED)" = yes || (echo "Approve the configuration of the wiki with WIKI_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	$(VENV)/bin/python scripts/wiki-admin.py configure
+
+# The documentation as the wiki's page tree: wiki-export writes it to WIKI_EXPORT_DIR to look at it,
+# wiki-publish pushes it to the branch `wiki` of WIKI_REMOTE (CI does this on every change of main:
+# .forgejo/workflows/wiki-js-publish.yml), wiki-sync makes the wiki pull now.
+WIKI_EXPORT_DIR ?= .local/wiki-export
+WIKI_REMOTE ?= https://git.doku-lab.net/Homelab/homelab-iac.git
+
+wiki-export:
+	$(VENV)/bin/python scripts/wiki-export.py --out $(WIKI_EXPORT_DIR)
+
+wiki-publish:
+	@test "$(WIKI_PUBLISH_APPROVED)" = yes || (echo "Approve the push to the branch wiki of $(WIKI_REMOTE) with WIKI_PUBLISH_APPROVED=yes" >&2; exit 1)
+	$(VENV)/bin/python scripts/wiki-export.py --publish $(WIKI_REMOTE)
+
+#   scripts/secrets.py run /wiki -- make wiki-sync
+wiki-sync:
+	$(VENV)/bin/python scripts/wiki-admin.py sync
+
+wiki-status:
+	$(VENV)/bin/python scripts/wiki-admin.py status
 
 # ─────────────────────────────────────────────
 # NetBox (M013, ADR-016): inventory and IPAM on k3s (services/netbox), official chart, shared PostgreSQL.
@@ -1271,7 +1298,7 @@ windmill-push:
 AUTHENTIK_CHART_VERSION := 2026.8.5
 AUTHENTIK_REPO := https://charts.goauthentik.io
 # One OIDC client secret per application that signs in through Authentik: SSO_<NAME>_CLIENT_SECRET.
-AUTHENTIK_CLIENTS := ARGOCD GRAFANA NETBOX PROXMOX WINDMILL
+AUTHENTIK_CLIENTS := ARGOCD GRAFANA NETBOX PROXMOX WIKI WINDMILL
 # Applications without a login of their own, protected by forward authentication at Traefik (no secret to share).
 AUTHENTIK_FORWARD_AUTH := HOMEPAGE
 AUTHENTIK_SECRET_INPUTS := AUTHENTIK_SECRET_KEY AUTHENTIK_BOOTSTRAP_PASSWORD AUTHENTIK_BOOTSTRAP_TOKEN $(foreach c,$(AUTHENTIK_CLIENTS),SSO_$(c)_CLIENT_SECRET)

@@ -146,7 +146,12 @@ def blueprints():
         # Proxmox sends the browser's own address without a path: its four names and its four node addresses.
         allowed = {"proxmox": r"https://(pve-(management|core|infra|lab)\.doku-lab\.net|192\.168\.0\.1[0126]:8006)"}.get(
             slug, rf"https://{slug}\.doku-lab\.net/[\w/.-]*")
+        # The wiki generates the identifier in its callback address: one anchored pattern, this host and path only.
+        patterns = {"wiki": r"^https://wiki\.doku-lab\.net/_api/auth/[0-9a-f-]{36}/callback$"}
         for redirect in attrs["redirect_uris"]:
+            if redirect["matching_mode"] == "regex":
+                assert redirect["url"] == patterns.get(slug), redirect
+                continue
             assert redirect["matching_mode"] == "strict" and re.fullmatch(allowed, redirect["url"]), redirect
         declared.add(slug.upper())
     assert declared == clients, f"AUTHENTIK_CLIENTS in the Makefile and the blueprints disagree: {declared ^ clients}"
@@ -220,7 +225,16 @@ def clients():
     assert make_var("PROXMOX_SSO_GROUP") == "homelab-admins-$(PROXMOX_SSO_REALM)"
     assert not re.search(r"pveum (user|realm) (delete|del)|passwd|root@pam", proxmox), "root@pam and the other accounts are untouched"
 
-    checked = {"ARGOCD", "GRAFANA", "NETBOX", "PROXMOX", "WINDMILL"}
+    # The wiki: configured through its API by scripts/wiki-admin.py, secret from the environment, local sign-in kept.
+    spec = importlib.util.spec_from_file_location("wiki_admin", ROOT / "scripts/wiki-admin.py")
+    wiki = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wiki)
+    config = wiki.sso_config("synthetic")
+    assert config["clientId"] == "wiki" and config["clientSecret"] == "synthetic" and config["issuer"] == f"{ISSUER}/wiki/"
+    assert config["useDiscovery"] is True and "email" in config["scopes"]
+    assert 'test "$(WIKI_CONFIGURE_APPROVED)" = yes' in recipe("wiki-configure")
+
+    checked = {"ARGOCD", "GRAFANA", "NETBOX", "PROXMOX", "WIKI", "WINDMILL"}
     assert set(make_var("AUTHENTIK_CLIENTS").split()) == checked, "add the new client's own side to this test"
 
 
@@ -305,7 +319,7 @@ def main():
     forward_auth()
     tools()
     print("PASS: Authentik chart pinned with single replicas, no Kubernetes credentials, shared PostgreSQL over TLS, LAN and pod "
-          "network route, blueprints with client secrets from the environment and group-restricted applications, five "
+          "network route, blueprints with client secrets from the environment and group-restricted applications, six "
           "applications wired on both sides with their local administrator kept, forward authentication on every route of "
           "the applications without a login")
 

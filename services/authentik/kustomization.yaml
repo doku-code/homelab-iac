@@ -17,4 +17,5 @@ configMapGenerator:
       - blueprints/homelab-netbox.yaml
       - blueprints/homelab-outpost.yaml
       - blueprints/homelab-proxmox.yaml
+      - blueprints/homelab-wiki.yaml
       - blueprints/homelab-windmill.yaml
