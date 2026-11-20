@@ -9,13 +9,13 @@ tags:
 - authentik
 - sso
 editor: markdown
-date: '2026-11-19T00:00:00.000Z'
+date: '2026-11-20T00:00:00.000Z'
 dateCreated: '2026-11-18T00:00:00.000Z'
 ---
 
 # M014 — Single sign-on with Authentik
 
-> **ID:** M014 · **Type:** milestone · **Status:** active · **Updated:** 2026-11-19 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/milestones/M014-single-sign-on-with-authentik.md)
+> **ID:** M014 · **Type:** milestone · **Status:** active · **Updated:** 2026-11-20 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/milestones/M014-single-sign-on-with-authentik.md)
 
 ## Objective
 
@@ -57,7 +57,7 @@ Out of scope:
 - [x] Authentik deployed from the repository, LAN only, credentials in the secret store
 - [x] Argo CD, Grafana, NetBox and Windmill sign in through it, administrators from one group
 - [x] Every connected application still accepts its local administrator
-- [ ] Headlamp signs in through it (the Kubernetes API servers trust Authentik)
+- [x] Headlamp signs in through it (the Kubernetes API servers trust Authentik)
 - [ ] The Proxmox hosts, Forgejo and Phase sign in through it
 - [x] Forward authentication available for interfaces without a login, used by at least one
 - [ ] The operator uses a personal account with a second factor
@@ -70,7 +70,7 @@ Out of scope:
 | Deployment, four applications, local administrators | See [TASK-026](/tasks/task-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb) | Done: `make sso-check` signs in to all four as administrator; the four local logins answer | 2026-11-18 |
 | Proxmox | `make proxmox-sso`, `make sso-check` | Done: realm `authentik` on the doku-lab cluster (approved by the operator 2026-11-20); `ok proxmox signed in as akadmin@authentik, groups ['homelab-admins-authentik'], 47 privileges on /`. The default realm, `root@pam` and the API tokens are unchanged | 2026-11-20 |
 | Wiki | `make wiki-configure`, `make sso-check` | Done: `ok wiki signed in as admin@doku-lab.net, groups ['Administrators']`; the local sign-in stays offered | 2026-11-20 |
-| Headlamp | | not started: the Kubernetes API servers must be told to trust Authentik (a k3s setting and a restart of each server); waits for the operator's approval | |
+| Headlamp | `make k3s-cluster-configure` (three servers, one at a time, each `changed=3`, all Ready), `make headlamp-deploy`, `make sso-check` | Done: `ok headlamp Kubernetes sees oidc:akadmin, groups ['oidc:authentik Admins', 'oidc:homelab-admins'], lists 3 nodes`; the seven other applications still `ok`; commit ebc4e05 | 2026-11-20 |
 | Forgejo | | not started: Forgejo declares sign-in sources only in its administration pages or with its command line inside the container (no API), and the token on the workstation has no administration scope | |
 | Phase | | not started: the operator links their own account | |
 | Forward authentication | `make sso-check` (see [TASK-027](/tasks/task-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab)) | Done: the dashboard answers 302 to Authentik without a session and 200 with one; embedded outpost, no Kubernetes connection | 2026-11-19 |

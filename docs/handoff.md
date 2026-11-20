@@ -105,7 +105,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   `k3s-server-02` (VM 311, .41, pve-core) and `k3s-server-03` (VM 312, .42, pve-lab), three etcd members,
   Traefik on every node. Two members are on pve-lab (operator decision): losing pve-lab stops the API,
   losing pve-core does not. kubeconfig and the published names still use `.40`.
-- **M005 completed** 2026-11-17: Headlamp at `https://headlamp.doku-lab.net/` (LAN only); log in with `HEADLAMP_ADMIN_TOKEN` from Infisical `dev:/headlamp`. Redeploy: `make headlamp-deploy`.
+- **M005 completed** 2026-11-17: Headlamp at `https://headlamp.doku-lab.net/` (LAN only); sign in through Authentik, or with `HEADLAMP_ADMIN_TOKEN` (store path `/headlamp`) when Authentik is down. Redeploy: `scripts/secrets.py run /authentik -- make headlamp-deploy HEADLAMP_DEPLOY_APPROVED=yes`.
 - **M006 completed** 2026-11-17 ([TASK-017](/tasks/task-017-shared-nfs-storage-vm-on-pve-core-and-nvme-shared-storagecla)):
   `storage-01` (VM 350, 192.168.0.50, pve-core) exports NFS to the k3s nodes; **user data uses
   `storageClassName: nvme-shared`** (Retain), app data may use the default `local-path`. One host, one disk,
@@ -168,8 +168,11 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   its group `homelab-admins` are administrators everywhere; every local administrator still works.
   Applications are the blueprints of `services/authentik/blueprints`; `scripts/secrets.py run /authentik --
   make sso-check` signs in to each one and reports. The Proxmox hosts sign in through the realm
-  `authentik` since 2026-11-20 (`make proxmox-sso`; `root@pam` and the tokens unchanged). Open: Headlamp (needs
-  the Kubernetes API servers to trust Authentik: k3s setting and a restart of each server), Forgejo (sources
+  `authentik` since 2026-11-20 (`make proxmox-sso`; `root@pam` and the tokens unchanged). Headlamp signs in
+  through it since 2026-11-20: the three k3s API servers accept Authentik's identity tokens of the client
+  `headlamp` (`ansible/roles/k3s/defaults`, names and groups prefixed `oidc:`), and `oidc:homelab-admins` is
+  bound to cluster-admin (`services/headlamp/access.yaml`); the token login still works without Authentik.
+  Open: Forgejo (left alone on the operator's word, 2026-11-20; sources
   are declared only in its administration pages or its command line), Phase (the operator links the account),
   the operator's personal account with a second factor.
 - **Homepage moved to k3s** 2026-11-19 ([TASK-027](/tasks/task-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab),
