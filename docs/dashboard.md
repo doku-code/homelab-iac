@@ -52,7 +52,7 @@ gantt
     M011 Ceph and infrastructure expansion :m011, 2026-11-12, 2026-11-14
     M012 Backups and finalization :m012, 2026-11-12, 2026-11-14
     M013 NetBox inventory and IPAM :active, m013, 2026-11-18, 2026-11-19
-    M014 Single sign-on with Authentik :active, m014, 2026-11-18, 2026-11-19
+    M014 Single sign-on with Authentik :active, m014, 2026-11-18, 2026-11-20
 ```
 
 ## Task board
