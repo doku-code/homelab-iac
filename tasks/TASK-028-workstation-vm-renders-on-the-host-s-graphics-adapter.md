@@ -3,7 +3,7 @@ id: TASK-028
 title: Workstation VM renders on the host's graphics adapter
 summary: VM 100 gets the Intel UHD 630 of pve-management through a resource mapping, all twelve host threads and Proxmox protection; cold start with automatic rollback.
 type: task
-status: in-progress
+status: completed
 priority: medium
 milestone: M001
 created: 2026-11-20
@@ -87,7 +87,7 @@ Shell more than one, about 70 % of the CPU busy with an idle desktop). Give the 
   udev rule set by hand
 - [x] GNOME Shell and Zed render on the adapter (CPU use of an idle desktop measured again)
 - [x] Whether the remote desktop server encodes on the adapter: observed and recorded
-- [ ] The role's rule reaches the VM through `make mgmt-configure` (needs the refreshed inventory output)
+- [x] The role's rule reaches the VM through `make mgmt-configure` (needs the refreshed inventory output)
 
 ## Verification
 
@@ -115,12 +115,14 @@ lspci -k | grep -A3 -i vga; glxinfo -B | grep -i renderer; vulkaninfo --summary 
 | Cold start | Failed as described under Incident; recovered by hand with the udev rule | `/root/vm-100-gpu-switch.log`, host journal | 2026-11-20 |
 | Adapters in the guest | `00:01.0` bochs-drm (`card0`, primary), `06:10.0` UHD 630 i915 (`card1`, `renderD128`); GNOME: `GPU /dev/dri/renderD128 selected as primary` for rendering | `lspci -k`, journal | 2026-11-20 |
 | CPU use | Before: load 4–5, Zed 187–400 %, GNOME Shell 104–129 %, about 70 % of 8 cores busy. After: load 0.5–0.7 with 12 cores, Zed about 58 %, GNOME Shell about 5 %, gnome-remote-desktop about 6 % | `top`, `uptime` | 2026-11-20 |
+| Output apply | Plan 07e9c06a…: no resource change, `ansible_inventory` gains `gpu_passthrough = true`; `Apply complete! Resources: 0 added, 0 changed, 0 destroyed` | `make mgmt-apply` | 2026-11-20 |
+| Configuration | `ok=45 changed=0 failed=0 skipped=10`; rule task `ok` (identical to the hand-made file), removal task skipped, no handler ran: GDM and remote login not restarted | `make mgmt-configure`, `.local/mgmt-configure-2026-11-20.log` | 2026-11-20 |
 | Remote desktop encoding | gnome-remote-desktop: `[HWAccel.VAAPI] Successfully initialized VAAPI 1.23 with vendor: Intel iHD`, Vulkan initialized; the client accepts H.264 (AVC444/AVC420). Encoding on the adapter is therefore available; per-frame use was not measured | journal | 2026-11-20 |
 
 ## Completion summary
 
-In progress: the VM runs on the adapter and the gain is measured. Remaining: apply the root once so its
-state holds the new `gpu_passthrough` output (the plan shows no resource change, only that output), then a
-`make mgmt-configure` from SSH (not RDP) confirms the role finds the rule already in place (no handler runs).
-After a rollback by `mgmt-gpu-switch`, set `gpu_mapping` to null in the private tfvars before planning.
-Manual way back at any time: Proxmox interface, VM 100, Hardware, remove the PCI device, shut down and start.
+Completed 2026-11-20. VM 100 renders on the host's Intel UHD 630 (12 cores, Proxmox protection); the console
+adapter stays GNOME's primary display through the role's udev rule, which `make mgmt-configure` confirms
+without restarting anything. The first cold start failed (see Incident) and was recovered by hand. Load went
+from 4–5 to under 1. After a rollback by `make mgmt-gpu-switch`, set `gpu_mapping` to null in the private
+tfvars before planning.

@@ -5717,7 +5717,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md",
       "tags": [
         "workstation",

@@ -178,10 +178,9 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   CT201, which therefore still runs), then stopping CT201. Wiki.js (CT202) is next and waits for the operator: version 2 or 3, and a way to get
   its content out ([reference](reference/external/wiki-js-3-4-requirements-container-settings-and-migration-fr.md)).
 - **Workstation graphics** 2026-11-20 ([TASK-028](../tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md),
-  in progress): VM 100 gets the host's Intel adapter (`profile.gpu_mapping`, `make mgmt-gpu-mapping`), 12 cores
+  completed): VM 100 gets the host's Intel adapter (`profile.gpu_mapping`, `make mgmt-gpu-mapping`), 12 cores
   and Proxmox protection. Running since 2026-11-20 after a failed first start (see Known issues): GNOME
-  Shell went from about one core to 5 %, the host load from 4–5 to under 1. Remaining: apply the root's new
-  `gpu_passthrough` output, then `make mgmt-configure` from SSH.
+  Shell went from about one core to 5 %, the host load from 4–5 to under 1.
 - **Operator roadmap (2026-11-17):** all items are deployed.
 
 ## Commands
