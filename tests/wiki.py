@@ -149,6 +149,7 @@ class FakeWiki(admin.Wiki):
                        "contentTypes": {"activeTypes": ["pages", "images"]}}
         self.strategies = [{"id": admin.LOCAL_STRATEGY, "module": "local", "displayName": "Local Authentication", "isEnabled": True}]
         self.pages = 0
+        self.security = {"trustProxy": False, "disallowIframe": True}
 
     def call(self, method, path, body=None, expect=(200,)):
         if method != "GET":
@@ -164,6 +165,11 @@ class FakeWiki(admin.Wiki):
             (patch,) = body["targets"]
             self.storage.update({k: v for k, v in body.items() if k != "targets"})
             self.target.update(patch)
+            return {"ok": True}
+        if path == "/_api/system/security" and method == "GET":
+            return dict(self.security)
+        if path == "/_api/system/security" and method == "PUT":
+            self.security = dict(body)
             return {"ok": True}
         if path == "/_api/groups":
             return [{"id": "group-admin", "name": "Administrators"}, {"id": "group-users", "name": "Users"}]
@@ -192,6 +198,7 @@ def configuration():
     admin.time.sleep = lambda _seconds: None
     wiki = FakeWiki()
     assert "updated" in admin.configure_site(wiki) and wiki.site_settings["title"] == "Doku Lab"
+    assert "trustProxy" in admin.configure_security(wiki) and wiki.security == {"trustProxy": True, "disallowIframe": True}, "other settings kept"
     assert "pull wiki" in admin.configure_storage(wiki)
     assert wiki.target["isEnabled"] and wiki.target["config"] == admin.GIT and wiki.target["contentTypes"]["activeTypes"] == ["pages"]
     assert "created" in admin.configure_sso(wiki, "synthetic-secret")
@@ -201,7 +208,7 @@ def configuration():
     assert "82 pages" in admin.pull(wiki)
     # A second run writes the sign-in method again (its secret cannot be read back) and nothing else.
     wiki.writes.clear()
-    assert "unchanged" in admin.configure_site(wiki) and "unchanged" in admin.configure_storage(wiki)
+    assert "unchanged" in admin.configure_site(wiki) and "unchanged" in admin.configure_storage(wiki) and "unchanged" in admin.configure_security(wiki)
     assert wiki.writes == []
     assert "updated" in admin.configure_sso(wiki, "synthetic-secret") and len(wiki.strategies) == 2
     assert 'test "$(WIKI_CONFIGURE_APPROVED)" = yes' in recipe("wiki-configure") and 'test "$(WIKI_PUBLISH_APPROVED)" = yes' in recipe("wiki-publish")

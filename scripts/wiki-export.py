@@ -83,6 +83,10 @@ def read(source):
     heading = H1.match(text)
     title = (heading.group(1) if heading else None) or str(meta.get("title") or Path(source).stem)
     body = text[heading.end():] if heading else text
+    # Tasks, milestones and decisions are known by their number: it leads the title, so lists sort by it.
+    number = str(meta.get("id") or "")
+    if re.fullmatch(r"(TASK|ADR)-\d+|M\d+", number) and not title.startswith(number):
+        title = f"{number} — {title.strip()}"
     return meta, title.strip(), body.strip("\n")
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Configures the wiki through its API, so that nothing is clicked and a rebuilt wiki is the same (TASK-029).
 
-  wiki-admin.py configure   site name, Git storage (pull-only from the branch written by wiki-export.py),
+  wiki-admin.py configure   site name, trust in the proxy's headers, Git storage (pull-only from the branch written by wiki-export.py),
                             sign-in through Authentik; then one sync and import of the whole tree
   wiki-admin.py sync        asks the wiki to pull now instead of at its next interval
   wiki-admin.py status      what the wiki holds and how its storage is doing (read-only)
@@ -25,6 +25,7 @@ SITE = {
     "title": "Doku Lab",
     "description": "Documentation of the doku-lab homelab, generated from the homelab-iac repository",
 }
+SECURITY = {"trustProxy": True}
 # Site-wide storage settings and the Git target. The repository is public on the LAN: no credentials.
 STORAGE = {"localePrefix": False, "stripLeadingH1": True, "mapReadmeToHome": True, "syncInterval": "5m"}
 GIT = {
@@ -103,6 +104,16 @@ def configure_site(wiki):
     return f"site: {'updated ' + ', '.join(change) if change else 'unchanged'}"
 
 
+def configure_security(wiki):
+    """Traefik ends TLS: the wiki must believe the forwarded scheme and address, or it builds http:// callback
+    addresses and counts every visitor as the same client."""
+    current = wiki.call("GET", "/_api/system/security")
+    change = differs(current, SECURITY)
+    if change:
+        wiki.call("PUT", "/_api/system/security", {**current, **change})
+    return f"security: {'updated ' + ', '.join(change) if change else 'unchanged'}"
+
+
 def configure_storage(wiki):
     storage, target = wiki.git_target()
     # The API masks nothing here but the password, which is empty: the whole configuration can be compared.
@@ -171,7 +182,7 @@ def main(argv):
     try:
         wiki.sign_in(password)
         if argv[0] == "configure":
-            for step in (configure_site, configure_storage, lambda w: configure_sso(w, secret), pull):
+            for step in (configure_site, configure_security, configure_storage, lambda w: configure_sso(w, secret), pull):
                 print(step(wiki))
         elif argv[0] == "sync":
             print(pull(wiki))
