@@ -68,7 +68,10 @@ Out of scope:
 | Criterion | Command / check | Result | Date |
 |-----------|-----------------|--------|------|
 | Deployment, four applications, local administrators | See [TASK-026](../tasks/TASK-026-authentik-on-k3s-and-single-sign-on-for-argo-cd-grafana-netb.md) | Done: `make sso-check` signs in to all four as administrator; the four local logins answer | 2026-11-18 |
-| Headlamp, Proxmox, Forgejo, Phase | | not started: each needs an approval or a step by the operator | |
+| Proxmox | `make proxmox-sso`, `make sso-check` | Done: realm `authentik` on the doku-lab cluster (approved by the operator 2026-11-20); `ok proxmox signed in as akadmin@authentik, groups ['homelab-admins-authentik'], 47 privileges on /`. The default realm, `root@pam` and the API tokens are unchanged | 2026-11-20 |
+| Headlamp | | not started: the Kubernetes API servers must be told to trust Authentik (a k3s setting and a restart of each server); waits for the operator's approval | |
+| Forgejo | | not started: Forgejo declares sign-in sources only in its administration pages or with its command line inside the container (no API), and the token on the workstation has no administration scope | |
+| Phase | | not started: the operator links their own account | |
 | Forward authentication | `make sso-check` (see [TASK-027](../tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md)) | Done: the dashboard answers 302 to Authentik without a session and 200 with one; embedded outpost, no Kubernetes connection | 2026-11-19 |
 | Personal account | Authentik API: groups and access check of the operator's account; `make windmill-sso` | Account exists in `homelab-admins` and `authentik Admins`, passes the access check of the four applications, declared as Windmill administrator (address kept in the secret store). It has not signed in yet and has no second factor | 2026-11-19 |
 | Second factor, test with Authentik stopped | | not verified | |

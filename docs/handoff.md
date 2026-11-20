@@ -164,10 +164,11 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   `/authentik` in the secret store). Argo CD, Grafana, NetBox and Windmill sign in through it; members of
   its group `homelab-admins` are administrators everywhere; every local administrator still works.
   Applications are the blueprints of `services/authentik/blueprints`; `scripts/secrets.py run /authentik --
-  make sso-check` signs in to each one and reports. Open: Headlamp (needs the Kubernetes API servers to trust
-  Authentik: k3s setting and a restart of each server), the Proxmox hosts (OpenID realm), Forgejo (its
-  administrator adds the source), Phase (the operator links the account), forward authentication, the
-  operator's personal account with a second factor.
+  make sso-check` signs in to each one and reports. The Proxmox hosts sign in through the realm
+  `authentik` since 2026-11-20 (`make proxmox-sso`; `root@pam` and the tokens unchanged). Open: Headlamp (needs
+  the Kubernetes API servers to trust Authentik: k3s setting and a restart of each server), Forgejo (sources
+  are declared only in its administration pages or its command line), Phase (the operator links the account),
+  the operator's personal account with a second factor.
 - **Homepage moved to k3s** 2026-11-19 ([TASK-027](../tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md),
   completed): `https://home.doku-lab.net` is `services/homepage` (Homepage and a widget data API), behind
   Authentik forward authentication (first use: `AUTHENTIK_FORWARD_AUTH`, embedded outpost, one outpost route
