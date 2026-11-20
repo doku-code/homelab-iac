@@ -548,6 +548,8 @@ mgmt-configure:
 #                     runs on the host, detached: the workstation and every session on it stop. When the VM
 #                     does not answer afterwards, the host takes the adapter out of it and starts it again
 #                     (scripts/mgmt-gpu-switch.sh; log /root/vm-<id>-gpu-switch.log on the host).
+#                     A rollback changes only the VM: set profile.gpu_mapping to null in the private
+#                     terraform.tfvars before the next mgmt-plan, or the apply puts the device back.
 MGMT_GPU_HOST ?= 192.168.0.10
 MGMT_GPU_MAPPING ?= igpu
 MGMT_GPU_DEVICE ?= 0000:00:02.0
@@ -574,6 +576,7 @@ mgmt-gpu-switch:
 	@scp -q -o BatchMode=yes scripts/mgmt-gpu-switch.sh root@$(MGMT_GPU_HOST):/usr/local/sbin/mgmt-gpu-switch.sh
 	@ssh -o BatchMode=yes root@$(MGMT_GPU_HOST) 'systemd-run --unit=mgmt-gpu-switch-$$(date +%s) --on-active=$(MGMT_GPU_DELAY) --timer-property=AccuracySec=1s /usr/local/sbin/mgmt-gpu-switch.sh $(MGMT_GPU_VM) $(MGMT_GPU_VM_ADDRESS)'
 	@echo "VM $(MGMT_GPU_VM) is shut down and started again in $(MGMT_GPU_DELAY) seconds"
+	@echo "Afterwards: ssh root@$(MGMT_GPU_HOST) tail /root/vm-$(MGMT_GPU_VM)-gpu-switch.log (after a rollback, gpu_mapping = null in terraform.tfvars)"
 
 # Encrypted, dated off-machine copy of the local state (age public recipients only).
 mgmt-state-backup:

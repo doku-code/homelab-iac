@@ -23,6 +23,7 @@
     opentofu_version: "1.13.9"
     sops_version: "3.13.3"
     mgmt_desktop: true
+    admin_workstation_gpu_passthrough: "{{ gpu_passthrough }}"
   pre_tasks:
     - name: Require a reviewed source and a compatible OS
       ansible.builtin.assert:
@@ -33,6 +34,14 @@
           - mgmt_source_commit is defined
           - mgmt_source_commit is match('^[a-f0-9]{40}$')
         fail_msg: Use the approved Ubuntu LTS guest and a full reviewed Git commit (mgmt_source_commit).
+    # From the OpenTofu inventory output (profile.gpu_mapping). An inventory written before that output
+    # existed has no value: stop rather than assume there is no GPU.
+    - name: Require the GPU passthrough flag from the OpenTofu inventory
+      ansible.builtin.assert:
+        that:
+          - gpu_passthrough is defined
+          - gpu_passthrough is boolean
+        fail_msg: The inventory has no gpu_passthrough value; apply the pve-management-control root (make mgmt-plan, make mgmt-apply) to refresh its outputs.
   tasks:
     - name: Install OS prerequisites
       ansible.builtin.apt:

@@ -5736,6 +5736,7 @@
         "Goal",
         "Context",
         "What was changed",
+        "Incident at the first cold start (2026-11-20)",
         "Acceptance criteria",
         "Verification",
         "Tests",
@@ -5750,10 +5751,15 @@
           "terraform/stacks/pve-management-control/main.tf",
           "terraform/stacks/pve-management-control/variables.tf",
           "scripts/mgmt-gpu-switch.sh",
-          "ansible/roles/admin_workstation/defaults/main.yml"
+          "ansible/roles/admin_workstation/defaults/main.yml",
+          "ansible/roles/admin_workstation/tasks/main.yml",
+          "ansible/roles/admin_workstation/handlers/main.yml",
+          "ansible/playbooks/configure-mgmt-control.yml",
+          "terraform/stacks/pve-management-control/outputs.tf"
         ],
         "related_tests": [
-          "terraform/stacks/pve-management-control/tests/profile.tftest.hcl"
+          "terraform/stacks/pve-management-control/tests/profile.tftest.hcl",
+          "tests/mgmt-control.py"
         ],
         "milestone": [
           "M001"

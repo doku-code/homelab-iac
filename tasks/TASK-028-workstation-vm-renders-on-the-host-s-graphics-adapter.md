@@ -17,8 +17,13 @@ related_implementations:
   - terraform/stacks/pve-management-control/variables.tf
   - scripts/mgmt-gpu-switch.sh
   - ansible/roles/admin_workstation/defaults/main.yml
+  - ansible/roles/admin_workstation/tasks/main.yml
+  - ansible/roles/admin_workstation/handlers/main.yml
+  - ansible/playbooks/configure-mgmt-control.yml
+  - terraform/stacks/pve-management-control/outputs.tf
 related_tests:
   - terraform/stacks/pve-management-control/tests/profile.tftest.hcl
+  - tests/mgmt-control.py
 tests_justification: ""
 verification_commands:
   - make mgmt-check
@@ -50,13 +55,39 @@ Shell more than one, about 70 % of the CPU busy with an idle desktop). Give the 
 - `profile.gpu_mapping` (optional) adds `hostpci0` from a resource mapping; the virtual display (`std`) stays
   for the Proxmox console. `protection = true`. Private tfvars: 12 cores instead of 8, `gpu_mapping = "igpu"`.
 - Guest: `intel-media-va-driver` and `vainfo` in the workstation role.
+- After the incident below: the role writes `/etc/udev/rules.d/61-mutter-primary-gpu.rules` when the
+  inventory says `gpu_passthrough` (new host variable of the `ansible_inventory` output, from
+  `profile.gpu_mapping`) and removes it otherwise; the playbook stops when the inventory has no such value.
+  Handlers in file order: udev reload and trigger, restart GDM, restart remote login.
+- `scripts/mgmt-gpu-switch.sh`: waits six minutes by the clock (one agent ping can block 30 s, so 72
+  attempts lasted far longer), logs an interruption, leaves a rollback marker on the host and says that
+  `gpu_mapping` must be set to null in the private tfvars after a rollback.
+
+## Incident at the first cold start (2026-11-20)
+
+- Symptoms: the VM started (23:05) and Ubuntu booted, but the Proxmox console stayed frozen on the splash
+  screen and remote login timed out waiting for GDM, so port 3389 never opened: no RDP, the workstation
+  looked dead. The guest agent did not answer either while the host script waited.
+- Cause: GNOME (mutter) chose the passed-through Intel GPU (`card1`, `i915`) as its primary display. No
+  screen is attached to it, so the login screen was drawn where nobody could see it, and remote login,
+  which waits for GDM's session, never started.
+- Fix (by the operator, on the VM): the udev rule
+  `SUBSYSTEM=="drm", KERNEL=="card[0-9]*", DRIVERS=="bochs-drm", TAG+="mutter-device-preferred-primary"`
+  in `/etc/udev/rules.d/61-mutter-primary-gpu.rules`, `udevadm trigger --subsystem-match=drm --action=add`,
+  restart of GDM, then of gnome-remote-desktop. GDM's log: `GPU /dev/dri/card0 selected primary given udev
+  rule`; Thincast connects again. The rule is now in the role (identical bytes, so a run on this VM
+  changes nothing and restarts nothing).
+- The automatic rollback did not happen: its wait counted attempts instead of time, and its systemd unit was
+  stopped at 23:13:40 before a result was logged (log: only the start line). Fixed as described above.
 
 ## Acceptance criteria
 
 - [x] Plan changes VM 100 in place, nothing destroyed
-- [ ] After the cold start the VM answers (agent, RDP) and shows the adapter (`lspci -k`: `i915`)
-- [ ] GNOME Shell and Zed render on the adapter (CPU use of an idle desktop measured again)
-- [ ] Whether the remote desktop server encodes on the adapter: observed and recorded
+- [x] After the cold start the VM answers (agent, RDP) and shows the adapter (`lspci -k`: `i915`), with the
+  udev rule set by hand
+- [x] GNOME Shell and Zed render on the adapter (CPU use of an idle desktop measured again)
+- [x] Whether the remote desktop server encodes on the adapter: observed and recorded
+- [ ] The role's rule reaches the VM through `make mgmt-configure` (needs the refreshed inventory output)
 
 ## Verification
 
@@ -70,7 +101,8 @@ lspci -k | grep -A3 -i vga; glxinfo -B | grep -i renderer; vulkaninfo --summary 
 
 | Test file | Covers | Command | Result |
 |-----------|--------|---------|--------|
-| terraform/stacks/pve-management-control/tests/profile.tftest.hcl | No passthrough by default; with `gpu_mapping`: one device from the mapping, no raw device ID, console display kept, VM protected | `make mgmt-check` | PASS 2026-11-20 (7 runs) |
+| terraform/stacks/pve-management-control/tests/profile.tftest.hcl | No passthrough by default; with `gpu_mapping`: one device from the mapping, no raw device ID, console display kept, VM protected; inventory `gpu_passthrough` false/true | `make mgmt-check` | PASS 2026-11-20 (7 runs) |
+| tests/mgmt-control.py | udev rule content; written with a GPU, removed without; no role default for the flag; handler order udev, GDM, remote login; playbook takes the flag from the inventory and stops without it; output derives it from `gpu_mapping` | `make mgmt-check` | PASS 2026-11-20 |
 
 ## Evidence
 
@@ -80,13 +112,15 @@ lspci -k | grep -A3 -i vga; glxinfo -B | grep -i renderer; vulkaninfo --summary 
 | Plan | `0 to add, 1 to change, 0 to destroy`: `protection false -> true`, `cores 8 -> 12`, `+ hostpci0 mapping=igpu` | `make mgmt-plan`, plan 93660126… | 2026-11-20 |
 | Apply | Applied without restart (`reboot_after_update = false`): protection active, cores and `hostpci0` pending | `qm pending 100` | 2026-11-20 |
 | State copy | Copy of the state from before the apply in `.local/mgmt-tfstate-before-gpu-2026-11-20` | | 2026-11-20 |
-| Cold start | not verified yet | `/root/vm-100-gpu-switch.log` on the host | |
+| Cold start | Failed as described under Incident; recovered by hand with the udev rule | `/root/vm-100-gpu-switch.log`, host journal | 2026-11-20 |
+| Adapters in the guest | `00:01.0` bochs-drm (`card0`, primary), `06:10.0` UHD 630 i915 (`card1`, `renderD128`); GNOME: `GPU /dev/dri/renderD128 selected as primary` for rendering | `lspci -k`, journal | 2026-11-20 |
+| CPU use | Before: load 4–5, Zed 187–400 %, GNOME Shell 104–129 %, about 70 % of 8 cores busy. After: load 0.5–0.7 with 12 cores, Zed about 58 %, GNOME Shell about 5 %, gnome-remote-desktop about 6 % | `top`, `uptime` | 2026-11-20 |
+| Remote desktop encoding | gnome-remote-desktop: `[HWAccel.VAAPI] Successfully initialized VAAPI 1.23 with vendor: Intel iHD`, Vulkan initialized; the client accepts H.264 (AVC444/AVC420). Encoding on the adapter is therefore available; per-frame use was not measured | journal | 2026-11-20 |
 
 ## Completion summary
 
-In progress. Remaining: read `/root/vm-100-gpu-switch.log` on `pve-management` (`RESULT ok` or
-`RESULT rolled back`). If ok: check the three commands under Verification, measure the CPU use of the idle
-desktop, record it here and complete the task. If rolled back: the VM runs without the adapter and
-`make mgmt-plan` shows `hostpci0` as a difference; set `gpu_mapping` to null in the private tfvars until the
-cause is understood (host journal around the start: `journalctl -b | grep -i -E 'vfio|i915|DMAR'`).
+In progress: the VM runs on the adapter and the gain is measured. Remaining: apply the root once so its
+state holds the new `gpu_passthrough` output (the plan shows no resource change, only that output), then a
+`make mgmt-configure` from SSH (not RDP) confirms the role finds the rule already in place (no handler runs).
+After a rollback by `mgmt-gpu-switch`, set `gpu_mapping` to null in the private tfvars before planning.
 Manual way back at any time: Proxmox interface, VM 100, Hardware, remove the PCI device, shut down and start.

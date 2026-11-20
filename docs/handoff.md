@@ -179,8 +179,9 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   its content out ([reference](reference/external/wiki-js-3-4-requirements-container-settings-and-migration-fr.md)).
 - **Workstation graphics** 2026-11-20 ([TASK-028](../tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md),
   in progress): VM 100 gets the host's Intel adapter (`profile.gpu_mapping`, `make mgmt-gpu-mapping`), 12 cores
-  and Proxmox protection. Applied, effective at the cold start done by `make mgmt-gpu-switch`; **first thing
-  to do in the next session: read `/root/vm-100-gpu-switch.log` on `pve-management`** and finish the task.
+  and Proxmox protection. Running since 2026-11-20 after a failed first start (see Known issues): GNOME
+  Shell went from about one core to 5 %, the host load from 4–5 to under 1. Remaining: apply the root's new
+  `gpu_passthrough` output, then `make mgmt-configure` from SSH.
 - **Operator roadmap (2026-11-17):** all items are deployed.
 
 ## Commands
@@ -210,6 +211,13 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 - The remote display's resolution and scaling come from the Thincast client ("Auto-fit window and
   session", 32-bit colour), not from GNOME Settings; change them in the client's connection profile.
 - Docker-published ports bypass `ufw`; bind development containers to `127.0.0.1`.
+- With the host GPU passed through, GNOME takes it as primary display unless
+  `/etc/udev/rules.d/61-mutter-primary-gpu.rules` keeps the console adapter (bochs-drm) primary; without the
+  rule the console freezes on the splash screen and remote login never opens 3389 (TASK-028). The
+  `admin_workstation` role writes it when `profile.gpu_mapping` is set. A change to it restarts GDM, which
+  ends all desktop and RDP sessions: run `make mgmt-configure` from SSH.
+- A rollback by `make mgmt-gpu-switch` removes the GPU from the VM only: set `gpu_mapping` to null in the
+  workstation's `terraform.tfvars` before the next `make mgmt-plan`, or the apply puts it back.
 - Debian generic cloud images ship without `qemu-guest-agent`, while `headless-vm` enables the agent: the
   first apply of such a VM waits the full 15-minute agent timeout and only warns. `headless_baseline` installs
   the agent; until then, refreshes of that VM wait as well.

@@ -45,7 +45,8 @@ run "management_vm_contract" {
       proxmox_virtual_environment_vm.workstation[0].disk[0].datastore_id == "mock-disks" &&
       proxmox_virtual_environment_vm.workstation[0].disk[0].discard == "on" && proxmox_virtual_environment_vm.workstation[0].disk[0].ssd &&
       proxmox_virtual_environment_vm.workstation[0].network_device[0].bridge == "mock-bridge" &&
-      length(proxmox_virtual_environment_vm.workstation[0].hostpci) == 0 && length(proxmox_virtual_environment_vm.workstation[0].usb) == 0
+      length(proxmox_virtual_environment_vm.workstation[0].hostpci) == 0 && length(proxmox_virtual_environment_vm.workstation[0].usb) == 0 &&
+      output.ansible_inventory.all.children.mgmt_control.hosts["mgmt-control-01"].gpu_passthrough == false
     )
     error_message = "Management VM placement, sizing or lifecycle contract changed."
   }
@@ -182,7 +183,8 @@ run "graphics_adapter_passed_through_a_mapping" {
       proxmox_virtual_environment_vm.workstation[0].hostpci[0].id == null &&
       !proxmox_virtual_environment_vm.workstation[0].hostpci[0].xvga &&
       proxmox_virtual_environment_vm.workstation[0].vga[0].type == "std" &&
-      proxmox_virtual_environment_vm.workstation[0].protection
+      proxmox_virtual_environment_vm.workstation[0].protection &&
+      output.ansible_inventory.all.children.mgmt_control.hosts["mgmt-control-01"].gpu_passthrough
     )
     error_message = "The graphics adapter must come from a resource mapping, beside the console display, on a protected VM."
   }

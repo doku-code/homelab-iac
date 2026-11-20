@@ -339,12 +339,59 @@ def test_admin_workstation_role():
         assert logic.returncode == 0, logic.stdout + logic.stderr
 
 
+def test_gpu_primary_display():
+    """With a passed-through GPU the role writes the udev rule that keeps the console adapter primary, and
+    removes it without one; handlers run udev, GDM, remote login in that order; the flag comes from the
+    OpenTofu inventory and a stale inventory stops the playbook."""
+    import yaml
+
+    role = ROOT / "ansible/roles/admin_workstation"
+    tasks = yaml.safe_load((role / "tasks/main.yml").read_text())
+    by_name = {task["name"]: task for task in tasks}
+    write = by_name["Keep the console adapter as GNOME's primary display"]
+    drop = by_name["Drop the primary display rule when no GPU is passed through"]
+    rule = write["ansible.builtin.copy"]["content"]
+    assert 'DRIVERS=="bochs-drm"' in rule and 'TAG+="mutter-device-preferred-primary"' in rule
+    assert 'SUBSYSTEM=="drm"' in rule and 'KERNEL=="card[0-9]*"' in rule
+    assert write["ansible.builtin.copy"]["mode"] == "0644"
+    catalog = yaml.safe_load((role / "defaults/main.yml").read_text())
+    assert "admin_workstation_gpu_passthrough" not in catalog, "no default: a stale inventory must not mean 'no GPU'"
+    assert write["ansible.builtin.copy"]["dest"] == drop["ansible.builtin.file"]["path"] == "{{ admin_workstation_gpu_rule }}"
+    assert catalog["admin_workstation_gpu_rule"].startswith("/etc/udev/rules.d/61-")
+    assert drop["ansible.builtin.file"]["state"] == "absent"
+    order = ["Reload udev rules for the display adapters", "Restart GDM", "Restart gnome-remote-desktop"]
+    assert write["notify"] == drop["notify"] == order
+    handlers = [h["name"] for h in yaml.safe_load((role / "handlers/main.yml").read_text())]
+    assert [h for h in handlers if h in order] == order, "handlers run in file order: udev, GDM, remote login"
+    udev = yaml.safe_load((role / "handlers/main.yml").read_text())[0]["ansible.builtin.shell"]
+    assert udev.index("control --reload") < udev.index("trigger --subsystem-match=drm --action=add")
+
+    playbook = yaml.safe_load((ROOT / "ansible/playbooks/configure-mgmt-control.yml").read_text())[0]
+    assert playbook["vars"]["admin_workstation_gpu_passthrough"] == "{{ gpu_passthrough }}"
+    guard = next(t for t in playbook["pre_tasks"] if t["name"] == "Require the GPU passthrough flag from the OpenTofu inventory")
+    assert "gpu_passthrough is defined" in guard["ansible.builtin.assert"]["that"]
+    assert "gpu_passthrough = var.profile.gpu_mapping != null" in (
+        ROOT / "terraform/stacks/pve-management-control/outputs.tf").read_text()
+
+    # Ansible evaluates the two conditions: exactly one task applies for each value of the flag.
+    checks = []
+    for flag in (True, False):
+        for task, applies in ((write, flag), (drop, not flag)):
+            expr = task["when"]
+            checks.append({"name": f"gpu={flag}: {task['name']}", "vars": {"admin_workstation_gpu_passthrough": flag},
+                           "ansible.builtin.assert": {"that": [expr if applies else f"not ({expr})"]}})
+    with tempfile.TemporaryDirectory(prefix="role-gpu-") as directory:
+        logic = run_role_playbook(directory, [{"hosts": "localhost", "gather_facts": False, "tasks": checks}])
+        assert logic.returncode == 0, logic.stdout + logic.stderr
+
+
 def main():
     test_auth_guard()
     test_discovery_logic()
     test_make_guards()
     test_admin_workstation_role()
-    print("PASS: pve-management auth guard, discovery logic, Make guards and admin workstation role")
+    test_gpu_primary_display()
+    print("PASS: pve-management auth guard, discovery logic, Make guards, admin workstation role and GPU primary display")
 
 
 if __name__ == "__main__":

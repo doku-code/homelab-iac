@@ -294,6 +294,35 @@
     state: started
   when: admin_workstation_rdp | bool
 
+# --- Display adapter with a passed-through GPU --------------------------------------------------
+# With the host's Intel GPU passed through (TASK-028), GNOME made that GPU its primary display although no
+# screen is attached to it: the Proxmox console froze on the splash screen and remote login never opened
+# 3389. This rule keeps the virtual console adapter (bochs-drm) primary; the GPU still renders. Applying a
+# change restarts GDM, which ends every desktop and RDP session: run mgmt-configure from SSH, not from RDP.
+
+- name: Keep the console adapter as GNOME's primary display
+  ansible.builtin.copy:
+    dest: "{{ admin_workstation_gpu_rule }}"
+    content: |
+      # Managed by homelab-iac: the virtual console adapter stays the primary display; the passed-through
+      # Intel GPU only renders (it has no screen attached).
+      SUBSYSTEM=="drm", KERNEL=="card[0-9]*", DRIVERS=="bochs-drm", TAG+="mutter-device-preferred-primary"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: &display_handlers
+    - Reload udev rules for the display adapters
+    - Restart GDM
+    - Restart gnome-remote-desktop
+  when: admin_workstation_gpu_passthrough | bool
+
+- name: Drop the primary display rule when no GPU is passed through
+  ansible.builtin.file:
+    path: "{{ admin_workstation_gpu_rule }}"
+    state: absent
+  notify: *display_handlers
+  when: not (admin_workstation_gpu_passthrough | bool)
+
 # GDM must run for remote login: set-default only applies at the next boot.
 - name: Run the display manager now
   ansible.builtin.systemd_service:

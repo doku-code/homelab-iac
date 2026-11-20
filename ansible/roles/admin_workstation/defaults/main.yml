@@ -7,6 +7,10 @@
 
 admin_workstation_user: "{{ ansible_user }}"
 
+# Set by the playbook from the OpenTofu inventory (profile.gpu_mapping); no default on purpose.
+# admin_workstation_gpu_passthrough: true|false
+admin_workstation_gpu_rule: /etc/udev/rules.d/61-mutter-primary-gpu.rules
+
 admin_workstation_apt:
   # Desktop and remote access
   - ubuntu-desktop-minimal

@@ -14,6 +14,8 @@ output "ansible_inventory" {
               ansible_host = split("/", var.profile.ipv4)[0]
               ansible_user = var.admin_username
               vm_id        = var.profile.vm_id
+              # Read by the admin_workstation role: keep the console adapter as GNOME's primary display.
+              gpu_passthrough = var.profile.gpu_mapping != null
             }
           }
         }
