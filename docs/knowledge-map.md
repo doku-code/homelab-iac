@@ -23,7 +23,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 |----|--------|----------|-------|-------|---------|
 | M000 | active | critical | [Infrastructure inventory and migration planning](/milestones/m000-inventory-and-migration-planning) | in-progress: 1, planned: 1 | Accurate live inventory of hosts, guests, services, data and backups, and a migration order that avoids unnecessary downtime. |
 | M009 | active | medium | [Argo CD and Windmill](/milestones/m009-argocd-windmill) | completed: 2 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
-| M013 | active | medium | [NetBox inventory and IPAM](/milestones/m013-netbox-inventory-and-ipam) | completed: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
+| M013 | active | medium | [NetBox inventory and IPAM](/milestones/m013-netbox-inventory-and-ipam) | completed: 1, in-progress: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
 | M014 | active | medium | [Single sign-on with Authentik](/milestones/m014-single-sign-on-with-authentik) | completed: 1 | Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator. |
 | M010 | planned | high | [Rolling application migration](/milestones/m010-rolling-application-migration) | completed: 3, in-progress: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](/milestones/m011-ceph-and-expansion) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
@@ -45,6 +45,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-006 | in-progress | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](/tasks/task-006-target-layout-and-service-contract) | Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check). |
 | TASK-019 | in-progress | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](/tasks/task-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i) | Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account. |
 | TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](/tasks/task-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
+| TASK-030 | in-progress | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](/tasks/task-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues) | NetBox holds named hardware models, ports, hardware addresses, the cables heard from the switch, what every guest is, and shows topology and rack diagrams through plugins; the roots check their addresses and VMIDs against it. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](/tasks/task-002-live-proxmox-inventory) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](/tasks/task-003-service-dependency-and-data-map) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](/tasks/task-004-pbs-representative-restore) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -172,13 +173,13 @@ _No commit records. Generate with `harness history sync`._
 - **grafana**: TASK-020, TASK-026
 - **guide**: GUIDE-handoff
 - **handoff**: GUIDE-handoff
-- **hardware**: INV-new-proxmox-cluster-inventory
+- **hardware**: INV-new-proxmox-cluster-inventory, TASK-030
 - **harness**: TASK-001
 - **headlamp**: ADR-011, TASK-016
 - **homepage**: TASK-027
 - **infisical**: ADR-004, TASK-019
 - **ingress**: TASK-022
-- **inventory**: ADR-016, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, M013, TASK-002, TASK-003, TASK-023
+- **inventory**: ADR-016, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, M013, TASK-002, TASK-003, TASK-023, TASK-030
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
 - **ipam**: ADR-016, TASK-023
 - **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017, TASK-019, TASK-021
@@ -190,7 +191,7 @@ _No commit records. Generate with `harness history sync`._
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029
-- **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026
+- **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026, TASK-030
 - **nfs**: TASK-017
 - **nvme**: ADR-012
 - **observability**: TASK-020
