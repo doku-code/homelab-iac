@@ -3,9 +3,9 @@ id: TASK-029
 title: Wiki.js 3 on k3s showing this repository's documentation
 summary: Wiki.js 3.5 on k3s under Argo CD with the shared PostgreSQL and Authentik sign-in; its pages are generated from this repository and pulled by the wiki's Git storage.
 type: task
-status: planned
+status: in-progress
 priority: medium
-milestone: 
+milestone: M010
 created: 2026-11-20
 updated: 2026-11-20
 tags: []

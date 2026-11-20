@@ -3317,6 +3317,10 @@
         {
           "from": "TASK-027",
           "field": "milestone"
+        },
+        {
+          "from": "TASK-029",
+          "field": "milestone"
         }
       ]
     },
@@ -5779,13 +5783,13 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "planned",
+      "status": "in-progress",
       "path": "tasks/TASK-029-wiki-js-3-on-k3s-showing-this-repository-s-documentation.md",
       "tags": [],
       "component": null,
       "technology": null,
       "priority": "medium",
-      "milestone": null,
+      "milestone": "M010",
       "source": null,
       "version": null,
       "headings": [
@@ -5798,7 +5802,11 @@
         "Evidence",
         "Completion summary"
       ],
-      "relations": {},
+      "relations": {
+        "milestone": [
+          "M010"
+        ]
+      },
       "backrefs": []
     }
   ],
