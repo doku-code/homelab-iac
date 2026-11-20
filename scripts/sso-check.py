@@ -196,7 +196,7 @@ def proxmox(browser, password):
     status, _, text = browser.request("POST", f"{base}/api2/json/access/openid/auth-url", form={"realm": realm, "redirect-url": base})
     if status != 200:
         raise Stop(f"Proxmox did not start the sign-in: HTTP {status}")
-    callback = browser.sign_in(None, password, f"{base}/?", first_hop=json.loads(text)["data"])
+    callback = browser.sign_in(None, password, f"{base}?", first_hop=json.loads(text)["data"])
     query = urllib.parse.parse_qs(urllib.parse.urlparse(callback).query)
     status, _, text = browser.request("POST", f"{base}/api2/json/access/openid/login",
                                       form={"code": query["code"][0], "state": query["state"][0], "redirect-url": base})
