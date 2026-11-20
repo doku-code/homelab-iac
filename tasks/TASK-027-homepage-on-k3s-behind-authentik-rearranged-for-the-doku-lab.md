@@ -3,7 +3,7 @@ id: TASK-027
 title: Homepage on k3s behind Authentik, rearranged for the doku-lab cluster, with a new widget data API
 summary: The dashboard moved from legacy CT201 to k3s under Argo CD, behind Authentik forward authentication, with cards for the new platform and a widget API fed by Proxmox, Prometheus and HTTP checks.
 type: task
-status: in-progress
+status: completed
 priority: medium
 milestone: M010
 created: 2026-11-19
@@ -76,9 +76,9 @@ launchers, background switcher) and is opened through Authentik.
 - [x] Nothing of it is served without an Authentik session; members of `homelab-admins` get in
 - [x] Cards for the new platform; k3s, PostgreSQL, status lines, old-host node card and remote desktop state show live data
 - [x] Nothing personal and no credential in Git
-- [ ] Node cards and header summary of the four doku-lab nodes show live data (needs the read-only Proxmox token)
-- [ ] TrueNAS, Plex and qBittorrent widgets show live data (need their credentials in the store)
-- [ ] CT201 stopped (kept, not deleted)
+- [x] Node cards and header summary of the four doku-lab nodes show live data (read-only Proxmox token)
+- [x] TrueNAS and Plex widgets show live data; the qBittorrent widget reports the application's real state (stopped on TrueNAS)
+- [x] CT201 stopped (kept, not deleted)
 
 ## Verification
 
@@ -109,19 +109,21 @@ scripts/secrets.py run /authentik -- make sso-check
 | Rendering | Page of the pod loaded in headless Firefox: header, groups, widgets and background as designed | screenshot (not kept in Git) | 2026-11-19 |
 | Read-only Proxmox token for doku-lab | not created: the session's safety check refused the credential creation; needs the operator's approval (`make homepage-pve-token HOMEPAGE_PVE_TOKEN_APPROVED=yes`). The four node cards say "not connected yet" | | 2026-11-19 |
 | TrueNAS, Plex, qBittorrent widgets | not verified against the real services: their credentials exist only inside CT201. Parsing covered by the test for Plex; TrueNAS and qBittorrent calls follow their documented APIs and are untested | | 2026-11-19 |
+| Read-only Proxmox token | Operator approved 2026-11-20: `homepage@pve`, `PVEAuditor`, token in the store. Four nodes online in the snapshot; summary: 48 cores, memory 55.2 %, storage 8.5 % | `make homepage-pve-token`, `make homepage-deploy`, snapshot in the pod | 2026-11-20 |
+| Credentials of the old dashboard | TrueNAS key, Plex token and qBittorrent login read from the stopped CT201 (root file system mounted on the old host, read, unmounted) straight into the store at `/homepage`, never printed | `.local/legacy/pve-ssh.sh` | 2026-11-20 |
+| TrueNAS widget | `online: true`, pools `fastpool` 63.9 %, `tank` 80.5 %, `apps-pool`, all `ONLINE` | snapshot in the pod | 2026-11-20 |
+| Plex widget | `online: true`, 0 sessions, library 861 movies, 35 shows | snapshot in the pod | 2026-11-20 |
+| qBittorrent widget | `online: false`: the application does not answer on `192.168.0.13:8080` (connection refused; TrueNAS lists one application `STOPPED`). Sign-in and transfer figures therefore not verified against the real service | curl, snapshot | 2026-11-20 |
+| CT201 | Stopped since the rack restart of 2026-11-19 (no automatic start); kept on the old host | `pct status 201` | 2026-11-20 |
 | Old name | `https://homepage.doku-lab.net/x` answers 302 to `https://home.doku-lab.net/x` | curl | 2026-11-19 |
 
 ## Not done
 
 - Print server and SQL Server cards: their guests are stopped or gone; not carried over.
 - Argo CD application states on the k3s card (would need a Kubernetes credential in the pod).
-- CT201 still runs (`http://192.168.0.21:3000`): it holds the only copy of the TrueNAS, Plex and qBittorrent
-  credentials.
 
 ## Completion summary
 
-In progress. The dashboard runs on k3s behind Authentik and the name points to it.
-Remaining: (1) operator approval for the read-only Proxmox token, then `make homepage-pve-token` and
-`make homepage-deploy`; (2) `HOMEPAGE_TRUENAS_API_KEY`, `HOMEPAGE_PLEX_TOKEN`, `HOMEPAGE_QBIT_USERNAME`,
-`HOMEPAGE_QBIT_PASSWORD` at `/homepage` in the secret store (from the operator, or read from CT201 once there is
-access), then `make homepage-deploy` and a check of the three widgets; (3) stop CT201.
+Completed 2026-11-20. The dashboard runs on k3s behind Authentik with live data for the five Proxmox nodes,
+k3s, PostgreSQL, the service checks, TrueNAS and Plex; CT201 is stopped and kept. Not verified: the qBittorrent
+figures, because that application is stopped on TrueNAS; the widget shows it as offline.

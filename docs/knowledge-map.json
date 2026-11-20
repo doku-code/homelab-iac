@@ -5638,7 +5638,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md",
       "tags": [
         "homepage",

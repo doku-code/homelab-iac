@@ -35,7 +35,7 @@ secrets or state in Git, never destroy a workload before its replacement works.
 | New cluster `doku-lab` | Proxmox VE 9.2, quorate, 4 nodes: `pve-management` .10, `pve-core` .11, `pve-infra` .12, new `pve-lab` .16 ([inventory](investigations/new-proxmox-cluster-inventory.md)); only VM 100 exists |
 | `mgmt-control-01` VM 100, 192.168.0.39 on `pve-management` | Ubuntu Desktop 26.04.1, 8 vCPU, 10 GiB, 120 GiB; OpenTofu + autoinstall + Ansible; **the operator workstation and the only OpenTofu executor** |
 | Old environment: `pve-lab` **192.168.0.14** | Ryzen 9 9950X3D, independent, runs the legacy services; never join, rename or reconfigure it. Future `pve-compute` after M010 |
-| Legacy services | On the old host and TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent, Vaultwarden, Wiki.js (CT202), Caddy (CT204, only `git`, `cloud` and the public tunnel). Replaced and stopped: Infisical, AdGuard (CT200), monitoring (VM 208). Replaced, still running: Homepage (CT201) |
+| Legacy services | On the old host and TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent, Vaultwarden, Wiki.js (CT202), Caddy (CT204, only `git`, `cloud` and the public tunnel). Replaced and stopped: Infisical, AdGuard (CT200), monitoring (VM 208), Homepage (CT201). Stopped, not replaced yet: Wiki.js (CT202) |
 
 Two hosts are named `pve-lab` and `pve-lab.doku-lab.net` resolves to the old side's proxy (.24): **always
 use IPs**. The new nodes have no DNS records.
@@ -169,14 +169,13 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   administrator adds the source), Phase (the operator links the account), forward authentication, the
   operator's personal account with a second factor.
 - **Homepage moved to k3s** 2026-11-19 ([TASK-027](../tasks/TASK-027-homepage-on-k3s-behind-authentik-rearranged-for-the-doku-lab.md),
-  in progress): `https://home.doku-lab.net` is `services/homepage` (Homepage and a widget data API), behind
+  completed): `https://home.doku-lab.net` is `services/homepage` (Homepage and a widget data API), behind
   Authentik forward authentication (first use: `AUTHENTIK_FORWARD_AUTH`, embedded outpost, one outpost route
   for every name). Redeploy: `scripts/secrets.py run / /homepage -- make homepage-deploy
   HOMEPAGE_DEPLOY_APPROVED=yes`; after a change under `config/` or `metrics/`, `make homepage-k3s-check` gives
-  the digest to put in `deployment.yaml`. Open: the read-only Proxmox token for the four node cards (needs the
-  operator's approval: `make homepage-pve-token`), the TrueNAS, Plex and qBittorrent credentials (only inside
-  CT201, which therefore still runs), then stopping CT201. Wiki.js (CT202) is next and waits for the operator: version 2 or 3, and a way to get
-  its content out ([reference](reference/external/wiki-js-3-4-requirements-container-settings-and-migration-fr.md)).
+  the digest to put in `deployment.yaml`. Completed 2026-11-20: read-only Proxmox token `homepage@pve`,
+  credentials of the old dashboard copied from CT201 to the store, CT201 stopped. qBittorrent shows offline
+  because its application is stopped on TrueNAS.
 - **Workstation graphics** 2026-11-20 ([TASK-028](../tasks/TASK-028-workstation-vm-renders-on-the-host-s-graphics-adapter.md),
   completed): VM 100 gets the host's Intel adapter (`profile.gpu_mapping`, `make mgmt-gpu-mapping`), 12 cores
   and Proxmox protection. Running since 2026-11-20 after a failed first start (see Known issues): GNOME
