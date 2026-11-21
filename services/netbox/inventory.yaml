@@ -315,19 +315,12 @@ addresses:
 # here gets this role and description and is no longer "needs-review", unless "review: true" keeps the flag.
 guests:
   homelab:
-    - {vmid: 200, role: legacy-service, description: "AdGuard Home; replaced by dns-01 on 2026-11-18, stopped and kept"}
-    - {vmid: 201, role: legacy-service, description: "Homepage; replaced by the dashboard on k3s on 2026-11-19, stopped and kept"}
-    - {vmid: 202, role: legacy-service, description: "Wiki.js 2; replaced by the wiki on k3s on 2026-11-20, content not carried over, stopped and kept"}
     - {vmid: 203, role: legacy-service, description: "Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19", review: true}
     - {vmid: 204, role: legacy-service, description: "Caddy: still serves git and cloud and the public tunnel (TASK-022)"}
     - {vmid: 206, role: legacy-service, description: "Vaultwarden (vault.doku-lab.net, through the k3s ingress); not migrated yet"}
-    - {vmid: 207, role: legacy-service, platform: debian-13, description: "Infisical; replaced by Phase on k3s (TASK-019), stopped and kept"}
-    - {vmid: 208, role: legacy-service, platform: debian-13, description: "Monitoring (Docker Compose); replaced by the monitoring on k3s, stopped and kept"}
     - {vmid: 209, role: legacy-service, description: "Garage object storage (ansible/playbooks/configure-garage.yml); stopped", review: true}
-    - {vmid: 210, role: legacy-service, description: "Windmill (Docker Compose); replaced by Windmill on k3s (TASK-025), stopped and kept"}
     - {vmid: 300, role: legacy-service, description: "OpenTofu state backups (tfstate.doku-lab.net); stopped", review: true}
     - {vmid: 301, role: deploy-runner, description: "Forgejo Actions runner of this repository (CT301); never holds Proxmox credentials (ADR-008)"}
-    - {vmids: [303, 305], role: k3s-server, platform: debian-13, description: "Stage A k3s of the old environment; replaced by the doku-lab cluster, stopped and kept"}
     - {vmids: [306, 307], role: tailscale-router, description: "Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml)"}
     - {vmids: [400, 699], role: desktop, description: "Desktop or development VM of the old environment, started by hand when needed"}
     - {vmids: [8000, 8999], role: template, description: "Image other VMs of the old environment were cloned from"}
@@ -344,6 +337,17 @@ retired:
   - {path: dcim/manufacturers, slug: asus, reason: "No device type uses it"}
   - {path: dcim/device-types, slug: unidentified-firewall-appliance, reason: "pfSense runs on a Lenovo ThinkCentre M75q Gen 2"}
   - {path: dcim/manufacturers, slug: unidentified, reason: "No device type uses it"}
+  # Guests of the old environment that were replaced and then deleted from the old host on 2026-11-21 (operator's
+  # decision). Their ports and addresses go with them.
+  - {path: virtualization/virtual-machines, name: adguard, reason: "CT200, replaced by dns-01, deleted 2026-11-21"}
+  - {path: virtualization/virtual-machines, name: homepage, reason: "CT201, replaced by the dashboard on k3s, deleted 2026-11-21"}
+  - {path: virtualization/virtual-machines, name: wiki-js, reason: "CT202, replaced by the wiki on k3s, deleted 2026-11-21"}
+  - {path: virtualization/virtual-machines, name: windmill, reason: "CT210, replaced by Windmill on k3s, deleted 2026-11-21"}
+  - {path: virtualization/virtual-machines, name: deb13-infisical, reason: "VM207, replaced by Phase, deleted 2026-11-21"}
+  - {path: virtualization/virtual-machines, name: deb13-monitoring, reason: "VM208, replaced by the monitoring on k3s, deleted 2026-11-21"}
+  - {path: virtualization/virtual-machines, name: k3s-server-1, reason: "VM303, Stage A k3s replaced by the doku-lab cluster, deleted 2026-11-21"}
+  - {path: virtualization/virtual-machines, name: k3s-server-2, reason: "VM304, Stage A k3s replaced by the doku-lab cluster, deleted 2026-11-21"}
+  - {path: virtualization/virtual-machines, name: k3s-server-3, reason: "VM305, Stage A k3s replaced by the doku-lab cluster, deleted 2026-11-21"}
 
 # OpenTofu roots whose VMs are inventoried from `tofu output -json ansible_inventory` (state on the workstation).
 iac_roots:

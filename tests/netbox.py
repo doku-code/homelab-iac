@@ -258,7 +258,7 @@ def snapshots():
                                                    guest(370, "dns-01", "pve-infra", ip="192.168.0.70/24"),
                                                    guest(999, "scratch", "pve-core")]},
         "legacy": {"age_hours": 0.1, "guests": [guest(204, "caddy", "pve-lab", kind="lxc", ip="192.168.0.24/24", ostype="debian"),
-                                                 guest(208, "deb13-monitoring", "pve-lab", status="stopped"),
+                                                 guest(208, "old-monitoring", "pve-lab", status="stopped"),
                                                  guest(203, "print-server", "pve-lab", kind="lxc", status="stopped"),
                                                  guest(501, "desktop", "pve-lab", status="stopped", ostype="win11")]},
     }
@@ -412,12 +412,14 @@ def reconciliation():
     assert caddy["cluster"] == cluster["homelab"] and set(caddy["tags"]) == {tags["discovered"], tags["lxc"]}
     assert caddy["role"] == role["legacy-service"] and caddy["description"].startswith("Caddy") and caddy["platform"] == platform["debian"]
     assert caddy["device"] == device["pve-lab-legacy"]["id"], "the old host is not the new pve-lab"
-    assert api.get(vms, name="deb13-monitoring")["status"] == "offline" and api.get(vms, name="deb13-monitoring")["platform"] == platform["debian-13"]
+    # Nobody described this one: Proxmox says it is stopped and runs Linux, and it stays flagged.
+    monitoring = api.get(vms, name="old-monitoring")
+    assert monitoring["status"] == "offline" and monitoring["platform"] == platform["linux"] and tags["needs-review"] in monitoring["tags"]
     assert set(scratch["tags"]) == {tags["discovered"], tags["needs-review"]} and "role" not in scratch
     assert set(api.get(vms, name="print-server")["tags"]) == {tags["discovered"], tags["lxc"], tags["needs-review"]}, "described, but still to verify"
     assert api.get(vms, name="desktop")["role"] == role["desktop"] and api.get(vms, name="desktop")["platform"] == platform["windows-11"]
     assert any("scratch" in line and "no static address" in line for line in applied.review)
-    assert not any("deb13-monitoring" in line and "no static address" in line for line in applied.review), "a stopped guest is not worth a line"
+    assert not any("old-monitoring" in line and "no static address" in line for line in applied.review), "a stopped guest is not worth a line"
     # Unverified devices are flagged, verified ones are not; the backup server is a VM on the NAS, stopped.
     assert device["pve-lab-legacy"]["tags"] == [tags["needs-review"]] and device["pve-core"]["tags"] == [] and "pbs" not in device
     pbs = api.get(vms, name="pbs")
@@ -481,7 +483,7 @@ def reconciliation():
     count = len(api.objects[vms])
     vanished = run(True, machines=MACHINES[:1], observed=gone)
     assert len(api.objects[vms]) == count, "nothing is deleted"
-    assert any("deb13-monitoring" in line and "no longer on Proxmox" in line for line in vanished.review)
+    assert any("old-monitoring" in line and "no longer on Proxmox" in line for line in vanished.review)
     assert any("dns-01" in line and "no root defines it" in line for line in vanished.review)
 
     # An address a person entered without an owner is not handed to a discovered guest automatically.

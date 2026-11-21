@@ -32,14 +32,14 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 
 | Device | Role | Model | Address | Rack | Status | Description |
 |---|---|---|---|---|---|---|
-| access-point | Access point | TP-Link EAP220 | 192.168.0.2/24 |  | Active (to verify) | Wi-Fi access point, managed on its own web interface |
-| pfsense | Router | Unidentified Firewall appliance | 192.168.0.1/24 |  | Active (to verify) | pfSense, LAN gateway and DHCP; never changed or signed in to by automation |
+| access-point | Access point | TP-Link EAP220 | 192.168.0.2/24 |  | Active | Wi-Fi access point, managed on its own web interface |
+| pfsense | Router | Lenovo ThinkCentre M75q Gen 2 | 192.168.0.1/24 |  | Active | AMD Ryzen 3, 8 GB RAM. pfSense, LAN gateway and DHCP; never changed or signed in to by automation |
 | pve-core | Hypervisor | Lenovo ThinkStation P350 Tiny | 192.168.0.11/24 |  | Active | Intel Core i7-11700, 32 GB RAM, 1 TB NVMe |
 | pve-infra | Hypervisor | Beelink Mini S | 192.168.0.12/24 |  | Active | Intel Celeron N5095A, 8 GB RAM, 256 GB SATA SSD |
 | pve-lab | Hypervisor | ORIGIMAGIC Nebula Series | 192.168.0.16/24 |  | Active | AMD Ryzen 7 6800H, 28 GB usable RAM, 512 GB NVMe |
 | pve-lab-legacy | Hypervisor | Custom build Tower, ASUS mainboard, Ryzen 9 9950X3D | 192.168.0.14/24 |  | Active (to verify) | Old environment (Proxmox node name pve-lab, future pve-compute). AMD Ryzen 9 9950X3D, 32 GB RAM |
 | pve-management | Hypervisor | Lenovo ThinkCentre M90q | 192.168.0.10/24 |  | Active | Intel Core i5-10500T, 16 GB RAM, 256 GB NVMe; hosts the admin workstation (ADR-002) |
-| switch | Switch | QNAP QSW-M3216R-8S8T | 192.168.0.116/24 |  | Active | Core switch; every Proxmox host of doku-lab is plugged into it. Its address is a DHCP lease |
+| switch | Switch | QNAP QSW-M3216R-8S8T | 192.168.0.116/24 | rack-01 | Active | Core switch; every Proxmox host of doku-lab is plugged into it. Its address is a DHCP lease until 192.168.0.3 is set on it |
 | truenas | NAS | Custom build NAS, ASRock N100M mainboard | 192.168.0.13/24 |  | Active | TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent; pools tank (2 x 8 TB mirror), fastpool (1 TB), apps-pool (180 GB). Not built from this repository |
 
 ## Cabling
@@ -108,21 +108,12 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 
 | Name | VMID | Host | Role | System | vCPU | Memory | Disk | Address | Status | Description |
 |---|---|---|---|---|---|---|---|---|---|---|
-| adguard | 200 | pve-lab-legacy | Legacy service | Debian | 1 | 0.5 GB | 8 GB |  | Offline | AdGuard Home; replaced by dns-01 on 2026-11-18, stopped and kept |
-| homepage | 201 | pve-lab-legacy | Legacy service | Debian | 1 | 0.5 GB | 8 GB | 192.168.0.21/24 | Offline | Homepage; replaced by the dashboard on k3s on 2026-11-19, stopped and kept |
-| wiki-js | 202 | pve-lab-legacy | Legacy service | Debian | 1 | 2 GB | 16 GB | 192.168.0.22/24 | Offline | Wiki.js 2; replaced by the wiki on k3s on 2026-11-20, content not carried over, stopped and kept |
 | print-server | 203 | pve-lab-legacy | Legacy service | Debian | 1 | 0.25 GB | 4 GB | 192.168.0.23/24 | Offline (to verify) | Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19 |
 | caddy | 204 | pve-lab-legacy | Legacy service | Debian | 2 | 1 GB | 8 GB | 192.168.0.24/24 | Active | Caddy: still serves git and cloud and the public tunnel (TASK-022) |
 | vaultwarden | 206 | pve-lab-legacy | Legacy service | Debian | 1 | 0.75 GB | 8 GB | 192.168.0.26/24 | Active | Vaultwarden (vault.doku-lab.net, through the k3s ingress); not migrated yet |
-| deb13-infisical | 207 | pve-lab-legacy | Legacy service | Debian 13 | 2 | 4 GB | 32 GB |  | Offline | Infisical; replaced by Phase on k3s (TASK-019), stopped and kept |
-| deb13-monitoring | 208 | pve-lab-legacy | Legacy service | Debian 13 | 2 | 4 GB | 32 GB | 192.168.0.28/24 | Offline | Monitoring (Docker Compose); replaced by the monitoring on k3s, stopped and kept |
 | garage | 209 | pve-lab-legacy | Legacy service | Debian | 1 | 1 GB | 16 GB | 192.168.0.29/24 | Offline (to verify) | Garage object storage (ansible/playbooks/configure-garage.yml); stopped |
-| windmill | 210 | pve-lab-legacy | Legacy service | Debian | 2 | 4 GB | 32 GB |  | Offline | Windmill (Docker Compose); replaced by Windmill on k3s (TASK-025), stopped and kept |
 | tfstate | 300 | pve-lab-legacy | Legacy service | Debian | 1 | 2 GB | 16 GB | 192.168.0.30/24 | Offline (to verify) | OpenTofu state backups (tfstate.doku-lab.net); stopped |
 | forgejo-runner-migration | 301 | pve-lab-legacy | Deployment runner | Debian | 4 | 6 GB | 38 GB | 192.168.0.31/24 | Active | Forgejo Actions runner of this repository (CT301); never holds Proxmox credentials (ADR-008) |
-| k3s-server-1 | 303 | pve-lab-legacy | k3s server | Debian 13 | 2 | 4 GB | 32 GB | 192.168.0.33/24 | Offline | Stage A k3s of the old environment; replaced by the doku-lab cluster, stopped and kept |
-| k3s-server-2 | 304 | pve-lab-legacy | k3s server | Debian 13 | 2 | 4 GB | 32 GB | 192.168.0.34/24 | Offline | Stage A k3s of the old environment; replaced by the doku-lab cluster, stopped and kept |
-| k3s-server-3 | 305 | pve-lab-legacy | k3s server | Debian 13 | 2 | 4 GB | 32 GB | 192.168.0.35/24 | Offline | Stage A k3s of the old environment; replaced by the doku-lab cluster, stopped and kept |
 | ts-router-01 | 306 | pve-lab-legacy | Tailscale router | Debian | 1 | 0.5 GB | 8 GB | 192.168.0.36/24 | Active | Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml) |
 | ts-router-02 | 307 | pve-lab-legacy | Tailscale router | Debian | 1 | 0.5 GB | 8 GB | 192.168.0.37/24 | Active | Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml) |
 
@@ -140,7 +131,7 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 |---|---|---|---|---|
 | 192.168.0.1/24 | pfsense lan | pfsense.doku-lab.net |  | pfsense |
 | 192.168.0.2/24 | access-point eth0 |  |  | access-point |
-| 192.168.0.3/24 |  | switch.doku-lab.net | Deprecated | Nothing answers here (2026-11-20). The name switch.doku-lab.net still points to it; the switch is at 192.168.0.116 |
+| 192.168.0.3/24 |  | switch.doku-lab.net | Reserved | Meant for the switch (operator, 2026-11-21); not set on it yet, the switch answers at 192.168.0.116 |
 | 192.168.0.9/24 | pve-core amt |  |  | pve-core |
 | 192.168.0.10/24 | pve-management vmbr0 |  |  | pve-management |
 | 192.168.0.11/24 | pve-core vmbr0 |  |  | pve-core |
@@ -150,19 +141,13 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 | 192.168.0.15/24 | pbs net0 |  | Reserved | pbs |
 | 192.168.0.16/24 | pve-lab vmbr0 |  |  | pve-lab |
 | 192.168.0.20/24 | dns-01 net0 | adguard.doku-lab.net | Secondary | LAN DNS service address (ansible/vars/dns.yml) |
-| 192.168.0.21/24 | homepage net0 |  |  | homepage |
-| 192.168.0.22/24 | wiki-js net0 |  |  | wiki-js |
 | 192.168.0.23/24 | print-server net0 |  |  | print-server |
 | 192.168.0.24/24 | caddy net0 |  |  | caddy |
 | 192.168.0.26/24 | vaultwarden net0 |  |  | vaultwarden |
-| 192.168.0.28/24 | deb13-monitoring net0 |  |  | deb13-monitoring |
 | 192.168.0.29/24 | garage net0 |  |  | garage |
 | 192.168.0.30/24 | tfstate net0 |  |  | tfstate |
 | 192.168.0.31/24 | forgejo-runner-migration net0 |  |  | forgejo-runner-migration |
 | 192.168.0.32/24 | deploy-runner-01 net0 |  |  | deploy-runner-01 |
-| 192.168.0.33/24 | k3s-server-1 net0 |  |  | k3s-server-1 |
-| 192.168.0.34/24 | k3s-server-2 net0 |  |  | k3s-server-2 |
-| 192.168.0.35/24 | k3s-server-3 net0 |  |  | k3s-server-3 |
 | 192.168.0.36/24 | ts-router-01 net0 |  |  | ts-router-01 |
 | 192.168.0.37/24 | ts-router-02 net0 |  |  | ts-router-02 |
 | 192.168.0.39/24 | mgmt-control-01 net0 |  |  | mgmt-control-01 |

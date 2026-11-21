@@ -2326,7 +2326,8 @@
         "New cluster reuses names and addresses (2026-11-16)",
         "Retired hosts (resolved 2026-11-12)",
         "Inferences",
-        "Open questions"
+        "Open questions",
+        "Update 2026-11-21: replaced guests deleted"
       ],
       "relations": {
         "related": [

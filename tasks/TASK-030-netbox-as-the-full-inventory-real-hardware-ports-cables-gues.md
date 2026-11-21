@@ -79,7 +79,8 @@ waiting for a review) and had no diagram. It should hold the real hardware and s
 - [x] Topology and floor plan plugins run, pinned by checksum, without a custom image
 - [x] Each root's plan checks its VMIDs and addresses against NetBox and still works without it
 - [x] The inventory is a page of the documentation, generated from NetBox
-- [ ] Rack, positions, and the cables no machine announces (NAS, pfSense, access point, old host) are recorded: waits for the operator's facts
+- [x] The rack, pfSense's hardware and the switch's port layout as the operator stated them (2026-11-21)
+- [ ] Positions in the rack, and the cables no machine announces (NAS, pfSense, access point, old host): wait for the operator
 
 ## Verification
 
@@ -107,25 +108,28 @@ scripts/secrets.py run /netbox -- make netbox-docs
 | Plugins | Init container: `plugins v4.7.5-d787f1278b51: installed`; `/api/status/` lists the three plugins; web and worker rolled out, Argo CD `Synced Healthy`; the topology page draws the switch with its four hosts | commit 8c4363f; screenshot (not kept in Git) | 2026-11-21 |
 | Allocation check | `allocation: 1 machine(s) of the plan agree with NetBox` (dns), `3 machine(s)` (k3s); both plans `No changes` | `make dns-plan`, `make k3s-cluster-plan`; commit fa268e6 | 2026-11-21 |
 | Inventory page | `docs/reference/infrastructure-inventory.md: rewritten from NetBox`; 11 personal machines counted, not named | `make netbox-docs` | 2026-11-21 |
-| Rack, remaining cables | not verified: nothing can read them | | |
+| Operator's facts | Rack `rack-01` (27 U, 19 inches, 610 mm deep; the switch in it, no position yet), pfSense on a Lenovo ThinkCentre M75q Gen 2 (WAN 1 Gb, LAN 2.5 Gb), switch ports 1 to 8 RJ45 and 9 to 16 SFP+, access point confirmed; `plan: 4 to create, 7 to update`, then an empty plan | `make netbox-apply`; commit 10ee98c | 2026-11-21 |
+| Deleted guests | Nine replaced guests deleted from the old host by the operator's decision (`destroyed CT 200 adguard` … `destroyed VM 305 k3s-server-3`); their nine records removed from NetBox with their addresses; `plan: 0 to create, 0 to update`, no line to review | `.local/legacy-destroy-2026-11-21.log`, `make netbox-prune` | 2026-11-21 |
+| Positions, remaining cables | not verified: nothing can read them | | |
 
 ## Not done
 
-- No rack, no position, no floor plan content: the height and width of the rack and where each device sits
-  are facts only the operator has. `inventory.yaml` takes them under `racks` and per device.
+- Positions in the rack and the floor plan: the rack exists with the switch in it, unplaced. Where each
+  device sits is the operator's to drag in NetBox (or `position` on the device in `inventory.yaml`); which
+  of the small machines are in the rack at all was not stated.
 - Cables of the NAS (10 Gb SFP+), pfSense, the access point and the old host: no machine announces them here.
   They go under `cables` in `inventory.yaml`.
-- Which eight ports of the switch are RJ45: ports 5 to 8 carry copper links, so 1 to 8 were taken as RJ45 and
-  9 to 16 as SFP+; to check against the front panel.
-- pfSense's hardware: automation never signs in to it; its type is "Unidentified firewall appliance", flagged.
-- `switch.doku-lab.net` still answers 192.168.0.3, where nothing listens; the switch has a DHCP lease at
-  192.168.0.116. A DNS and DHCP matter, left to the operator.
+- Setting 192.168.0.3 on the switch (the address the operator means for it, and where `switch.doku-lab.net`
+  points): needs a login on the switch, which automation does not have. It answers at its DHCP lease
+  192.168.0.116 until then.
+- The exact model of the rack: "Sysracks SRW 27.600" fits the operator's description (27 U, 24 inches deep,
+  "SRW something"); the label was not read.
 - Applications on k3s are not NetBox records (Git and Argo CD own them, ADR-016).
 - The scheduled export to a private repository (ADR-016) is still open.
 
 ## Completion summary
 
-In progress. Everything a machine could tell is in NetBox, with diagrams, the plan check and the generated
-page. Remaining: the operator's facts (rack size and positions, the four cables nobody announces, the switch's
-port layout, pfSense's hardware), entered in `services/netbox/inventory.yaml`, then `make netbox-apply` and
-`make netbox-docs`.
+In progress. Everything a machine could tell and what the operator stated on 2026-11-21 is in NetBox, with
+diagrams, the plan check and the generated page. Remaining: where the devices sit in the rack (in NetBox, or
+`position` in `services/netbox/inventory.yaml`) and the four cables nobody announces (`cables` in that file),
+then `make netbox-apply` and `make netbox-docs`.
