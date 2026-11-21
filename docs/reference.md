@@ -14,3 +14,9 @@ editor: markdown
 ## Sections
 
 - [External references](/docs/reference/external)
+
+## Documents
+
+| Document | Status | Summary |
+|----------|--------|---------|
+| [Infrastructure inventory](/docs/reference/infrastructure-inventory) | current | Devices, cabling, networks, addresses and virtual machines of the homelab, generated from NetBox: change NetBox or services/netbox/inventory.yaml, not this page. |

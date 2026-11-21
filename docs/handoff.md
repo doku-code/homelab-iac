@@ -141,10 +141,21 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 - **NetBox deployed** 2026-11-18 ([TASK-023](/tasks/task-023-netbox-on-k3s-initial-inventory-reconciliation-and-ansible-i),
   [ADR-016](/docs/decisions/adr-016-netbox-is-the-inventory-and-ipam-source-of-truth-populated-f)):
   `https://netbox.doku-lab.net` (LAN only; user `admin`, password at `/netbox` in the secret store), NetBox
-  4.7.5 on k3s with the shared PostgreSQL. Inventory: 5 Proxmox hosts, 10 VMs from the OpenTofu roots (tag
-  `iac`), 28 legacy guests found by discovery (tags `discovered`, `needs-review`), prefix, ranges, 35
-  addresses. Keep it current after a root changes: `netbox-discover` → `netbox-plan` → `netbox-apply`
-  (commands below). Open: the operator reviews the 34 records tagged `needs-review`; next steps in ADR-016.
+  4.7.5 on k3s with the shared PostgreSQL. Keep it current after a root changes: `netbox-discover` →
+  `netbox-plan` → `netbox-apply` (commands below); next steps in ADR-016.
+- **NetBox filled in** 2026-11-20/21 ([TASK-030](/tasks/task-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues),
+  [ADR-018](/docs/decisions/adr-018-netbox-holds-the-physical-inventory-git-says-what-a-device-i)): real device
+  types and ports, the switch (QNAP QSW-M3216R-8S8T at 192.168.0.116, a DHCP lease) and the access point
+  (192.168.0.2), hardware of the four doku-lab hosts read by `make netbox-discover-hardware`, their cables to
+  the switch as the switch announces them, roles for the old guests. **What a device is lives in
+  `services/netbox/inventory.yaml`; where it sits (rack, position), asset tags and comments live in
+  NetBox.** Diagrams: Topology Views and Floorplan in NetBox's menu (plugins pinned in
+  `services/netbox/access.yaml`, installed on the volume `netbox-plugins`). Every root's `*-plan` target now
+  checks its VMIDs and addresses against NetBox (skips itself when NetBox is away). The
+  [inventory page](/docs/reference/infrastructure-inventory) is rewritten by `scripts/secrets.py run /netbox --
+  make netbox-docs`. **Open, needs the operator's facts:** rack size and positions, cables of the NAS,
+  pfSense, the access point and the old host, which switch ports are RJ45, pfSense's hardware; 7 records
+  still flagged `needs-review`. `switch.doku-lab.net` still points to 192.168.0.3, where nothing answers.
 - **Argo CD deployed** 2026-11-18 ([TASK-024](/tasks/task-024-argo-cd-on-k3s-and-netbox-as-its-first-application)):
   `https://argocd.doku-lab.net` (LAN only; user `admin`, password at `/argocd` in the secret store). It keeps
   the applications of `services/argocd/apps/` in sync with `main` on Forgejo (about three minutes after
