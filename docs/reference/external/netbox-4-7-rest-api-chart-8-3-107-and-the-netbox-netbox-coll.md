@@ -11,7 +11,7 @@ source: https://github.com/netbox-community/netbox-chart
 source_authority: official
 verified: 2026-11-18
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-21
 tags: [reference, external, netbox]
 related_tasks: [TASK-023]
 related_milestones: [M013]
@@ -105,6 +105,33 @@ conditions see the extracted variables (`role == 'dns'` with `plurals: false`). 
 - Not used and not tested: the OpenTofu/Terraform provider `e-breuninger/netbox` 6.0.1 (2026-11-13), and
   the Proxmox plugins `netbox-proxbox` (0.0.24: NetBox 4.7 support labelled experimental, needs a separate
   backend service) and `proxmox2netbox` (4.7 not confirmed). [verified: registry and project pages]
+
+## Added on 2026-11-21 (TASK-030)
+
+- Endpoints now used: `dcim/{interface-templates,racks,mac-addresses,cables,inventory-items,inventory-item-roles}`,
+  `virtualization/virtual-disks`, `ipam/roles`. Filters: `device_type_id`, `interface_id` and `vminterface_id`
+  (hardware addresses), `device_id` and `virtual_machine_id` (services), `id`. [observed: project]
+- A hardware address is its own record (`dcim/mac-addresses`, `assigned_object_type` + `assigned_object_id`);
+  the port points to it with `primary_mac_address`. [observed: project]
+- A cable is created with `a_terminations` and `b_terminations` (lists of `object_type` + `object_id`); a
+  port shows its cable in `cable`. [observed: project]
+- With virtual disks, NetBox adds their sizes up into the machine's `disk`; the reconciliation then no
+  longer sends `disk`. Sizes are in MB. [observed: project]
+- `OPTIONS` on a list lists the writable fields and their choices only for a token that may write there.
+  [observed: project]
+- Plugins on 4.7.5 (Python 3.14): netbox-topology-views 5.0.2 (`min_version` 4.7.0; role pictures through
+  `POST /api/plugins/netbox_topology_views/images/save/` with `{"<role id>": "/static/netbox_topology_views/img/<file>.svg"}`;
+  query parameters of the page take `True`, not `on`), netbox-floorplan-plugin 0.10.0 (`max_version`
+  4.7.99), netbox-reorder-rack 1.1.5. None has a dependency of its own. [verified: PyPI; observed: project]
+- The chart runs the containers with a read-only file system and offers `initContainers`, `extraVolumes`,
+  `extraVolumeMounts`, `extraEnvs` (and the same under `worker`); it documents nothing about plugins beyond
+  `plugins` and `pluginsConfig`. The image has `uv` at `/usr/local/bin/uv`, the interpreter at
+  `/opt/netbox/venv`, serves `/opt/netbox/netbox/static` itself and uses the plain static storage, so a
+  plugin's `static/` directory copied there is enough; database changes of plugins are applied by the web
+  container when it starts. [verified: chart values, image; observed: project]
+- LLDP as heard on a Proxmox host from the QNAP QSW-M3216R-8S8T: chassis address, port number as text,
+  system name (the model unless renamed), management address. A Linux bridge does not pass these frames on,
+  so a VM cannot hear them. [observed: project]
 
 ## Verification
 

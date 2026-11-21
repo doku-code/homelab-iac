@@ -1209,7 +1209,7 @@ wiki-status:
 NETBOX_SECRET_INPUTS := NETBOX_SECRET_KEY NETBOX_API_TOKEN_PEPPER NETBOX_SUPERUSER_PASSWORD NETBOX_VALKEY_PASSWORD PG_APP_NETBOX_PASSWORD SSO_NETBOX_CLIENT_SECRET
 NETBOX_SYNC := $(VENV)/bin/python scripts/netbox-sync.py
 
-.PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-discover-hardware netbox-plan netbox-apply netbox-prune netbox-inventory netbox-export
+.PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-discover-hardware netbox-plan netbox-apply netbox-prune netbox-inventory netbox-export netbox-docs
 
 # Offline: renders the pinned chart with our values (needs the chart download) and runs the inventory
 # reconciliation against an in-memory NetBox.
@@ -1278,6 +1278,13 @@ netbox-prune:
 netbox-export:
 	@test -n "$(NETBOX_EXPORT_DIR)" || (echo "Set NETBOX_EXPORT_DIR to the directory to write (a checkout of the private history repository)" >&2; exit 1)
 	$(NETBOX_SYNC) export "$(NETBOX_EXPORT_DIR)"
+
+# The page of the documentation that shows the inventory (and with it the wiki), rewritten from NetBox with the
+# read-only token: no serial number, no hardware address, no name of a personal machine. Commit the result.
+#   scripts/secrets.py run /netbox -- make netbox-docs
+NETBOX_DOCS_PAGE := docs/reference/infrastructure-inventory.md
+netbox-docs:
+	$(NETBOX_SYNC) document $(NETBOX_DOCS_PAGE)
 
 # The Ansible inventory as NetBox serves it (read-only token):
 #   scripts/secrets.py run /netbox -- make netbox-inventory

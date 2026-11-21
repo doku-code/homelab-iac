@@ -682,6 +682,61 @@ def export():
         assert (Path(tmp) / "dcim-devices.yaml").read_text() == first, "an unchanged inventory gives an unchanged file"
 
 
+def documentation():
+    """The inventory page: generated from what the API returns, the same text for the same inventory, without
+    serial numbers, hardware addresses or the names of personal machines."""
+    def related(name, **more):
+        return {"id": 1, "url": "https://x/1", "display": name, "name": name, **more}
+
+    data = {
+        "dcim/devices": [{"name": "switch", "role": related("Switch"), "status": {"value": "active", "label": "Active"}, "serial": "SERIAL-1",
+                          "device_type": {"id": 1, "model": "QSW-M3216R-8S8T", "slug": "q", "manufacturer": related("QNAP")},
+                          "primary_ip4": {"id": 9, "address": "192.168.0.116/24"}, "rack": related("rack-01"), "position": 3.0,
+                          "tags": [{"slug": "needs-review"}], "description": "Core | switch"},
+                         {"name": "pve-core", "role": related("Hypervisor"), "status": {"value": "active", "label": "Active"}, "tags": [],
+                          "device_type": {"id": 2, "model": "ThinkStation P350 Tiny", "manufacturer": related("Lenovo")}, "description": ""}],
+        "dcim/cables": [{"a_terminations": [{"object": {"name": "nic0", "device": related("pve-core")}}],
+                         "b_terminations": [{"object": {"name": "8", "device": related("switch")}}], "tags": [{"slug": "observed"}], "type": None}],
+        "dcim/inventory-items": [{"device": related("pve-core"), "name": "nvme0n1", "role": related("Disk"), "part_id": "KINGSTON", "serial": "DISK-1",
+                                  "description": "1000 GB nvme"}],
+        "ipam/prefixes": [{"prefix": "192.168.0.0/24", "role": None, "status": {"value": "active", "label": "Active"}, "description": "LAN"},
+                          {"prefix": "10.42.0.0/16", "role": related("Kubernetes"), "status": {"value": "active", "label": "Active"}, "description": "pods"}],
+        "ipam/ip-ranges": [{"start_address": "192.168.0.40/24", "end_address": "192.168.0.49/24", "role": related("k3s server"), "description": "k3s"}],
+        "virtualization/virtual-machines": [
+            {"name": "k3s-server-01", "cluster": related("doku-lab"), "device": related("pve-lab"), "role": related("k3s server", slug="k3s-server"),
+             "platform": related("Debian 13"), "vcpus": 6.0, "memory": 12288, "disk": 65536, "primary_ip4": {"id": 1, "address": "192.168.0.40/24"},
+             "status": {"value": "active", "label": "Active"}, "custom_fields": {"proxmox_vmid": 310}, "tags": [{"slug": "iac"}], "description": "terraform/stacks/k3s"},
+            {"name": "my-private-desktop", "cluster": related("homelab"), "device": related("pve-lab-legacy"), "role": related("Desktop", slug="desktop"),
+             "status": {"value": "offline", "label": "Offline"}, "custom_fields": {"proxmox_vmid": 501}, "tags": [], "description": ""}],
+        "ipam/ip-addresses": [{"address": "192.168.0.116/24", "status": {"value": "dhcp", "label": "DHCP"}, "role": None, "dns_name": "",
+                               "assigned_object": {"name": "vlan1", "device": related("switch")}, "description": "switch"},
+                              {"address": "192.168.0.9/24", "status": {"value": "active", "label": "Active"}, "role": None, "dns_name": "",
+                               "assigned_object": None, "description": "free text"}],
+        "ipam/services": [{"parent": related("k3s-server-01"), "name": "Kubernetes API", "protocol": {"value": "tcp", "label": "TCP"}, "ports": [6443], "description": ""}],
+    }
+
+    class Api:
+        def list(self, path, query=None):
+            return copy.deepcopy(data[path])
+
+    text = sync.document(Api())
+    assert text == sync.document(Api()) and text.endswith("\n")
+    assert "| pve-core | Hypervisor | Lenovo ThinkStation P350 Tiny |" in text and text.index("| pve-core |") < text.index("| switch | Switch |"), "sorted by name"
+    assert "| switch | Switch | QNAP QSW-M3216R-8S8T | 192.168.0.116/24 | rack-01 U3 | Active (to verify) | Core \\| switch |" in text
+    assert "| pve-core nic0 | switch 8 |  | announced by the switch (LLDP) |" in text
+    assert "| k3s-server-01 | 310 | pve-lab | k3s server | Debian 13 | 6 | 12 GB | 64 GB | 192.168.0.40/24 | Active | terraform/stacks/k3s |" in text
+    assert "my-private-desktop" not in text and "1 desktop and template machines of this cluster are in NetBox and not listed here." in text
+    assert "SERIAL-1" not in text and "DISK-1" not in text, "serial numbers stay in NetBox"
+    assert text.index("| 192.168.0.9/24 |") < text.index("| 192.168.0.116/24 | switch vlan1 |  | DHCP | switch |"), "addresses in numeric order"
+    assert text.index("| 10.42.0.0/16 | Kubernetes |") < text.index("| 192.168.0.0/24 |")
+    # The committed page: both markers once, nothing a public repository should not hold.
+    page = (ROOT / make_var("NETBOX_DOCS_PAGE")).read_text()
+    assert page.count(sync.GENERATED[0]) == 1 and page.count(sync.GENERATED[1]) == 1 and page.startswith("---\nid: DOC-infrastructure-inventory")
+    generated = page.split(sync.GENERATED[0])[1].split(sync.GENERATED[1])[0]
+    assert not re.search(r"(?i)\b([0-9a-f]{2}:){5}[0-9a-f]{2}\b|serial", generated)
+    assert "document $(NETBOX_DOCS_PAGE)" in (ROOT / "Makefile").read_text()
+
+
 def seed_and_inventory():
     text = (DIR / "inventory.yaml").read_text()
     seed = yaml.safe_load(text)
@@ -739,6 +794,7 @@ def main():
     host_facts()
     discovery()
     export()
+    documentation()
     seed_and_inventory()
     print("PASS: chart pinned with single replicas, shared PostgreSQL, pinned Valkey, no secret in Git, LAN-only route; "
           "diagram plugins pinned by checksum and installed on a volume; reconciliation idempotent, never deletes, never overwrites what people entered, never prints serial numbers or "

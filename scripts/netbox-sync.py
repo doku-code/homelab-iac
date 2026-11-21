@@ -10,6 +10,7 @@
   scripts/netbox-sync.py prune                        remove the records inventory.yaml lists under `retired`, nothing else
   scripts/netbox-sync.py identities                   create the two service accounts and store their API tokens
   scripts/netbox-sync.py export <directory>           write the whole inventory as sorted YAML files (for a history in Git)
+  scripts/netbox-sync.py document <page.md>           rewrite the generated part of a documentation page from NetBox
 
 Three kinds of data, never mixed (services/netbox/inventory.yaml describes the ownership):
   intended   the VMs of the OpenTofu roots (`tofu output`) and what inventory.yaml states (models, devices, ports,
@@ -1109,9 +1110,115 @@ def cmd_export(args):
     print(f"{sum(written.values())} records in {len(written)} files -> {directory}")
 
 
+# ───────────────────────── the inventory as a page of the documentation ─────────────────────────
+
+GENERATED = ("<!-- netbox:generated:start -->", "<!-- netbox:generated:end -->")
+UNLISTED_ROLES = ("desktop", "template")  # personal machines: counted, not named, in a public repository
+
+
+def named(value, *keys):
+    """The readable part of a related object as the API nests it."""
+    if isinstance(value, dict):
+        return next((value[key] for key in (*keys, "name", "model", "address", "label", "display") if value.get(key)), "")
+    return "" if value is None else value
+
+
+def table(headers, rows):
+    def cell(value):
+        return str("" if value is None else value).replace("|", "\\|").replace("\n", " ")
+    lines = ["| " + " | ".join(headers) + " |", "|" + "|".join("---" for _ in headers) + "|"]
+    return "\n".join(lines + ["| " + " | ".join(cell(value) for value in row) + " |" for row in rows])
+
+
+def size(megabytes):
+    return "" if not megabytes else f"{megabytes / 1024:g} GB"
+
+
+def document(api):
+    """The inventory as Markdown: what NetBox holds, without serial numbers, hardware addresses or the names of
+    personal machines. The same inventory gives the same text."""
+    def end(termination):
+        port = termination.get("object") or {}
+        return f"{named(port.get('device'))} {port.get('name', '')}".strip()
+
+    def tags(item):
+        return {tag["slug"] for tag in item.get("tags") or []}
+
+    def address_key(item):
+        return ipaddress.ip_interface(item["address"])
+
+    devices = sorted(api.list("dcim/devices"), key=lambda d: d["name"])
+    out = ["## Devices", "", table(
+        ["Device", "Role", "Model", "Address", "Rack", "Status", "Description"],
+        [[d["name"], named(d.get("role")), f"{named((d.get('device_type') or {}).get('manufacturer'))} {named(d.get('device_type'), 'model')}".strip(),
+          named(d.get("primary_ip4"), "address"), " ".join(str(x) for x in (named(d.get("rack")), f"U{d['position']:g}" if d.get("position") else "") if x),
+          named(d.get("status"), "label") + (" (to verify)" if "needs-review" in tags(d) else ""), d.get("description", "")] for d in devices])]
+    cables = sorted(([sorted(end(t) for t in c.get("a_terminations") or []), sorted(end(t) for t in c.get("b_terminations") or []), c] for c in api.list("dcim/cables")),
+                    key=lambda row: (row[0], row[1]))
+    out += ["", "## Cabling", "", table(["From", "To", "Cable", "Known from"],
+                                         [[", ".join(a), ", ".join(b), named(c.get("type"), "label"),
+                                           "announced by the switch (LLDP)" if "observed" in tags(c) else "entered"] for a, b, c in cables])
+            if cables else "No cable is recorded."]
+    items = sorted(api.list("dcim/inventory-items"), key=lambda i: (named(i.get("device")), named(i.get("role")), i["name"]))
+    out += ["", "## Hardware of the hosts", "", table(["Device", "Part", "Kind", "Model", "Details"],
+                                                      [[named(i.get("device")), i["name"], named(i.get("role")), i.get("part_id", ""), i.get("description", "")] for i in items])
+            if items else "No hardware was read yet (`make netbox-discover-hardware`)."]
+    out += ["", "## Networks", "", table(["Prefix", "Role", "Status", "Description"],
+                                         [[x["prefix"], named(x.get("role")), named(x.get("status"), "label"), x.get("description", "")]
+                                          for x in sorted(api.list("ipam/prefixes"), key=lambda x: ipaddress.ip_network(x["prefix"]))]),
+            "", table(["Address range", "For", "Description"],
+                      [[f"{x['start_address'].split('/')[0]} to {x['end_address'].split('/')[0]}", named(x.get("role")), x.get("description", "")]
+                       for x in sorted(api.list("ipam/ip-ranges"), key=lambda x: ipaddress.ip_interface(x["start_address"]))])]
+    machines = api.list("virtualization/virtual-machines")
+    out += ["", "## Virtual machines and containers"]
+    for cluster in sorted({named(m.get("cluster")) for m in machines}):
+        mine = sorted((m for m in machines if named(m.get("cluster")) == cluster), key=lambda m: ((m.get("custom_fields") or {}).get("proxmox_vmid") or 0, m["name"]))
+        listed = [m for m in mine if (m.get("role") or {}).get("slug") not in UNLISTED_ROLES]
+        out += ["", f"### Cluster {cluster}", "", table(
+            ["Name", "VMID", "Host", "Role", "System", "vCPU", "Memory", "Disk", "Address", "Status", "Description"],
+            [[m["name"], (m.get("custom_fields") or {}).get("proxmox_vmid") or "", named(m.get("device")), named(m.get("role")), named(m.get("platform")),
+              f"{m['vcpus']:g}" if m.get("vcpus") else "", size(m.get("memory")), size(m.get("disk")), named(m.get("primary_ip4"), "address"),
+              named(m.get("status"), "label") + (" (to verify)" if "needs-review" in tags(m) else ""), m.get("description", "")] for m in listed])]
+        if len(listed) != len(mine):
+            out += ["", f"{len(mine) - len(listed)} desktop and template machines of this cluster are in NetBox and not listed here."]
+    addresses = sorted(api.list("ipam/ip-addresses"), key=address_key)
+    out += ["", "## Addresses", "", table(
+        ["Address", "On", "Name", "Kind", "Description"],
+        [[a["address"], " ".join(str(x) for x in (named((a.get("assigned_object") or {}).get("device") or (a.get("assigned_object") or {}).get("virtual_machine")),
+                                                   (a.get("assigned_object") or {}).get("name", "")) if x),
+          a.get("dns_name", ""), " ".join(x for x in (named(a.get("status"), "label"), named(a.get("role"), "label")) if x and x != "Active"),
+          a.get("description", "")] for a in addresses])]
+    services = sorted(api.list("ipam/services"), key=lambda x: (named(x.get("parent")), x["name"]))
+    out += ["", "## Services", "", table(["Machine", "Service", "Protocol", "Ports", "Description"],
+                                         [[named(x.get("parent")), x["name"], named(x.get("protocol"), "label"), ", ".join(str(port) for port in x.get("ports") or []),
+                                           x.get("description", "")] for x in services])]
+    return "\n".join(out) + "\n"
+
+
+def cmd_document(args):
+    """Rewrites the generated part of a page (between the two markers); the rest of the page is left as it is."""
+    if len(args) != 1:
+        die("usage: netbox-sync.py document <page.md>")
+    token = os.environ.get("NETBOX_READ_TOKEN") or die("set NETBOX_READ_TOKEN in the environment (store path /netbox)")
+    page = Path(args[0])
+    text = page.read_text()
+    if text.count(GENERATED[0]) != 1 or text.count(GENERATED[1]) != 1:
+        die(f"{page}: the page must hold the two markers {GENERATED[0]} and {GENERATED[1]} once each")
+    head, rest = text.split(GENERATED[0])
+    new = head + GENERATED[0] + "\n" + document(NetBox(NETBOX_URL, token)) + GENERATED[1] + rest.split(GENERATED[1])[1]
+    if new == text:
+        print(f"{page}: unchanged")
+        return
+    today = datetime.date.today().isoformat()
+    page.write_text(re.sub(r"(?m)^updated: .*$", f"updated: {today}", new, count=1))
+    print(f"{page}: rewritten from NetBox")
+
+
 def main(argv):
     if argv and argv[0] == "export":
         return cmd_export(argv[1:])
+    if argv and argv[0] == "document":
+        return cmd_document(argv[1:])
     if not argv or argv[0] not in ("discover", "discover-hardware", "plan", "apply", "icons", "prune", "identities", "check-plan"):
         die("usage: netbox-sync.py discover <source> | discover-hardware [device ...] | plan | apply | icons | prune | identities | export <directory>")
     seed = yaml.safe_load(SEED.read_text())

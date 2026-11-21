@@ -43,7 +43,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-006 | in-progress | critical | M001 | [Target repository layout, OpenTofu toolchain and management Make targets](../tasks/TASK-006-target-layout-and-service-contract.md) | Keep the terraform/ tree, pin OpenTofu 1.13.9 for new roots, add guarded mgmt-* Make targets and offline CI validation (make mgmt-check). |
 | TASK-019 | in-progress | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md) | Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account. |
 | TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
-| TASK-030 | in-progress | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](../tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md) | NetBox holds named hardware models, ports, hardware addresses, the cables heard from the switch, what every guest is, and shows topology and rack diagrams through plugins; the roots check their addresses and VMIDs against it. |
+| TASK-030 | in-progress | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](../tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md) | NetBox holds named hardware models, ports, hardware facts, the cables the switch announces and what every guest is, draws diagrams through plugins, and the roots check their plans against it. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -91,6 +91,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | ADR-015 | accepted | [PostgreSQL runs on three Patroni VMs outside k3s](decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md) | database | Operator decision 2026-11-17: the shared PostgreSQL platform is three Patroni VMs outside k3s with etcd and a virtual IP, not an operator inside k3s. |
 | ADR-016 | accepted | [NetBox is the inventory and IPAM source of truth, populated from Git and read-only discovery](decisions/ADR-016-netbox-is-the-inventory-and-ipam-source-of-truth-populated-f.md) | inventory | NetBox on k3s holds the intended inventory and address plan; Git owns what OpenTofu defines, Proxmox is only observed, NetBox is never a bootstrap dependency. |
 | ADR-017 | accepted | [Authentik is the single sign-on of the platform, declared in Git, never a bootstrap dependency](decisions/ADR-017-authentik-is-the-single-sign-on-of-the-platform-declared-in.md) | identity | Authentik on k3s signs people in to the web interfaces; applications and groups are blueprints in Git, people live in Authentik, and each service keeps a local administrator. |
+| ADR-018 | accepted | [NetBox holds the physical inventory: Git says what a device is, machines report their hardware, people place it](decisions/ADR-018-netbox-holds-the-physical-inventory-git-says-what-a-device-i.md) | netbox | Device identity comes from inventory.yaml, hardware and cabling from what hosts and the switch report, placement stays with people in NetBox; diagram plugins are installed on a volume. |
 
 ## External references
 
@@ -125,6 +126,10 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 ### Guide
 
 - **GUIDE-handoff** [Current handoff and next steps](handoff.md) (current) `guide, handoff, workstation, pve-management` — Read first in a new session: what exists, where the state lives, how to work from mgmt-control-01, the current and next task.
+
+### Project reference
+
+- **DOC-infrastructure-inventory** [Infrastructure inventory](reference/infrastructure-inventory.md) (current) `reference, netbox, inventory, hardware, network` — Devices, cabling, networks, addresses and virtual machines of the homelab, generated from NetBox: change NetBox or services/netbox/inventory.yaml, not this page.
 
 ## Implementation history
 
@@ -171,13 +176,13 @@ _No commit records. Generate with `harness history sync`._
 - **grafana**: TASK-020, TASK-026
 - **guide**: GUIDE-handoff
 - **handoff**: GUIDE-handoff
-- **hardware**: INV-new-proxmox-cluster-inventory, TASK-030
+- **hardware**: ADR-018, DOC-infrastructure-inventory, INV-new-proxmox-cluster-inventory, TASK-030
 - **harness**: TASK-001
 - **headlamp**: ADR-011, TASK-016
 - **homepage**: TASK-027
 - **infisical**: ADR-004, TASK-019
 - **ingress**: TASK-022
-- **inventory**: ADR-016, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, M013, TASK-002, TASK-003, TASK-023, TASK-030
+- **inventory**: ADR-016, ADR-018, DOC-infrastructure-inventory, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, M013, TASK-002, TASK-003, TASK-023, TASK-030
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
 - **ipam**: ADR-016, TASK-023
 - **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017, TASK-019, TASK-021
@@ -189,7 +194,8 @@ _No commit records. Generate with `harness history sync`._
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029
-- **netbox**: ADR-016, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026, TASK-030
+- **netbox**: ADR-016, ADR-018, DOC-infrastructure-inventory, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026, TASK-030
+- **network**: DOC-infrastructure-inventory
 - **nfs**: TASK-017
 - **nvme**: ADR-012
 - **observability**: TASK-020
@@ -209,7 +215,7 @@ _No commit records. Generate with `harness history sync`._
 - **pve-management**: ADR-009, ADR-010, GUIDE-handoff, INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview
 - **recovery**: TASK-004, TASK-012
-- **reference**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
+- **reference**: DOC-infrastructure-inventory, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
 - **repository**: TASK-001
 - **roadmap**: M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012, M013, M014
 - **runbook**: TASK-012
@@ -239,6 +245,7 @@ _No commit records. Generate with `harness history sync`._
 - **identity**: ADR-017
 - **infrastructure**: ADR-003
 - **inventory**: ADR-016, INV-legacy-inventory
+- **netbox**: ADR-018
 - **orchestration**: ADR-005
 - **platform**: ADR-001, ARCH-platform
 - **proxmox**: ADR-010
