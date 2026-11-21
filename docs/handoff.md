@@ -38,7 +38,7 @@ secrets or state in Git, never destroy a workload before its replacement works.
 | New cluster `doku-lab` | Proxmox VE 9.2, quorate, 4 nodes: `pve-management` .10, `pve-core` .11, `pve-infra` .12, new `pve-lab` .16 ([inventory](/docs/investigations/new-proxmox-cluster-inventory)); only VM 100 exists |
 | `mgmt-control-01` VM 100, 192.168.0.39 on `pve-management` | Ubuntu Desktop 26.04.1, 8 vCPU, 10 GiB, 120 GiB; OpenTofu + autoinstall + Ansible; **the operator workstation and the only OpenTofu executor** |
 | Old environment: `pve-lab` **192.168.0.14** | Ryzen 9 9950X3D, independent, runs the legacy services; never join, rename or reconfigure it. Future `pve-compute` after M010 |
-| Legacy services | On the old host and TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent, Vaultwarden, Wiki.js (CT202), Caddy (CT204, only `git`, `cloud` and the public tunnel). Replaced and stopped: Infisical, AdGuard (CT200), monitoring (VM 208), Homepage (CT201), Wiki.js (CT202; its content was not carried over, by the operator's decision) |
+| Legacy services | On the old host and TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent, Vaultwarden, Caddy (CT204, only `git`, `cloud` and the public tunnel). Still on the old host: Caddy (CT204), Vaultwarden (CT206), the migration runner (CT301), the two Tailscale routers (CT306, CT307), and stopped: print server (CT203), Garage (CT209), tfstate (CT300), the desktop VMs and templates. **Deleted from the old host on 2026-11-21 on the operator's word, after their replacements ran: AdGuard (CT200), Homepage (CT201), Wiki.js (CT202), Windmill (CT210), Infisical (VM 207), monitoring (VM 208), the Stage A k3s VMs (303 to 305).** Their Terraform roots (`deb13-monitoring`, `pve-lab-k3s`, `pve-core-windmill`) describe guests that no longer exist: never apply them |
 
 Two hosts are named `pve-lab` and `pve-lab.doku-lab.net` resolves to the old side's proxy (.24): **always
 use IPs**. The new nodes have no DNS records.
@@ -153,9 +153,13 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   `services/netbox/access.yaml`, installed on the volume `netbox-plugins`). Every root's `*-plan` target now
   checks its VMIDs and addresses against NetBox (skips itself when NetBox is away). The
   [inventory page](/docs/reference/infrastructure-inventory) is rewritten by `scripts/secrets.py run /netbox --
-  make netbox-docs`. **Open, needs the operator's facts:** rack size and positions, cables of the NAS,
-  pfSense, the access point and the old host, which switch ports are RJ45, pfSense's hardware; 7 records
-  still flagged `needs-review`. `switch.doku-lab.net` still points to 192.168.0.3, where nothing answers.
+  make netbox-docs`. The rack (`rack-01`, 27 U Sysracks cabinet), pfSense's hardware (Lenovo M75q Gen 2)
+  and the switch's port layout are as the operator stated them on 2026-11-21. **Open, needs the operator:**
+  where each device sits in the rack (drag it in NetBox's rack view, or `position` in the file), the switch
+  ports of the NAS, pfSense, the access point and the old host (`cables` in the file; automation has no
+  login on the switch and only hears what the switch announces to the Proxmox hosts), and setting
+  192.168.0.3 on the switch (it still answers at its DHCP lease 192.168.0.116). 5 records still flagged
+  `needs-review`: the old host, three stopped containers (print server, Garage, tfstate), the DHCP range.
 - **Argo CD deployed** 2026-11-18 ([TASK-024](/tasks/task-024-argo-cd-on-k3s-and-netbox-as-its-first-application)):
   `https://argocd.doku-lab.net` (LAN only; user `admin`, password at `/argocd` in the secret store). It keeps
   the applications of `services/argocd/apps/` in sync with `main` on Forgejo (about three minutes after

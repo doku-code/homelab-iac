@@ -8,13 +8,13 @@ tags:
 - inventory
 - legacy
 editor: markdown
-date: '2026-11-16T00:00:00.000Z'
+date: '2026-11-21T00:00:00.000Z'
 dateCreated: '2026-11-12T00:00:00.000Z'
 ---
 
 # Legacy homelab inventory
 
-> **ID:** INV-legacy-inventory · **Type:** investigation · **Status:** needs-review · **Updated:** 2026-11-16 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/investigations/legacy-inventory.md)
+> **ID:** INV-legacy-inventory · **Type:** investigation · **Status:** needs-review · **Updated:** 2026-11-21 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/investigations/legacy-inventory.md)
 
 ## Question
 
@@ -120,3 +120,13 @@ located in TASK-002/TASK-003. Historical documents in the archive keep their ori
 - Where Caddy, AdGuard and the Tailscale routers run today; DNS/route dependencies (TASK-003).
 - Backup coverage per service and whether a PBS restore actually works (TASK-003, TASK-004).
 - Which machine is the "remaining spare machine" for the new compute environment (M004).
+
+## Update 2026-11-21: replaced guests deleted
+
+On the operator's word, the guests of the old host whose replacements run on doku-lab were deleted there
+(`pct destroy` / `qm destroy` with `--purge`, each only after checking that it was stopped and still carried
+the expected name): CT200 AdGuard, CT201 Homepage, CT202 Wiki.js, CT210 Windmill, VM 207 Infisical, VM 208
+monitoring, VM 303 to 305 (Stage A k3s). Nothing else on the old host was changed. The Terraform roots
+`deb13-monitoring`, `pve-lab-k3s` and `pve-core-windmill` now describe guests that no longer exist; their
+states (on the Mac, archive in `.local/`) are history, not something to apply. The current list of what
+is left is the [inventory page](/docs/reference/infrastructure-inventory), generated from NetBox.
