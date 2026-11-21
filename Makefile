@@ -1209,7 +1209,7 @@ wiki-status:
 NETBOX_SECRET_INPUTS := NETBOX_SECRET_KEY NETBOX_API_TOKEN_PEPPER NETBOX_SUPERUSER_PASSWORD NETBOX_VALKEY_PASSWORD PG_APP_NETBOX_PASSWORD SSO_NETBOX_CLIENT_SECRET
 NETBOX_SYNC := $(VENV)/bin/python scripts/netbox-sync.py
 
-.PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-discover-hardware netbox-plan netbox-apply netbox-prune netbox-inventory netbox-export netbox-docs
+.PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-discover-hardware netbox-discover-tailscale netbox-plan netbox-apply netbox-prune netbox-inventory netbox-export netbox-docs
 
 # Offline: renders the pinned chart with our values (needs the chart download) and runs the inventory
 # reconciliation against an in-memory NetBox.
@@ -1254,6 +1254,12 @@ netbox-discover:
 #   make netbox-discover-hardware [NETBOX_DEVICES="pve-core pve-lab"]
 netbox-discover-hardware:
 	$(NETBOX_SYNC) discover-hardware $(NETBOX_DEVICES)
+
+# What the members of a tunnel say about themselves (inventory.yaml: `tunnels`), into .local/netbox/tailscale.json:
+# `tailscale status` of the container itself, without the other members of the tailnet, through root SSH on its
+# Proxmox node. Reads only; needs a fresh `make netbox-discover NETBOX_SOURCE=doku-lab`.
+netbox-discover-tailscale:
+	$(NETBOX_SYNC) discover-tailscale
 
 # What the reconciliation would change in NetBox, and what needs a human decision. Writes nothing.
 #   scripts/secrets.py run /netbox -- make netbox-plan

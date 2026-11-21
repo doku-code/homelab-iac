@@ -16,6 +16,10 @@
 #   discovered   guests found on a Proxmox host that no root defines: created once (tags "discovered" and
 #                "needs-review"); name differences are only reported. `guests` below says what the known ones
 #                are; a guest described there is no longer "needs-review".
+#   overlay      what a member of a tunnel reports about itself (`make netbox-discover-tailscale`): its address in
+#                the tailnet, its name there and the routes it advertises. NetBox only, tag "observed".
+#   private      what a public repository must not hold: the names of the Wi-Fi networks. They are listed in
+#                .local/netbox/private.yaml on the workstation (key `wireless_lans`, same form as below).
 # The reconciliation never deletes. Records this file names under `retired` are removed by a separate, approved
 # command (`make netbox-prune`). No secrets belong in this file or in NetBox.
 
@@ -166,9 +170,9 @@ device_types:
     u_height: 0
     comments: "Dual-band 802.11n access point; the model is what its own sign-in page shows."
     ports:
-      - {name: eth0, type: 1000base-t, description: "Uplink, power over Ethernet (802.3af)"}
-      - {name: wlan0, type: ieee802.11n, description: "2.4 GHz radio"}
-      - {name: wlan1, type: ieee802.11n, description: "5 GHz radio"}
+      - {name: eth0, type: 1000base-t, poe_mode: pd, poe_type: type1-ieee802.3af, description: "Uplink, power over Ethernet (802.3af)"}
+      - {name: wlan0, type: ieee802.11n, rf_role: ap, description: "2.4 GHz radio"}
+      - {name: wlan1, type: ieee802.11n, rf_role: ap, description: "5 GHz radio"}
   - slug: lenovo-thinkcentre-m75q-gen-2
     manufacturer: Lenovo
     model: ThinkCentre M75q Gen 2
@@ -311,9 +315,28 @@ addresses:
   - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address (ansible/vars/dns.yml)"}
   - {address: 192.168.0.3/24, iac: true, status: reserved, dns_name: switch.doku-lab.net, description: "Meant for the switch (operator, 2026-11-21); not set on it yet, the switch answers at 192.168.0.116"}
 
-# What the guests of the old environment are (cluster, then VMID or a range of VMIDs). A guest described
-# here gets this role and description and is no longer "needs-review", unless "review: true" keeps the flag.
+# Wi-Fi networks: name (`ssid`), `description`, optional `group`, `auth_type` (open, wep, wpa-personal,
+# wpa-enterprise), `auth_cipher` (auto, tkip, aes) and the `radios` that carry them as [device, port]. The real
+# ones are in the private file (see `private` at the top); passphrases are never recorded anywhere.
+wireless_lans: []
+
+# Tunnels. Git says that a tunnel exists and which role of guests are its members; each member's port, tailnet
+# address and advertised routes are read from the member itself (`make netbox-discover-tailscale`).
+tunnel_groups:
+  - {name: Tailscale, slug: tailscale, description: "The tailnet: WireGuard mesh run by Tailscale, remote access to the LAN"}
+tunnels:
+  - name: tailscale-lan
+    group: tailscale
+    encapsulation: wireguard
+    description: "Tailnet access to 192.168.0.0/24 through two subnet routers; one serves the route, the other takes over when it stops"
+    members: {role: tailscale-router, interface: tailscale0, role_in_tunnel: peer}
+
+# What the guests no root defines are (cluster, then VMID or a range of VMIDs). A guest described here gets
+# this role and description and is no longer "needs-review", unless "review: true" keeps the flag.
 guests:
+  doku-lab:
+    - {vmids: [306, 307], role: tailscale-router, platform: debian-13, description: "Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml); container moved from the old host on 2026-11-21, not defined by a root yet"}
+    - {vmids: [700, 799], role: desktop, description: "Windows VM moved from the old environment on 2026-11-21, kept off; its network is set by the operator when it is started again"}
   homelab:
     - {vmid: 203, role: legacy-service, description: "Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19", review: true}
     - {vmid: 204, role: legacy-service, description: "Caddy: still serves git and cloud and the public tunnel (TASK-022)"}
@@ -321,7 +344,6 @@ guests:
     - {vmid: 209, role: legacy-service, description: "Garage object storage (ansible/playbooks/configure-garage.yml); stopped", review: true}
     - {vmid: 300, role: legacy-service, description: "OpenTofu state backups (tfstate.doku-lab.net); stopped", review: true}
     - {vmid: 301, role: deploy-runner, description: "Forgejo Actions runner of this repository (CT301); never holds Proxmox credentials (ADR-008)"}
-    - {vmids: [306, 307], role: tailscale-router, description: "Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml)"}
     - {vmids: [400, 699], role: desktop, description: "Desktop or development VM of the old environment, started by hand when needed"}
     - {vmids: [8000, 8999], role: template, description: "Image other VMs of the old environment were cloned from"}
 
@@ -348,6 +370,10 @@ retired:
   - {path: virtualization/virtual-machines, name: k3s-server-1, reason: "VM303, Stage A k3s replaced by the doku-lab cluster, deleted 2026-11-21"}
   - {path: virtualization/virtual-machines, name: k3s-server-2, reason: "VM304, Stage A k3s replaced by the doku-lab cluster, deleted 2026-11-21"}
   - {path: virtualization/virtual-machines, name: k3s-server-3, reason: "VM305, Stage A k3s replaced by the doku-lab cluster, deleted 2026-11-21"}
+  # The two Tailscale routers moved to the new cluster on 2026-11-21 (same containers, same addresses); the copies
+  # on the old host were deleted on the operator's word. Their records in the old cluster go, the new ones stay.
+  - {path: virtualization/virtual-machines, name: ts-router-01, cluster: homelab, reason: "CT306 moved to pve-core, old copy deleted 2026-11-21"}
+  - {path: virtualization/virtual-machines, name: ts-router-02, cluster: homelab, reason: "CT307 moved to pve-management, old copy deleted 2026-11-21"}
 
 # OpenTofu roots whose VMs are inventoried from `tofu output -json ansible_inventory` (state on the workstation).
 iac_roots:

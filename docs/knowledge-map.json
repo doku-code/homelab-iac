@@ -2007,6 +2007,8 @@
         "Cluster doku-lab",
         "Cluster homelab",
         "Cluster truenas",
+        "Tunnels",
+        "Wi-Fi radios",
         "Addresses",
         "Services"
       ],
@@ -2327,7 +2329,8 @@
         "Retired hosts (resolved 2026-11-12)",
         "Inferences",
         "Open questions",
-        "Update 2026-11-21: replaced guests deleted"
+        "Update 2026-11-21: replaced guests deleted",
+        "Update 2026-11-21: Tailscale routers and two Windows VMs moved"
       ],
       "relations": {
         "related": [
@@ -2609,6 +2612,41 @@
           "field": "related"
         }
       ]
+    },
+    {
+      "id": "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte",
+      "title": "Bursts of full-size frames are lost on the way into the Intel I219 hosts",
+      "summary": "pve-core and pve-management lose 3 to 5 % of back-to-back full-size frames they receive; TCP from faster hosts falls to 20-60 Mbit/s. Cause not fixed yet.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "known-issue",
+      "status": "open",
+      "path": "docs/issues/bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte.md",
+      "tags": [
+        "issue",
+        "network",
+        "proxmox"
+      ],
+      "component": "network",
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Bursts of full-size frames are lost on the way into the Intel I219 hosts",
+        "Description",
+        "Impact",
+        "Workaround",
+        "Resolution plan"
+      ],
+      "relations": {},
+      "backrefs": []
     },
     {
       "id": "M000",
@@ -6168,6 +6206,9 @@
       "INV-new-proxmox-cluster-inventory",
       "INV-pve-management-bootstrap"
     ],
+    "known-issue": [
+      "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte"
+    ],
     "library-reference": [
       "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr"
     ],
@@ -6434,6 +6475,9 @@
       "ADR-016",
       "TASK-023"
     ],
+    "issue": [
+      "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte"
+    ],
     "k3s": [
       "ADR-006",
       "ADR-011",
@@ -6487,7 +6531,8 @@
       "TASK-030"
     ],
     "network": [
-      "DOC-infrastructure-inventory"
+      "DOC-infrastructure-inventory",
+      "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte"
     ],
     "nfs": [
       "TASK-017"
@@ -6547,6 +6592,7 @@
       "ADR-002",
       "ADR-010",
       "INV-new-proxmox-cluster-inventory",
+      "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte",
       "TASK-002",
       "TASK-013",
       "TASK-021",

@@ -60,8 +60,15 @@ SYNC_MODELS = ["dcim.site", "dcim.manufacturer", "dcim.devicetype", "dcim.interf
                "dcim.rack", "dcim.device", "dcim.interface", "dcim.macaddress", "dcim.cable", "dcim.inventoryitem",
                "dcim.inventoryitemrole", "virtualization.clustertype", "virtualization.cluster", "virtualization.virtualmachine",
                "virtualization.vminterface", "virtualization.virtualdisk", "ipam.prefix", "ipam.iprange", "ipam.ipaddress",
-               "ipam.role", "ipam.service", "extras.tag", "extras.customfield", "extras.configcontext"]
-READ_APPS = ("dcim", "ipam", "virtualization", "tenancy", "extras")
+               "ipam.role", "ipam.service", "extras.tag", "extras.customfield", "extras.configcontext",
+               "wireless.wirelesslangroup", "wireless.wirelesslan", "vpn.tunnelgroup", "vpn.tunnel", "vpn.tunneltermination"]
+READ_APPS = ("dcim", "ipam", "virtualization", "tenancy", "extras", "wireless", "vpn")
+# What must not be in a public repository (the names of the Wi-Fi networks): an optional file on the workstation
+# with the same keys as inventory.yaml; its lists are added to the ones of inventory.yaml.
+PRIVATE = SNAPSHOTS / "private.yaml"
+PRIVATE_KEYS = ("wireless_lans",)
+OVERLAY = SNAPSHOTS / "tailscale.json"
+PORT_EXTRAS = ("rf_role", "poe_mode", "poe_type")
 
 
 def die(message):
@@ -450,7 +457,7 @@ def guest_note(seed, cluster, vmid):
     return None
 
 
-def reconcile(seed, machines, snapshots, api, apply, facts=None):
+def reconcile(seed, machines, snapshots, api, apply, facts=None, overlay=None):
     r = Reconciler(api, apply)
     facts = facts or {}
     lan = ipaddress.ip_network(seed["prefixes"][0]["prefix"])
@@ -540,7 +547,8 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None):
             r.ensure(f"device type {entry['slug']} port {port['name']}", "dcim/interface-templates",
                      {"device_type_id": ref(made), "name": port["name"]},
                      {"device_type": ref(made), "name": port["name"], "type": port["type"], "mgmt_only": bool(port.get("mgmt_only")),
-                      "enabled": port.get("enabled", True), "description": port.get("description", "")})
+                      "enabled": port.get("enabled", True), "description": port.get("description", ""),
+                      **{key: port[key] for key in PORT_EXTRAS if key in port}})
     racks = {entry["name"]: r.ensure(f"rack {entry['name']}", "dcim/racks", {"site_id": ref(site), "name": entry["name"]},
                                      {"name": entry["name"], "site": ref(site), "status": "active", "u_height": entry["u_height"],
                                       "width": entry.get("width", 19), "description": entry.get("description", ""),
@@ -548,6 +556,22 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None):
              for entry in seed.get("racks", [])}
     item_roles = {slug: r.ensure(f"inventory item role {slug}", "dcim/inventory-item-roles", {"slug": slug}, {"name": name, "slug": slug, "color": color})
                   for slug, (name, color) in ITEM_ROLES.items()} if facts else {}
+
+    # Wi-Fi networks and the radios that carry them. Their names come from the private file (see PRIVATE).
+    wireless_groups, on_radio = {}, {}
+    for entry in seed.get("wireless_lans", []):
+        fields = {"ssid": entry["ssid"], "status": entry.get("status", "active"), "description": entry.get("description", ""),
+                  "scope_type": "dcim.site", "scope_id": ref(site),
+                  **{key: entry[key] for key in ("auth_type", "auth_cipher") if key in entry}}
+        if entry.get("group"):
+            slug = slugify(entry["group"])
+            if slug not in wireless_groups:
+                wireless_groups[slug] = r.ensure(f"wireless LAN group {slug}", "wireless/wireless-lan-groups", {"slug": slug},
+                                                 {"name": entry["group"], "slug": slug})
+            fields["group"] = ref(wireless_groups[slug])
+        network = r.ensure(f"wireless LAN {entry['ssid']}", "wireless/wireless-lans", {"ssid": entry["ssid"]}, fields)
+        for device_name, port_name in entry.get("radios", []):
+            on_radio.setdefault((device_name, str(port_name)), []).append(network)
 
     # Devices: what they are comes from this file, where they are belongs to NetBox, the rest is observed.
     devices, ports, managed_at = {}, {}, {}
@@ -576,7 +600,15 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None):
             if "type" not in port:
                 die(f"{label}: the port {port['name']} has no type (it is not a port of {entry['type']})")
             fields = {"device": ref(device), "name": port["name"], "type": port["type"], "mgmt_only": bool(port.get("mgmt_only")),
-                      "enabled": port.get("enabled", True), "description": port.get("description", "")}
+                      "enabled": port.get("enabled", True), "description": port.get("description", ""),
+                      **{key: port[key] for key in PORT_EXTRAS if key in port}}
+            carried = on_radio.pop((entry["name"], port["name"]), [])
+            if carried and not port.get("rf_role"):
+                die(f"{label}: {port['name']} carries a wireless LAN but is not a radio (no rf_role)")
+            if carried and len(real(carried)) == len(carried):
+                fields["wireless_lans"] = sorted(ref(network) for network in carried)
+            elif carried:
+                r.operations.append(f"update  {port_label}: wireless_lans -> {len(carried)} network(s)")
             for relation in ("bridge", "lag", "parent"):
                 if port.get(relation):
                     fields[relation] = ref(ports[(entry["name"], port[relation])])
@@ -612,6 +644,9 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None):
             r.ensure(f"{label} service {service['name']}", "ipam/services", {"device_id": ref(device), "name": service["name"]},
                      {"parent_object_type": "dcim.device", "parent_object_id": ref(device), "name": service["name"],
                       "protocol": service["protocol"], "ports": service["ports"], "description": service.get("description", "")})
+
+    for device_name, port_name in sorted(on_radio):
+        die(f"wireless_lans: {device_name} has no port {port_name} in inventory.yaml")
 
     # Cables: the ones a host heard the switch announce (LLDP), then the ones inventory.yaml states.
     for name, seen in sorted(facts.items()):
@@ -735,6 +770,42 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None):
             owner = ("virtualization.vminterface", interface or Pending(f"{entry['vm']} net0"))
         r.address(f"address {entry['address']}", entry["address"], fields, owner, update=bool(entry.get("iac")))
 
+    tunnel_groups = {entry["slug"]: r.ensure(f"tunnel group {entry['slug']}", "vpn/tunnel-groups", {"slug": entry["slug"]},
+                                             {"name": entry["name"], "slug": entry["slug"], "description": entry.get("description", "")})
+                     for entry in seed.get("tunnel_groups", [])}
+    tunnels = {}
+    for entry in seed.get("tunnels", []):
+        tunnels[entry["name"]] = (entry, r.ensure(
+            f"tunnel {entry['name']}", "vpn/tunnels", {"name": entry["name"]},
+            {"name": entry["name"], "status": entry.get("status", "active"), "encapsulation": entry["encapsulation"],
+             "group": ref(tunnel_groups[entry["group"]]), "description": entry.get("description", "")}))
+
+    def tunnel_end(label, vm, role_slug, vmid, outside):
+        """The end of a tunnel on a guest: the port the overlay gives it, its addresses there and its place in
+        the tunnel. Only for guests whose role a tunnel names and that reported (`discover-tailscale`)."""
+        for name, (entry, tunnel) in tunnels.items():
+            if entry.get("members", {}).get("role") != role_slug:
+                continue
+            seen = (overlay or {}).get(str(vmid))
+            if not seen:
+                r.review.append(f"{label}: member of the tunnel {name} but nothing read from it; run `make netbox-discover-tailscale`")
+                continue
+            routes = ", ".join(seen.get("routes") or [])
+            port_name = entry["members"]["interface"]
+            interface = r.ensure(f"{label} interface {port_name}", "virtualization/interfaces", {"virtual_machine_id": ref(vm), "name": port_name},
+                                 {"virtual_machine": ref(vm), "name": port_name,
+                                  "description": f"{entry['group'].capitalize()} overlay" + (f"; advertises {routes}" if routes else "")})
+            for address in seen.get("addresses", []):
+                fields = {"tags": tagged("observed"), "description": seen.get("hostname") or label}
+                if seen.get("dns_name"):
+                    fields["dns_name"] = seen["dns_name"]
+                r.address(f"{label} {port_name} address", f"{address}/32", fields, ("virtualization.vminterface", interface))
+            fields = {"tunnel": ref(tunnel), "role": entry["members"].get("role_in_tunnel", "peer"),
+                      "termination_type": "virtualization.vminterface", "termination_id": ref(interface)}
+            if outside is not None and not isinstance(outside, Pending):
+                fields["outside_ip"] = ref(outside)
+            r.ensure(f"{label} end of the tunnel {name}", "vpn/tunnel-terminations", {"tunnel_id": ref(tunnel), "vminterface_id": ref(interface)}, fields)
+
     # Observed: guests no root defines are created once; afterwards Proxmox keeps deciding their state, size and
     # host, inventory.yaml what they are (when it describes them), and NetBox the rest.
     known = {}
@@ -783,6 +854,8 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None):
                     first = first or (ip, nic["ip"])
             if first and (isinstance(vm, Pending) or not vm.get("primary_ip4")):
                 r.primary(label, vms, vm, *first)
+            if note.get("role") and source_name == new_source:
+                tunnel_end(label, vm, note["role"], guest["vmid"], first[0] if first else None)
             elif not first and guest["status"] == "running" and not any(nic["ip"] for nic in guest["nics"]):
                 r.review.append(f"{label}: no static address in the Proxmox configuration (DHCP or set inside the guest); add it in NetBox")
         # Records whose guest is gone, and IaC records no root defines any more: reported, never deleted.
@@ -797,7 +870,7 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None):
 
     # Records this file retired and that are still there.
     for entry in seed.get("retired", []):
-        query = {key: entry[key] for key in ("name", "slug") if key in entry}
+        query = retired_query(entry)
         if api.list(entry["path"], query):
             r.review.append(f"retired record still in NetBox: {entry['path']} {query} ({entry['reason']}); remove it with `make netbox-prune`")
     return r
@@ -868,6 +941,62 @@ def cmd_discover_hardware(seed, args):
     sys.exit(1 if failed else 0)
 
 
+def cmd_discover_tailscale(seed):
+    """Asks every container whose role a tunnel names for its own Tailscale state (`tailscale status`, without
+    the other members of the tailnet), through root SSH on its Proxmox node. Reads only; never the old host."""
+    source_name = next(iter(seed["sources"]))
+    cluster = seed["sources"][source_name]["cluster"]
+    snapshots, _ = load_snapshots(seed)
+    if source_name not in snapshots:
+        die(f"no snapshot of {source_name}; run `make netbox-discover NETBOX_SOURCE={source_name}` first")
+    wanted = {entry["members"]["role"] for entry in seed.get("tunnels", []) if entry.get("members")}
+    nodes = {device["name"]: device["facts"] for device in seed["devices"] if device.get("facts")}
+    read, failed = {}, 0
+    for guest in snapshots[source_name]["guests"]:
+        note = guest_note(seed, cluster, guest["vmid"]) or {}
+        if note.get("role") not in wanted:
+            continue
+        label = f"{guest['name']} ({guest['vmid']})"
+        node = seed["sources"][source_name].get("device_names", {}).get(guest["node"], guest["node"])
+        if guest["type"] != "lxc" or guest["status"] != "running" or node not in nodes:
+            failed += 1
+            print(f"{label}: not asked (a running container on a node with `facts` is needed)")
+            continue
+        result = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", f"root@{nodes[node]}",
+                                 f"pct exec {int(guest['vmid'])} -- tailscale status --json --peers=false"], capture_output=True, timeout=60)
+        try:
+            status = json.loads(result.stdout)
+            own = status["Self"]
+        except (ValueError, KeyError):
+            failed += 1
+            print(f"{label}: no answer ({result.stderr.decode(errors='replace').strip()[:200]})")
+            continue
+        addresses = [a for a in own.get("TailscaleIPs") or [] if ":" not in a]
+        routes = sorted(a for a in own.get("AllowedIPs") or [] if not a.endswith(("/32", "/128")))
+        read[str(guest["vmid"])] = {"hostname": own.get("HostName"), "addresses": addresses, "routes": routes,
+                                    "dns_name": (own.get("DNSName") or "").rstrip("."), "version": status.get("Version", "").split("-")[0],
+                                    "online": bool(own.get("Online"))}
+        print(f"{label}: {len(addresses)} address(es), routes {', '.join(routes) or 'none'}, {'online' if own.get('Online') else 'offline'}")
+    SNAPSHOTS.mkdir(parents=True, exist_ok=True)
+    OVERLAY.write_text(json.dumps(read, indent=1) + "\n")
+    OVERLAY.chmod(0o600)
+    print(f"-> {OVERLAY.relative_to(ROOT)}")
+    sys.exit(1 if failed else 0)
+
+
+def load_seed():
+    """inventory.yaml, with the lists of the private file added (PRIVATE_KEYS only)."""
+    seed = yaml.safe_load(SEED.read_text())
+    if PRIVATE.exists():
+        private = yaml.safe_load(PRIVATE.read_text()) or {}
+        unknown = sorted(set(private) - set(PRIVATE_KEYS))
+        if unknown:
+            die(f"{PRIVATE.name}: only {', '.join(PRIVATE_KEYS)} may be given there, not {', '.join(unknown)}")
+        for key in PRIVATE_KEYS:
+            seed[key] = list(seed.get(key) or []) + list(private.get(key) or [])
+    return seed
+
+
 def report(r, notes, apply):
     for line in r.operations:
         print(line)
@@ -880,7 +1009,8 @@ def report(r, notes, apply):
 def cmd_reconcile(seed, apply):
     token = os.environ.get("NETBOX_SYNC_TOKEN") or die("set NETBOX_SYNC_TOKEN in the environment (store path /netbox)")
     snapshots, notes = load_snapshots(seed)
-    r = reconcile(seed, load_iac(seed), snapshots, NetBox(NETBOX_URL, token), apply, load_facts(seed))
+    overlay = json.loads(OVERLAY.read_text()) if OVERLAY.exists() else None
+    r = reconcile(seed, load_iac(seed), snapshots, NetBox(NETBOX_URL, token), apply, load_facts(seed), overlay)
     report(r, notes, apply)
 
 
@@ -989,14 +1119,22 @@ def administrator(purpose):
     return NetBox(NETBOX_URL, token_value(admin))
 
 
+def retired_query(entry):
+    """How a retired record is found: by name or by slug, and for a guest also by the cluster it was in."""
+    query = {key: entry[key] for key in ("name", "slug") if key in entry}
+    if set(query) != {"name"} and set(query) != {"slug"}:
+        die(f"retired: {entry} must name exactly one record by name or by slug")
+    if entry.get("cluster"):
+        query["cluster"] = entry["cluster"]
+    return query
+
+
 def prune(seed, api, remove):
     """Removes the records inventory.yaml lists under `retired`, and nothing else. `remove(path, id)` deletes one
     record; NetBox refuses when something still refers to it, which is reported and left as it is."""
     lines, refused = [], 0
     for entry in seed.get("retired", []):
-        query = {key: entry[key] for key in ("name", "slug") if key in entry}
-        if set(query) != {"name"} and set(query) != {"slug"}:
-            die(f"retired: {entry} must name exactly one record by name or by slug")
+        query = retired_query(entry)
         found = api.list(entry["path"], query)
         if len(found) > 1:
             die(f"retired: {entry['path']} {query} matches {len(found)} records")
@@ -1069,6 +1207,7 @@ EXPORTED = ("dcim/sites", "dcim/manufacturers", "dcim/device-types", "dcim/inter
             "dcim/racks", "dcim/devices", "dcim/interfaces", "dcim/cables", "dcim/inventory-items", "virtualization/cluster-types",
             "virtualization/clusters", "virtualization/virtual-machines", "virtualization/interfaces", "virtualization/virtual-disks",
             "ipam/roles", "ipam/prefixes", "ipam/ip-ranges", "ipam/ip-addresses", "ipam/services",
+            "wireless/wireless-lan-groups", "wireless/wireless-lans", "vpn/tunnel-groups", "vpn/tunnels", "vpn/tunnel-terminations",
             "extras/tags", "extras/custom-fields", "extras/config-contexts")
 VOLATILE = ("url", "display", "display_url", "created", "last_updated", "config_context", "owner")
 
@@ -1183,7 +1322,23 @@ def document(api):
               named(m.get("status"), "label") + (" (to verify)" if "needs-review" in tags(m) else ""), m.get("description", "")] for m in listed])]
         if len(listed) != len(mine):
             out += ["", f"{len(mine) - len(listed)} desktop and template machines of this cluster are in NetBox and not listed here."]
-    addresses = sorted(api.list("ipam/ip-addresses"), key=address_key)
+    # Tunnels and radios: who takes part, not the addresses or names inside the tailnet, nor the Wi-Fi names.
+    ends = api.list("vpn/tunnel-terminations")
+    tunnels = sorted(api.list("vpn/tunnels"), key=lambda t: t["name"])
+    out += ["", "## Tunnels", "", table(
+        ["Tunnel", "Kind", "Group", "Members", "Description"],
+        [[t["name"], named(t.get("encapsulation"), "label"), named(t.get("group")),
+          ", ".join(sorted(f"{named((e.get('termination') or {}).get('virtual_machine') or (e.get('termination') or {}).get('device'))} "
+                           f"{(e.get('termination') or {}).get('name', '')}".strip() for e in ends if (e.get("tunnel") or {}).get("id") == t["id"])),
+          t.get("description", "")] for t in tunnels]) if tunnels else "No tunnel is recorded."]
+    radios = sorted((i for i in api.list("dcim/interfaces") if i.get("rf_role")), key=lambda i: (named(i.get("device")), i["name"]))
+    out += ["", "## Wi-Fi radios", "", table(
+        ["Device", "Radio", "Standard", "Role", "Networks carried", "Description"],
+        [[named(i.get("device")), i["name"], named(i.get("type"), "label"), named(i.get("rf_role"), "label"), len(i.get("wireless_lans") or []),
+          i.get("description", "")] for i in radios]) if radios else "No radio is recorded.",
+            "", "The names of the Wi-Fi networks and the addresses inside the tailnet are in NetBox only."]
+    tailnets = [ipaddress.ip_network(x["prefix"]) for x in api.list("ipam/prefixes") if (x.get("role") or {}).get("slug") == "overlay"]
+    addresses = sorted((a for a in api.list("ipam/ip-addresses") if not any(address_key(a).ip in net for net in tailnets)), key=address_key)
     out += ["", "## Addresses", "", table(
         ["Address", "On", "Name", "Kind", "Description"],
         [[a["address"], " ".join(str(x) for x in (named((a.get("assigned_object") or {}).get("device") or (a.get("assigned_object") or {}).get("virtual_machine")),
@@ -1221,13 +1376,16 @@ def main(argv):
         return cmd_export(argv[1:])
     if argv and argv[0] == "document":
         return cmd_document(argv[1:])
-    if not argv or argv[0] not in ("discover", "discover-hardware", "plan", "apply", "icons", "prune", "identities", "check-plan"):
-        die("usage: netbox-sync.py discover <source> | discover-hardware [device ...] | plan | apply | icons | prune | identities | export <directory>")
-    seed = yaml.safe_load(SEED.read_text())
+    if not argv or argv[0] not in ("discover", "discover-hardware", "discover-tailscale", "plan", "apply", "icons", "prune", "identities", "check-plan"):
+        die("usage: netbox-sync.py discover <source> | discover-hardware [device ...] | discover-tailscale | plan | apply | icons | prune | "
+            "identities | check-plan <root> <plan> | export <directory> | document <page>")
+    seed = load_seed()
     if argv[0] == "discover":
         cmd_discover(seed, argv[1:])
     elif argv[0] == "discover-hardware":
         cmd_discover_hardware(seed, argv[1:])
+    elif argv[0] == "discover-tailscale":
+        cmd_discover_tailscale(seed)
     elif argv[0] == "prune":
         cmd_prune(seed)
     elif argv[0] == "icons":

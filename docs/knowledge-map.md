@@ -123,6 +123,10 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 - **INV-new-proxmox-cluster-inventory** [New Proxmox cluster inventory](investigations/new-proxmox-cluster-inventory.md) (current) `investigation, inventory, proxmox, cluster, hardware` — Authoritative read-only audit of the new doku-lab cluster (pve-management, pve-core, pve-infra, new pve-lab .16): membership, hardware, NVMe, network, guests, capacity, placement.
 - **INV-pve-management-bootstrap** [pve-management bootstrap — readiness and implementation plan](investigations/pve-management-bootstrap.md) (current) — pve-management `investigation, bootstrap, pve-management, plan` — Readiness, exact API privileges, SSH/TLS/state decisions, proposed VM values and the next step for provisioning mgmt-control-01 on pve-management; nothing applied.
 
+### Known issue
+
+- **ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte** [Bursts of full-size frames are lost on the way into the Intel I219 hosts](issues/bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte.md) (open) — network `issue, network, proxmox` — pve-core and pve-management lose 3 to 5 % of back-to-back full-size frames they receive; TCP from faster hosts falls to 20-60 Mbit/s. Cause not fixed yet.
+
 ### Guide
 
 - **GUIDE-handoff** [Current handoff and next steps](handoff.md) (current) `guide, handoff, workstation, pve-management` — Read first in a new session: what exists, where the state lives, how to work from mgmt-control-01, the current and next task.
@@ -185,6 +189,7 @@ _No commit records. Generate with `harness history sync`._
 - **inventory**: ADR-016, ADR-018, DOC-infrastructure-inventory, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, M013, TASK-002, TASK-003, TASK-023, TASK-030
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
 - **ipam**: ADR-016, TASK-023
+- **issue**: ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte
 - **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017, TASK-019, TASK-021
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
@@ -195,7 +200,7 @@ _No commit records. Generate with `harness history sync`._
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029
 - **netbox**: ADR-016, ADR-018, DOC-infrastructure-inventory, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026, TASK-030
-- **network**: DOC-infrastructure-inventory
+- **network**: DOC-infrastructure-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte
 - **nfs**: TASK-017
 - **nvme**: ADR-012
 - **observability**: TASK-020
@@ -210,7 +215,7 @@ _No commit records. Generate with `harness history sync`._
 - **platform**: ARCH-platform
 - **postgresql**: ADR-013, ADR-015, TASK-018
 - **prometheus**: TASK-020
-- **proxmox**: ADR-002, ADR-010, INV-new-proxmox-cluster-inventory, TASK-002, TASK-013, TASK-021, TASK-028
+- **proxmox**: ADR-002, ADR-010, INV-new-proxmox-cluster-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-002, TASK-013, TASK-021, TASK-028
 - **pve-core**: ADR-010, TASK-013
 - **pve-management**: ADR-009, ADR-010, GUIDE-handoff, INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview
@@ -246,6 +251,7 @@ _No commit records. Generate with `harness history sync`._
 - **infrastructure**: ADR-003
 - **inventory**: ADR-016, INV-legacy-inventory
 - **netbox**: ADR-018
+- **network**: ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte
 - **orchestration**: ADR-005
 - **platform**: ADR-001, ARCH-platform
 - **proxmox**: ADR-010

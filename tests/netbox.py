@@ -8,6 +8,7 @@ import copy
 import importlib.util
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -194,7 +195,8 @@ class FakeNetBox:
     PARENTS = {("ipam/services", "virtual_machine_id"): ("parent_object_type", "virtualization.virtualmachine", "parent_object_id"),
                ("ipam/services", "device_id"): ("parent_object_type", "dcim.device", "parent_object_id"),
                ("dcim/mac-addresses", "interface_id"): ("assigned_object_type", "dcim.interface", "assigned_object_id"),
-               ("dcim/mac-addresses", "vminterface_id"): ("assigned_object_type", "virtualization.vminterface", "assigned_object_id")}
+               ("dcim/mac-addresses", "vminterface_id"): ("assigned_object_type", "virtualization.vminterface", "assigned_object_id"),
+               ("vpn/tunnel-terminations", "vminterface_id"): ("termination_type", "virtualization.vminterface", "termination_id")}
 
     def __init__(self):
         self.objects, self.writes, self.next_id = {}, [], 1
@@ -207,7 +209,9 @@ class FakeNetBox:
                     if item.get(kind_field) != kind or item.get(id_field) != value:
                         return False
                     continue
-                if key.startswith("cf_"):
+                if path == "virtualization/virtual-machines" and key == "cluster":  # NetBox filters guests by cluster name
+                    actual = next((c["name"] for c in self.objects.get("virtualization/clusters", []) if c["id"] == item.get("cluster")), None)
+                elif key.startswith("cf_"):
                     actual = item.get("custom_fields", {}).get(key[3:])
                 elif key.endswith("_id"):
                     actual = item.get(key[:-3])
@@ -530,6 +534,92 @@ def reconciliation():
     assert sum(line.startswith("gone") for line in lines) == len(seed["retired"]) - 2
 
 
+def wireless_and_tunnels():
+    """Wi-Fi networks come from the private file and sit on the radios; a tunnel's ends are what its members report."""
+    seed = yaml.safe_load((DIR / "inventory.yaml").read_text())
+    assert seed["wireless_lans"] == [], "the names of the Wi-Fi networks are not in Git"
+    radios = [p["name"] for p in next(t for t in seed["device_types"] if t["slug"] == "tp-link-eap220")["ports"] if p.get("rf_role") == "ap"]
+    assert radios == ["wlan0", "wlan1"]
+    inventory = copy.deepcopy(seed)
+    inventory["wireless_lans"] = [{"ssid": "synthetic-net", "group": "Home", "auth_type": "wpa-personal", "auth_cipher": "aes",
+                                   "description": "Fixture", "radios": [["access-point", "wlan0"], ["access-point", "wlan1"]]}]
+    observed = snapshots()
+    observed["doku-lab"]["guests"] += [guest(306, "ts-router-01", "pve-core", kind="lxc", ip="192.168.0.36/24", ostype="debian"),
+                                       guest(307, "ts-router-02", "pve-management", kind="lxc", ip="192.168.0.37/24", ostype="debian")]
+    overlay = {"306": {"hostname": "ts-router-01", "addresses": ["100.64.0.6"], "routes": ["192.168.0.0/24"],
+                       "dns_name": "ts-router-01.synthetic.ts.net", "version": "1.102.4", "online": True}}
+    api = FakeNetBox()
+
+    def run(apply, seen=overlay):
+        return sync.reconcile(inventory, MACHINES, observed, api, apply, facts(), seen)
+
+    plan = run(False)
+    assert not api.writes and {"create  wireless LAN synthetic-net", "create  tunnel tailscale-lan", "create  tunnel group tailscale"} <= set(plan.operations)
+    run(True)
+    assert run(False).operations == [], f"a second run changes nothing: {run(False).operations}"
+
+    network = api.get("wireless/wireless-lans", ssid="synthetic-net")
+    assert network["auth_type"] == "wpa-personal" and "auth_psk" not in network, "the passphrase is never recorded"
+    assert network["group"] == api.get("wireless/wireless-lan-groups", slug="home")["id"] and network["scope_type"] == "dcim.site"
+    point = api.get("dcim/devices", name="access-point")["id"]
+    for name in radios:
+        radio = api.get("dcim/interfaces", device=point, name=name)
+        assert radio["rf_role"] == "ap" and radio["wireless_lans"] == [network["id"]]
+    uplink = api.get("dcim/interfaces", device=point, name="eth0")
+    assert uplink["poe_mode"] == "pd" and "wireless_lans" not in uplink and "rf_role" not in uplink
+    wrong = copy.deepcopy(inventory)
+    wrong["wireless_lans"][0]["radios"] = [["access-point", "eth0"]]
+    for bad in (wrong, {**inventory, "wireless_lans": [{"ssid": "x", "radios": [["access-point", "wlan9"]]}]}):
+        try:
+            sync.reconcile(bad, MACHINES, observed, FakeNetBox(), False, facts(), overlay)
+        except SystemExit:
+            pass
+        else:
+            raise AssertionError("a wireless LAN on a port that is not a radio of the device must be refused")
+
+    # The tunnel: the router that reported gets its port, its tailnet address and its end; the other is reported.
+    tunnel = api.get("vpn/tunnels", name="tailscale-lan")
+    assert tunnel["encapsulation"] == "wireguard" and tunnel["group"] == api.get("vpn/tunnel-groups", slug="tailscale")["id"]
+    router = api.get("virtualization/virtual-machines", name="ts-router-01")
+    assert router["role"] == api.get("dcim/device-roles", slug="tailscale-router")["id"]
+    assert api.get("extras/tags", slug="needs-review")["id"] not in router["tags"]
+    port = api.get("virtualization/interfaces", virtual_machine=router["id"], name="tailscale0")
+    assert "advertises 192.168.0.0/24" in port["description"]
+    inside = api.get("ipam/ip-addresses", address="100.64.0.6/32")
+    assert inside["assigned_object_id"] == port["id"] and inside["dns_name"] == "ts-router-01.synthetic.ts.net"
+    (end,) = api.objects["vpn/tunnel-terminations"]
+    assert end["tunnel"] == tunnel["id"] and end["termination_id"] == port["id"] and end["role"] == "peer"
+    assert end["outside_ip"] == api.get("ipam/ip-addresses", address="192.168.0.36/24")["id"], "the LAN address is the outside of the tunnel"
+    assert any("ts-router-02" in line and "make netbox-discover-tailscale" in line for line in run(False).review)
+    assert not any("ts-router-01" in line for line in run(False).review)
+    assert any("ts-router-01" in line and "netbox-discover-tailscale" in line for line in run(False, seen=None).review)
+
+    # The private file may only add Wi-Fi networks; anything else there is refused.
+    with tempfile.TemporaryDirectory(prefix="netbox-private-") as directory:
+        private = Path(directory) / "private.yaml"
+        private.write_text(yaml.safe_dump({"wireless_lans": inventory["wireless_lans"]}))
+        original = sync.PRIVATE
+        sync.PRIVATE = private
+        try:
+            assert [n["ssid"] for n in sync.load_seed()["wireless_lans"]] == ["synthetic-net"]
+            private.write_text(yaml.safe_dump({"devices": []}))
+            try:
+                sync.load_seed()
+            except SystemExit:
+                pass
+            else:
+                raise AssertionError("the private file must not replace what Git owns")
+        finally:
+            sync.PRIVATE = original
+
+    # A guest that moved keeps its name: the retired record is the one of the old cluster only.
+    old = api.create("virtualization/virtual-machines", {"name": "ts-router-01", "cluster": api.get("virtualization/clusters", name="homelab")["id"]})
+    removed = []
+    lines, refused = sync.prune(seed, api, lambda path, object_id: removed.append((path, object_id)))
+    assert ("virtualization/virtual-machines", old["id"]) in removed and ("virtualization/virtual-machines", router["id"]) not in removed
+    assert refused == 0 and any(line.startswith("removed  virtualization/virtual-machines {'name': 'ts-router-01', 'cluster': 'homelab'}") for line in lines)
+
+
 def allocation():
     """A root's plan is compared with NetBox before its checksum is printed: a VMID or an address of another
     machine is a conflict; without NetBox the check passes and says that it did not run."""
@@ -704,7 +794,17 @@ def documentation():
         "dcim/inventory-items": [{"device": related("pve-core"), "name": "nvme0n1", "role": related("Disk"), "part_id": "KINGSTON", "serial": "DISK-1",
                                   "description": "1000 GB nvme"}],
         "ipam/prefixes": [{"prefix": "192.168.0.0/24", "role": None, "status": {"value": "active", "label": "Active"}, "description": "LAN"},
-                          {"prefix": "10.42.0.0/16", "role": related("Kubernetes"), "status": {"value": "active", "label": "Active"}, "description": "pods"}],
+                          {"prefix": "10.42.0.0/16", "role": related("Kubernetes"), "status": {"value": "active", "label": "Active"}, "description": "pods"},
+                          {"prefix": "100.64.0.0/10", "role": related("overlay", slug="overlay"), "status": {"value": "container", "label": "Container"},
+                           "description": "tailnet"}],
+        "vpn/tunnels": [{"id": 4, "name": "tailscale-lan", "encapsulation": {"value": "wireguard", "label": "WireGuard"}, "group": related("Tailscale"),
+                         "description": "Access to the LAN"}],
+        "vpn/tunnel-terminations": [{"tunnel": {"id": 4, "name": "tailscale-lan"},
+                                     "termination": {"name": "tailscale0", "virtual_machine": related("ts-router-01")}}],
+        "dcim/interfaces": [{"device": related("access-point"), "name": "wlan0", "type": {"value": "ieee802.11n", "label": "IEEE 802.11n"},
+                             "rf_role": {"value": "ap", "label": "Access point"}, "wireless_lans": [{"id": 1, "ssid": "private-network-name"}],
+                             "description": "2.4 GHz radio"},
+                            {"device": related("switch"), "name": "8", "type": {"value": "10gbase-t", "label": "10GBASE-T"}, "rf_role": None}],
         "ipam/ip-ranges": [{"start_address": "192.168.0.40/24", "end_address": "192.168.0.49/24", "role": related("k3s server"), "description": "k3s"}],
         "virtualization/virtual-machines": [
             {"name": "k3s-server-01", "cluster": related("doku-lab"), "device": related("pve-lab"), "role": related("k3s server", slug="k3s-server"),
@@ -714,6 +814,9 @@ def documentation():
              "status": {"value": "offline", "label": "Offline"}, "custom_fields": {"proxmox_vmid": 501}, "tags": [], "description": ""}],
         "ipam/ip-addresses": [{"address": "192.168.0.116/24", "status": {"value": "dhcp", "label": "DHCP"}, "role": None, "dns_name": "",
                                "assigned_object": {"name": "vlan1", "device": related("switch")}, "description": "switch"},
+                              {"address": "100.64.0.6/32", "status": {"value": "active", "label": "Active"}, "role": None,
+                               "dns_name": "ts-router-01.synthetic.ts.net", "assigned_object": {"name": "tailscale0", "virtual_machine": related("ts-router-01")},
+                               "description": "ts-router-01"},
                               {"address": "192.168.0.9/24", "status": {"value": "active", "label": "Active"}, "role": None, "dns_name": "",
                                "assigned_object": None, "description": "free text"}],
         "ipam/services": [{"parent": related("k3s-server-01"), "name": "Kubernetes API", "protocol": {"value": "tcp", "label": "TCP"}, "ports": [6443], "description": ""}],
@@ -733,6 +836,9 @@ def documentation():
     assert "SERIAL-1" not in text and "DISK-1" not in text, "serial numbers stay in NetBox"
     assert text.index("| 192.168.0.9/24 |") < text.index("| 192.168.0.116/24 | switch vlan1 |  | DHCP | switch |"), "addresses in numeric order"
     assert text.index("| 10.42.0.0/16 | Kubernetes |") < text.index("| 192.168.0.0/24 |")
+    assert "| tailscale-lan | WireGuard | Tailscale | ts-router-01 tailscale0 | Access to the LAN |" in text
+    assert "| access-point | wlan0 | IEEE 802.11n | Access point | 1 | 2.4 GHz radio |" in text and "| switch | 8 |" not in text
+    assert "private-network-name" not in text and "100.64.0.6" not in text and "ts.net" not in text, "Wi-Fi names and tailnet addresses stay in NetBox"
     # The committed page: both markers once, nothing a public repository should not hold.
     page = (ROOT / make_var("NETBOX_DOCS_PAGE")).read_text()
     assert page.count(sync.GENERATED[0]) == 1 and page.count(sync.GENERATED[1]) == 1 and page.startswith("---\nid: DOC-infrastructure-inventory")
@@ -768,7 +874,11 @@ def seed_and_inventory():
         assert cluster in {s["cluster"] for s in seed["sources"].values()}
         assert all(n["role"] in roles and n.get("platform", "debian") in platforms and ("vmid" in n) != ("vmids" in n) for n in notes)
     assert set(seed["ostypes"].values()) <= platforms and all(m["role"] in roles for m in seed["virtual_machines"])
-    assert all(set(e) == {"path", "reason", "name"} or set(e) == {"path", "reason", "slug"} for e in seed["retired"])
+    assert all(set(e) - {"cluster"} == {"path", "reason", "name"} or set(e) == {"path", "reason", "slug"} for e in seed["retired"])
+    assert all(e["cluster"] in {s["cluster"] for s in seed["sources"].values()} for e in seed["retired"] if "cluster" in e)
+    groups = {g["slug"] for g in seed["tunnel_groups"]}
+    assert all(t["group"] in groups and t["members"]["role"] in roles and t["encapsulation"] == "wireguard" for t in seed["tunnels"])
+    assert {"wireless.wirelesslan", "vpn.tunnel", "vpn.tunneltermination"} <= set(sync.SYNC_MODELS) and {"wireless", "vpn"} <= set(sync.READ_APPS)
     assert not {e.get("name") for e in seed["retired"] if e["path"] == "dcim/devices"} & set(names), "a retired device is not also declared"
     for root in seed["iac_roots"]:
         assert root["role"] in roles and root["platform"] in platforms and (ROOT / "terraform/stacks" / root["root"]).is_dir()
@@ -794,6 +904,7 @@ def main():
     sso_pipeline()
     make_guards()
     reconciliation()
+    wireless_and_tunnels()
     allocation()
     host_facts()
     discovery()
@@ -802,7 +913,7 @@ def main():
     seed_and_inventory()
     print("PASS: chart pinned with single replicas, shared PostgreSQL, pinned Valkey, no secret in Git, LAN-only route; "
           "diagram plugins pinned by checksum and installed on a volume; reconciliation idempotent, never deletes, never overwrites what people entered, never prints serial numbers or "
-          "hardware addresses; hosts report their hardware and switch port; discovery read-only")
+          "hardware addresses; hosts report their hardware and switch port; Wi-Fi names stay out of Git; tunnel ends are what the members report; discovery read-only")
 
 
 if __name__ == "__main__":

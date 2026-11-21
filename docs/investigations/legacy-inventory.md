@@ -130,3 +130,15 @@ monitoring, VM 303 to 305 (Stage A k3s). Nothing else on the old host was change
 `deb13-monitoring`, `pve-lab-k3s` and `pve-core-windmill` now describe guests that no longer exist; their
 states (on the Mac, archive in `.local/`) are history, not something to apply. The current list of what
 is left is the [inventory page](../reference/infrastructure-inventory.md), generated from NetBox.
+
+## Update 2026-11-21: Tailscale routers and two Windows VMs moved
+
+Moved as they were (vzdump archive streamed from the old host through the workstation and restored, nothing
+rebuilt): CT306 `ts-router-01` to `pve-core` and CT307 `ts-router-02` to `pve-management`, one after the other so
+that one router kept serving the LAN route. Both are online on Tailscale with their addresses and identities;
+the copies on the old host were then deleted on the operator's word. The stopped Windows VMs 400 and 401 were
+copied to `pve-core` as VM 700 and 701 (same configuration, kept off); their originals stay on the old host
+until the copies have been started once. The root `pve-tailscale-routers` now describes containers that are
+elsewhere: history, never applied. The copies were slow at first; the cause is a
+[known issue](../issues/bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte.md) of two new hosts,
+not the old one.
