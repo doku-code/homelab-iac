@@ -70,13 +70,14 @@ platforms:
 # What Proxmox says about a guest's system, as a platform. Only used while NetBox has none for the guest.
 ostypes: {win11: windows-11, debian: debian, l26: linux}
 
+# "icon": the picture of the role in the topology diagram, one of the plugin's own (`make netbox-apply` sets it).
 roles:
-  - {name: Hypervisor, slug: hypervisor, color: 2196f3}
-  - {name: Router, slug: router, color: f44336}
-  - {name: Switch, slug: switch, color: ff9800}
-  - {name: Access point, slug: access-point, color: ff5722}
-  - {name: NAS, slug: nas, color: 795548}
-  - {name: Backup server, slug: backup-server, color: 607d8b}
+  - {name: Hypervisor, slug: hypervisor, color: 2196f3, icon: server}
+  - {name: Router, slug: router, color: f44336, icon: router}
+  - {name: Switch, slug: switch, color: ff9800, icon: switch}
+  - {name: Access point, slug: access-point, color: ff5722, icon: wireless-ap}
+  - {name: NAS, slug: nas, color: 795548, icon: storage}
+  - {name: Backup server, slug: backup-server, color: 607d8b, icon: backup}
   - {name: k3s server, slug: k3s-server, color: 4caf50}
   - {name: PostgreSQL, slug: postgresql, color: 3f51b5}
   - {name: Storage, slug: storage, color: 009688}

@@ -501,6 +501,12 @@ def reconciliation():
     else:
         raise AssertionError("a stale snapshot must not be applied")
 
+    # The picture of a role in the topology diagram: one of the plugin's own files, by role id.
+    icons = sync.role_icons(seed, api)
+    assert icons[str(role["hypervisor"])] == "/static/netbox_topology_views/img/server.svg" and str(role["dns"]) not in icons
+    assert "icon" not in api.get("dcim/device-roles", slug="hypervisor"), "the picture is the plugin's, not a field of the role"
+    assert {r["icon"] for r in seed["roles"] if "icon" in r} <= {"server", "router", "switch", "wireless-ap", "storage", "backup", "firewall"}
+
     # Retired records: reported by the plan, removed only by the separate command, one named record at a time.
     api.create("dcim/manufacturers", {"name": "Unknown", "slug": "unknown"})
     api.create("dcim/devices", {"name": "pbs"})
@@ -518,6 +524,54 @@ def reconciliation():
     assert any(line.startswith("removed  dcim/devices {'name': 'pbs'}") for line in lines)
     assert any(line.startswith("refused  dcim/manufacturers {'slug': 'unknown'}") for line in lines)
     assert sum(line.startswith("gone") for line in lines) == len(seed["retired"]) - 2
+
+
+def allocation():
+    """A root's plan is compared with NetBox before its checksum is printed: a VMID or an address of another
+    machine is a conflict; without NetBox the check passes and says that it did not run."""
+    plan = {"planned_values": {"root_module": {"child_modules": [{"resources": [
+        {"type": "proxmox_virtual_environment_vm", "values": {"name": "k3s-server-01", "vm_id": 310, "node_name": "pve-lab",
+                                                              "initialization": [{"ip_config": [{"ipv4": [{"address": "192.168.0.40/24"}]}]}]}},
+        {"type": "proxmox_virtual_environment_vm", "values": {"name": "k3s-agent-01", "vm_id": 320, "node_name": "pve-core",
+                                                              "initialization": [{"ip_config": [{"ipv4": [{"address": "dhcp"}]}]}]}},
+        {"type": "terraform_data", "values": {"name": "not a machine"}}]}]}}}
+    machines = sync.planned_machines(plan)
+    assert machines == [{"name": "k3s-server-01", "vmid": 310, "node": "pve-lab", "addresses": ["192.168.0.40/24"]},
+                        {"name": "k3s-agent-01", "vmid": 320, "node": "pve-core", "addresses": []}]
+    api = FakeNetBox()
+    assert sync.allocation(machines, api, "doku-lab") == ([], ["NetBox has no cluster doku-lab; nothing to compare with"])
+    seed = yaml.safe_load((DIR / "inventory.yaml").read_text())
+    sync.reconcile(seed, MACHINES, snapshots(), api, True, {})
+    writes = len(api.writes)
+    conflicts, notes = sync.allocation(machines, api, "doku-lab")
+    assert conflicts == [] and notes == ["k3s-agent-01: VMID 320 and no fixed address are free in NetBox"]
+    taken = [{"name": "k3s-agent-01", "vmid": 370, "node": "pve-core", "addresses": ["192.168.0.40/24", "192.168.0.11/24", "192.168.0.60/24"]}]
+    conflicts, notes = sync.allocation(taken, api, "doku-lab")
+    assert conflicts == ["k3s-agent-01: VMID 370 is dns-01 in NetBox", "k3s-agent-01: 192.168.0.40/24 belongs to k3s-server-01 in NetBox",
+                         "k3s-agent-01: 192.168.0.11/24 belongs to pve-core in NetBox"]
+    assert len(notes) == 1 and "192.168.0.60/24 is in NetBox without a machine (PostgreSQL primary" in notes[0]
+    assert len(api.writes) == writes, "the check only reads"
+    # Every root that creates VMs runs the check after saving its plan and before printing the checksum.
+    make = (ROOT / "Makefile").read_text()
+    for root in seed["iac_roots"]:
+        (line,) = re.findall(rf"^\t\$\(call NETBOX_ALLOCATION,{re.escape(root['root'])},\$\((\w+)_PLAN\)\)$", make, re.M)
+        recipe = make[make.rindex("\n\n", 0, make.index(f"$(call NETBOX_ALLOCATION,{root['root']},")):]
+        assert recipe.index(f"plan -input=false -out=$({line}_PLAN)") < recipe.index("NETBOX_ALLOCATION") < recipe.index("shasum -a 256")
+    macro = re.search(r"^define NETBOX_ALLOCATION\n(.*?)^endef", make, re.M | re.S).group(1)
+    assert "check-plan $(1) $(2)" in macro and "exit 3" in macro and "allocation check skipped" in macro
+    # Without a token nothing is asked of NetBox and nothing fails.
+    import contextlib
+    import io
+    import os
+    saved = os.environ.pop("NETBOX_READ_TOKEN", None)
+    try:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            sync.cmd_check_plan(seed, ["k3s", "k3s.tfplan"])
+        assert "allocation check skipped: no NETBOX_READ_TOKEN" in out.getvalue()
+    finally:
+        if saved is not None:
+            os.environ["NETBOX_READ_TOKEN"] = saved
 
 
 def host_facts():
@@ -681,6 +735,7 @@ def main():
     sso_pipeline()
     make_guards()
     reconciliation()
+    allocation()
     host_facts()
     discovery()
     export()

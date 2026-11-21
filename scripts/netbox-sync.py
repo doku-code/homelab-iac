@@ -5,6 +5,8 @@
   scripts/netbox-sync.py discover-hardware [device]   hardware facts of the hosts (scripts/host-facts.py over SSH, read-only)
   scripts/netbox-sync.py plan                         what would change in NetBox, and what needs a human decision
   scripts/netbox-sync.py apply                        write those changes
+  scripts/netbox-sync.py icons                        give each device role its picture in the topology diagram (plugin)
+  scripts/netbox-sync.py check-plan <root> <plan>     do the VMIDs and addresses of a saved OpenTofu plan agree with NetBox?
   scripts/netbox-sync.py prune                        remove the records inventory.yaml lists under `retired`, nothing else
   scripts/netbox-sync.py identities                   create the two service accounts and store their API tokens
   scripts/netbox-sync.py export <directory>           write the whole inventory as sorted YAML files (for a history in Git)
@@ -466,7 +468,8 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None):
              {"name": "defined_in", "label": "Defined in", "type": "url", "object_types": ["virtualization.virtualmachine"],
               "description": "The OpenTofu root of this repository that defines the machine"})
     site = r.ensure(f"site {seed['site']['slug']}", "dcim/sites", {"slug": seed["site"]["slug"]}, {**seed["site"], "status": "active"})
-    roles = {e["slug"]: r.ensure(f"role {e['slug']}", "dcim/device-roles", {"slug": e["slug"]}, {**e, "vm_role": True}) for e in seed["roles"]}
+    roles = {e["slug"]: r.ensure(f"role {e['slug']}", "dcim/device-roles", {"slug": e["slug"]},
+                                 {**{key: value for key, value in e.items() if key != "icon"}, "vm_role": True}) for e in seed["roles"]}
     platforms = {e["slug"]: r.ensure(f"platform {e['slug']}", "dcim/platforms", {"slug": e["slug"]}, dict(e)) for e in seed["platforms"]}
     clusters = {}
 
@@ -878,6 +881,92 @@ def cmd_reconcile(seed, apply):
     report(r, notes, apply)
 
 
+# ───────────────────────── allocation check for the roots' plans ─────────────────────────
+
+def planned_machines(plan):
+    """The VMs of a saved plan (`tofu show -json`): name, VMID, host and the addresses with a prefix length."""
+    def walk(module):
+        for resource in module.get("resources", []):
+            if resource["type"] == "proxmox_virtual_environment_vm":
+                values = resource["values"]
+                addresses = [ipv4.get("address") for init in values.get("initialization") or []
+                             for config in init.get("ip_config") or [] for ipv4 in config.get("ipv4") or []]
+                yield {"name": values.get("name"), "vmid": values.get("vm_id"), "node": values.get("node_name"),
+                       "addresses": [address for address in addresses if address and "/" in address]}
+        for child in module.get("child_modules", []):
+            yield from walk(child)
+    return list(walk(plan.get("planned_values", {}).get("root_module", {})))
+
+
+def allocation(machines, api, cluster_name):
+    """Compares what a plan wants with what NetBox knows: a VMID or an address that NetBox gives to another
+    machine is a conflict. Read-only."""
+    conflicts, notes = [], []
+    vms = "virtualization/virtual-machines"
+    cluster = api.list("virtualization/clusters", {"name": cluster_name})
+    if not cluster:
+        return conflicts, [f"NetBox has no cluster {cluster_name}; nothing to compare with"]
+
+    def owner(ip):
+        kind, object_id = norm(ip.get("assigned_object_type")), ip.get("assigned_object_id")
+        path, parent, parents = {"virtualization.vminterface": ("virtualization/interfaces", "virtual_machine", vms),
+                                 "dcim.interface": ("dcim/interfaces", "device", "dcim/devices")}.get(kind, (None, None, None))
+        if path is None or object_id is None:
+            return None
+        port = api.list(path, {"id": object_id})
+        machine = api.list(parents, {"id": norm(port[0][parent])}) if port else []
+        return machine[0]["name"] if machine else None
+
+    for machine in machines:
+        known = False
+        for holder in api.list(vms, {"cluster_id": cluster[0]["id"], "cf_proxmox_vmid": machine["vmid"]}):
+            known = True
+            if holder["name"] != machine["name"]:
+                conflicts.append(f"{machine['name']}: VMID {machine['vmid']} is {holder['name']} in NetBox")
+        for address in machine["addresses"]:
+            for ip in api.list("ipam/ip-addresses", {"address": address}):
+                known = True
+                holder = owner(ip)
+                if holder is None:
+                    notes.append(f"{machine['name']}: {address} is in NetBox without a machine ({ip.get('description') or 'no description'})")
+                elif holder != machine["name"]:
+                    conflicts.append(f"{machine['name']}: {address} belongs to {holder} in NetBox")
+        if not known:
+            notes.append(f"{machine['name']}: VMID {machine['vmid']} and {', '.join(machine['addresses']) or 'no fixed address'} are free in NetBox")
+    return conflicts, notes
+
+
+def cmd_check_plan(seed, args):
+    """Run by the roots' plan targets after the plan is saved. Never needed: without NetBox it says so and passes."""
+    if len(args) != 2:
+        die("usage: netbox-sync.py check-plan <root> <plan file>")
+    root, plan_file = args
+    token = os.environ.get("NETBOX_READ_TOKEN")
+    if not token:
+        print("allocation check skipped: no NETBOX_READ_TOKEN in the environment (store path /netbox)")
+        return
+    shown = subprocess.run([os.environ.get("TOFU", "tofu"), f"-chdir={ROOT / 'terraform/stacks' / root}", "show", "-json", Path(plan_file).name],
+                           capture_output=True, text=True)
+    if shown.returncode != 0:
+        die(f"root {root}: `tofu show` could not read {plan_file}")
+    machines = planned_machines(json.loads(shown.stdout))
+    cluster = seed["sources"][next(iter(seed["sources"]))]["cluster"]
+    try:
+        conflicts, notes = allocation(machines, NetBox(NETBOX_URL, token), cluster)
+    except (OSError, RuntimeError) as error:
+        print(f"allocation check skipped: NetBox did not answer ({str(error)[:120]})")
+        return
+    for line in notes:
+        print(f"allocation: {line}")
+    for line in conflicts:
+        print(f"allocation CONFLICT: {line}", file=sys.stderr)
+    if conflicts:
+        print("The plan uses a VMID or an address NetBox gives to another machine. Correct terraform.tfvars or the record in NetBox, "
+              "then plan again.", file=sys.stderr)
+        sys.exit(3)
+    print(f"allocation: {len(machines)} machine(s) of the plan agree with NetBox")
+
+
 # ───────────────────────── service accounts ─────────────────────────
 
 def token_value(created):
@@ -925,6 +1014,25 @@ def cmd_prune(seed):
     lines, refused = prune(seed, api, lambda path, object_id: http("DELETE", f"{api.url}/api/{path}/{object_id}/", api.headers))
     print("\n".join(lines) or "nothing is listed under retired")
     sys.exit(1 if refused else 0)
+
+
+def role_icons(seed, api):
+    """The picture each device role has in the topology diagram (plugin netbox-topology-views): role id -> file
+    of the plugin's own pictures. Roles without `icon` keep the plugin's choice (a file named after the role)."""
+    ids = {role["slug"]: role["id"] for role in api.list("dcim/device-roles")}
+    return {str(ids[role["slug"]]): f"/static/netbox_topology_views/img/{role['icon']}.svg"
+            for role in seed["roles"] if role.get("icon") and role["slug"] in ids}
+
+
+def cmd_icons(seed):
+    token = os.environ.get("NETBOX_SYNC_TOKEN") or die("set NETBOX_SYNC_TOKEN in the environment (store path /netbox)")
+    api = NetBox(NETBOX_URL, token)
+    icons = role_icons(seed, api)
+    try:
+        http("POST", f"{api.url}/api/plugins/netbox_topology_views/images/save/", api.headers, icons)
+    except RuntimeError as error:
+        die(f"the topology plugin did not take the role pictures: {str(error)[:200]}")
+    print(f"topology diagram: {len(icons)} device roles have their picture")
 
 
 def cmd_identities(seed):
@@ -1004,8 +1112,8 @@ def cmd_export(args):
 def main(argv):
     if argv and argv[0] == "export":
         return cmd_export(argv[1:])
-    if not argv or argv[0] not in ("discover", "discover-hardware", "plan", "apply", "prune", "identities"):
-        die("usage: netbox-sync.py discover <source> | discover-hardware [device ...] | plan | apply | prune | identities | export <directory>")
+    if not argv or argv[0] not in ("discover", "discover-hardware", "plan", "apply", "icons", "prune", "identities", "check-plan"):
+        die("usage: netbox-sync.py discover <source> | discover-hardware [device ...] | plan | apply | icons | prune | identities | export <directory>")
     seed = yaml.safe_load(SEED.read_text())
     if argv[0] == "discover":
         cmd_discover(seed, argv[1:])
@@ -1013,6 +1121,10 @@ def main(argv):
         cmd_discover_hardware(seed, argv[1:])
     elif argv[0] == "prune":
         cmd_prune(seed)
+    elif argv[0] == "icons":
+        cmd_icons(seed)
+    elif argv[0] == "check-plan":
+        cmd_check_plan(seed, argv[1:])
     elif argv[0] == "identities":
         cmd_identities(seed)
     else:

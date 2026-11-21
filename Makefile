@@ -479,6 +479,18 @@ mgmt-check:
 	$(ANSIBLE) ansible/playbooks/configure-mgmt-control.yml --syntax-check -i ansible/inventories/homelab.yml
 	$(VENV)/bin/python tests/mgmt-control.py
 
+# After a root saved its plan: do the VMIDs and addresses it wants agree with NetBox (M013)? A VMID or an address
+# NetBox gives to another machine stops the target before the plan's checksum is printed. NetBox is never
+# needed: without the secret store, the token or an answer, the check says so and passes. The token is read
+# from the environment, or fetched from the store path /netbox. NETBOX_ALLOCATION_CHECK=skip turns it off.
+define NETBOX_ALLOCATION
+@if [ "$(NETBOX_ALLOCATION_CHECK)" = skip ]; then echo "allocation check skipped (NETBOX_ALLOCATION_CHECK=skip)"; \
+elif [ -n "$${NETBOX_READ_TOKEN:-}" ]; then $(VENV)/bin/python scripts/netbox-sync.py check-plan $(1) $(2); \
+else scripts/secrets.py run /netbox -- $(VENV)/bin/python scripts/netbox-sync.py check-plan $(1) $(2) 2>/dev/null || { rc=$$?; \
+  if [ $$rc -eq 3 ]; then scripts/secrets.py run /netbox -- $(VENV)/bin/python scripts/netbox-sync.py check-plan $(1) $(2); exit 3; fi; \
+  echo "allocation check skipped: the secret store did not hand out the NetBox token"; }; fi
+endef
+
 # Read-only: GET requests with verified TLS. Pass datastores/bridge to check privileges, e.g.
 # MGMT_DISCOVER_ARGS="--image-datastore local --disk-datastore local-lvm --bridge vmbr0"
 mgmt-discover:
@@ -493,6 +505,7 @@ mgmt-plan:
 	@test ! -e "$(MGMT_DIR)/$(MGMT_PLAN)" || mv -f "$(MGMT_DIR)/$(MGMT_PLAN)" "$(MGMT_DIR)/mgmt.previous.tfplan"
 	$(TOFU) -chdir=$(MGMT_DIR) init -input=false -lockfile=readonly
 	$(call MGMT_RUN,$(TOFU) -chdir=$(MGMT_DIR) plan -input=false -out=$(MGMT_PLAN))
+	$(call NETBOX_ALLOCATION,pve-management-control,$(MGMT_PLAN))
 	@shasum -a 256 "$(MGMT_DIR)/$(MGMT_PLAN)"
 
 # Mutates pve-management: only with explicit approval of the exact saved plan.
@@ -621,6 +634,7 @@ deploy-runner-plan:
 	@test ! -e "$(DEPLOY_RUNNER_DIR)/$(DEPLOY_RUNNER_PLAN)" || mv -f "$(DEPLOY_RUNNER_DIR)/$(DEPLOY_RUNNER_PLAN)" "$(DEPLOY_RUNNER_DIR)/deploy-runner.previous.tfplan"
 	$(TOFU) -chdir=$(DEPLOY_RUNNER_DIR) init -input=false -lockfile=readonly
 	$(call MGMT_RUN,$(TOFU) -chdir=$(DEPLOY_RUNNER_DIR) plan -input=false -out=$(DEPLOY_RUNNER_PLAN))
+	$(call NETBOX_ALLOCATION,deploy-runner,$(DEPLOY_RUNNER_PLAN))
 	@shasum -a 256 "$(DEPLOY_RUNNER_DIR)/$(DEPLOY_RUNNER_PLAN)"
 
 # Mutates the doku-lab cluster (deploy-runner-01 on pve-core): only with explicit approval of the exact saved plan.
@@ -697,6 +711,7 @@ k3s-cluster-plan:
 	@test ! -e "$(K3S_CLUSTER_DIR)/$(K3S_CLUSTER_PLAN)" || mv -f "$(K3S_CLUSTER_DIR)/$(K3S_CLUSTER_PLAN)" "$(K3S_CLUSTER_DIR)/k3s.previous.tfplan"
 	$(TOFU) -chdir=$(K3S_CLUSTER_DIR) init -input=false -lockfile=readonly
 	$(call MGMT_RUN,$(TOFU) -chdir=$(K3S_CLUSTER_DIR) plan -input=false -out=$(K3S_CLUSTER_PLAN) $(if $(K3S_CLUSTER_REPLACE),'-replace=proxmox_virtual_environment_vm.node["$(K3S_CLUSTER_REPLACE)"]'))
+	$(call NETBOX_ALLOCATION,k3s,$(K3S_CLUSTER_PLAN))
 	@shasum -a 256 "$(K3S_CLUSTER_DIR)/$(K3S_CLUSTER_PLAN)"
 
 # Mutates the doku-lab cluster (k3s VMs): only with explicit approval of the exact saved plan.
@@ -868,6 +883,7 @@ storage-plan:
 	@test ! -e "$(STORAGE_DIR)/$(STORAGE_PLAN)" || mv -f "$(STORAGE_DIR)/$(STORAGE_PLAN)" "$(STORAGE_DIR)/storage.previous.tfplan"
 	$(TOFU) -chdir=$(STORAGE_DIR) init -input=false -lockfile=readonly
 	$(call MGMT_RUN,$(TOFU) -chdir=$(STORAGE_DIR) plan -input=false -out=$(STORAGE_PLAN))
+	$(call NETBOX_ALLOCATION,storage,$(STORAGE_PLAN))
 	@shasum -a 256 "$(STORAGE_DIR)/$(STORAGE_PLAN)"
 
 # Mutates the doku-lab cluster (storage-01): only with explicit approval of the exact saved plan.
@@ -930,6 +946,7 @@ postgresql-plan:
 	@test ! -e "$(POSTGRESQL_DIR)/$(POSTGRESQL_PLAN)" || mv -f "$(POSTGRESQL_DIR)/$(POSTGRESQL_PLAN)" "$(POSTGRESQL_DIR)/postgresql.previous.tfplan"
 	$(TOFU) -chdir=$(POSTGRESQL_DIR) init -input=false -lockfile=readonly
 	$(call MGMT_RUN,$(TOFU) -chdir=$(POSTGRESQL_DIR) plan -input=false -out=$(POSTGRESQL_PLAN))
+	$(call NETBOX_ALLOCATION,postgresql,$(POSTGRESQL_PLAN))
 	@shasum -a 256 "$(POSTGRESQL_DIR)/$(POSTGRESQL_PLAN)"
 
 # Mutates the doku-lab cluster (pg-01..03): only with explicit approval of the exact saved plan.
@@ -1054,6 +1071,7 @@ dns-plan:
 	@test ! -e "$(DNS_DIR)/$(DNS_PLAN)" || mv -f "$(DNS_DIR)/$(DNS_PLAN)" "$(DNS_DIR)/dns.previous.tfplan"
 	$(TOFU) -chdir=$(DNS_DIR) init -input=false -lockfile=readonly
 	$(call MGMT_RUN,$(TOFU) -chdir=$(DNS_DIR) plan -input=false -out=$(DNS_PLAN))
+	$(call NETBOX_ALLOCATION,dns,$(DNS_PLAN))
 	@shasum -a 256 "$(DNS_DIR)/$(DNS_PLAN)"
 
 # Mutates the doku-lab cluster (dns-01): only with explicit approval of the exact saved plan.
@@ -1246,6 +1264,7 @@ netbox-plan:
 netbox-apply:
 	@test "$(NETBOX_APPLY_APPROVED)" = yes || (echo "Read 'make netbox-plan' first, then approve the inventory write with NETBOX_APPLY_APPROVED=yes" >&2; exit 1)
 	$(NETBOX_SYNC) apply
+	$(NETBOX_SYNC) icons
 
 # Removes the records services/netbox/inventory.yaml lists under `retired` (records an earlier version of that
 # file created and that are wrong), with a ten-minute superuser token. Nothing else is ever deleted.
