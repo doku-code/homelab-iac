@@ -97,6 +97,8 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 |---|---|---|---|---|---|---|---|---|---|---|
 | mgmt-control-01 | 100 | pve-management | Admin workstation | Ubuntu 26.04 | 12 | 10 GB | 120 GB | 192.168.0.39/24 | Active | terraform/stacks/pve-management-control |
 | deploy-runner-01 | 302 | pve-core | Deployment runner | Debian 13 | 6 | 8 GB | 24 GB | 192.168.0.32/24 | Active | terraform/stacks/deploy-runner |
+| ts-router-01 | 306 | pve-core | Tailscale router | Debian 13 | 1 | 0.5 GB | 8 GB | 192.168.0.36/24 | Active | Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml); container moved from the old host on 2026-11-21, not defined by a root yet |
+| ts-router-02 | 307 | pve-management | Tailscale router | Debian 13 | 1 | 0.5 GB | 8 GB | 192.168.0.37/24 | Active | Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml); container moved from the old host on 2026-11-21, not defined by a root yet |
 | k3s-server-01 | 310 | pve-lab | k3s server | Debian 13 | 6 | 12 GB | 64 GB | 192.168.0.40/24 | Active | terraform/stacks/k3s |
 | k3s-server-02 | 311 | pve-core | k3s server | Debian 13 | 4 | 8 GB | 64 GB | 192.168.0.41/24 | Active | terraform/stacks/k3s |
 | k3s-server-03 | 312 | pve-lab | k3s server | Debian 13 | 4 | 6 GB | 64 GB | 192.168.0.42/24 | Active | terraform/stacks/k3s |
@@ -105,6 +107,8 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 | pg-02 | 362 | pve-lab | PostgreSQL | Debian 13 | 2 | 4 GB | 56 GB | 192.168.0.62/24 | Active | terraform/stacks/postgresql |
 | pg-03 | 363 | pve-infra | PostgreSQL | Debian 13 | 2 | 2 GB | 56 GB | 192.168.0.63/24 | Active | terraform/stacks/postgresql |
 | dns-01 | 370 | pve-infra | DNS | Debian 13 | 1 | 1 GB | 16 GB | 192.168.0.70/24 | Active | terraform/stacks/dns |
+
+2 desktop and template machines of this cluster are in NetBox and not listed here.
 
 ### Cluster homelab
 
@@ -116,8 +120,6 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 | garage | 209 | pve-lab-legacy | Legacy service | Debian | 1 | 1 GB | 16 GB | 192.168.0.29/24 | Offline (to verify) | Garage object storage (ansible/playbooks/configure-garage.yml); stopped |
 | tfstate | 300 | pve-lab-legacy | Legacy service | Debian | 1 | 2 GB | 16 GB | 192.168.0.30/24 | Offline (to verify) | OpenTofu state backups (tfstate.doku-lab.net); stopped |
 | forgejo-runner-migration | 301 | pve-lab-legacy | Deployment runner | Debian | 4 | 6 GB | 38 GB | 192.168.0.31/24 | Active | Forgejo Actions runner of this repository (CT301); never holds Proxmox credentials (ADR-008) |
-| ts-router-01 | 306 | pve-lab-legacy | Tailscale router | Debian | 1 | 0.5 GB | 8 GB | 192.168.0.36/24 | Active | Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml) |
-| ts-router-02 | 307 | pve-lab-legacy | Tailscale router | Debian | 1 | 0.5 GB | 8 GB | 192.168.0.37/24 | Active | Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml) |
 
 11 desktop and template machines of this cluster are in NetBox and not listed here.
 
@@ -126,6 +128,21 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 | Name | VMID | Host | Role | System | vCPU | Memory | Disk | Address | Status | Description |
 |---|---|---|---|---|---|---|---|---|---|---|
 | pbs |  | truenas | Backup server | Proxmox Backup Server | 2 | 4 GB |  | 192.168.0.15/24 | Offline | Proxmox Backup Server, a VM on TrueNAS. Stopped: its backup disk failed in November 2026 |
+
+## Tunnels
+
+| Tunnel | Kind | Group | Members | Description |
+|---|---|---|---|---|
+| tailscale-lan | WireGuard | Tailscale | ts-router-01 tailscale0, ts-router-02 tailscale0 | Tailnet access to 192.168.0.0/24 through two subnet routers; one serves the route, the other takes over when it stops |
+
+## Wi-Fi radios
+
+| Device | Radio | Standard | Role | Networks carried | Description |
+|---|---|---|---|---|---|
+| access-point | wlan0 | IEEE 802.11n (Wi-Fi 4) | Access point | 0 | 2.4 GHz radio |
+| access-point | wlan1 | IEEE 802.11n (Wi-Fi 4) | Access point | 0 | 5 GHz radio |
+
+The names of the Wi-Fi networks and the addresses inside the tailnet are in NetBox only.
 
 ## Addresses
 

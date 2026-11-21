@@ -96,6 +96,8 @@ scripts/secrets.py run /netbox -- make netbox-docs
 | Inventory page | `docs/reference/infrastructure-inventory.md: rewritten from NetBox`; 11 personal machines counted, not named | `make netbox-docs` | 2026-11-21 |
 | Operator's facts | Rack `rack-01` (27 U, 19 inches, 610 mm deep; the switch in it, no position yet), pfSense on a Lenovo ThinkCentre M75q Gen 2 (WAN 1 Gb, LAN 2.5 Gb), switch ports 1 to 8 RJ45 and 9 to 16 SFP+, access point confirmed; `plan: 4 to create, 7 to update`, then an empty plan | `make netbox-apply`; commit 10ee98c | 2026-11-21 |
 | Deleted guests | Nine replaced guests deleted from the old host by the operator's decision (`destroyed CT 200 adguard` … `destroyed VM 305 k3s-server-3`); their nine records removed from NetBox with their addresses; `plan: 0 to create, 0 to update`, no line to review | `.local/legacy-destroy-2026-11-21.log`, `make netbox-prune` | 2026-11-21 |
+| Moved guests, tunnel, radios | `applied: 26 to create, 8 to update, nothing deleted`, second plan `0 to create, 0 to update`, no review line: the two Tailscale routers and two Windows VMs on doku-lab, tunnel `tailscale-lan` with both routers (port `tailscale0`, tailnet address, LAN address as the outside), radios `wlan0`/`wlan1` of the access point as access-point radios, uplink as PoE-powered; old router records removed (`removed … 'cluster': 'homelab'`) | `make netbox-discover-tailscale`, `make netbox-prune`, `make netbox-apply`, `make netbox-check` | 2026-11-21 |
+| Wi-Fi networks | not verified: the mechanism exists (`.local/netbox/private.yaml`, tested offline) but no network name is known yet | | |
 | Positions, remaining cables | not verified: nothing can read them | | |
 
 ## Not done
@@ -116,6 +118,10 @@ scripts/secrets.py run /netbox -- make netbox-docs
 ## Completion summary
 
 In progress. Everything a machine could tell and what the operator stated on 2026-11-21 is in NetBox, with
-diagrams, the plan check and the generated page. Remaining: where the devices sit in the rack (in NetBox, or
-`position` in `services/netbox/inventory.yaml`) and the four cables nobody announces (`cables` in that file),
-then `make netbox-apply` and `make netbox-docs`.
+diagrams, the plan check and the generated page; since the same day also the Tailscale tunnel with its two
+routers (now on doku-lab) and the access point's radios. Remaining: the names of the Wi-Fi networks (the
+operator gives them; they go to `.local/netbox/private.yaml`, never to Git), where the devices sit in the rack
+(in NetBox, or `position` in `services/netbox/inventory.yaml`) and the four cables nobody announces (`cables`
+in that file), then `make netbox-apply` and `make netbox-docs`. Not modelled yet and worth deciding with the
+operator: the web applications behind the ingress as services, power (a UPS or power strip, if any), the
+internet line as a circuit.

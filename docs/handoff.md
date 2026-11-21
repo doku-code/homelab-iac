@@ -9,13 +9,13 @@ tags:
 - workstation
 - pve-management
 editor: markdown
-date: '2026-11-18T00:00:00.000Z'
+date: '2026-11-21T00:00:00.000Z'
 dateCreated: '2026-11-14T00:00:00.000Z'
 ---
 
 # Current handoff and next steps
 
-> **ID:** GUIDE-handoff · **Type:** guide · **Status:** current · **Updated:** 2026-11-18 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/handoff.md)
+> **ID:** GUIDE-handoff · **Type:** guide · **Status:** current · **Updated:** 2026-11-21 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/handoff.md)
 
 Short, current state for a new session. Vision and decisions: [project overview](/docs/project-overview).
 Update this page when the current task changes; Git keeps the history.
@@ -38,7 +38,8 @@ secrets or state in Git, never destroy a workload before its replacement works.
 | New cluster `doku-lab` | Proxmox VE 9.2, quorate, 4 nodes: `pve-management` .10, `pve-core` .11, `pve-infra` .12, new `pve-lab` .16 ([inventory](/docs/investigations/new-proxmox-cluster-inventory)); only VM 100 exists |
 | `mgmt-control-01` VM 100, 192.168.0.39 on `pve-management` | Ubuntu Desktop 26.04.1, 8 vCPU, 10 GiB, 120 GiB; OpenTofu + autoinstall + Ansible; **the operator workstation and the only OpenTofu executor** |
 | Old environment: `pve-lab` **192.168.0.14** | Ryzen 9 9950X3D, independent, runs the legacy services; never join, rename or reconfigure it. Future `pve-compute` after M010 |
-| Legacy services | On the old host and TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent, Vaultwarden, Caddy (CT204, only `git`, `cloud` and the public tunnel). Still on the old host: Caddy (CT204), Vaultwarden (CT206), the migration runner (CT301), the two Tailscale routers (CT306, CT307), and stopped: print server (CT203), Garage (CT209), tfstate (CT300), the desktop VMs and templates. **Deleted from the old host on 2026-11-21 on the operator's word, after their replacements ran: AdGuard (CT200), Homepage (CT201), Wiki.js (CT202), Windmill (CT210), Infisical (VM 207), monitoring (VM 208), the Stage A k3s VMs (303 to 305).** Their Terraform roots (`deb13-monitoring`, `pve-lab-k3s`, `pve-core-windmill`) describe guests that no longer exist: never apply them |
+| Legacy services | On the old host and TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent, Vaultwarden, Caddy (CT204, only `git`, `cloud` and the public tunnel). Still on the old host: Caddy (CT204), Vaultwarden (CT206), the migration runner (CT301), and stopped: print server (CT203), Garage (CT209), tfstate (CT300), the desktop VMs and templates. **Deleted from the old host on 2026-11-21 on the operator's word, after their replacements ran: AdGuard (CT200), Homepage (CT201), Wiki.js (CT202), Windmill (CT210), Infisical (VM 207), monitoring (VM 208), the Stage A k3s VMs (303 to 305).** Their Terraform roots (`deb13-monitoring`, `pve-lab-k3s`, `pve-core-windmill`) describe guests that no longer exist: never apply them |
+| Moved from the old host, 2026-11-21 | The two Tailscale routers are the same containers on doku-lab: CT306 `ts-router-01` on `pve-core`, CT307 `ts-router-02` on `pve-management`, same addresses and Tailscale identities; their copies on the old host were deleted. No root defines them yet, and the legacy root `pve-tailscale-routers` describes where they used to be: never apply it. Two stopped Windows VMs (old 400 and 401) were copied to `pve-core` as VM 700 and 701 and stay off; the originals are still on the old host until the operator has started the copies. NetBox: tunnel `tailscale-lan` with both routers, `make netbox-discover-tailscale` |
 
 Two hosts are named `pve-lab` and `pve-lab.doku-lab.net` resolves to the old side's proxy (.24): **always
 use IPs**. The new nodes have no DNS records.
@@ -231,6 +232,9 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 
 - DNS has a single server (AdGuard 192.168.0.20 on `dns-01`); when it is down, internal names and package
   downloads fail.
+- `pve-core` and `pve-management` lose 3 to 5 % of the full-size frames they receive in bursts (Intel I219 ports):
+  transfers into them from faster hosts run at 20 to 60 Mbit/s. Measurements, workaround and what is left to try:
+  [known issue](/docs/issues/bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte).
 - The internet link drops for one to two minutes at a time on most days (seen in the tunnel and Tailscale
   logs since October 2026); cause not identified, pfSense is out of scope. The `netprobe` user service on
   the workstation logs each dropout per hop to `.local/netprobe.log`.
