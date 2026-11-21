@@ -52,6 +52,7 @@ TAGS = {
     "lxc": ("LXC", "9e9e9e", "Proxmox container (not a virtual machine)"),
     "observed": ("Observed", "03a9f4", "Recorded from what a machine reported (a cable heard through LLDP), not entered by a person"),
 }
+RACK_DETAILS = ("form_factor", "outer_width", "outer_depth", "outer_height", "outer_unit", "mounting_depth", "desc_units")
 ITEM_ROLES = {"processor": ("Processor", "607d8b"), "memory": ("Memory", "3f51b5"), "disk": ("Disk", "795548")}
 SOURCE_URL = "https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/"
 # What the write account may touch (view, add, change; never delete) and what the read account may see.
@@ -542,7 +543,8 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None):
                       "enabled": port.get("enabled", True), "description": port.get("description", "")})
     racks = {entry["name"]: r.ensure(f"rack {entry['name']}", "dcim/racks", {"site_id": ref(site), "name": entry["name"]},
                                      {"name": entry["name"], "site": ref(site), "status": "active", "u_height": entry["u_height"],
-                                      "width": entry.get("width", 19), "description": entry.get("description", "")})
+                                      "width": entry.get("width", 19), "description": entry.get("description", ""),
+                                      **{key: entry[key] for key in RACK_DETAILS if key in entry}})
              for entry in seed.get("racks", [])}
     item_roles = {slug: r.ensure(f"inventory item role {slug}", "dcim/inventory-item-roles", {"slug": slug}, {"name": name, "slug": slug, "color": color})
                   for slug, (name, color) in ITEM_ROLES.items()} if facts else {}

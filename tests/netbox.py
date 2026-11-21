@@ -419,7 +419,7 @@ def reconciliation():
     assert any("scratch" in line and "no static address" in line for line in applied.review)
     assert not any("deb13-monitoring" in line and "no static address" in line for line in applied.review), "a stopped guest is not worth a line"
     # Unverified devices are flagged, verified ones are not; the backup server is a VM on the NAS, stopped.
-    assert device["pfsense"]["tags"] == [tags["needs-review"]] and device["pve-core"]["tags"] == [] and "pbs" not in device
+    assert device["pve-lab-legacy"]["tags"] == [tags["needs-review"]] and device["pve-core"]["tags"] == [] and "pbs" not in device
     pbs = api.get(vms, name="pbs")
     assert (pbs["cluster"], pbs["device"], pbs["status"]) == (cluster["truenas"], device["truenas"]["id"], "offline")
     assert api.get(ips, address="192.168.0.15/24")["status"] == "reserved" and pbs["primary_ip4"] == api.get(ips, address="192.168.0.15/24")["id"]
@@ -447,12 +447,14 @@ def reconciliation():
 
     # A rack and a place in it, stated in inventory.yaml, are written while NetBox has none; afterwards the
     # place belongs to NetBox.
-    racked = copy.deepcopy(seed)
-    racked["racks"] = [{"name": "rack-01", "u_height": 12, "width": 19}]
-    next(d for d in racked["devices"] if d["name"] == "switch").update(rack="rack-01", position=3, face="front")
-    placed = run(True, inventory=racked)
     rack = api.get("dcim/racks", name="rack-01")
-    assert rack["u_height"] == 12 and any(op.startswith("update  device switch:") and "position" in op for op in placed.operations)
+    assert (rack["u_height"], rack["width"], rack["form_factor"], rack["outer_depth"], rack["outer_unit"]) == (27, 19, "4-post-cabinet", 610, "mm")
+    assert api.get("dcim/devices", name="switch")["rack"] == rack["id"] and "position" not in api.get("dcim/devices", name="switch")
+    assert "rack" not in api.get("dcim/devices", name="access-point"), "only what is known to be in the rack is put there"
+    racked = copy.deepcopy(seed)
+    next(d for d in racked["devices"] if d["name"] == "switch").update(position=3, face="front")
+    placed = run(True, inventory=racked)
+    assert any(op.startswith("update  device switch:") and "position" in op for op in placed.operations)
     assert (api.get("dcim/devices", name="switch")["rack"], api.get("dcim/devices", name="switch")["position"]) == (rack["id"], 3)
     api.get("dcim/devices", name="switch")["position"] = 7
     assert run(True, inventory=racked).operations == [] and api.get("dcim/devices", name="switch")["position"] == 7

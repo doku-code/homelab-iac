@@ -154,7 +154,7 @@ device_types:
     part_number: QSW-M3216R-8S8T
     u_height: 1
     is_full_depth: false
-    comments: "Managed 10 Gb switch, half the width of a rack unit: 8 RJ45 ports (10G/5G/2.5G/1G), 8 SFP+ ports, one management port. Ports 5 to 8 carry copper links at 1 and 2.5 Gb (seen 2026-11-20), so 1 to 8 are taken as the RJ45 ports; check 9 to 16 against the front panel."
+    comments: "Managed 10 Gb switch, half the width of a rack unit: ports 1 to 8 are RJ45 (10G/5G/2.5G/1G), 9 to 16 SFP+ (stated by the operator, 2026-11-21), plus one management port."
     ports:
       - {range: [1, 8], type: 10gbase-t}
       - {range: [9, 16], type: 10gbase-x-sfpp}
@@ -169,21 +169,26 @@ device_types:
       - {name: eth0, type: 1000base-t, description: "Uplink, power over Ethernet (802.3af)"}
       - {name: wlan0, type: ieee802.11n, description: "2.4 GHz radio"}
       - {name: wlan1, type: ieee802.11n, description: "5 GHz radio"}
-  - slug: unidentified-firewall-appliance
-    manufacturer: Unidentified
-    model: Firewall appliance
+  - slug: lenovo-thinkcentre-m75q-gen-2
+    manufacturer: Lenovo
+    model: ThinkCentre M75q Gen 2
     u_height: 0
-    comments: "Hardware not read: automation never signs in to pfSense. Its LAN port carries a hardware address of the same maker as the NAS's 10 Gb card."
+    comments: "One-litre desktop (Tiny), AMD Ryzen. As the operator describes this one (2026-11-21): the network port of the machine, and a 2.5 Gb adapter in the M.2 A+E slot."
     ports:
-      - {name: lan, type: other, description: "LAN side; kind of port not read"}
-      - {name: wan, type: other, description: "Internet side; kind of port not read"}
+      - {name: wan, type: 1000base-t, description: "Port of the machine"}
+      - {name: lan, type: 2.5gbase-t, description: "2.5 Gb adapter in the M.2 A+E slot"}
 
-# Racks: none recorded yet. The operator states the rack (name, height in units, width 10 or 19 inches) and
-# where each device sits; then, for example:
-#   racks:
-#     - {name: rack-01, u_height: 12, width: 19, description: "..."}
-# and on a device: `rack: rack-01`, plus `position: 3` and `face: front` for a device with a height.
-racks: []
+# Racks. Size and kind are stated here; where each device sits in the rack belongs to NetBox (drag it in the
+# rack view, or give `position` and `face` on the device below: they are written only while NetBox has none).
+racks:
+  - name: rack-01
+    u_height: 27
+    width: 19
+    form_factor: 4-post-cabinet
+    outer_width: 600
+    outer_depth: 610
+    outer_unit: mm
+    description: "Sysracks cabinet, 27 U, 19 inches, 610 mm deep (operator, 2026-11-21). Probably the SRW 27.600: check the label"
 
 # Devices. "facts": the address `make netbox-discover-hardware` reads the hardware from (root SSH, read-only;
 # never the old host). "review: true" marks what nobody has verified. A port listed under `ports` adds to
@@ -237,18 +242,18 @@ devices:
     ports:
       - {name: vmbr0, type: bridge, members: [enp1s0f1np1], address: 192.168.0.14/24, primary: true}
   - name: pfsense
-    type: unidentified-firewall-appliance
+    type: lenovo-thinkcentre-m75q-gen-2
     role: router
     platform: pfsense
-    description: "pfSense, LAN gateway and DHCP; never changed or signed in to by automation"
-    review: true
+    description: "AMD Ryzen 3, 8 GB RAM. pfSense, LAN gateway and DHCP; never changed or signed in to by automation"
     ports:
       - {name: lan, address: 192.168.0.1/24, primary: true, dns_name: pfsense.doku-lab.net}
   - name: switch
     type: qnap-qsw-m3216r-8s8t
     role: switch
     platform: qnap-qss
-    description: "Core switch; every Proxmox host of doku-lab is plugged into it. Its address is a DHCP lease"
+    rack: rack-01
+    description: "Core switch; every Proxmox host of doku-lab is plugged into it. Its address is a DHCP lease until 192.168.0.3 is set on it"
     ports:
       - {name: vlan1, type: virtual, mgmt_only: true, address: 192.168.0.116/24, address_status: dhcp, primary: true,
          description: "Management address as the switch announces it (LLDP)"}
@@ -256,7 +261,6 @@ devices:
     type: tp-link-eap220
     role: access-point
     description: "Wi-Fi access point, managed on its own web interface"
-    review: true
     ports:
       - {name: eth0, address: 192.168.0.2/24, primary: true}
   - name: truenas
@@ -305,7 +309,7 @@ device_services:
 addresses:
   - {address: 192.168.0.60/24, role: vip, iac: true, description: "PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql)"}
   - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address (ansible/vars/dns.yml)"}
-  - {address: 192.168.0.3/24, iac: true, status: deprecated, dns_name: switch.doku-lab.net, description: "Nothing answers here (2026-11-20). The name switch.doku-lab.net still points to it; the switch is at 192.168.0.116"}
+  - {address: 192.168.0.3/24, iac: true, status: reserved, dns_name: switch.doku-lab.net, description: "Meant for the switch (operator, 2026-11-21); not set on it yet, the switch answers at 192.168.0.116"}
 
 # What the guests of the old environment are (cluster, then VMID or a range of VMIDs). A guest described
 # here gets this role and description and is no longer "needs-review", unless "review: true" keeps the flag.
@@ -338,6 +342,8 @@ retired:
   - {path: dcim/manufacturers, slug: unknown, reason: "No device type uses it"}
   - {path: dcim/manufacturers, slug: azw, reason: "The maker is recorded as Beelink"}
   - {path: dcim/manufacturers, slug: asus, reason: "No device type uses it"}
+  - {path: dcim/device-types, slug: unidentified-firewall-appliance, reason: "pfSense runs on a Lenovo ThinkCentre M75q Gen 2"}
+  - {path: dcim/manufacturers, slug: unidentified, reason: "No device type uses it"}
 
 # OpenTofu roots whose VMs are inventoried from `tofu output -json ansible_inventory` (state on the workstation).
 iac_roots:
