@@ -48,10 +48,13 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 
 | From | To | Cable | Known from |
 |---|---|---|---|
+| pfsense lan | switch 1 |  | entered |
 | pve-core nic0 | switch 8 |  | announced by the switch (LLDP) |
 | pve-infra nic0 | switch 7 |  | announced by the switch (LLDP) |
 | pve-lab nic0 | switch 6 |  | announced by the switch (LLDP) |
+| pve-lab-legacy enp1s0f1np1 | switch 14 | dac-passive | entered |
 | pve-management nic0 | switch 5 |  | announced by the switch (LLDP) |
+| truenas enp1s0 | switch 16 | dac-passive | entered |
 
 ## Hardware of the hosts
 
