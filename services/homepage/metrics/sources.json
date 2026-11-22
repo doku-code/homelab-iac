@@ -47,7 +47,7 @@
     "qbit": {"label": "qBittorrent", "url": "https://qbit.doku-lab.net/"},
     "truenas": {"label": "TrueNAS", "url": "https://192.168.0.13:444/ui/", "verify": false},
     "router": {"label": "Router", "url": "https://192.168.0.1/", "verify": false},
-    "switch": {"label": "Switch", "url": "https://192.168.0.2/", "verify": false}
+    "switch": {"label": "Switch", "url": "https://192.168.0.3/", "verify": false}
   },
   "truenas": {"url": "https://192.168.0.13:444", "verify": false},
   "plex": {"url": "http://192.168.0.13:32400"},

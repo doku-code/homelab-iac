@@ -6,7 +6,7 @@ type: guide
 status: current
 importance: 5
 created: 2026-11-14
-updated: 2026-11-21
+updated: 2026-11-22
 tags: [guide, handoff, workstation, pve-management]
 related: [DOC-project-overview, ARCH-platform, ADR-009, ADR-010, ADR-012, ADR-014, INV-new-proxmox-cluster-inventory, INV-legacy-inventory, INV-pve-management-bootstrap, M001, M003]
 topics: [handoff, current-work, workstation, state, next-task]
@@ -143,7 +143,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   `netbox-plan` → `netbox-apply` (commands below); next steps in ADR-016.
 - **NetBox filled in** 2026-11-20/21 ([TASK-030](../tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md),
   [ADR-018](decisions/ADR-018-netbox-holds-the-physical-inventory-git-says-what-a-device-i.md)): real device
-  types and ports, the switch (QNAP QSW-M3216R-8S8T at 192.168.0.116, a DHCP lease) and the access point
+  types and ports, the switch (QNAP QSW-M3216R-8S8T at 192.168.0.3 since 2026-11-22) and the access point
   (192.168.0.2), hardware of the four doku-lab hosts read by `make netbox-discover-hardware`, their cables to
   the switch as the switch announces them, roles for the old guests. **What a device is lives in
   `services/netbox/inventory.yaml`; where it sits (rack, position), asset tags and comments live in
@@ -155,8 +155,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   and the switch's port layout are as the operator stated them on 2026-11-21. **Open, needs the operator:**
   where each device sits in the rack (drag it in NetBox's rack view, or `position` in the file), the switch
   ports of the NAS, pfSense, the access point and the old host (`cables` in the file; automation has no
-  login on the switch and only hears what the switch announces to the Proxmox hosts), and setting
-  192.168.0.3 on the switch (it still answers at its DHCP lease 192.168.0.116). 5 records still flagged
+  login on the switch and only hears what the switch announces to the Proxmox hosts). 5 records still flagged
   `needs-review`: the old host, three stopped containers (print server, Garage, tfstate), the DHCP range.
 - **Argo CD deployed** 2026-11-18 ([TASK-024](../tasks/TASK-024-argo-cd-on-k3s-and-netbox-as-its-first-application.md)):
   `https://argocd.doku-lab.net` (LAN only; user `admin`, password at `/argocd` in the secret store). It keeps

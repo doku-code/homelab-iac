@@ -6,7 +6,7 @@ type: reference
 status: current
 importance: 3
 created: 2026-11-21
-updated: 2026-11-21
+updated: 2026-11-22
 tags: [reference, netbox, inventory, hardware, network]
 related: [ARCH-platform, M013, TASK-030]
 related_decisions: [ADR-016]
@@ -39,7 +39,7 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 | pve-lab | Hypervisor | ORIGIMAGIC Nebula Series | 192.168.0.16/24 |  | Active | AMD Ryzen 7 6800H, 28 GB usable RAM, 512 GB NVMe |
 | pve-lab-legacy | Hypervisor | Custom build Tower, ASUS mainboard, Ryzen 9 9950X3D | 192.168.0.14/24 |  | Active (to verify) | Old environment (Proxmox node name pve-lab, future pve-compute). AMD Ryzen 9 9950X3D, 32 GB RAM |
 | pve-management | Hypervisor | Lenovo ThinkCentre M90q | 192.168.0.10/24 |  | Active | Intel Core i5-10500T, 16 GB RAM, 256 GB NVMe; hosts the admin workstation (ADR-002) |
-| switch | Switch | QNAP QSW-M3216R-8S8T | 192.168.0.116/24 | rack-01 | Active | Core switch; every Proxmox host of doku-lab is plugged into it. Its address is a DHCP lease until 192.168.0.3 is set on it |
+| switch | Switch | QNAP QSW-M3216R-8S8T | 192.168.0.3/24 | rack-01 | Active | Core switch; every Proxmox host of doku-lab is plugged into it |
 | truenas | NAS | Custom build NAS, ASRock N100M mainboard | 192.168.0.13/24 |  | Active | TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent; pools tank (2 x 8 TB mirror), fastpool (1 TB), apps-pool (180 GB). Not built from this repository |
 
 ## Cabling
@@ -148,7 +148,7 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 |---|---|---|---|---|
 | 192.168.0.1/24 | pfsense lan | pfsense.doku-lab.net |  | pfsense |
 | 192.168.0.2/24 | access-point eth0 |  |  | access-point |
-| 192.168.0.3/24 |  | switch.doku-lab.net | Reserved | Meant for the switch (operator, 2026-11-21); not set on it yet, the switch answers at 192.168.0.116 |
+| 192.168.0.3/24 | switch vlan1 | switch.doku-lab.net |  | switch |
 | 192.168.0.9/24 | pve-core amt |  |  | pve-core |
 | 192.168.0.10/24 | pve-management vmbr0 |  |  | pve-management |
 | 192.168.0.11/24 | pve-core vmbr0 |  |  | pve-core |
@@ -177,7 +177,6 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 | 192.168.0.62/24 | pg-02 net0 |  |  | pg-02 |
 | 192.168.0.63/24 | pg-03 net0 |  |  | pg-03 |
 | 192.168.0.70/24 | dns-01 net0 |  |  | dns-01 |
-| 192.168.0.116/24 | switch vlan1 |  | DHCP | switch |
 
 ## Services
 

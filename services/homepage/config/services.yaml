@@ -102,8 +102,8 @@
     - Switch:
         id: switch-service
         icon: mdi-ethernet
-        href: https://192.168.0.2
-        description: 2.5G · 10G SFP+
+        href: https://192.168.0.3
+        description: 10G RJ45 · 10G SFP+
 
 - Apps:
     - Nextcloud:

@@ -257,10 +257,10 @@ devices:
     role: switch
     platform: qnap-qss
     rack: rack-01
-    description: "Core switch; every Proxmox host of doku-lab is plugged into it. Its address is a DHCP lease until 192.168.0.3 is set on it"
+    description: "Core switch; every Proxmox host of doku-lab is plugged into it"
     ports:
-      - {name: vlan1, type: virtual, mgmt_only: true, address: 192.168.0.116/24, address_status: dhcp, primary: true,
-         description: "Management address as the switch announces it (LLDP)"}
+      - {name: vlan1, type: virtual, mgmt_only: true, address: 192.168.0.3/24, dns_name: switch.doku-lab.net, primary: true,
+         description: "Management address, set by the operator on 2026-11-22; the switch announces it (LLDP)"}
   - name: access-point
     type: tp-link-eap220
     role: access-point
@@ -313,7 +313,6 @@ device_services:
 addresses:
   - {address: 192.168.0.60/24, role: vip, iac: true, description: "PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql)"}
   - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address (ansible/vars/dns.yml)"}
-  - {address: 192.168.0.3/24, iac: true, status: reserved, dns_name: switch.doku-lab.net, description: "Meant for the switch (operator, 2026-11-21); not set on it yet, the switch answers at 192.168.0.116"}
 
 # Wi-Fi networks: name (`ssid`), `description`, optional `group`, `auth_type` (open, wep, wpa-personal,
 # wpa-enterprise), `auth_cipher` (auto, tkip, aes) and the `radios` that carry them as [device, port]. The real
@@ -374,6 +373,7 @@ retired:
   # on the old host were deleted on the operator's word. Their records in the old cluster go, the new ones stay.
   - {path: virtualization/virtual-machines, name: ts-router-01, cluster: homelab, reason: "CT306 moved to pve-core, old copy deleted 2026-11-21"}
   - {path: virtualization/virtual-machines, name: ts-router-02, cluster: homelab, reason: "CT307 moved to pve-management, old copy deleted 2026-11-21"}
+  - {path: ipam/ip-addresses, address: 192.168.0.116/24, reason: "DHCP lease the switch had until the operator gave it 192.168.0.3 on 2026-11-22"}
 
 # OpenTofu roots whose VMs are inventoried from `tofu output -json ansible_inventory` (state on the workstation).
 iac_roots:

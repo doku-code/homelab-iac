@@ -283,7 +283,7 @@ def facts():
                        {"name": "wlo1", "kind": "wireless", "mac": "70:D8:23:00:00:01", "carrier": False, "speed_mbps": None},
                        {"name": "enx0", "kind": "physical", "mac": "00:00:5E:00:53:01", "carrier": False, "speed_mbps": None}],
         "neighbours": {"nic0": {"chassis_id": "24:5E:BE:00:00:01", "port_id": "8", "system_name": "QSW-M3216R-8S8T",
-                                "management_address": "192.168.0.116"}}}}
+                                "management_address": "192.168.0.3"}}}}
 
 
 def reconciliation():
@@ -382,7 +382,8 @@ def reconciliation():
     assert port[(core, "wlo1")]["enabled"] is False and len([p for p in port if p[0] == switch]) == 18
     assert device["pve-core"]["primary_ip4"] == api.get(ips, address="192.168.0.11/24")["id"]
     assert api.get(ips, address="192.168.0.11/24")["assigned_object_id"] == port[(core, "vmbr0")]["id"]
-    assert api.get(ips, address="192.168.0.116/24")["status"] == "dhcp" and api.get(ips, address="192.168.0.1/24")["dns_name"] == "pfsense.doku-lab.net"
+    assert api.get(ips, address="192.168.0.3/24")["dns_name"] == "switch.doku-lab.net" and api.get(ips, address="192.168.0.1/24")["dns_name"] == "pfsense.doku-lab.net"
+    assert api.get(ips, address="192.168.0.3/24")["assigned_object_id"] == port[(switch, "vlan1")]["id"]
     # Observed on the host: serial number, link speed, hardware address of the physical port (not of the bridge),
     # processor, memory and disks; what the firmware calls unknown is left empty.
     assert device["pve-core"]["serial"] == SERIAL and "serial" not in device["pve-lab"]
@@ -874,7 +875,7 @@ def seed_and_inventory():
         assert cluster in {s["cluster"] for s in seed["sources"].values()}
         assert all(n["role"] in roles and n.get("platform", "debian") in platforms and ("vmid" in n) != ("vmids" in n) for n in notes)
     assert set(seed["ostypes"].values()) <= platforms and all(m["role"] in roles for m in seed["virtual_machines"])
-    assert all(set(e) - {"cluster"} == {"path", "reason", "name"} or set(e) == {"path", "reason", "slug"} for e in seed["retired"])
+    assert all(set(e) - {"cluster"} == {"path", "reason", "name"} or set(e) in ({"path", "reason", "slug"}, {"path", "reason", "address"}) for e in seed["retired"])
     assert all(e["cluster"] in {s["cluster"] for s in seed["sources"].values()} for e in seed["retired"] if "cluster" in e)
     groups = {g["slug"] for g in seed["tunnel_groups"]}
     assert all(t["group"] in groups and t["members"]["role"] in roles and t["encapsulation"] == "wireguard" for t in seed["tunnels"])

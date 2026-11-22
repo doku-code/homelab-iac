@@ -1120,10 +1120,11 @@ def administrator(purpose):
 
 
 def retired_query(entry):
-    """How a retired record is found: by name or by slug, and for a guest also by the cluster it was in."""
-    query = {key: entry[key] for key in ("name", "slug") if key in entry}
-    if set(query) != {"name"} and set(query) != {"slug"}:
-        die(f"retired: {entry} must name exactly one record by name or by slug")
+    """How a retired record is found: by name, by slug or (an address) by address, and for a guest also by the
+    cluster it was in."""
+    query = {key: entry[key] for key in ("name", "slug", "address") if key in entry}
+    if len(query) != 1:
+        die(f"retired: {entry} must name exactly one record by name, by slug or by address")
     if entry.get("cluster"):
         query["cluster"] = entry["cluster"]
     return query
