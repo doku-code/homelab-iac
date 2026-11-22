@@ -44,6 +44,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-019 | in-progress | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md) | Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account. |
 | TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
 | TASK-030 | in-progress | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](../tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md) | NetBox holds named hardware models, ports, hardware facts, the cables the switch announces and what every guest is, draws diagrams through plugins, and the roots check their plans against it. |
+| TASK-031 | in-progress | medium |  | [Switch port counters over SNMP in Prometheus and Grafana](../tasks/TASK-031-switch-port-counters-over-snmp-in-prometheus-and-grafana.md) | Alloy reads the QNAP switch's interface table over SNMPv3 every 15 seconds and pushes it to Prometheus; dashboard and four alerts; sign-in from the secret store. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -200,10 +201,10 @@ _No commit records. Generate with `harness history sync`._
 - **management**: ADR-002, ADR-009
 - **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029
 - **netbox**: ADR-016, ADR-018, DOC-infrastructure-inventory, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026, TASK-030
-- **network**: DOC-infrastructure-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte
+- **network**: DOC-infrastructure-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-031
 - **nfs**: TASK-017
 - **nvme**: ADR-012
-- **observability**: TASK-020
+- **observability**: TASK-020, TASK-031
 - **opentofu**: ADR-003, TASK-006, TASK-008, TASK-014, TASK-015, TASK-017, TASK-018
 - **overview**: DOC-project-overview
 - **patroni**: ADR-013, ADR-015, TASK-018

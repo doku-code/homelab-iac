@@ -288,6 +288,7 @@ def facts():
 
 def reconciliation():
     seed = yaml.safe_load((DIR / "inventory.yaml").read_text())
+    seed["cables"] = []  # the cables this file states are checked in seed_and_inventory; here only the heard one counts
     api = FakeNetBox()
 
     def run(apply, machines=MACHINES, observed=None, seen=None, inventory=seed):
@@ -870,6 +871,12 @@ def seed_and_inventory():
         assert device.get("facts") != old, "hardware facts are never read on the old host"
         sync.device_ports(device, types[device["type"]])  # every member and parent is a port of the device
     assert {d["name"] for d in seed["devices"] if d.get("facts")} == {"pve-management", "pve-core", "pve-infra", "pve-lab"}
+    # Stated cables: both ends are ports of their devices, no port twice, none for a host that hears the switch itself.
+    by_name = {d["name"]: d for d in seed["devices"]}
+    ends = [tuple(end) for cable in seed["cables"] for end in (cable["a"], cable["b"])]
+    for name, port in ends:
+        assert str(port) in {p["name"] for p in sync.device_ports(by_name[name], types[by_name[name]["type"]])}, (name, port)
+    assert len(set(ends)) == len(ends) and not {name for name, _ in ends} & {d["name"] for d in seed["devices"] if d.get("facts")}
     assert not re.search(r"(?i)\b([0-9a-f]{2}:){5}[0-9a-f]{2}\b|serial\s*:", text), "hardware addresses and serial numbers stay out of Git"
     for cluster, notes in seed["guests"].items():
         assert cluster in {s["cluster"] for s in seed["sources"].values()}

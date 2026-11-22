@@ -4,6 +4,10 @@
 controller:
   type: deployment
   replicas: 1
+  volumes:
+    extra:
+      - name: switch-snmp
+        secret: {secretName: switch-snmp}
 alloy:
   configMap:
     create: false
@@ -12,6 +16,10 @@ alloy:
   resources:
     requests: {cpu: 25m, memory: 128Mi}
     limits: {cpu: 500m, memory: 384Mi}
+  # The switch's SNMPv3 sign-in (Secret switch-snmp, written by `make observability-deploy` from the secret store).
+  mounts:
+    extra:
+      - {name: switch-snmp, mountPath: /etc/alloy-snmp, readOnly: true}
 configReloader:
   resources:
     requests: {cpu: 5m, memory: 16Mi}

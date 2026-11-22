@@ -2646,7 +2646,12 @@
         "Resolution plan"
       ],
       "relations": {},
-      "backrefs": []
+      "backrefs": [
+        {
+          "from": "TASK-031",
+          "field": "related"
+        }
+      ]
     },
     {
       "id": "M000",
@@ -6167,8 +6172,65 @@
         {
           "from": "M013",
           "field": "related_tasks"
+        },
+        {
+          "from": "TASK-031",
+          "field": "related"
         }
       ]
+    },
+    {
+      "id": "TASK-031",
+      "title": "Switch port counters over SNMP in Prometheus and Grafana",
+      "summary": "Alloy reads the QNAP switch's interface table over SNMPv3 every 15 seconds and pushes it to Prometheus; dashboard and four alerts; sign-in from the secret store.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-031-switch-port-counters-over-snmp-in-prometheus-and-grafana.md",
+      "tags": [
+        "observability",
+        "network"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Switch port counters over SNMP in Prometheus and Grafana",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte",
+          "TASK-030"
+        ],
+        "related_implementations": [
+          "services/observability/snmp.yml",
+          "services/observability/cluster.alloy",
+          "services/observability/alloy.yaml",
+          "services/observability/prometheus.yaml",
+          "services/observability/dashboards/switch.json",
+          "scripts/switch-snmp-auth.py"
+        ],
+        "related_tests": [
+          "tests/observability.py"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -6265,7 +6327,8 @@
       "TASK-027",
       "TASK-028",
       "TASK-029",
-      "TASK-030"
+      "TASK-030",
+      "TASK-031"
     ]
   },
   "by_tag": {
@@ -6532,7 +6595,8 @@
     ],
     "network": [
       "DOC-infrastructure-inventory",
-      "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte"
+      "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte",
+      "TASK-031"
     ],
     "nfs": [
       "TASK-017"
@@ -6541,7 +6605,8 @@
       "ADR-012"
     ],
     "observability": [
-      "TASK-020"
+      "TASK-020",
+      "TASK-031"
     ],
     "opentofu": [
       "ADR-003",

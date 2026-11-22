@@ -66,6 +66,7 @@ gantt
 | TASK-019 | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](../tasks/TASK-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i.md) |
 | TASK-022 | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) |
 | TASK-030 | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](../tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md) |
+| TASK-031 | medium |  | [Switch port counters over SNMP in Prometheus and Grafana](../tasks/TASK-031-switch-port-counters-over-snmp-in-prometheus-and-grafana.md) |
 
 ### planned
 

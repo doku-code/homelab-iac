@@ -101,6 +101,28 @@ serverFiles:
             for: 10m
             labels: {severity: warning}
             annotations: {summary: "{{ $labels.instance }} is {{ $value | humanizeDuration }} behind the primary"}
+      - name: network
+        rules:
+          - alert: SwitchSilent
+            expr: 'absent(sysUpTime{job="switch"})'
+            for: 5m
+            labels: {severity: warning}
+            annotations: {summary: "The switch has not answered SNMP for 5 minutes"}
+          - alert: SwitchPortErrors
+            expr: 'increase(ifInErrors{job="switch"}[15m]) + increase(ifOutErrors{job="switch"}[15m]) > 0'
+            for: 5m
+            labels: {severity: warning}
+            annotations: {summary: "Switch port {{ $labels.ifIndex }} counted {{ $value | humanize }} frame errors in 15 minutes"}
+          - alert: SwitchPortDiscards
+            expr: 'increase(ifInDiscards{job="switch"}[15m]) + increase(ifOutDiscards{job="switch"}[15m]) > 100'
+            for: 10m
+            labels: {severity: warning}
+            annotations: {summary: "Switch port {{ $labels.ifIndex }} discarded {{ $value | humanize }} frames in 15 minutes"}
+          - alert: SwitchRestarted
+            expr: 'sysUpTime{job="switch"} < 60000'
+            for: 1m
+            labels: {severity: warning}
+            annotations: {summary: "The switch restarted less than 10 minutes ago"}
       - name: kubernetes
         rules:
           - alert: PodRestarting

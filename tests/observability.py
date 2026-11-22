@@ -8,6 +8,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -86,8 +87,30 @@ def main():
     assert {u for rule in role_rules for u in rule.get("nonResourceURLs", [])} <= {"/metrics"}
     assert all(set(rule["verbs"]) <= {"get", "list", "watch"} for rule in role_rules), "read-only"
     cluster = (OBS / "cluster.alloy").read_text()
-    assert "/proxy/" not in cluster and len(keep_regexes(cluster)) == 2
-    assert set(re.findall(r'scrape_interval\s*=\s*"(\w+)"', cluster)) == {"60s"}
+    assert "/proxy/" not in cluster and len(keep_regexes(cluster)) == 3
+    assert set(re.findall(r'scrape_interval\s*=\s*"(\w+)"', cluster)) == {"60s", "15s"}, "the switch is read more often: its byte counters are 32-bit"
+    # The switch: asked over SNMPv3 for the columns it has; the sign-in is a mounted Secret, never in Git.
+    snmp = yaml.safe_load((OBS / "snmp.yml").read_text())
+    module = snmp["modules"]["qsw_if"]
+    assert set(snmp) == {"modules"} and "auths" not in (OBS / "snmp.yml").read_text().replace("# ", ""), "no sign-in in Git"
+    assert all(oid.startswith("1.3.6.1.2.1.2.2.1.") for oid in module["walk"]) and module["get"] == ["1.3.6.1.2.1.1.3.0"]
+    assert "1.3.6.1.2.1.2.2.1.2" not in module["walk"], "the port descriptions are not asked: the switch does not answer 25 at once"
+    assert {m["oid"] for m in module["metrics"]} - {"1.3.6.1.2.1.1.3"} == set(module["walk"])
+    switch_metrics = {m["name"] for m in module["metrics"]}
+    switch_keep = keep_regexes(cluster)[2]
+    assert all(re.fullmatch(switch_keep, name) for name in switch_metrics), "everything the module reads is kept"
+    assert 'config_files = ["/etc/alloy/snmp.yml", "/etc/alloy-snmp/auth.yml"]' in cluster and 'auth    = "switch_v3"' in cluster
+    pod = next(d for d in docs if d["kind"] == "Deployment")["spec"]["template"]["spec"]
+    assert {"name": "switch-snmp", "secret": {"secretName": "switch-snmp"}} in pod["volumes"]
+    assert any(m["mountPath"] == "/etc/alloy-snmp" and m["readOnly"] for c in pod["containers"] for m in c.get("volumeMounts", []))
+    generator = yaml.safe_load((OBS / "kustomization.yaml").read_text())["configMapGenerator"]
+    assert "snmp.yml" in generator[0]["files"] and "dashboards/switch.json" in generator[1]["files"]
+    auth_env = {"SWITCH_SNMP_USERNAME": "synthetic", "SWITCH_SNMP_AUTH_PASSWORD": "synthetic-auth: \"x\"", "SWITCH_SNMP_PRIVACY_PASSWORD": "synthetic-priv"}
+    made = subprocess.run([sys.executable, str(ROOT / "scripts/switch-snmp-auth.py")], capture_output=True, text=True, env=auth_env)
+    auth = yaml.safe_load(made.stdout)["auths"]["switch_v3"]
+    assert (auth["version"], auth["security_level"], auth["auth_protocol"], auth["priv_protocol"]) == (3, "authPriv", "SHA", "DES")
+    assert auth["password"] == auth_env["SWITCH_SNMP_AUTH_PASSWORD"] and auth["priv_password"] == "synthetic-priv"
+    assert subprocess.run([sys.executable, str(ROOT / "scripts/switch-snmp-auth.py")], capture_output=True, env={}).returncode != 0
     assert "http://prometheus-server.monitoring.svc/api/v1/write" in cluster and "loki.source.kubernetes" in cluster
 
     # Grafana: state in the shared PostgreSQL over TLS, passwords from Kubernetes Secrets, no volume.
@@ -144,6 +167,13 @@ def main():
         else:
             assert any(re.fullmatch(regex, name) for regex in kubelet_keep), f"{name} is dropped by the kubelet allow-lists"
     assert all(panel["datasource"]["uid"] in ("prometheus", "loki") for panel in dashboard["panels"] if panel["type"] != "row")
+    # The switch dashboard and the network alerts only ask for what the SNMP module reads.
+    switch = json.loads((OBS / "dashboards/switch.json").read_text())
+    asked = [t["expr"] for panel in switch["panels"] for t in panel.get("targets", [])] + [r["expr"] for r in rules if "switch" in r["expr"]]
+    named = {name for query in asked for name in re.findall(r"\b(?:if[A-Z][A-Za-z]+|sysUpTime)\b", query)} - {"ifIndex"}
+    assert len(named) >= 8 and named <= switch_metrics, sorted(named - switch_metrics)
+    assert all('job="switch"' in query for query in asked) and len([r for r in rules if "switch" in r["expr"]]) == 4
+    assert all(panel["datasource"]["uid"] == "prometheus" for panel in switch["panels"] if panel["type"] != "row")
 
     for target, variable in (("observability-deploy", "OBSERVABILITY_DEPLOY_APPROVED"), ("observability-agents", "OBSERVABILITY_AGENTS_APPROVED")):
         result = subprocess.run(["make", "--no-print-directory", target], cwd=ROOT, capture_output=True, text=True,

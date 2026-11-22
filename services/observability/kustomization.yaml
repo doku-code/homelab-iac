@@ -1,5 +1,5 @@
 # What Argo CD applies beside the four charts of services/argocd/apps/monitoring.yaml: the routes, and the
-# Alloy configuration and the dashboards as ConfigMaps built from the files next to this one.
+# Alloy configuration (with what it asks the switch over SNMP) and the dashboards as ConfigMaps built from the files next to this one.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -11,7 +11,9 @@ configMapGenerator:
     namespace: monitoring
     files:
       - config.alloy=cluster.alloy
+      - snmp.yml
   - name: grafana-dashboards
     namespace: monitoring
     files:
       - dashboards/homelab-overview.json
+      - dashboards/switch.json

@@ -1,5 +1,6 @@
 // Alloy inside the cluster: container and volume usage from the kubelets, object state from
-// kube-state-metrics, pod logs. Only the listed metric names are kept; everything is read once a minute.
+// kube-state-metrics, pod logs, and the port counters of the switch. Only the listed metric names are kept;
+// everything is read once a minute, the switch every 15 seconds (see below).
 
 prometheus.remote_write "default" {
 	external_labels = {cluster = "doku-lab"}
@@ -97,6 +98,53 @@ prometheus.scrape "kube_state_metrics" {
 	job_name        = "kube-state-metrics"
 	scrape_interval = "60s"
 	forward_to      = [prometheus.remote_write.default.receiver]
+}
+
+// The switch (QNAP QSW-M3216R-8S8T, 192.168.0.3) over SNMPv3: state, bytes, frames, errors and discards of each
+// port. snmp.yml says what is asked; the sign-in comes from the Secret switch-snmp. The switch only has 32-bit
+// byte counters, which wrap after 4 GiB: read every 15 seconds they stay correct up to about 2.3 Gbit/s.
+prometheus.exporter.snmp "switch" {
+	config_files = ["/etc/alloy/snmp.yml", "/etc/alloy-snmp/auth.yml"]
+
+	target "switch" {
+		address = "192.168.0.3"
+		module  = "qsw_if"
+		auth    = "switch_v3"
+	}
+}
+
+prometheus.scrape "switch" {
+	targets         = prometheus.exporter.snmp.switch.targets
+	scrape_interval = "15s"
+	scrape_timeout  = "12s"
+	forward_to      = [prometheus.relabel.switch.receiver]
+}
+
+prometheus.relabel "switch" {
+	forward_to = [prometheus.remote_write.default.receiver]
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = "up|sysUpTime|ifOperStatus|ifSpeed|if(In|Out)(Octets|UcastPkts|Discards|Errors)"
+		action        = "keep"
+	}
+
+	// Ports 1 to 16 only: the aggregates and the management interface (17 to 33) carry nothing of their own.
+	rule {
+		source_labels = ["ifIndex"]
+		regex         = "1[7-9]|2[0-9]|3[0-9]"
+		action        = "drop"
+	}
+
+	rule {
+		target_label = "job"
+		replacement  = "switch"
+	}
+
+	rule {
+		target_label = "instance"
+		replacement  = "switch"
+	}
 }
 
 discovery.kubernetes "pods" {

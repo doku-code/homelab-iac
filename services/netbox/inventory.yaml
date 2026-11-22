@@ -261,6 +261,7 @@ devices:
     ports:
       - {name: vlan1, type: virtual, mgmt_only: true, address: 192.168.0.3/24, dns_name: switch.doku-lab.net, primary: true,
          description: "Management address, set by the operator on 2026-11-22; the switch announces it (LLDP)"}
+      - {name: "3", description: "Leads to the access point (192.168.0.2) through a device not identified yet; link at 2.5 Gbit/s"}
   - name: access-point
     type: tp-link-eap220
     role: access-point
@@ -279,8 +280,13 @@ devices:
 
 # Cables nobody can read from a machine. Those between the Proxmox hosts and the switch are not listed here:
 # the hosts hear the switch name its port (LLDP) and the reconciliation records them (tag "observed").
-#   - {a: [truenas, enp1s0], b: [switch, "9"], type: dac-passive}
-cables: []
+# The three below were found on 2026-11-22 by sending traffic to each machine and reading which port of the switch
+# carried it (the switch's own counters, SNMP). The access point is not listed: its traffic leaves through port 3,
+# but that link runs at 2.5 Gbit/s and the access point has a 1 Gbit/s port, so something sits in between.
+cables:
+  - {a: [pfsense, lan], b: [switch, "1"], description: "Found by traffic and the switch's port counters, 2026-11-22; link at 2.5 Gbit/s"}
+  - {a: [pve-lab-legacy, enp1s0f1np1], b: [switch, "14"], type: dac-passive, description: "Found by traffic and the switch's port counters, 2026-11-22"}
+  - {a: [truenas, enp1s0], b: [switch, "16"], type: dac-passive, description: "Found by traffic and the switch's port counters, 2026-11-22"}
 
 # Other clusters than the Proxmox ones, and the machines on them that no Proxmox API lists.
 clusters:
