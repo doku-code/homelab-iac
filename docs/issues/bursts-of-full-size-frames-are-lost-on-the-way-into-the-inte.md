@@ -53,9 +53,12 @@ The operator updated the switch's firmware on 2026-11-22 (and gave it 192.168.0.
 still there (2.5 % into `pve-core` with `disable-k1`, 3.7 % into `pve-management` without; 46 and 20 Mbit/s of TCP
 from the new `pve-lab`).
 
-What is not known: whether the frames are dropped inside the I219 (between its PHY and MAC) or already by the
-switch on those two ports. The switch's own counters for ports 5 and 8 would tell; nobody has signed in to
-the switch from here.
+**The switch is not dropping them.** Since 2026-11-22 its port counters can be read (SNMPv3). Around one burst
+test of 30 725 frames from the new `pve-lab` to `pve-core`, port 8 of the switch sent 33 066 frames (the test plus
+other traffic) and counted no discard and no error; the capture on `pve-core` saw 29 935 of the test's frames.
+About 790 frames left the switch and never reached the driver: they are lost in the receive path of the I219
+port (or on the wire without damaging the frame, which the absence of any CRC error makes unlikely). Since
+its restart the switch has counted no error and no discard on any port.
 
 ## Impact
 
@@ -75,8 +78,8 @@ Throughput collapses rather than connections failing, so nothing reports an erro
 
 Open, the operator decides. In order of cost:
 
-1. Read the switch's per-port counters (drops on ports 5 and 8) and try its port settings (flow control, energy
-   saving). The firmware update of 2026-11-22 changed nothing. The switch can serve its counters over SNMP
+1. Done: the switch's counters clear it (see above); its port settings (flow control, energy saving) are still
+   worth a look in its interface. The firmware update of 2026-11-22 changed nothing. The switch can serve its counters over SNMP
    (v2c or v3) once the operator enables it; a read-only account for it belongs in the secret store.
 2. On the hosts, with the operator's approval for each: the driver's large-frame receive settings (raising the
    MTU of `nic0` makes `e1000e` reconfigure the PHY's receive buffer and turn K1 off), then a newer kernel.

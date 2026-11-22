@@ -9,13 +9,13 @@ tags:
 - inventory
 - hardware
 editor: markdown
-date: '2026-11-21T00:00:00.000Z'
+date: '2026-11-22T00:00:00.000Z'
 dateCreated: '2026-11-20T00:00:00.000Z'
 ---
 
 # TASK-030 — NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins
 
-> **ID:** TASK-030 · **Type:** task · **Status:** in-progress · **Updated:** 2026-11-21 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md)
+> **ID:** TASK-030 · **Type:** task · **Status:** in-progress · **Updated:** 2026-11-22 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md)
 
 ## Goal
 
@@ -119,9 +119,11 @@ scripts/secrets.py run /netbox -- make netbox-docs
 
 In progress. Everything a machine could tell and what the operator stated on 2026-11-21 is in NetBox, with
 diagrams, the plan check and the generated page; since the same day also the Tailscale tunnel with its two
-routers (now on doku-lab) and the access point's radios. Remaining: the names of the Wi-Fi networks (the
+routers (now on doku-lab) and the access point's radios; since 2026-11-22 the switch at 192.168.0.3 and the cables
+of pfSense (port 1), the old host (port 14) and the NAS (port 16), found by sending traffic and reading the
+switch's port counters. Remaining: what sits between port 3 and the access point (that link runs at 2.5 Gbit/s),
+the names of the Wi-Fi networks (the
 operator gives them; they go to `.local/netbox/private.yaml`, never to Git), where the devices sit in the rack
-(in NetBox, or `position` in `services/netbox/inventory.yaml`) and the four cables nobody announces (`cables`
-in that file), then `make netbox-apply` and `make netbox-docs`. Not modelled yet and worth deciding with the
+(in NetBox, or `position` in `services/netbox/inventory.yaml`), then `make netbox-apply` and `make netbox-docs`. Not modelled yet and worth deciding with the
 operator: the web applications behind the ingress as services, power (a UPS or power strip, if any), the
 internet line as a circuit.
