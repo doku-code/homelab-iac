@@ -3,7 +3,7 @@ id: TASK-031
 title: Switch port counters over SNMP in Prometheus and Grafana
 summary: Alloy reads the QNAP switch's interface table over SNMPv3 every 15 seconds and pushes it to Prometheus; dashboard and four alerts; sign-in from the secret store.
 type: task
-status: in-progress
+status: completed
 priority: medium
 milestone: M010
 created: 2026-11-22
@@ -52,8 +52,8 @@ so that network slowness can be looked at with numbers instead of guesses.
 
 - [x] The sign-in is never in Git: `make observability-deploy` writes it from the environment into the Secret
   `switch-snmp`, which Alloy mounts.
-- [ ] Prometheus holds the state, bytes, frames, errors and discards of ports 1 to 16.
-- [ ] Grafana shows the dashboard "Switch".
+- [x] Prometheus holds the state, bytes, frames, errors and discards of ports 1 to 16.
+- [x] Grafana shows the dashboard "Switch".
 - [x] Four alerts: switch silent, restarted, port errors, port discards.
 - [x] Offline tests cover the module, the collector configuration, the sign-in helper, the dashboard and the alerts.
 
@@ -75,8 +75,13 @@ scripts/secrets.py run /monitoring /postgresql /authentik /switch -- make observ
 | Check | Result | Reference (commit / output / doc) | Date |
 |-------|--------|-----------------------------------|------|
 | Switch answers SNMPv3 | `sha: answers; sysDescr.0 = SNMPV2`; bulk requests of 25 return all 33 rows of every numeric column, the description column times out | scratch client on the workstation | 2026-11-22 |
-| Deployment | not verified | | |
+| Deployment | `secrets applied`, Argo CD `Synced Healthy`, Alloy restarted with the volume `switch-snmp` | `make observability-deploy`, commits 903ee89 and 5da5d16 | 2026-11-22 |
+| Series in Prometheus | 16 series for each of the ten port metrics, `sysUpTime` and `up`; ports 1, 3, 5, 6, 7, 8, 14 and 16 up; a rate for every one of them | query API of Prometheus | 2026-11-22 |
+| Dashboard and alerts | Grafana lists `Switch` (folder Homelab, 12 panels); the four rules of group `network` are loaded, `ok`, inactive | Grafana and Prometheus APIs | 2026-11-22 |
 
 ## Completion summary
 
-In progress. Remaining: deploy, check the series in Prometheus and the dashboard in Grafana, record it here.
+Done on 2026-11-22. Alloy reads the switch every 15 seconds; Prometheus holds the counters of the 16 ports; Grafana
+has the dashboard "Switch" and Prometheus four alerts. Known limits, all the switch's: 32-bit byte counters
+(a port above about 2.3 Gbit/s for a whole reading is shown too low), no port names and no address table, so the
+dashboard shows port numbers and links to NetBox for what is plugged in.

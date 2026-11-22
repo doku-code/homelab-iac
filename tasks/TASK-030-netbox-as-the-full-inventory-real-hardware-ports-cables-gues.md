@@ -7,7 +7,7 @@ status: in-progress
 priority: medium
 milestone: M013
 created: 2026-11-20
-updated: 2026-11-21
+updated: 2026-11-22
 tags: [netbox, inventory, hardware]
 depends_on: [TASK-023]
 related: [ARCH-platform, DOC-infrastructure-inventory, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll]
@@ -133,9 +133,11 @@ scripts/secrets.py run /netbox -- make netbox-docs
 
 In progress. Everything a machine could tell and what the operator stated on 2026-11-21 is in NetBox, with
 diagrams, the plan check and the generated page; since the same day also the Tailscale tunnel with its two
-routers (now on doku-lab) and the access point's radios. Remaining: the names of the Wi-Fi networks (the
+routers (now on doku-lab) and the access point's radios; since 2026-11-22 the switch at 192.168.0.3 and the cables
+of pfSense (port 1), the old host (port 14) and the NAS (port 16), found by sending traffic and reading the
+switch's port counters. Remaining: what sits between port 3 and the access point (that link runs at 2.5 Gbit/s),
+the names of the Wi-Fi networks (the
 operator gives them; they go to `.local/netbox/private.yaml`, never to Git), where the devices sit in the rack
-(in NetBox, or `position` in `services/netbox/inventory.yaml`) and the four cables nobody announces (`cables`
-in that file), then `make netbox-apply` and `make netbox-docs`. Not modelled yet and worth deciding with the
+(in NetBox, or `position` in `services/netbox/inventory.yaml`), then `make netbox-apply` and `make netbox-docs`. Not modelled yet and worth deciding with the
 operator: the web applications behind the ingress as services, power (a UPS or power strip, if any), the
 internet line as a circuit.

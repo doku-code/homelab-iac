@@ -6195,7 +6195,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-031-switch-port-counters-over-snmp-in-prometheus-and-grafana.md",
       "tags": [
         "observability",
