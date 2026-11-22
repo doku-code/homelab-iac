@@ -5,7 +5,7 @@ summary: Alloy reads the QNAP switch's interface table over SNMPv3 every 15 seco
 type: task
 status: in-progress
 priority: medium
-milestone: 
+milestone: M010
 created: 2026-11-22
 updated: 2026-11-22
 tags: [observability, network]

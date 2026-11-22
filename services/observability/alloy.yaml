@@ -7,7 +7,8 @@ controller:
   volumes:
     extra:
       - name: switch-snmp
-        secret: {secretName: switch-snmp}
+        secret:
+          secretName: switch-snmp
 alloy:
   configMap:
     create: false

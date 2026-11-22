@@ -3529,6 +3529,10 @@
         {
           "from": "TASK-029",
           "field": "milestone"
+        },
+        {
+          "from": "TASK-031",
+          "field": "milestone"
         }
       ]
     },
@@ -6200,7 +6204,7 @@
       "component": null,
       "technology": null,
       "priority": "medium",
-      "milestone": null,
+      "milestone": "M010",
       "source": null,
       "version": null,
       "headings": [
@@ -6228,6 +6232,9 @@
         ],
         "related_tests": [
           "tests/observability.py"
+        ],
+        "milestone": [
+          "M010"
         ]
       },
       "backrefs": []
