@@ -240,8 +240,8 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   logs since October 2026); cause not identified, pfSense is out of scope. The `netprobe` user service on
   the workstation logs each dropout per hop to `.local/netprobe.log`.
 - The old host (192.168.0.14) is the last node of a two-node cluster (`homelab`; the other node no longer exists):
-  after every reboot it has no quorum and starts no guest, so Caddy (`git`, `cloud`), Vaultwarden and the migration
-  runner stay down until someone runs `pvecm expected 1` on it and starts CT204, CT206 and CT301. Seen on
+  after every reboot it has no quorum and starts no guest, so the public tunnel (in the Caddy container), Vaultwarden and the migration
+  runner stay down (`git` and `cloud` answer from Traefik on the LAN since 2026-11-23) until someone runs `pvecm expected 1` on it and starts CT204, CT206 and CT301. Seen on
   2026-11-19 and 2026-11-22. Automation does not change that host's cluster: it is the operator's command.
 - Remote desktop from a Wi-Fi client stutters: the Wi-Fi link shows 3 to 190 ms to the client (access point: EAP720, Wi-Fi 7)
   while the wired path stays under 1 ms (measured 2026-11-22).

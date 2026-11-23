@@ -12,13 +12,13 @@ tags:
 - adguard
 - dns
 editor: markdown
-date: '2026-11-18T00:00:00.000Z'
+date: '2026-11-23T00:00:00.000Z'
 dateCreated: '2026-11-18T00:00:00.000Z'
 ---
 
 # TASK-022 — Edge migration: certificates, Caddy sites on Traefik, AdGuard as code
 
-> **ID:** TASK-022 · **Type:** task · **Status:** in-progress · **Updated:** 2026-11-18 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md)
+> **ID:** TASK-022 · **Type:** task · **Status:** in-progress · **Updated:** 2026-11-23 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md)
 
 ## Goal
 
@@ -126,8 +126,14 @@ wildcard; the Caddy container still serves `git`, `cloud`, the stale Proxmox nam
 Not carried over: the old AdGuard's query log and statistics (they stay in the stopped container).
 Rollback of the DNS move: stop `dns-service-address` on `dns-01`, start CT200 on the old Proxmox host.
 
-Remaining: (1) the services hosted on TrueNAS (`git`, `cloud`, and the tunnel that publishes them) stay on
-the legacy Caddy until the operator takes them up; `dropper` is the operator's own; (2) the tunnel's entry
+Update 2026-11-23 (operator's decision): `git` and `cloud` answer from Traefik (DNS answers changed to 192.168.0.40,
+`make dns-configure`); checked from the LAN and through the public tunnel (both 200), and the old Caddy logs no
+request for them any more. Traefik cut requests that took longer than 60 s to arrive (a slow 80 s upload got a
+502): `readTimeout` is 1800 s now (role `k3s`, `make k3s-cluster-configure`), the same upload passes.
+
+Remaining: (1) the Caddy container still runs the public tunnel (`cloudflared`, which publishes `git`, `cloud`,
+`dropper` and `penpot` and reaches the first two through Traefik now) and the name `dropper`, the operator's own;
+once the tunnel runs elsewhere the container can be stopped; (2) the tunnel's entry
 for `penpot` in the Cloudflare dashboard, if any, is the operator's to remove (the DNS token cannot see
 tunnels); (3) move the ingestion names of the monitoring agents off sslip.io and drop the self-signed
 certificate; (4) read `.local/netprobe.log` after the next internet dropout to tell router from line, then stop
