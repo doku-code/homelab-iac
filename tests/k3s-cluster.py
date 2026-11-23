@@ -61,6 +61,7 @@ def test_config_template():
     traefik = yaml.safe_load(yaml.safe_load(render("traefik-config.yaml.j2", base))["spec"]["valuesContent"])
     assert traefik["service"]["spec"]["externalTrafficPolicy"] == "Local", "ingress allow-lists need the client address"
     assert traefik["deployment"]["kind"] == "DaemonSet", "with the Local policy every node needs its own Traefik"
+    assert traefik["ports"]["websecure"]["transport"]["respondingTimeouts"]["readTimeout"] == "1800s", "uploads longer than a minute must pass"
 
     unit = render("k3s.service.j2", base)
     assert "ExecStart=/usr/local/bin/k3s server --config /etc/rancher/k3s/config.yaml" in unit and "Type=notify" in unit
