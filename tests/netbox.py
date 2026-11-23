@@ -540,7 +540,7 @@ def wireless_and_tunnels():
     """Wi-Fi networks come from the private file and sit on the radios; a tunnel's ends are what its members report."""
     seed = yaml.safe_load((DIR / "inventory.yaml").read_text())
     assert seed["wireless_lans"] == [], "the names of the Wi-Fi networks are not in Git"
-    radios = [p["name"] for p in next(t for t in seed["device_types"] if t["slug"] == "tp-link-eap220")["ports"] if p.get("rf_role") == "ap"]
+    radios = [p["name"] for p in next(t for t in seed["device_types"] if t["slug"] == "tp-link-eap720")["ports"] if p.get("rf_role") == "ap"]
     assert radios == ["wlan0", "wlan1"]
     inventory = copy.deepcopy(seed)
     inventory["wireless_lans"] = [{"ssid": "synthetic-net", "group": "Home", "auth_type": "wpa-personal", "auth_cipher": "aes",

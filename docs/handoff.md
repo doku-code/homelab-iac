@@ -240,7 +240,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   after every reboot it has no quorum and starts no guest, so Caddy (`git`, `cloud`), Vaultwarden and the migration
   runner stay down until someone runs `pvecm expected 1` on it and starts CT204, CT206 and CT301. Seen on
   2026-11-19 and 2026-11-22. Automation does not change that host's cluster: it is the operator's command.
-- Remote desktop from a Wi-Fi client stutters: the access point's 802.11n link shows 3 to 190 ms to the client
+- Remote desktop from a Wi-Fi client stutters: the Wi-Fi link shows 3 to 190 ms to the client (access point: EAP720, Wi-Fi 7)
   while the wired path stays under 1 ms (measured 2026-11-22).
 - Remote login after a cold boot: the service now waits for GDM (drop-in in the `admin_workstation` role); not yet
   seen through a real cold boot since.

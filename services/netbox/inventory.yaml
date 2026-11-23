@@ -163,16 +163,16 @@ device_types:
       - {range: [1, 8], type: 10gbase-t}
       - {range: [9, 16], type: 10gbase-x-sfpp}
       - {name: mgmt, type: 1000base-t, mgmt_only: true, description: "Dedicated management port"}
-  - slug: tp-link-eap220
+  - slug: tp-link-eap720
     manufacturer: TP-Link
-    model: EAP220
-    part_number: EAP220
+    model: EAP720
+    part_number: EAP720
     u_height: 0
-    comments: "Dual-band 802.11n access point; the model is what its own sign-in page shows."
+    comments: "Omada dual-band Wi-Fi 7 access point (BE5000), one 2.5 Gbit/s port; model as the operator states it (2026-11-23)."
     ports:
-      - {name: eth0, type: 1000base-t, poe_mode: pd, poe_type: type1-ieee802.3af, description: "Uplink, power over Ethernet (802.3af)"}
-      - {name: wlan0, type: ieee802.11n, rf_role: ap, description: "2.4 GHz radio"}
-      - {name: wlan1, type: ieee802.11n, rf_role: ap, description: "5 GHz radio"}
+      - {name: eth0, type: 2.5gbase-t, poe_mode: pd, poe_type: type2-ieee802.3at, description: "Uplink, power over Ethernet (802.3at)"}
+      - {name: wlan0, type: ieee802.11be, rf_role: ap, description: "2.4 GHz radio"}
+      - {name: wlan1, type: ieee802.11be, rf_role: ap, description: "5 GHz radio"}
   - slug: lenovo-thinkcentre-m75q-gen-2
     manufacturer: Lenovo
     model: ThinkCentre M75q Gen 2
@@ -261,9 +261,9 @@ devices:
     ports:
       - {name: vlan1, type: virtual, mgmt_only: true, address: 192.168.0.3/24, dns_name: switch.doku-lab.net, primary: true,
          description: "Management address, set by the operator on 2026-11-22; the switch announces it (LLDP)"}
-      - {name: "3", description: "Leads to the access point (192.168.0.2) through a device not identified yet; link at 2.5 Gbit/s"}
+      - {name: "3", description: ""}
   - name: access-point
-    type: tp-link-eap220
+    type: tp-link-eap720
     role: access-point
     description: "Wi-Fi access point, managed on its own web interface"
     ports:
@@ -281,9 +281,10 @@ devices:
 # Cables nobody can read from a machine. Those between the Proxmox hosts and the switch are not listed here:
 # the hosts hear the switch name its port (LLDP) and the reconciliation records them (tag "observed").
 # The three below were found on 2026-11-22 by sending traffic to each machine and reading which port of the switch
-# carried it (the switch's own counters, SNMP). The access point is not listed: its traffic leaves through port 3,
-# but that link runs at 2.5 Gbit/s and the access point has a 1 Gbit/s port, so something sits in between.
+# carried it (the switch's own counters, SNMP). The access point's traffic leaves through port 3 at 2.5 Gbit/s,
+# the speed of the EAP720's own port.
 cables:
+  - {a: [access-point, eth0], b: [switch, "3"], description: "Found by traffic and the switch's port counters, 2026-11-22; link at 2.5 Gbit/s"}
   - {a: [pfsense, lan], b: [switch, "1"], description: "Found by traffic and the switch's port counters, 2026-11-22; link at 2.5 Gbit/s"}
   - {a: [pve-lab-legacy, enp1s0f1np1], b: [switch, "14"], type: dac-passive, description: "Found by traffic and the switch's port counters, 2026-11-22"}
   - {a: [truenas, enp1s0], b: [switch, "16"], type: dac-passive, description: "Found by traffic and the switch's port counters, 2026-11-22"}
@@ -380,6 +381,7 @@ retired:
   - {path: virtualization/virtual-machines, name: ts-router-01, cluster: homelab, reason: "CT306 moved to pve-core, old copy deleted 2026-11-21"}
   - {path: virtualization/virtual-machines, name: ts-router-02, cluster: homelab, reason: "CT307 moved to pve-management, old copy deleted 2026-11-21"}
   - {path: ipam/ip-addresses, address: 192.168.0.116/24, reason: "DHCP lease the switch had until the operator gave it 192.168.0.3 on 2026-11-22"}
+  - {path: dcim/device-types, slug: tp-link-eap220, reason: "The access point is an EAP720 (operator, 2026-11-23)"}
 
 # OpenTofu roots whose VMs are inventoried from `tofu output -json ansible_inventory` (state on the workstation).
 iac_roots:
