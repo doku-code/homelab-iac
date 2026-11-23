@@ -6,7 +6,7 @@ type: guide
 status: current
 importance: 5
 created: 2026-11-14
-updated: 2026-11-22
+updated: 2026-11-23
 tags: [guide, handoff, workstation, pve-management]
 related: [DOC-project-overview, ARCH-platform, ADR-009, ADR-010, ADR-012, ADR-014, INV-new-proxmox-cluster-inventory, INV-legacy-inventory, INV-pve-management-bootstrap, M001, M003]
 topics: [handoff, current-work, workstation, state, next-task]
@@ -236,6 +236,14 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 - The internet link drops for one to two minutes at a time on most days (seen in the tunnel and Tailscale
   logs since October 2026); cause not identified, pfSense is out of scope. The `netprobe` user service on
   the workstation logs each dropout per hop to `.local/netprobe.log`.
+- The old host (192.168.0.14) is the last node of a two-node cluster (`homelab`; the other node no longer exists):
+  after every reboot it has no quorum and starts no guest, so Caddy (`git`, `cloud`), Vaultwarden and the migration
+  runner stay down until someone runs `pvecm expected 1` on it and starts CT204, CT206 and CT301. Seen on
+  2026-11-19 and 2026-11-22. Automation does not change that host's cluster: it is the operator's command.
+- Remote desktop from a Wi-Fi client stutters: the access point's 802.11n link shows 3 to 190 ms to the client
+  while the wired path stays under 1 ms (measured 2026-11-22).
+- Remote login after a cold boot: the service now waits for GDM (drop-in in the `admin_workstation` role); not yet
+  seen through a real cold boot since.
 - `pve-management` runs kernel 7.0.14-28, the other nodes -29: reboot it during approved maintenance.
 - One corosync link on the shared 1 GbE LAN, one SSD per node: no physical HA yet.
 - GDM allows one graphical session per user: log out of a Proxmox console desktop before RDP.

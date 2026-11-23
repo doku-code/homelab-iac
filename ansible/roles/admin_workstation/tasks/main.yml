@@ -287,6 +287,19 @@
     or ('TLS key: ' ~ admin_workstation_rdp_dir ~ '/rdp-tls.key') not in admin_workstation_rdp_final.stdout_lines | map('trim') | list
   when: admin_workstation_rdp | bool
 
+# On a cold boot GDM needs about 35 s with the passed-through GPU; the system daemon gave up after 25 s and
+# never retried, so 3389 never opened (2026-11-22). The drop-in orders it after GDM and waits for the greeter.
+# Only systemd is reloaded: restarting the service here would end the operator's own session.
+- name: Make remote login wait for the GDM greeter at boot
+  ansible.builtin.copy:
+    src: gnome-remote-desktop-wait-for-gdm.conf
+    dest: /etc/systemd/system/gnome-remote-desktop.service.d/10-wait-for-gdm.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+  when: admin_workstation_rdp | bool
+
 - name: Run the remote login service
   ansible.builtin.systemd_service:
     name: gnome-remote-desktop.service

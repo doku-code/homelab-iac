@@ -295,6 +295,16 @@ def test_admin_workstation_role():
     assert rdp_rule["port"] == "3389" and "from_ip" in rdp_rule
     playbook = yaml.safe_load((ROOT / "ansible/playbooks/configure-mgmt-control.yml").read_text())[0]
     assert playbook.get("force_handlers") is True, "a rerun must not lose notified handlers"
+    # Remote login waits for GDM at boot (cold boot of 2026-11-22: the daemon gave up before the greeter existed).
+    wait = (ROOT / "ansible/roles/admin_workstation/files/gnome-remote-desktop-wait-for-gdm.conf").read_text()
+    assert "After=gdm.service" in wait and "TimeoutStartSec=180" in wait and '" greeter "' in wait and "exit 1" not in wait
+    role_tasks = yaml.safe_load((ROOT / "ansible/roles/admin_workstation/tasks/main.yml").read_text())
+    names = [t["name"] for t in role_tasks]
+    drop_in = next(t for t in role_tasks if t["name"] == "Make remote login wait for the GDM greeter at boot")
+    assert drop_in["notify"] == "Reload systemd" and drop_in["ansible.builtin.copy"]["dest"].endswith("gnome-remote-desktop.service.d/10-wait-for-gdm.conf")
+    assert names.index(drop_in["name"]) < names.index("Run the remote login service")
+    handlers = yaml.safe_load((ROOT / "ansible/roles/admin_workstation/handlers/main.yml").read_text())
+    assert handlers[0] == {"name": "Reload systemd", "ansible.builtin.systemd_service": {"daemon_reload": True}}, "reload only: a restart would end the session"
 
     def condition(name):
         when = by_name[name].get("when")
@@ -363,7 +373,7 @@ def test_gpu_primary_display():
     assert write["notify"] == drop["notify"] == order
     handlers = [h["name"] for h in yaml.safe_load((role / "handlers/main.yml").read_text())]
     assert [h for h in handlers if h in order] == order, "handlers run in file order: udev, GDM, remote login"
-    udev = yaml.safe_load((role / "handlers/main.yml").read_text())[0]["ansible.builtin.shell"]
+    udev = next(h for h in yaml.safe_load((role / "handlers/main.yml").read_text()) if h["name"] == order[0])["ansible.builtin.shell"]
     assert udev.index("control --reload") < udev.index("trigger --subsystem-match=drm --action=add")
 
     playbook = yaml.safe_load((ROOT / "ansible/playbooks/configure-mgmt-control.yml").read_text())[0]

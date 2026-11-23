@@ -1,6 +1,10 @@
 # Ansible runs notified handlers in the order of this file, not the order of notification:
 # udev first (the rule must be in place before GDM starts mutter), then GDM, then remote login,
 # which waits for GDM.
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
 - name: Reload udev rules for the display adapters
   ansible.builtin.shell: udevadm control --reload && udevadm trigger --subsystem-match=drm --action=add && udevadm settle
   changed_when: true
