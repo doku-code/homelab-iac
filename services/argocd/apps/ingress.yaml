@@ -27,7 +27,7 @@ spec:
       targetRevision: main
       path: services/ingress
       directory:
-        include: '{certificates.yaml,tls-store.yaml,legacy-routes.yaml,proxmox-routes.yaml}'
+        include: '{certificates.yaml,tls-store.yaml,legacy-routes.yaml,proxmox-routes.yaml,tunnel.yaml}'
   syncPolicy:
     # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
     # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.

@@ -87,6 +87,7 @@ spec:
     - {server: https://kubernetes.default.svc, namespace: kube-system}
     - {server: https://kubernetes.default.svc, namespace: legacy-edge}
     - {server: https://kubernetes.default.svc, namespace: proxmox-ui}
+    - {server: https://kubernetes.default.svc, namespace: tunnel}
   clusterResourceWhitelist:
     - {group: "*", kind: "*"}
   namespaceResourceWhitelist:
