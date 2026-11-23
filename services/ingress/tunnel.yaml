@@ -1,0 +1,60 @@
+# The public tunnel (Cloudflare Tunnel): the one way in from the internet. It ran in the legacy Caddy container
+# until 2026-11-23. Which names it publishes and where it sends them is set in the Cloudflare dashboard
+# (remotely managed tunnel): git and cloud go to https://<name>.doku-lab.net, which the cluster's DNS answers
+# with Traefik. The connector only needs its token (Secret cloudflare-tunnel, written by
+# `make ingress-certs-deploy` from the secret store, path /ingress) and outbound access.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tunnel
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: tunnel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloudflared
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: cloudflared
+        image: docker.io/cloudflare/cloudflared:2026.7.3
+        args: [tunnel, --no-autoupdate, --metrics, "0.0.0.0:2000", run]
+        env:
+        - name: TUNNEL_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-tunnel
+              key: token
+        ports:
+        - name: metrics
+          containerPort: 2000
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: metrics
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests: {cpu: 10m, memory: 48Mi}
+          limits: {cpu: 500m, memory: 192Mi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]

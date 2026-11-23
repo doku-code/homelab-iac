@@ -318,6 +318,7 @@ device_services:
 
 # Addresses that belong to no port listed above. "iac: true": owned by Git; the others are written once.
 addresses:
+  - {address: 192.168.0.90/24, status: reserved, dns_name: dropper.doku-lab.net, iac: true, description: "Reserved for the Windows service VM 700 (moved from the old host, kept off); the route dropper.doku-lab.net points at it"}
   - {address: 192.168.0.60/24, role: vip, iac: true, description: "PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql)"}
   - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address (ansible/vars/dns.yml)"}
 

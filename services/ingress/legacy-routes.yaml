@@ -2,7 +2,8 @@
 # names, same backends outside k3s, same headers. A name moves here when its DNS answer changes from
 # 192.168.0.24 to the cluster; until then these routes are idle. Remove a block when its service has
 # been redeployed on the platform (secrets: removed with the Infisical shutdown). Not carried over: the three Proxmox names (they pointed at addresses
-# that now belong to other hosts) and dropper (its backend address is now a k3s node).
+# that now belong to other hosts). dropper is the operator's own service on the Windows VM 700 (moved from the old
+# host, kept off): it answers once that VM runs with the address reserved for it, 192.168.0.90.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -342,4 +343,48 @@ spec:
     services:
     - name: git
       port: 30142
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dropper
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 666
+    targetPort: 666
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: dropper
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: dropper
+addressType: IPv4
+ports:
+- name: backend
+  port: 666
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.90
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dropper
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`dropper.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: dropper
+      port: 666
   tls: {}

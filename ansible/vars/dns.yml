@@ -13,7 +13,7 @@ adguard_service_address: 192.168.0.20
 # to the cluster by changing its answer (services/ingress/legacy-routes.yaml has its route) and moves back
 # the same way. git and cloud (hosted on TrueNAS) moved on 2026-11-23 by the operator's decision; the public
 # tunnel in the Caddy container follows these names, so it reaches them through Traefik too. dropper is the
-# operator's own and stays as it is.
+# operator's own service on the Windows VM 700 (route in legacy-routes.yaml; answers when that VM runs).
 adguard_rewrites:
   - {domain: plex.doku-lab.net, answer: 192.168.0.40}
   - {domain: print.home, answer: 192.168.0.23}
@@ -28,7 +28,7 @@ adguard_rewrites:
   - {domain: git.doku-lab.net, answer: 192.168.0.40}
   - {domain: pbs.doku-lab.net, answer: 192.168.0.40}
   - {domain: tfstate.doku-lab.net, answer: 192.168.0.30}
-  - {domain: dropper.doku-lab.net, answer: 192.168.0.24}
+  - {domain: dropper.doku-lab.net, answer: 192.168.0.40}
   - {domain: pfsense.doku-lab.net, answer: 192.168.0.1}
   - {domain: switch.doku-lab.net, answer: 192.168.0.3}
   - {domain: homepage.doku-lab.net, answer: 192.168.0.40}

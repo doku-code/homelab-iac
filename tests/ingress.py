@@ -34,7 +34,7 @@ def legacy_routes():
         (address,) = endpoint["addresses"]
         assert slices[name]["metadata"]["labels"] == {"kubernetes.io/service-name": name}
         assert slices[name]["ports"][0]["port"] == service["spec"]["ports"][0]["port"]
-        assert re.fullmatch(r"192\.168\.0\.(13|15|2[0-9])", address), f"{name}: legacy backend address expected, got {address}"
+        assert re.fullmatch(r"192\.168\.0\.(13|15|2[0-9]|90)", address), f"{name}: legacy backend address expected, got {address}"
     hosts = set()
     for name, route in kinds["IngressRoute"].items():
         assert route["spec"]["entryPoints"] == ["websecure"] and route["spec"]["tls"] == {}, name
@@ -44,7 +44,17 @@ def legacy_routes():
                 assert ref["name"] in services and ref["port"] == services[ref["name"]]["spec"]["ports"][0]["port"]
                 assert ("scheme" in ref) == ("serversTransport" in ref), "only HTTPS backends skip verification"
     assert all(h.endswith(".doku-lab.net") for h in hosts) and {"git.doku-lab.net", "cloud.doku-lab.net", "vault.doku-lab.net"} <= hosts
-    assert not {"dropper.doku-lab.net", "pve-lab.doku-lab.net"} & hosts, "stale Caddy sites are not carried over"
+    assert "pve-lab.doku-lab.net" not in hosts, "stale Caddy sites are not carried over"
+    assert slices["dropper"]["endpoints"][0]["addresses"] == ["192.168.0.90"], "the address reserved for VM 700, not a k3s node"
+    # The public tunnel: one pinned connector, token from a Secret, nothing else granted.
+    (tunnel,) = [d for d in yaml.safe_load_all((DIR / "tunnel.yaml").read_text()) if d and d["kind"] == "Deployment"]
+    pod = tunnel["spec"]["template"]["spec"]
+    (connector,) = pod["containers"]
+    assert tunnel["spec"]["replicas"] == 1 and re.fullmatch(r"docker\.io/cloudflare/cloudflared:\d{4}\.\d+\.\d+", connector["image"])
+    assert connector["env"] == [{"name": "TUNNEL_TOKEN", "valueFrom": {"secretKeyRef": {"name": "cloudflare-tunnel", "key": "token"}}}]
+    assert pod["automountServiceAccountToken"] is False and pod["securityContext"]["runAsNonRoot"] is True
+    assert connector["securityContext"]["readOnlyRootFilesystem"] is True and "--no-autoupdate" in connector["args"]
+    assert "CLOUDFLARE_TUNNEL_TOKEN" in (ROOT / "Makefile").read_text()
 
 
 def proxmox_routes():

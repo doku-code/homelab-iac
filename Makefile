@@ -830,16 +830,19 @@ INGRESS_CERT_MANAGER_REPO := https://charts.jetstack.io
 ingress-check:
 	$(VENV)/bin/python tests/ingress.py
 
-# Writes the Cloudflare token, then hands cert-manager, the Let's Encrypt issuer (Cloudflare DNS-01), the
+# Writes the Cloudflare token and the public tunnel's token, then hands the tunnel connector, cert-manager, the Let's Encrypt issuer (Cloudflare DNS-01), the
 # *.doku-lab.net wildcard, Traefik's certificate store and the routes to services outside k3s to Argo CD
 # (services/argocd/apps/ingress.yaml).
 #   scripts/secrets.py run /ingress -- make ingress-certs-deploy INGRESS_CERTS_DEPLOY_APPROVED=yes
 ingress-certs-deploy:
 	@test "$(INGRESS_CERTS_DEPLOY_APPROVED)" = yes || (echo "Approve cert-manager and the certificate issuer with INGRESS_CERTS_DEPLOY_APPROVED=yes" >&2; exit 1)
-	@test -n "$${CLOUDFLARE_API_TOKEN:-}" || { echo "Set CLOUDFLARE_API_TOKEN in the environment (store path /ingress)" >&2; exit 1; }
+	@for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_TUNNEL_TOKEN; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store path /ingress)" >&2; exit 1; }; done
 	@kubectl --context doku-lab create namespace cert-manager --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
 	@set -euo pipefail; kubectl --context doku-lab -n cert-manager create secret generic cloudflare-api-token --dry-run=client -o yaml \
 	  --from-env-file=<(printf 'api-token=%s\n' "$$CLOUDFLARE_API_TOKEN") | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/cloudflare-api-token applied"
+	@kubectl --context doku-lab create namespace tunnel --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	@set -euo pipefail; kubectl --context doku-lab -n tunnel create secret generic cloudflare-tunnel --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'token=%s\n' "$$CLOUDFLARE_TUNNEL_TOKEN") | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/cloudflare-tunnel applied"
 	kubectl --context doku-lab apply -f services/argocd/apps/ingress.yaml
 	$(call ARGOCD_WAIT,ingress)
 	kubectl --context doku-lab -n kube-system wait certificate/doku-lab-wildcard --for=condition=Ready --timeout=600s
