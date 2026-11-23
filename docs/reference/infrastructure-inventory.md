@@ -117,7 +117,7 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 | Name | VMID | Host | Role | System | vCPU | Memory | Disk | Address | Status | Description |
 |---|---|---|---|---|---|---|---|---|---|---|
 | print-server | 203 | pve-lab-legacy | Legacy service | Debian | 1 | 0.25 GB | 4 GB | 192.168.0.23/24 | Offline (to verify) | Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19 |
-| caddy | 204 | pve-lab-legacy | Legacy service | Debian | 2 | 1 GB | 8 GB | 192.168.0.24/24 | Active | Caddy: still serves git and cloud and the public tunnel (TASK-022) |
+| caddy | 204 | pve-lab-legacy | Legacy service | Debian | 2 | 1 GB | 8 GB | 192.168.0.24/24 | Offline | Caddy and the public tunnel until 2026-11-23; every name and the tunnel moved to k3s, stopped since, kept for rollback |
 | vaultwarden | 206 | pve-lab-legacy | Legacy service | Debian | 1 | 0.75 GB | 8 GB | 192.168.0.26/24 | Active | Vaultwarden (vault.doku-lab.net, through the k3s ingress); not migrated yet |
 | garage | 209 | pve-lab-legacy | Legacy service | Debian | 1 | 1 GB | 16 GB | 192.168.0.29/24 | Offline (to verify) | Garage object storage (ansible/playbooks/configure-garage.yml); stopped |
 | tfstate | 300 | pve-lab-legacy | Legacy service | Debian | 1 | 2 GB | 16 GB | 192.168.0.30/24 | Offline (to verify) | OpenTofu state backups (tfstate.doku-lab.net); stopped |
@@ -181,6 +181,7 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 | 192.168.0.62/24 | pg-02 net0 |  |  | pg-02 |
 | 192.168.0.63/24 | pg-03 net0 |  |  | pg-03 |
 | 192.168.0.70/24 | dns-01 net0 |  |  | dns-01 |
+| 192.168.0.90/24 |  | dropper.doku-lab.net | Reserved | Reserved for the Windows service VM 700 (moved from the old host, kept off); the route dropper.doku-lab.net points at it |
 
 ## Services
 

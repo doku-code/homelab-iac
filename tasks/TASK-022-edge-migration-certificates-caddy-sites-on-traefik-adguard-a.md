@@ -132,9 +132,15 @@ Update 2026-11-23 (operator's decision): `git` and `cloud` answer from Traefik (
 request for them any more. Traefik cut requests that took longer than 60 s to arrive (a slow 80 s upload got a
 502): `readTimeout` is 1800 s now (role `k3s`, `make k3s-cluster-configure`), the same upload passes.
 
-Remaining: (1) the Caddy container still runs the public tunnel (`cloudflared`, which publishes `git`, `cloud`,
-`dropper` and `penpot` and reaches the first two through Traefik now) and the name `dropper`, the operator's own;
-once the tunnel runs elsewhere the container can be stopped; (2) the tunnel's entry
+Same day: the public tunnel runs in k3s (`services/ingress/tunnel.yaml`, namespace `tunnel`, token in the secret
+store under `/ingress`, written to the Secret `cloudflare-tunnel` by `make ingress-certs-deploy`); it registered four
+connections, the connector in the Caddy container was disabled, `git` and `cloud` answer 200 from outside.
+`dropper` has a route to 192.168.0.90:666, the address reserved for the Windows service VM 700 (off: 502 until
+the operator starts it with that address). The Caddy container (CT204) is stopped and no longer starts at boot;
+the runner reconnected through Traefik and the CI runs of the following commits succeeded.
+
+Remaining: (1) delete CT204 when the operator says so; the tunnel's entries for `penpot` (gone) and, if wanted,
+a tidy-up of its list are in the Cloudflare dashboard, which the DNS token cannot see; (2) the tunnel's entry
 for `penpot` in the Cloudflare dashboard, if any, is the operator's to remove (the DNS token cannot see
 tunnels); (3) move the ingestion names of the monitoring agents off sslip.io and drop the self-signed
 certificate; (4) read `.local/netprobe.log` after the next internet dropout to tell router from line, then stop
