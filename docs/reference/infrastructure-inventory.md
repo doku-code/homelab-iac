@@ -10,13 +10,13 @@ tags:
 - hardware
 - network
 editor: markdown
-date: '2026-11-22T00:00:00.000Z'
+date: '2026-11-23T00:00:00.000Z'
 dateCreated: '2026-11-21T00:00:00.000Z'
 ---
 
 # Infrastructure inventory
 
-> **ID:** DOC-infrastructure-inventory · **Type:** reference · **Status:** current · **Updated:** 2026-11-22 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/reference/infrastructure-inventory.md)
+> **ID:** DOC-infrastructure-inventory · **Type:** reference · **Status:** current · **Updated:** 2026-11-23 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/reference/infrastructure-inventory.md)
 
 This page is written by `make netbox-docs` from [NetBox](https://netbox.doku-lab.net) (LAN only), which is where
 the inventory lives; NetBox also draws it (Topology Views for the network, Floorplan for the room). To change
@@ -34,7 +34,7 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 
 | Device | Role | Model | Address | Rack | Status | Description |
 |---|---|---|---|---|---|---|
-| access-point | Access point | TP-Link EAP220 | 192.168.0.2/24 |  | Active | Wi-Fi access point, managed on its own web interface |
+| access-point | Access point | TP-Link EAP720 | 192.168.0.2/24 |  | Active | Wi-Fi access point, managed on its own web interface |
 | pfsense | Router | Lenovo ThinkCentre M75q Gen 2 | 192.168.0.1/24 |  | Active | AMD Ryzen 3, 8 GB RAM. pfSense, LAN gateway and DHCP; never changed or signed in to by automation |
 | pve-core | Hypervisor | Lenovo ThinkStation P350 Tiny | 192.168.0.11/24 |  | Active | Intel Core i7-11700, 32 GB RAM, 1 TB NVMe |
 | pve-infra | Hypervisor | Beelink Mini S | 192.168.0.12/24 |  | Active | Intel Celeron N5095A, 8 GB RAM, 256 GB SATA SSD |
@@ -48,6 +48,7 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 
 | From | To | Cable | Known from |
 |---|---|---|---|
+| access-point eth0 | switch 3 |  | entered |
 | pfsense lan | switch 1 |  | entered |
 | pve-core nic0 | switch 8 |  | announced by the switch (LLDP) |
 | pve-infra nic0 | switch 7 |  | announced by the switch (LLDP) |
@@ -142,8 +143,8 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 
 | Device | Radio | Standard | Role | Networks carried | Description |
 |---|---|---|---|---|---|
-| access-point | wlan0 | IEEE 802.11n (Wi-Fi 4) | Access point | 0 | 2.4 GHz radio |
-| access-point | wlan1 | IEEE 802.11n (Wi-Fi 4) | Access point | 0 | 5 GHz radio |
+| access-point | wlan0 | IEEE 802.11be (Wi-Fi 7) | Access point | 0 | 2.4 GHz radio |
+| access-point | wlan1 | IEEE 802.11be (Wi-Fi 7) | Access point | 0 | 5 GHz radio |
 
 The names of the Wi-Fi networks and the addresses inside the tailnet are in NetBox only.
 
