@@ -347,7 +347,7 @@ guests:
   homelab:
     - {vmid: 203, role: legacy-service, description: "Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19", review: true}
     - {vmid: 204, role: legacy-service, description: "Caddy and the public tunnel until 2026-11-23; every name and the tunnel moved to k3s, stopped since, kept for rollback"}
-    - {vmid: 206, role: legacy-service, description: "Vaultwarden (vault.doku-lab.net, through the k3s ingress); not migrated yet"}
+    - {vmid: 206, role: legacy-service, description: "Vaultwarden until 2026-11-24, now on k3s (TASK-032); its Docker container is stopped, data kept for rollback"}
     - {vmid: 209, role: legacy-service, description: "Garage object storage (ansible/playbooks/configure-garage.yml); stopped", review: true}
     - {vmid: 300, role: legacy-service, description: "OpenTofu state backups (tfstate.doku-lab.net); stopped", review: true}
     - {vmid: 301, role: deploy-runner, description: "Forgejo Actions runner of this repository (CT301); never holds Proxmox credentials (ADR-008)"}

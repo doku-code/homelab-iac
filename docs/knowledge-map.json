@@ -6257,7 +6257,10 @@
       "type": "task",
       "status": "in-progress",
       "path": "tasks/TASK-032-vaultwarden-on-k3s-with-its-vault-in-the-shared-postgresql.md",
-      "tags": [],
+      "tags": [
+        "vaultwarden",
+        "migration"
+      ],
       "component": null,
       "technology": null,
       "priority": "medium",
@@ -6275,6 +6278,13 @@
         "Completion summary"
       ],
       "relations": {
+        "related_implementations": [
+          "services/vaultwarden/vaultwarden.yaml",
+          "services/argocd/apps/vaultwarden.yaml"
+        ],
+        "related_tests": [
+          "tests/vaultwarden.py"
+        ],
         "milestone": [
           "M010"
         ]
@@ -6630,7 +6640,8 @@
       "TASK-005",
       "TASK-019",
       "TASK-027",
-      "TASK-029"
+      "TASK-029",
+      "TASK-032"
     ],
     "netbox": [
       "ADR-016",
@@ -6809,6 +6820,9 @@
     ],
     "truenas": [
       "ADR-012"
+    ],
+    "vaultwarden": [
+      "TASK-032"
     ],
     "vision": [
       "DOC-project-overview"

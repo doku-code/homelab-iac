@@ -200,7 +200,7 @@ _No commit records. Generate with `harness history sync`._
 - **m002**: TASK-013
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
-- **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029
+- **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029, TASK-032
 - **netbox**: ADR-016, ADR-018, DOC-infrastructure-inventory, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026, TASK-030
 - **network**: DOC-infrastructure-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-031
 - **nfs**: TASK-017
@@ -239,6 +239,7 @@ _No commit records. Generate with `harness history sync`._
 - **terraform**: ADR-003
 - **traefik**: TASK-021, TASK-022
 - **truenas**: ADR-012
+- **vaultwarden**: TASK-032
 - **vision**: DOC-project-overview
 - **wiki**: REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-029
 - **windmill**: ADR-005, ADR-011, TASK-025, TASK-026

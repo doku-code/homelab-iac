@@ -6,7 +6,7 @@ type: reference
 status: current
 importance: 3
 created: 2026-11-21
-updated: 2026-11-23
+updated: 2026-11-24
 tags: [reference, netbox, inventory, hardware, network]
 related: [ARCH-platform, M013, TASK-030]
 related_decisions: [ADR-016]
@@ -118,7 +118,7 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 |---|---|---|---|---|---|---|---|---|---|---|
 | print-server | 203 | pve-lab-legacy | Legacy service | Debian | 1 | 0.25 GB | 4 GB | 192.168.0.23/24 | Offline (to verify) | Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19 |
 | caddy | 204 | pve-lab-legacy | Legacy service | Debian | 2 | 1 GB | 8 GB | 192.168.0.24/24 | Offline | Caddy and the public tunnel until 2026-11-23; every name and the tunnel moved to k3s, stopped since, kept for rollback |
-| vaultwarden | 206 | pve-lab-legacy | Legacy service | Debian | 1 | 0.75 GB | 8 GB | 192.168.0.26/24 | Active | Vaultwarden (vault.doku-lab.net, through the k3s ingress); not migrated yet |
+| vaultwarden | 206 | pve-lab-legacy | Legacy service | Debian | 1 | 0.75 GB | 8 GB | 192.168.0.26/24 | Active | Vaultwarden until 2026-11-24, now on k3s (TASK-032); its Docker container is stopped, data kept for rollback |
 | garage | 209 | pve-lab-legacy | Legacy service | Debian | 1 | 1 GB | 16 GB | 192.168.0.29/24 | Offline (to verify) | Garage object storage (ansible/playbooks/configure-garage.yml); stopped |
 | tfstate | 300 | pve-lab-legacy | Legacy service | Debian | 1 | 2 GB | 16 GB | 192.168.0.30/24 | Offline (to verify) | OpenTofu state backups (tfstate.doku-lab.net); stopped |
 | forgejo-runner-migration | 301 | pve-lab-legacy | Deployment runner | Debian | 4 | 6 GB | 38 GB | 192.168.0.31/24 | Active | Forgejo Actions runner of this repository (CT301); never holds Proxmox credentials (ADR-008) |
