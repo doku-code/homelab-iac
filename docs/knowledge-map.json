@@ -6281,7 +6281,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-032-vaultwarden-on-k3s-with-its-vault-in-the-shared-postgresql.md",
       "tags": [
         "vaultwarden",
