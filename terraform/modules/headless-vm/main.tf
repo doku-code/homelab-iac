@@ -63,7 +63,9 @@ resource "proxmox_virtual_environment_vm" "this" {
   }
   lifecycle {
     prevent_destroy = true
-    ignore_changes  = [started]
+    # The image is only read when the VM is created. A VM moved to another node (live migration) must not be
+    # touched because its image copy now comes from that node.
+    ignore_changes = [started, disk[0].import_from]
   }
 }
 

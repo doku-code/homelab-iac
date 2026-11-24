@@ -19,7 +19,7 @@ variable "profile" {
     os_disk_gb = number
   })
   validation {
-    condition     = contains(["pve-management", "pve-core", "pve-infra", "pve-lab"], var.profile.node)
+    condition     = contains(["pve-management", "pve-core", "pve-infra", "pve-lab", "pve-compute"], var.profile.node)
     error_message = "The CI runner runs on a node of the new cluster."
   }
   validation {

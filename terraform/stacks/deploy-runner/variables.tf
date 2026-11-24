@@ -24,8 +24,8 @@ variable "profile" {
     disk_gb         = number
   })
   validation {
-    condition     = contains(["pve-management", "pve-core"], var.profile.node)
-    error_message = "The bootstrap runner lives on pve-core (operator decision 2026-11-17) or pve-management."
+    condition     = contains(["pve-management", "pve-core", "pve-compute"], var.profile.node)
+    error_message = "The deployment runner lives on pve-compute (operator decision 2026-11-24), pve-core or pve-management."
   }
   validation {
     condition     = can(cidrhost(var.profile.ipv4, 0)) && can(regex("^[0-9.]+/[0-9]+$", var.profile.ipv4))

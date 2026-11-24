@@ -24,8 +24,8 @@ variable "nodes" {
     error_message = "Exactly three members on three different Proxmox hosts (etcd quorum survives one host)."
   }
   validation {
-    condition     = alltrue([for n in values(var.nodes) : contains(["pve-core", "pve-infra", "pve-lab"], n.node)])
-    error_message = "PostgreSQL VMs run on pve-core, pve-infra or pve-lab (new cluster)."
+    condition     = alltrue([for n in values(var.nodes) : contains(["pve-core", "pve-infra", "pve-lab", "pve-compute"], n.node)])
+    error_message = "PostgreSQL VMs run on pve-core, pve-infra, pve-lab or pve-compute."
   }
   validation {
     condition     = alltrue([for n in values(var.nodes) : n.vm_id >= 360 && n.vm_id <= 369 && can(regex("^192\\.168\\.0\\.6[1-9]/24$", n.ipv4))])

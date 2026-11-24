@@ -23,8 +23,8 @@ variable "nodes" {
     error_message = "At least one k3s server is required."
   }
   validation {
-    condition     = alltrue([for n in values(var.nodes) : contains(["pve-core", "pve-infra", "pve-lab"], n.node)])
-    error_message = "k3s VMs run on pve-core, pve-infra or pve-lab (new cluster); pve-management hosts the workstation."
+    condition     = alltrue([for n in values(var.nodes) : contains(["pve-core", "pve-infra", "pve-lab", "pve-compute"], n.node)])
+    error_message = "k3s VMs run on pve-core, pve-infra, pve-lab or pve-compute; pve-management hosts the workstation."
   }
   validation {
     condition     = alltrue([for n in values(var.nodes) : contains(["server", "agent"], n.role)])

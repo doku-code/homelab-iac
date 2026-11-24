@@ -19,8 +19,8 @@ variable "profile" {
     os_disk_gb = number
   })
   validation {
-    condition     = contains(["pve-core", "pve-infra", "pve-lab"], var.profile.node)
-    error_message = "The DNS VM runs on pve-core, pve-infra or pve-lab (new cluster)."
+    condition     = contains(["pve-core", "pve-infra", "pve-lab", "pve-compute"], var.profile.node)
+    error_message = "The DNS VM runs on pve-core, pve-infra, pve-lab or pve-compute."
   }
   validation {
     condition     = var.profile.vm_id >= 370 && var.profile.vm_id <= 379 && can(regex("^192\\.168\\.0\\.7[0-9]/24$", var.profile.ipv4))

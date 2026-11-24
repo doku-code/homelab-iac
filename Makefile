@@ -702,7 +702,7 @@ ci-runner-apply:
 ci-runner-hostkeys:
 	@set -euo pipefail; \
 	$(TOFU) -chdir=$(CI_RUNNER_DIR) output -json ansible_inventory | \
-	jq -r '{"pve-management":"192.168.0.10","pve-core":"192.168.0.11","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.ci_runner.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	jq -r '{"pve-management":"192.168.0.10","pve-core":"192.168.0.11","pve-compute":"192.168.0.14","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.ci_runner.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
 	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
 
 # Registrations and registry login come from the environment only:
@@ -787,7 +787,7 @@ k3s-cluster-apply:
 k3s-cluster-hostkeys:
 	@set -euo pipefail; \
 	$(TOFU) -chdir=$(K3S_CLUSTER_DIR) output -json ansible_inventory | \
-	jq -r '{"pve-management":"192.168.0.10","pve-core":"192.168.0.11","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.k3s_cluster.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	jq -r '{"pve-management":"192.168.0.10","pve-core":"192.168.0.11","pve-compute":"192.168.0.14","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.k3s_cluster.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
 	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
 
 # Configures k3s. The token comes from the environment only, e.g.
@@ -961,7 +961,7 @@ storage-apply:
 storage-hostkeys:
 	@set -euo pipefail; \
 	$(TOFU) -chdir=$(STORAGE_DIR) output -json ansible_inventory | \
-	jq -r '{"pve-core":"192.168.0.11"} as $$pve | .all.children.storage.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	jq -r '{"pve-core":"192.168.0.11","pve-compute":"192.168.0.14"} as $$pve | .all.children.storage.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
 	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
 
 storage-configure:
@@ -1024,7 +1024,7 @@ postgresql-apply:
 postgresql-hostkeys:
 	@set -euo pipefail; \
 	$(TOFU) -chdir=$(POSTGRESQL_DIR) output -json ansible_inventory | \
-	jq -r '{"pve-core":"192.168.0.11","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.postgresql.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	jq -r '{"pve-core":"192.168.0.11","pve-compute":"192.168.0.14","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.postgresql.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
 	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
 
 # Configures etcd, Patroni, the virtual IP and the application databases. Credentials come from the
@@ -1155,7 +1155,7 @@ dns-apply:
 dns-hostkeys:
 	@set -euo pipefail; \
 	$(TOFU) -chdir=$(DNS_DIR) output -json ansible_inventory | \
-	jq -r '{"pve-core":"192.168.0.11","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.dns.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	jq -r '{"pve-core":"192.168.0.11","pve-compute":"192.168.0.14","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.dns.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
 	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
 
 dns-configure:
