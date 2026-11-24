@@ -25,19 +25,14 @@
 
 site: {name: doku-lab, slug: doku-lab, description: "Homelab, one location, one LAN"}
 
-# Proxmox environments read by `make netbox-discover` (GET requests only). Always by IP: two hosts are named pve-lab.
+# Proxmox environments read by `make netbox-discover` (GET requests only). One since 2026-11-24: the old
+# environment (cluster homelab, 192.168.0.14) was emptied and its host joined doku-lab as pve-compute.
 sources:
   doku-lab:
     endpoint: https://192.168.0.10:8006
     ca: keys/pve-management-root-ca.crt
     cluster: doku-lab
     description: "New Proxmox VE cluster (ADR-010)"
-  legacy:
-    endpoint: https://192.168.0.14:8006
-    insecure: true   # self-signed certificate of the old host; read-only requests on the LAN
-    cluster: homelab
-    description: "Old environment, 192.168.0.14 only; its guests move to doku-lab one at a time (ADR-001)"
-    device_names: {pve-lab: pve-lab-legacy}   # the node is also named pve-lab; NetBox needs one name per device
 
 # "site: false": not a network of the location (it exists inside the cluster or at a provider).
 prefixes:
@@ -237,13 +232,13 @@ devices:
     description: "AMD Ryzen 7 6800H, 28 GB usable RAM, 512 GB NVMe"
     ports:
       - {name: vmbr0, type: bridge, members: [nic0], address: 192.168.0.16/24, primary: true}
-  - name: pve-lab-legacy
+  - name: pve-compute
     type: custom-ryzen-9-9950x3d-tower
     role: hypervisor
     platform: proxmox-ve-9
-    cluster: homelab
-    description: "Old environment (Proxmox node name pve-lab, future pve-compute). AMD Ryzen 9 9950X3D, 32 GB RAM"
-    review: true
+    cluster: doku-lab
+    facts: 192.168.0.14
+    description: "AMD Ryzen 9 9950X3D, 32 threads, 30 GB usable RAM, 1 TB and 2 TB NVMe. The old environment until 2026-11-24 (then named pve-lab)"
     ports:
       - {name: vmbr0, type: bridge, members: [enp1s0f1np1], address: 192.168.0.14/24, primary: true}
   - name: pfsense
@@ -287,7 +282,6 @@ devices:
 cables:
   - {a: [access-point, eth0], b: [switch, "3"], description: "Found by traffic and the switch's port counters, 2026-11-22; link at 2.5 Gbit/s"}
   - {a: [pfsense, lan], b: [switch, "1"], description: "Found by traffic and the switch's port counters, 2026-11-22; link at 2.5 Gbit/s"}
-  - {a: [pve-lab-legacy, enp1s0f1np1], b: [switch, "14"], type: dac-passive, description: "Found by traffic and the switch's port counters, 2026-11-22"}
   - {a: [truenas, enp1s0], b: [switch, "16"], type: dac-passive, description: "Found by traffic and the switch's port counters, 2026-11-22"}
 
 # Other clusters than the Proxmox ones, and the machines on them that no Proxmox API lists.
@@ -346,14 +340,6 @@ guests:
     - {vmids: [306, 307], role: tailscale-router, platform: debian-13, description: "Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml); container moved from the old host on 2026-11-21, not defined by a root yet"}
     - {vmids: [500, 599], role: desktop, description: "Desktop VM copied from the old environment on 2026-11-24 while the old host is reinstalled, kept off; the copy on the old host is not the one to start"}
     - {vmids: [700, 799], role: desktop, description: "Windows VM moved from the old environment on 2026-11-21, kept off; its network is set by the operator when it is started again"}
-  homelab:
-    - {vmid: 203, role: legacy-service, description: "Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19", review: true}
-    - {vmid: 204, role: legacy-service, description: "Caddy and the public tunnel until 2026-11-23; every name and the tunnel moved to k3s, stopped since, kept for rollback"}
-    - {vmid: 209, role: legacy-service, description: "Garage object storage (ansible/playbooks/configure-garage.yml); stopped", review: true}
-    - {vmid: 300, role: legacy-service, description: "OpenTofu state backups (tfstate.doku-lab.net); stopped", review: true}
-    - {vmid: 301, role: legacy-service, description: "Forgejo Actions runner until 2026-11-24, replaced by ci-runner-01 (TASK-033); its runner service is stopped"}
-    - {vmids: [400, 699], role: desktop, description: "Desktop or development VM of the old environment, started by hand when needed"}
-    - {vmids: [8000, 8999], role: template, description: "Image other VMs of the old environment were cloned from"}
 
 # Records an earlier version of this file created and that are wrong: removed by `make netbox-prune` (the
 # reconciliation itself never deletes). NetBox refuses to remove a record something still refers to.
@@ -382,6 +368,10 @@ retired:
   # on the old host were deleted on the operator's word. Their records in the old cluster go, the new ones stay.
   - {path: virtualization/virtual-machines, name: ts-router-01, cluster: homelab, reason: "CT306 moved to pve-core, old copy deleted 2026-11-21"}
   - {path: virtualization/virtual-machines, name: ts-router-02, cluster: homelab, reason: "CT307 moved to pve-management, old copy deleted 2026-11-21"}
+  # The old environment no longer exists (2026-11-24): its last guests were replaced or moved, the host joined
+  # doku-lab. Every record of its cluster goes, then the cluster.
+  - {path: virtualization/virtual-machines, cluster: homelab, every: true, reason: "Guest of the old environment, replaced, moved or deleted by 2026-11-24"}
+  - {path: virtualization/clusters, name: homelab, reason: "The old environment joined doku-lab as pve-compute on 2026-11-24"}
   - {path: ipam/ip-addresses, address: 192.168.0.116/24, reason: "DHCP lease the switch had until the operator gave it 192.168.0.3 on 2026-11-22"}
   - {path: dcim/device-types, slug: tp-link-eap220, reason: "The access point is an EAP720 (operator, 2026-11-23)"}
 

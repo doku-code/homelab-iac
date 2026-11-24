@@ -1302,6 +1302,7 @@ wiki-status:
 NETBOX_SECRET_INPUTS := NETBOX_SECRET_KEY NETBOX_API_TOKEN_PEPPER NETBOX_SUPERUSER_PASSWORD NETBOX_VALKEY_PASSWORD PG_APP_NETBOX_PASSWORD SSO_NETBOX_CLIENT_SECRET
 NETBOX_SYNC := $(VENV)/bin/python scripts/netbox-sync.py
 
+.PHONY: netbox-autosync netbox-autosync-install
 .PHONY: netbox-check netbox-deploy netbox-identities netbox-discover netbox-discover-hardware netbox-discover-tailscale netbox-plan netbox-apply netbox-prune netbox-inventory netbox-export netbox-docs
 
 # Offline: renders the pinned chart with our values (needs the chart download) and runs the inventory
@@ -1364,6 +1365,27 @@ netbox-apply:
 	@test "$(NETBOX_APPLY_APPROVED)" = yes || (echo "Read 'make netbox-plan' first, then approve the inventory write with NETBOX_APPLY_APPROVED=yes" >&2; exit 1)
 	$(NETBOX_SYNC) apply
 	$(NETBOX_SYNC) icons
+
+# NetBox follows the live state by itself: reads the cluster (GET requests only) and writes what changed, with the
+# same rules as `netbox-apply` (never deletes, never overwrites what a person entered). Run by the timer below,
+# every 15 minutes, on the workstation: the roots' states and the secret store session are only there.
+#   scripts/secrets.py run /pve-management /netbox -- make netbox-autosync NETBOX_AUTOSYNC_APPROVED=yes
+netbox-autosync:
+	@test "$(NETBOX_AUTOSYNC_APPROVED)" = yes || (echo "Approve the unattended inventory write with NETBOX_AUTOSYNC_APPROVED=yes" >&2; exit 1)
+	@$(NETBOX_SYNC) discover doku-lab
+	@$(NETBOX_SYNC) apply
+
+# Installs and starts the timer for this user (units in services/netbox/autosync/), and lets it run without an
+# open session. `systemctl --user list-timers netbox-autosync.timer`; log: `journalctl --user -u netbox-autosync`.
+netbox-autosync-install:
+	@test "$(NETBOX_AUTOSYNC_APPROVED)" = yes || (echo "Approve the unattended inventory write with NETBOX_AUTOSYNC_APPROVED=yes" >&2; exit 1)
+	@install -d "$(HOME)/.config/systemd/user"
+	@command -v phase >/dev/null && command -v tofu >/dev/null || (echo "phase and tofu must be on PATH when installing" >&2; exit 1)
+	@sed -e 's#@REPOSITORY@#$(CURDIR)#g' -e "s#@PATH@#$$(dirname "$$(command -v phase)"):$$(dirname "$$(command -v tofu)"):/usr/local/bin:/usr/bin:/bin#" services/netbox/autosync/netbox-autosync.service > "$(HOME)/.config/systemd/user/netbox-autosync.service"
+	@install -m 0644 services/netbox/autosync/netbox-autosync.timer "$(HOME)/.config/systemd/user/netbox-autosync.timer"
+	@sudo loginctl enable-linger "$(USER)"
+	@systemctl --user daemon-reload && systemctl --user enable --now netbox-autosync.timer
+	@systemctl --user list-timers netbox-autosync.timer --no-pager | sed -n 1,2p
 
 # Removes the records services/netbox/inventory.yaml lists under `retired` (records an earlier version of that
 # file created and that are wrong), with a ten-minute superuser token. Nothing else is ever deleted.

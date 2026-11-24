@@ -1,0 +1,13 @@
+# NetBox follows the live state of the cluster (make netbox-autosync). Installed for the operator's user on the
+# workstation by `make netbox-autosync-install`, which writes that user's PATH here: OpenTofu and the secret
+# store's client live in directories a service does not search by itself.
+[Unit]
+Description=Write the live state of the Proxmox cluster to NetBox
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPOSITORY@
+Environment=PATH=@PATH@
+ExecStart=/bin/bash -c 'scripts/secrets.py run /pve-management /netbox -- make --no-print-directory netbox-autosync NETBOX_AUTOSYNC_APPROVED=yes'
+TimeoutStartSec=10min

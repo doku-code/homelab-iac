@@ -875,8 +875,8 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None, overlay=None):
 
     # Records this file retired and that are still there.
     for entry in seed.get("retired", []):
-        query = retired_query(entry)
-        if api.list(entry["path"], query):
+        query, found = retired_records(api, entry)
+        if found:
             r.review.append(f"retired record still in NetBox: {entry['path']} {query} ({entry['reason']}); remove it with `make netbox-prune`")
     return r
 
@@ -1126,8 +1126,13 @@ def administrator(purpose):
 
 def retired_query(entry):
     """How a retired record is found: by name, by slug or (an address) by address, and for a guest also by the
-    cluster it was in."""
+    cluster it was in. `every: true` with a cluster names all the records of that cluster (a cluster that no
+    longer exists)."""
     query = {key: entry[key] for key in ("name", "slug", "address") if key in entry}
+    if entry.get("every"):
+        if query or not entry.get("cluster"):
+            die(f"retired: {entry} with `every` names a cluster and nothing else")
+        return {"cluster": entry["cluster"]}
     if len(query) != 1:
         die(f"retired: {entry} must name exactly one record by name, by slug or by address")
     if entry.get("cluster"):
@@ -1135,24 +1140,33 @@ def retired_query(entry):
     return query
 
 
+def retired_records(api, entry):
+    """The records a retired entry still matches. NetBox refuses a filter on a cluster it does not have: such
+    an entry matches nothing (its cluster was removed, and its guests before it)."""
+    query = retired_query(entry)
+    if entry.get("cluster") and entry["path"] != "virtualization/clusters" and not api.list("virtualization/clusters", {"name": entry["cluster"]}):
+        return query, []
+    return query, api.list(entry["path"], query)
+
+
 def prune(seed, api, remove):
     """Removes the records inventory.yaml lists under `retired`, and nothing else. `remove(path, id)` deletes one
     record; NetBox refuses when something still refers to it, which is reported and left as it is."""
     lines, refused = [], 0
     for entry in seed.get("retired", []):
-        query = retired_query(entry)
-        found = api.list(entry["path"], query)
-        if len(found) > 1:
+        query, found = retired_records(api, entry)
+        if len(found) > 1 and not entry.get("every"):
             die(f"retired: {entry['path']} {query} matches {len(found)} records")
         if not found:
             lines.append(f"gone     {entry['path']} {query}")
             continue
-        try:
-            remove(entry["path"], found[0]["id"])
-            lines.append(f"removed  {entry['path']} {query} ({entry['reason']})")
-        except RuntimeError as error:
-            refused += 1
-            lines.append(f"refused  {entry['path']} {query}: {str(error)[:300]}")
+        for record in found:
+            try:
+                remove(entry["path"], record["id"])
+                lines.append(f"removed  {entry['path']} {query} ({entry['reason']})")
+            except RuntimeError as error:
+                refused += 1
+                lines.append(f"refused  {entry['path']} {query}: {str(error)[:300]}")
     return lines, refused
 
 

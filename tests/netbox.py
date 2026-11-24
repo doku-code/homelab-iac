@@ -176,11 +176,19 @@ def sso_pipeline():
 def make_guards():
     make = (ROOT / "Makefile").read_text()
     for target, guard in (("netbox-deploy", "NETBOX_DEPLOY_APPROVED"), ("netbox-apply", "NETBOX_APPLY_APPROVED"),
-                          ("netbox-identities", "NETBOX_IDENTITIES_APPROVED"), ("netbox-prune", "NETBOX_PRUNE_APPROVED")):
+                          ("netbox-identities", "NETBOX_IDENTITIES_APPROVED"), ("netbox-prune", "NETBOX_PRUNE_APPROVED"),
+                          ("netbox-autosync", "NETBOX_AUTOSYNC_APPROVED"), ("netbox-autosync-install", "NETBOX_AUTOSYNC_APPROVED")):
         recipe = re.search(rf"^{target}:.*?(?=^\S)", make, re.M | re.S).group(0)
         assert f'test "$({guard})" = yes' in recipe, target
         refused = subprocess.run(["make", "-C", str(ROOT), target], capture_output=True, text=True)
         assert refused.returncode != 0 and "Approve" in refused.stderr + refused.stdout or "approve" in refused.stderr, target
+    # The unattended write: reads the cluster, then the same reconciliation as netbox-apply; never the prune.
+    autosync = re.search(r"^netbox-autosync:.*?(?=^\S)", make, re.M | re.S).group(0)
+    assert "discover doku-lab" in autosync and "$(NETBOX_SYNC) apply" in autosync and "prune" not in autosync
+    unit = (DIR / "autosync/netbox-autosync.service").read_text()
+    assert "make --no-print-directory netbox-autosync NETBOX_AUTOSYNC_APPROVED=yes" in unit and "prune" not in unit
+    assert not re.search(r"(?i)(token|password)\s*=", unit), "credentials come from the secret store at run time"
+    assert "OnCalendar=*:0/15" in (DIR / "autosync/netbox-autosync.timer").read_text()
     deploy = re.search(r"^netbox-deploy:.*?(?=^\S)", make, re.M | re.S).group(0)
     assert "helm " not in deploy and "apply -f services/argocd/apps/netbox.yaml" in deploy, "Argo CD installs the chart, not Make"
     assert "NETBOX_SUPERUSER_API_TOKEN" not in make and "api_token=\\nvalkey_password" in make, "no standing superuser token"
@@ -256,6 +264,20 @@ def guest(vmid, name, node, kind="qemu", status="running", ip=None, memory=4096,
             "nics": [{"name": "net0", "mac": f"BC:24:11:00:{vmid // 256:02X}:{vmid % 256:02X}", "bridge": "vmbr0", "ip": ip}]}
 
 
+def second_environment(seed):
+    """The seed plus a synthetic second Proxmox environment (what the old environment was until 2026-11-24): a
+    cluster of its own whose node shares a name with a node of doku-lab, and the guests known on it."""
+    seed["sources"]["legacy"] = {"endpoint": "https://192.0.2.14:8006", "insecure": True, "cluster": "homelab",
+                                 "description": "Second environment (tests)", "device_names": {"pve-lab": "pve-lab-legacy"}}
+    seed["devices"].append({"name": "pve-lab-legacy", "type": "custom-ryzen-9-9950x3d-tower", "role": "hypervisor", "platform": "proxmox-ve-9",
+                            "cluster": "homelab", "description": "Second environment (tests)", "review": True,
+                            "ports": [{"name": "vmbr0", "type": "bridge", "members": ["enp1s0f1np1"], "address": "192.0.2.14/24", "primary": True}]})
+    seed.setdefault("guests", {})["homelab"] = [
+        {"vmid": 204, "role": "legacy-service", "description": "Caddy and the public tunnel"},
+        {"vmids": [400, 699], "role": "desktop", "description": "Desktop or development VM, started by hand when needed"}]
+    return seed
+
+
 def snapshots():
     return {
         "doku-lab": {"age_hours": 0.1, "guests": [guest(310, "k3s-server-01", "pve-lab", ip="192.168.0.40/24", disks=[("scsi0", 65536), ("scsi1", 1024)]),
@@ -287,7 +309,7 @@ def facts():
 
 
 def reconciliation():
-    seed = yaml.safe_load((DIR / "inventory.yaml").read_text())
+    seed = second_environment(yaml.safe_load((DIR / "inventory.yaml").read_text()))
     seed["cables"] = []  # the cables this file states are checked in seed_and_inventory; here only the heard one counts
     api = FakeNetBox()
 
@@ -536,15 +558,33 @@ def reconciliation():
         api.objects[path] = [item for item in api.objects[path] if item["id"] != object_id]
 
     lines, refused = sync.prune(seed, api, remove)
-    assert [path for path, _ in removed] == ["dcim/devices"] and refused == 1, "only what inventory.yaml retires, and NetBox may refuse"
+    paths = [path for path, _ in removed]
+    assert refused == 1 and paths.count("dcim/devices") == 1, "only what inventory.yaml retires, and NetBox may refuse"
+    # A cluster that no longer exists: every record of it goes (`every: true`), then the cluster itself.
+    assert paths.count("virtualization/virtual-machines") >= 2 and paths[-1] != "dcim/devices"
+    assert set(paths) == {"dcim/devices", "virtualization/virtual-machines", "virtualization/clusters"}
+    assert not api.list("virtualization/clusters", {"name": "homelab"}), "nothing of that cluster is left"
+    assert api.objects["virtualization/virtual-machines"], "the guests of the other cluster stay"
+    # NetBox refuses a filter on a cluster it no longer has: the entries that name it are simply gone.
+    strict = api.list
+
+    def refusing(path, query=None):
+        if path == "virtualization/virtual-machines" and (query or {}).get("cluster") == "homelab":
+            raise RuntimeError("HTTP 400 Select a valid choice. homelab is not one of the available choices.")
+        return strict(path, query)
+
+    api.list = refusing
+    again, refused_again = sync.prune(seed, api, remove)
+    api.list = strict
+    assert sum("'cluster': 'homelab'" in line and line.startswith("gone") for line in again) >= 3 and refused_again == 1
     assert any(line.startswith("removed  dcim/devices {'name': 'pbs'}") for line in lines)
     assert any(line.startswith("refused  dcim/manufacturers {'slug': 'unknown'}") for line in lines)
-    assert sum(line.startswith("gone") for line in lines) == len(seed["retired"]) - 2
+    assert sum(line.startswith("gone") for line in lines) == len(seed["retired"]) - 4
 
 
 def wireless_and_tunnels():
     """Wi-Fi networks come from the private file and sit on the radios; a tunnel's ends are what its members report."""
-    seed = yaml.safe_load((DIR / "inventory.yaml").read_text())
+    seed = second_environment(yaml.safe_load((DIR / "inventory.yaml").read_text()))
     assert seed["wireless_lans"] == [], "the names of the Wi-Fi networks are not in Git"
     radios = [p["name"] for p in next(t for t in seed["device_types"] if t["slug"] == "tp-link-eap720")["ports"] if p.get("rf_role") == "ap"]
     assert radios == ["wlan0", "wlan1"]
@@ -642,7 +682,7 @@ def allocation():
                         {"name": "k3s-agent-01", "vmid": 320, "node": "pve-core", "addresses": []}]
     api = FakeNetBox()
     assert sync.allocation(machines, api, "doku-lab") == ([], ["NetBox has no cluster doku-lab; nothing to compare with"])
-    seed = yaml.safe_load((DIR / "inventory.yaml").read_text())
+    seed = second_environment(yaml.safe_load((DIR / "inventory.yaml").read_text()))
     sync.reconcile(seed, MACHINES, snapshots(), api, True, {})
     writes = len(api.writes)
     conflicts, notes = sync.allocation(machines, api, "doku-lab")
@@ -859,24 +899,20 @@ def seed_and_inventory():
     text = (DIR / "inventory.yaml").read_text()
     seed = yaml.safe_load(text)
     assert not re.search(r"(?i)(password|token|secret)\s*:", text), "NetBox holds no credentials, neither does its seed"
-    assert list(seed["sources"]) == ["doku-lab", "legacy"], "the new cluster first: the roots' VMs live there"
+    assert list(seed["sources"]) == ["doku-lab"], "one environment since the old host joined the cluster as pve-compute"
     assert seed["sources"]["doku-lab"]["endpoint"] == "https://192.168.0.10:8006" and (ROOT / seed["sources"]["doku-lab"]["ca"]).exists()
-    assert seed["sources"]["legacy"]["endpoint"] == "https://192.168.0.14:8006", "the old environment is 192.168.0.14 only"
-    assert seed["sources"]["legacy"]["device_names"] == {"pve-lab": "pve-lab-legacy"}, "two hosts are named pve-lab"
     names = [d["name"] for d in seed["devices"]]
     assert len(names) == len(set(names))
     roles, platforms = {r["slug"] for r in seed["roles"]}, {p["slug"] for p in seed["platforms"]}
     types = {t["slug"]: t for t in seed["device_types"]}
     assert len(types) == len(seed["device_types"]) and not [t for t in types.values() if re.search(r"(?i)unknown", t["model"] + t["manufacturer"])]
     racks = {rack["name"] for rack in seed["racks"]}
-    old = seed["sources"]["legacy"]["endpoint"].split("//")[1].split(":")[0]
     for device in seed["devices"]:
         assert device["role"] in roles and device.get("platform", "debian-13") in platforms and device["type"] in types, device["name"]
         assert types[device["type"]]["manufacturer"] != "Unidentified" or device.get("review"), f"{device['name']}: unread hardware must be flagged for review"
         assert device.get("rack") is None or device["rack"] in racks, device["name"]
-        assert device.get("facts") != old, "hardware facts are never read on the old host"
         sync.device_ports(device, types[device["type"]])  # every member and parent is a port of the device
-    assert {d["name"] for d in seed["devices"] if d.get("facts")} == {"pve-management", "pve-core", "pve-infra", "pve-lab"}
+    assert {d["name"] for d in seed["devices"] if d.get("facts")} == {"pve-management", "pve-core", "pve-infra", "pve-lab", "pve-compute"}
     # Stated cables: both ends are ports of their devices, no port twice, none for a host that hears the switch itself.
     by_name = {d["name"]: d for d in seed["devices"]}
     ends = [tuple(end) for cable in seed["cables"] for end in (cable["a"], cable["b"])]
@@ -888,8 +924,11 @@ def seed_and_inventory():
         assert cluster in {s["cluster"] for s in seed["sources"].values()}
         assert all(n["role"] in roles and n.get("platform", "debian") in platforms and ("vmid" in n) != ("vmids" in n) for n in notes)
     assert set(seed["ostypes"].values()) <= platforms and all(m["role"] in roles for m in seed["virtual_machines"])
-    assert all(set(e) - {"cluster"} == {"path", "reason", "name"} or set(e) in ({"path", "reason", "slug"}, {"path", "reason", "address"}) for e in seed["retired"])
-    assert all(e["cluster"] in {s["cluster"] for s in seed["sources"].values()} for e in seed["retired"] if "cluster" in e)
+    assert all(set(e) - {"cluster"} == {"path", "reason", "name"} or set(e) in ({"path", "reason", "slug"}, {"path", "reason", "address"}, {"path", "reason", "cluster", "every"})
+               for e in seed["retired"])
+    # A retired guest names the cluster it was in: the one that exists, or the old environment's, itself retired.
+    assert all(e["cluster"] in {s["cluster"] for s in seed["sources"].values()} | {"homelab"} for e in seed["retired"] if "cluster" in e)
+    assert any(e["path"] == "virtualization/clusters" and e.get("name") == "homelab" for e in seed["retired"])
     groups = {g["slug"] for g in seed["tunnel_groups"]}
     assert all(t["group"] in groups and t["members"]["role"] in roles and t["encapsulation"] == "wireguard" for t in seed["tunnels"])
     assert {"wireless.wirelesslan", "vpn.tunnel", "vpn.tunneltermination"} <= set(sync.SYNC_MODELS) and {"wireless", "vpn"} <= set(sync.READ_APPS)

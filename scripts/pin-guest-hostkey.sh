@@ -12,8 +12,8 @@ vmid="${2:?VMID}"
 guest="${3:?guest IP}"
 known_hosts="${KNOWN_HOSTS:-$HOME/.ssh/known_hosts}"
 
-# New cluster only (AGENTS.md): never the old environment 192.168.0.14.
-case "$node" in 192.168.0.10|192.168.0.11|192.168.0.12|192.168.0.16) ;; *) echo "refused: $node is not a doku-lab node" >&2; exit 2;; esac
+# Nodes of doku-lab only (192.168.0.14 is pve-compute since 2026-11-24).
+case "$node" in 192.168.0.10|192.168.0.11|192.168.0.12|192.168.0.14|192.168.0.16) ;; *) echo "refused: $node is not a doku-lab node" >&2; exit 2;; esac
 [[ "$vmid" =~ ^[0-9]{3,4}$ ]] || { echo "refused: bad VMID $vmid" >&2; exit 2; }
 [[ "$guest" =~ ^192\.168\.0\.[0-9]{1,3}$ ]] || { echo "refused: bad guest IP $guest" >&2; exit 2; }
 
