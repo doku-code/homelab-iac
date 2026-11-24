@@ -6384,7 +6384,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-034-victoriametrics-replaces-prometheus-vmalert-evaluates-the-ru.md",
       "tags": [
         "observability",
