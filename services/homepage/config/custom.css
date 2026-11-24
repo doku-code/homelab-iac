@@ -5,8 +5,8 @@
 
 :root {
   --radius-card: 4px;
-  --card-bg: rgba(28, 48, 63, 0.66);
-  --card-bg-hover: rgba(34, 58, 75, 0.76);
+  --card-bg: rgba(28, 48, 63, 0.78);
+  --card-bg-hover: rgba(34, 58, 75, 0.86);
   --card-shadow: 0 2px 9px rgba(0, 0, 0, 0.22);
   --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.3);
   --stat-bg: rgba(10, 18, 28, 0.24);
@@ -187,8 +187,6 @@ body {
   border-radius: var(--radius-card) !important;
   background: var(--card-bg) !important;
   box-shadow: var(--card-shadow) !important;
-  backdrop-filter: blur(4px) saturate(105%) !important;
-  -webkit-backdrop-filter: blur(4px) saturate(105%) !important;
   transition: transform var(--transition), background var(--transition), box-shadow var(--transition) !important;
 }
 

@@ -14,7 +14,7 @@
   var REFRESH_MS = 10000;
   var BACKGROUNDS = ["/images/bg-1.jpg", "/images/bg-2.jpg", "/images/bg-3.webp"];
   var BACKGROUND_KEY = "nithBackgroundIndex";
-  var DEFAULT_BACKGROUND = "/images/coffee-bg.png";
+  var DEFAULT_BACKGROUND = "/images/coffee-bg.jpg";
 
   /* card id -> key of snapshot.nodes */
   var NODE_CARDS = {
