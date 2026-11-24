@@ -344,6 +344,7 @@ tunnels:
 guests:
   doku-lab:
     - {vmids: [306, 307], role: tailscale-router, platform: debian-13, description: "Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml); container moved from the old host on 2026-11-21, not defined by a root yet"}
+    - {vmids: [500, 599], role: desktop, description: "Desktop VM copied from the old environment on 2026-11-24 while the old host is reinstalled, kept off; the copy on the old host is not the one to start"}
     - {vmids: [700, 799], role: desktop, description: "Windows VM moved from the old environment on 2026-11-21, kept off; its network is set by the operator when it is started again"}
   homelab:
     - {vmid: 203, role: legacy-service, description: "Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19", review: true}
