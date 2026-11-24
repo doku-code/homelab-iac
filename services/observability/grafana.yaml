@@ -63,6 +63,9 @@ grafana.ini:
 datasources:
   datasources.yaml:
     apiVersion: 1
+    # The data source was named Prometheus until TASK-034; a new name with the same uid is refused while the old one exists.
+    deleteDatasources:
+      - {name: Prometheus, orgId: 1}
     datasources:
       # VictoriaMetrics, read through its Prometheus query API; the uid stays so the dashboards need no change.
       - name: VictoriaMetrics
