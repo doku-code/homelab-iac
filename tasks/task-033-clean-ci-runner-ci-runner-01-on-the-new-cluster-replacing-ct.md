@@ -41,7 +41,7 @@ playbook, so the old host can be emptied. It replaces CT301 `forgejo-runner-migr
 - [x] `ci-runner-01` (VM 303, 192.168.0.33, `pve-core`) exists from `terraform/stacks/ci-runner`.
 - [x] The runner declares the four registrations to Forgejo; the service on CT301 is stopped and disabled.
 - [x] A validation job of this repository succeeds on the new runner.
-- [ ] The work cache of `oss-archive` is on the new runner.
+- [x] The work cache of `oss-archive` is on the new runner.
 - [x] Offline tests.
 - [ ] CT301 deleted from the old host (operator's word).
 
@@ -69,12 +69,11 @@ scripts/secrets.py run /forgejo-runner/connections /forgejo-runner/registry -- m
 | Runner | four registrations `declared successfully`, runner v13.0.0 (same as CT301), poller launched | `journalctl -u forgejo-runner` on the VM | 2026-11-24 |
 | Old runner | no job was running; `forgejo-runner` stopped and disabled in CT301 | `systemctl is-active` → `inactive` | 2026-11-24 |
 | Jobs on the new runner | `Documentation validation`, `Wiki publication` and `Validate` succeeded on `ci-runner-01` (tasks 1491 to 1495; one `Validate` run was cancelled by the next push, not by the runner) | commit statuses of 4a4023d and 4c2c451 in Forgejo | 2026-11-24 |
-| Work cache copy | in progress | `.local/ci-runner-cache-copy.log` | |
+| Work cache copy | `exit 0`; 56,935 files and 20,661,798,662 bytes on both sides | `.local/ci-runner-cache-copy.log`; `find -type f \| wc -l` and `du -sb --apparent-size` in CT301 and on the VM | 2026-11-24 |
 
 ## Completion summary
 
-In progress. Remaining: finish the copy of the
-`oss-archive-cache` volume (20 GB, tar from CT301 into the new runner's volume) before the daily job of
-`oss-archive-manager` (08:00 UTC); then CT301 can be deleted on the operator's word. Way back until then:
+In progress. Remaining: CT301 is deleted on the operator's word, once the daily job of `oss-archive-manager`
+(08:00 UTC) has passed on the new runner with the copied cache. Way back until then:
 `systemctl enable --now forgejo-runner` in CT301 and stop the service on `ci-runner-01` (same registrations:
 never both at once).
