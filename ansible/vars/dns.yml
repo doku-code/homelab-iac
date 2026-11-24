@@ -29,8 +29,8 @@ adguard_rewrites:
   - {domain: pbs.doku-lab.net, answer: 192.168.0.40}
   - {domain: tfstate.doku-lab.net, answer: 192.168.0.30}
   - {domain: dropper.doku-lab.net, answer: 192.168.0.40}
-  - {domain: pfsense.doku-lab.net, answer: 192.168.0.1}
-  - {domain: switch.doku-lab.net, answer: 192.168.0.3}
+  - {domain: pfsense.doku-lab.net, answer: 192.168.0.40}
+  - {domain: switch.doku-lab.net, answer: 192.168.0.40}
   - {domain: homepage.doku-lab.net, answer: 192.168.0.40}
   - {domain: phase.doku-lab.net, answer: 192.168.0.40}
   - {domain: grafana.doku-lab.net, answer: 192.168.0.40}
@@ -42,3 +42,4 @@ adguard_rewrites:
   - {domain: pve-management.doku-lab.net, answer: 192.168.0.40}
   - {domain: pve-core.doku-lab.net, answer: 192.168.0.40}
   - {domain: pve-infra.doku-lab.net, answer: 192.168.0.40}
+  - {domain: pve-compute.doku-lab.net, answer: 192.168.0.40}

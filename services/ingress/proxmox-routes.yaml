@@ -325,3 +325,61 @@ spec:
       port: 8006
       scheme: https
       serversTransport: pve-lab
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: pve-compute
+  namespace: proxmox-ui
+spec:
+  serverName: 192.168.0.14
+  rootCAs:
+  - configMap: doku-lab-cluster-ca
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pve-compute
+  namespace: proxmox-ui
+spec:
+  ports:
+  - name: api
+    port: 8006
+    targetPort: 8006
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pve-compute
+  namespace: proxmox-ui
+  labels:
+    kubernetes.io/service-name: pve-compute
+addressType: IPv4
+ports:
+- name: api
+  port: 8006
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.14
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pve-compute
+  namespace: proxmox-ui
+spec:
+  entryPoints:
+  - websecure
+  tls: {}
+  routes:
+  - match: Host(`pve-compute.doku-lab.net`)
+    kind: Rule
+    middlewares:
+    - name: admin-lan
+    services:
+    - name: pve-compute
+      port: 8006
+      scheme: https
+      serversTransport: pve-compute

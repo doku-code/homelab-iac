@@ -34,7 +34,7 @@ def legacy_routes():
         (address,) = endpoint["addresses"]
         assert slices[name]["metadata"]["labels"] == {"kubernetes.io/service-name": name}
         assert slices[name]["ports"][0]["port"] == service["spec"]["ports"][0]["port"]
-        assert re.fullmatch(r"192\.168\.0\.(13|15|2[0-9]|90)", address), f"{name}: legacy backend address expected, got {address}"
+        assert re.fullmatch(r"192\.168\.0\.(1|3|13|15|2[0-9]|90)", address), f"{name}: backend outside k3s expected, got {address}"
     hosts = set()
     for name, route in kinds["IngressRoute"].items():
         assert route["spec"]["entryPoints"] == ["websecure"] and route["spec"]["tls"] == {}, name
@@ -45,6 +45,11 @@ def legacy_routes():
                 assert ("scheme" in ref) == ("serversTransport" in ref), "only HTTPS backends skip verification"
     assert all(h.endswith(".doku-lab.net") for h in hosts) and {"git.doku-lab.net", "cloud.doku-lab.net"} <= hosts and "vault.doku-lab.net" not in hosts
     assert "pve-lab.doku-lab.net" not in hosts, "stale Caddy sites are not carried over"
+    # The router and the switch: their own certificates behind the platform's, from the LAN only.
+    for name, address in (("pfsense", "192.168.0.1"), ("switch", "192.168.0.3")):
+        assert slices[name]["endpoints"][0]["addresses"] == [address] and f"{name}.doku-lab.net" in hosts
+        assert [m["name"] for m in kinds["IngressRoute"][name]["spec"]["routes"][0]["middlewares"]] == ["admin-lan", "hsts"]
+    assert kinds["Middleware"]["admin-lan"]["spec"]["ipAllowList"]["sourceRange"] == ["192.168.0.0/24"]
     assert slices["dropper"]["endpoints"][0]["addresses"] == ["192.168.0.90"], "the address reserved for VM 700, not a k3s node"
     # The public tunnel: one pinned connector, token from a Secret, nothing else granted.
     (tunnel,) = [d for d in yaml.safe_load_all((DIR / "tunnel.yaml").read_text()) if d and d["kind"] == "Deployment"]
@@ -60,9 +65,10 @@ def legacy_routes():
 def proxmox_routes():
     """Proxmox web interfaces: current host names, LAN only, backend certificate verified against the cluster CA."""
     docs = [d for d in yaml.safe_load_all((DIR / "proxmox-routes.yaml").read_text()) if d]
-    expected = {"pve-management": "192.168.0.10", "pve-core": "192.168.0.11", "pve-infra": "192.168.0.12", "pve-lab": "192.168.0.16"}
+    expected = {"pve-management": "192.168.0.10", "pve-core": "192.168.0.11", "pve-infra": "192.168.0.12", "pve-lab": "192.168.0.16",
+                "pve-compute": "192.168.0.14"}
     slices = {d["metadata"]["name"]: d["endpoints"][0]["addresses"] for d in docs if d["kind"] == "EndpointSlice"}
-    assert slices == {name: [address] for name, address in expected.items()}, "never the old environment (192.168.0.14)"
+    assert slices == {name: [address] for name, address in expected.items()}, "the five nodes of the cluster"
     transports = {d["metadata"]["name"]: d["spec"] for d in docs if d["kind"] == "ServersTransport"}
     for name, address in expected.items():
         assert transports[name] == {"serverName": address, "rootCAs": [{"configMap": "doku-lab-cluster-ca"}]}, name

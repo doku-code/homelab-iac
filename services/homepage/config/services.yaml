@@ -57,12 +57,12 @@
     - Router:
         id: router-service
         icon: pfsense.svg
-        href: https://192.168.0.1
+        href: https://pfsense.doku-lab.net
         description: Gateway · DHCP · internet
     - Switch:
         id: switch-service
         icon: qnap.png
-        href: https://192.168.0.3
+        href: https://switch.doku-lab.net
         description: 10G RJ45 · 10G SFP+
     - k3s:
         id: k3s-service
@@ -97,7 +97,7 @@
     - PVE Compute:
         id: pve-compute-service
         icon: proxmox.png
-        href: https://192.168.0.14:8006
+        href: https://pve-compute.doku-lab.net
         description: Ryzen 9 9950X3D · joined doku-lab on 2026-11-24
     - TrueNAS:
         id: truenas-service

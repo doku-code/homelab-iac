@@ -342,3 +342,113 @@ spec:
     - name: dropper
       port: 666
   tls: {}
+---
+# The administration pages of the router (pfSense) and of the switch (QNAP): the devices keep their own
+# certificates, Traefik shows the platform's; from the LAN only. Nothing is changed on the devices.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-lan
+  namespace: legacy-edge
+spec:
+  ipAllowList:
+    sourceRange:
+    - 192.168.0.0/24
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pfsense
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 443
+    targetPort: 443
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pfsense
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: pfsense
+addressType: IPv4
+ports:
+- name: backend
+  port: 443
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.1
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pfsense
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`pfsense.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: pfsense
+      port: 443
+      scheme: https
+      serversTransport: self-signed-backend
+    middlewares:
+    - name: admin-lan
+    - name: hsts
+  tls: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: switch
+  namespace: legacy-edge
+spec:
+  ports:
+  - name: backend
+    port: 443
+    targetPort: 443
+    protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: switch
+  namespace: legacy-edge
+  labels:
+    kubernetes.io/service-name: switch
+addressType: IPv4
+ports:
+- name: backend
+  port: 443
+  protocol: TCP
+endpoints:
+- addresses:
+  - 192.168.0.3
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: switch
+  namespace: legacy-edge
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`switch.doku-lab.net`)
+    kind: Rule
+    services:
+    - name: switch
+      port: 443
+      scheme: https
+      serversTransport: self-signed-backend
+    middlewares:
+    - name: admin-lan
+    - name: hsts
+  tls: {}
