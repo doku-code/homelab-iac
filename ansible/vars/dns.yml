@@ -9,14 +9,12 @@ adguard_filters:
 # The LAN's DNS address, held by dns-01 next to its own address since the cutover of 2026-11-18.
 adguard_service_address: 192.168.0.20
 
-# Local answers. 192.168.0.40 is the k3s ingress (Traefik); 192.168.0.24 is the legacy Caddy. A name moves
-# to the cluster by changing its answer (services/ingress/legacy-routes.yaml has its route) and moves back
-# the same way. git and cloud (hosted on TrueNAS) moved on 2026-11-23 by the operator's decision; the public
+# Local answers. 192.168.0.40 is the k3s ingress (Traefik): a name is served there when
+# services/ingress/legacy-routes.yaml has its route. The legacy Caddy (192.168.0.24) no longer exists. git and cloud (hosted on TrueNAS) moved on 2026-11-23 by the operator's decision; the public
 # tunnel in the Caddy container follows these names, so it reaches them through Traefik too. dropper is the
 # operator's own service on the Windows VM 700 (route in legacy-routes.yaml; answers when that VM runs).
 adguard_rewrites:
   - {domain: plex.doku-lab.net, answer: 192.168.0.40}
-  - {domain: print.home, answer: 192.168.0.23}
   - {domain: adguard.doku-lab.net, answer: 192.168.0.20}
   - {domain: qbit.doku-lab.net, answer: 192.168.0.40}
   - {domain: wiki.doku-lab.net, answer: 192.168.0.40}
@@ -27,7 +25,6 @@ adguard_rewrites:
   - {domain: vault.doku-lab.net, answer: 192.168.0.40}
   - {domain: git.doku-lab.net, answer: 192.168.0.40}
   - {domain: pbs.doku-lab.net, answer: 192.168.0.40}
-  - {domain: tfstate.doku-lab.net, answer: 192.168.0.30}
   - {domain: dropper.doku-lab.net, answer: 192.168.0.40}
   - {domain: pfsense.doku-lab.net, answer: 192.168.0.40}
   - {domain: switch.doku-lab.net, answer: 192.168.0.40}
