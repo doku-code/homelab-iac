@@ -185,6 +185,7 @@ def make_guards():
     # The unattended write: reads the cluster, then the same reconciliation as netbox-apply; never the prune.
     autosync = re.search(r"^netbox-autosync:.*?(?=^\S)", make, re.M | re.S).group(0)
     assert "discover doku-lab" in autosync and "$(NETBOX_SYNC) apply" in autosync and "prune" not in autosync
+    assert autosync.index("discover-hardware") < autosync.index("$(NETBOX_SYNC) apply"), "the hosts' hardware and switch ports too"
     unit = (DIR / "autosync/netbox-autosync.service").read_text()
     assert "make --no-print-directory netbox-autosync NETBOX_AUTOSYNC_APPROVED=yes" in unit and "prune" not in unit
     assert not re.search(r"(?i)(token|password)\s*=", unit), "credentials come from the secret store at run time"
@@ -217,7 +218,9 @@ class FakeNetBox:
                     if item.get(kind_field) != kind or item.get(id_field) != value:
                         return False
                     continue
-                if path == "virtualization/virtual-machines" and key == "cluster":  # NetBox filters guests by cluster name
+                if path == "dcim/interfaces" and key == "device" and isinstance(value, str):  # and ports by the name of their device
+                    actual = next((d["name"] for d in self.objects.get("dcim/devices", []) if d["id"] == item.get("device")), None)
+                elif path == "virtualization/virtual-machines" and key == "cluster":  # NetBox filters guests by cluster name
                     actual = next((c["name"] for c in self.objects.get("virtualization/clusters", []) if c["id"] == item.get("cluster")), None)
                 elif key.startswith("cf_"):
                     actual = item.get("custom_fields", {}).get(key[3:])
@@ -260,7 +263,7 @@ SERIAL, HOST_MAC, GUEST_MAC = "SERIAL-SYNTHETIC-1", "6C:24:08:00:00:01", "BC:24:
 
 def guest(vmid, name, node, kind="qemu", status="running", ip=None, memory=4096, disks=(), ostype="l26"):
     return {"vmid": vmid, "name": name, "node": node, "type": kind, "status": status, "vcpus": 2, "memory_mb": memory,
-            "disk_mb": 32768, "ostype": ostype, "disks": [{"name": n, "storage": "local-lvm", "size_mb": s} for n, s in disks],
+            "disk_mb": 32768, "ostype": ostype, "onboot": vmid == 310, "disks": [{"name": n, "storage": "local-lvm", "size_mb": s} for n, s in disks],
             "nics": [{"name": "net0", "mac": f"BC:24:11:00:{vmid // 256:02X}:{vmid % 256:02X}", "bridge": "vmbr0", "ip": ip}]}
 
 
@@ -347,7 +350,14 @@ def reconciliation():
     k3s = api.get(vms, name="k3s-server-01")
     assert k3s["cluster"] == cluster["doku-lab"] and k3s["tags"] == [tags["iac"]]
     assert k3s["custom_fields"] == {"proxmox_vmid": 310, "defined_in": sync.SOURCE_URL + "terraform/stacks/k3s"}
-    assert k3s["memory"] == 4096 and k3s["device"] == device["pve-lab"]["id"], "sizing observed, host from Git"
+    assert k3s["memory"] == 4096 and k3s["device"] == device["pve-lab"]["id"], "sizing and host observed"
+    # A guest moved by hand before its root follows: NetBox records where it runs, and the difference is reported.
+    moved = snapshots()
+    next(g for g in moved["doku-lab"]["guests"] if g["vmid"] == 310)["node"] = "pve-core"
+    elsewhere = run(False, observed=moved)
+    assert any("vm k3s-server-01" in line and "device" in line for line in elsewhere.operations), elsewhere.operations
+    assert any("host is 'pve-lab' in Git and 'pve-core' on Proxmox" in line for line in elsewhere.review)
+    assert k3s["start_on_boot"] == "on" and api.get(vms, name="dns-01").get("start_on_boot", "off") == "off", "starts with its host: as Proxmox says"
     address = api.get(ips, address="192.168.0.40/24")
     assert address["assigned_object_type"] == "virtualization.vminterface" and k3s["primary_ip4"] == address["id"]
     service = api.get(ips, address="192.168.0.20/24")
@@ -405,7 +415,9 @@ def reconciliation():
     assert port[(core, "wlo1")]["enabled"] is False and len([p for p in port if p[0] == switch]) == 18
     assert device["pve-core"]["primary_ip4"] == api.get(ips, address="192.168.0.11/24")["id"]
     assert api.get(ips, address="192.168.0.11/24")["assigned_object_id"] == port[(core, "vmbr0")]["id"]
-    assert api.get(ips, address="192.168.0.3/24")["dns_name"] == "switch.doku-lab.net" and api.get(ips, address="192.168.0.1/24")["dns_name"] == "pfsense.doku-lab.net"
+    # The names of the switch and of pfSense answer the ingress, not these addresses: no name is recorded on them.
+    assert api.get(ips, address="192.168.0.3/24")["dns_name"] == "" == api.get(ips, address="192.168.0.1/24")["dns_name"]
+    assert api.get(ips, address="192.168.0.20/24")["dns_name"] == "adguard.doku-lab.net"
     assert api.get(ips, address="192.168.0.3/24")["assigned_object_id"] == port[(switch, "vlan1")]["id"]
     # Observed on the host: serial number, link speed, hardware address of the physical port (not of the bridge),
     # processor, memory and disks; what the firmware calls unknown is left empty.
@@ -557,6 +569,19 @@ def reconciliation():
         removed.append((path, object_id))
         api.objects[path] = [item for item in api.objects[path] if item["id"] != object_id]
 
+    # A retired cable is named by its two ports: only the cable that joins exactly those two.
+    wired = {"path": "dcim/cables", "between": [["access-point", "eth0"], ["switch", 3]], "reason": "test"}
+    ends = [api.list("dcim/interfaces", {"device": name, "name": port})[0]["id"] for name, port in (("access-point", "eth0"), ("switch", "3"), ("switch", "4"), ("pfsense", "wan"))]
+    assert sync.retired_records(api, wired)[1] == [], "no cable yet"
+    first, second = (api.create("dcim/cables", {"a_terminations": [{"object_type": "dcim.interface", "object_id": a}],
+                                                "b_terminations": [{"object_type": "dcim.interface", "object_id": b}]}) for a, b in (ends[:2], ends[2:]))
+    assert [c["id"] for c in sync.retired_records(api, wired)[1]] == [first["id"]]
+    assert sync.retired_records(api, {**wired, "between": [["access-point", "eth0"], ["switch", "4"]]})[1] == [], "two cables, not one"
+    assert sync.retired_records(api, {**wired, "between": [["access-point", "eth0"], ["switch", "2"]]})[1] == [], "a port without cable"
+    api.objects["dcim/cables"] = [c for c in api.objects["dcim/cables"] if c["id"] not in (first["id"], second["id"])]
+    for port in api.objects["dcim/interfaces"]:
+        if port["id"] in ends:
+            port.pop("cable", None)
     lines, refused = sync.prune(seed, api, remove)
     paths = [path for path, _ in removed]
     assert refused == 1 and paths.count("dcim/devices") == 1, "only what inventory.yaml retires, and NetBox may refuse"
@@ -763,7 +788,7 @@ def discovery():
                 return [{"iface": "vmbr0", "type": "bridge", "cidr": "192.168.0.11/24", "bridge_ports": "nic0", "active": 1},
                         {"iface": "nic0", "type": "eth", "active": 1}, {"iface": "tap311i0", "type": "unknown"}]
             if path.endswith("/qemu/311/config"):
-                return {"net0": "virtio=BC:24:11:AA:BB:CC,bridge=vmbr0", "ipconfig0": "ip=192.168.0.41/24,gw=192.168.0.1", "ostype": "l26",
+                return {"net0": "virtio=BC:24:11:AA:BB:CC,bridge=vmbr0", "ipconfig0": "ip=192.168.0.41/24,gw=192.168.0.1", "ostype": "l26", "onboot": 1,
                         "scsi0": "local-lvm:vm-311-disk-0,iothread=1,size=64G", "scsi1": "local-lvm:vm-311-disk-1,size=512M",
                         "ide2": "local:iso/debian.iso,media=cdrom,size=700M", "efidisk0": "local-lvm:vm-311-disk-2,size=4M"}
             raise AssertionError(path)
@@ -790,6 +815,7 @@ def discovery():
     (found,) = snapshot["guests"]
     assert (found["vmid"], found["memory_mb"], found["disk_mb"], found["nics"][0]["ip"]) == (311, 8192, 65536, "192.168.0.41/24")
     # Disks one by one, without the optical drive and the firmware volume; the system kind as Proxmox names it.
+    assert found["onboot"] is True
     assert found["ostype"] == "l26" and found["disks"] == [{"name": "scsi0", "storage": "local-lvm", "size_mb": 65536},
                                                            {"name": "scsi1", "storage": "local-lvm", "size_mb": 512}]
     assert sync.parse_disk("rootfs", "local-lvm:vm-204-disk-0,size=8G") == {"name": "rootfs", "storage": "local-lvm", "size_mb": 8192}
@@ -924,7 +950,7 @@ def seed_and_inventory():
         assert cluster in {s["cluster"] for s in seed["sources"].values()}
         assert all(n["role"] in roles and n.get("platform", "debian") in platforms and ("vmid" in n) != ("vmids" in n) for n in notes)
     assert set(seed["ostypes"].values()) <= platforms and all(m["role"] in roles for m in seed["virtual_machines"])
-    assert all(set(e) - {"cluster"} == {"path", "reason", "name"} or set(e) in ({"path", "reason", "slug"}, {"path", "reason", "address"}, {"path", "reason", "cluster", "every"})
+    assert all(set(e) - {"cluster"} == {"path", "reason", "name"} or set(e) in ({"path", "reason", "slug"}, {"path", "reason", "address"}, {"path", "reason", "cluster", "every"}, {"path", "reason", "between"})
                for e in seed["retired"])
     # A retired guest names the cluster it was in: the one that exists, or the old environment's, itself retired.
     assert all(e["cluster"] in {s["cluster"] for s in seed["sources"].values()} | {"homelab"} for e in seed["retired"] if "cluster" in e)

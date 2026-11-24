@@ -34,10 +34,10 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 |---|---|---|---|---|---|---|
 | access-point | Access point | TP-Link EAP720 | 192.168.0.2/24 |  | Active | Wi-Fi access point, managed on its own web interface |
 | pfsense | Router | Lenovo ThinkCentre M75q Gen 2 | 192.168.0.1/24 |  | Active | AMD Ryzen 3, 8 GB RAM. pfSense, LAN gateway and DHCP; never changed or signed in to by automation |
-| pve-core | Hypervisor | Lenovo ThinkStation P350 Tiny | 192.168.0.11/24 |  | Active | Intel Core i7-11700, 32 GB RAM, 1 TB NVMe |
+| pve-compute | Hypervisor | Custom build Tower, ASUS mainboard, Ryzen 9 9950X3D | 192.168.0.14/24 |  | Active | AMD Ryzen 9 9950X3D, 32 threads, 30 GB usable RAM, 1 TB and 2 TB NVMe. The old environment until 2026-11-24 (then named pve-lab) |
+| pve-core | Hypervisor | Lenovo ThinkStation P350 Tiny | 192.168.0.11/24 |  | Active | Intel Core i7-11700, 32 GB RAM, 1 TB NVMe, a 25 Gb SFP28 card |
 | pve-infra | Hypervisor | Beelink Mini S | 192.168.0.12/24 |  | Active | Intel Celeron N5095A, 8 GB RAM, 256 GB SATA SSD |
 | pve-lab | Hypervisor | ORIGIMAGIC Nebula Series | 192.168.0.16/24 |  | Active | AMD Ryzen 7 6800H, 28 GB usable RAM, 512 GB NVMe |
-| pve-lab-legacy | Hypervisor | Custom build Tower, ASUS mainboard, Ryzen 9 9950X3D | 192.168.0.14/24 |  | Active (to verify) | Old environment (Proxmox node name pve-lab, future pve-compute). AMD Ryzen 9 9950X3D, 32 GB RAM |
 | pve-management | Hypervisor | Lenovo ThinkCentre M90q | 192.168.0.10/24 |  | Active | Intel Core i5-10500T, 16 GB RAM, 256 GB NVMe; hosts the admin workstation (ADR-002) |
 | switch | Switch | QNAP QSW-M3216R-8S8T | 192.168.0.3/24 | rack-01 | Active | Core switch; every Proxmox host of doku-lab is plugged into it |
 | truenas | NAS | Custom build NAS, ASRock N100M mainboard | 192.168.0.13/24 |  | Active | TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent; pools tank (2 x 8 TB mirror), fastpool (1 TB), apps-pool (180 GB). Not built from this repository |
@@ -48,17 +48,22 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 |---|---|---|---|
 | access-point eth0 | switch 3 |  | entered |
 | pfsense lan | switch 1 |  | entered |
+| pve-compute enp1s0f1np1 | switch 16 |  | announced by the switch (LLDP) |
 | pve-core nic0 | switch 8 |  | announced by the switch (LLDP) |
 | pve-infra nic0 | switch 7 |  | announced by the switch (LLDP) |
 | pve-lab nic0 | switch 6 |  | announced by the switch (LLDP) |
-| pve-lab-legacy enp1s0f1np1 | switch 14 | dac-passive | entered |
 | pve-management nic0 | switch 5 |  | announced by the switch (LLDP) |
-| truenas enp1s0 | switch 16 | dac-passive | entered |
+| truenas enp1s0 | switch 14 | dac-passive | entered |
 
 ## Hardware of the hosts
 
 | Device | Part | Kind | Model | Details |
 |---|---|---|---|---|
+| pve-compute | nvme0n1 | Disk | Samsung SSD 990 PRO 2TB | 2000 GB nvme |
+| pve-compute | nvme1n1 | Disk | Samsung SSD 970 EVO 1TB | 1000 GB nvme |
+| pve-compute | Memory 1 | Memory | CP16G64C38U5B.M8D1 | 16 GB DDR5 5600 MT/s |
+| pve-compute | Memory 2 | Memory | CP16G64C38U5B.M8D1 | 16 GB DDR5 5600 MT/s |
+| pve-compute | CPU | Processor | AMD Ryzen 9 9950X3D 16-Core Processor | 16 cores, 32 threads |
 | pve-core | nvme0n1 | Disk | KINGSTON SNVS1000G | 1000 GB nvme |
 | pve-core | Memory 1 | Memory | 9905700-122.A00G | 16 GB DDR4 3200 MT/s |
 | pve-core | Memory 2 | Memory | 9905700-095.A00G | 16 GB DDR4 3200 MT/s |
@@ -98,32 +103,20 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 | Name | VMID | Host | Role | System | vCPU | Memory | Disk | Address | Status | Description |
 |---|---|---|---|---|---|---|---|---|---|---|
 | mgmt-control-01 | 100 | pve-management | Admin workstation | Ubuntu 26.04 | 12 | 10 GB | 120 GB | 192.168.0.39/24 | Active | terraform/stacks/pve-management-control |
-| deploy-runner-01 | 302 | pve-core | Deployment runner | Debian 13 | 6 | 8 GB | 24 GB | 192.168.0.32/24 | Active | terraform/stacks/deploy-runner |
+| deploy-runner-01 | 302 | pve-compute | Deployment runner | Debian 13 | 6 | 4 GB | 24 GB | 192.168.0.32/24 | Active | terraform/stacks/deploy-runner |
+| ci-runner-01 | 303 | pve-compute | CI runner | Debian 13 | 4 | 6 GB | 48 GB | 192.168.0.33/24 | Active | terraform/stacks/ci-runner |
 | ts-router-01 | 306 | pve-core | Tailscale router | Debian 13 | 1 | 0.5 GB | 8 GB | 192.168.0.36/24 | Active | Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml); container moved from the old host on 2026-11-21, not defined by a root yet |
 | ts-router-02 | 307 | pve-management | Tailscale router | Debian 13 | 1 | 0.5 GB | 8 GB | 192.168.0.37/24 | Active | Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml); container moved from the old host on 2026-11-21, not defined by a root yet |
-| k3s-server-01 | 310 | pve-lab | k3s server | Debian 13 | 6 | 12 GB | 64 GB | 192.168.0.40/24 | Active | terraform/stacks/k3s |
+| k3s-server-01 | 310 | pve-compute | k3s server | Debian 13 | 6 | 12 GB | 64 GB | 192.168.0.40/24 | Active | terraform/stacks/k3s |
 | k3s-server-02 | 311 | pve-core | k3s server | Debian 13 | 4 | 8 GB | 64 GB | 192.168.0.41/24 | Active | terraform/stacks/k3s |
 | k3s-server-03 | 312 | pve-lab | k3s server | Debian 13 | 4 | 6 GB | 64 GB | 192.168.0.42/24 | Active | terraform/stacks/k3s |
-| storage-01 | 350 | pve-core | Storage | Debian 13 | 2 | 2 GB | 316 GB | 192.168.0.50/24 | Active | terraform/stacks/storage |
+| storage-01 | 350 | pve-compute | Storage | Debian 13 | 2 | 2 GB | 316 GB | 192.168.0.50/24 | Active | terraform/stacks/storage |
 | pg-01 | 361 | pve-core | PostgreSQL | Debian 13 | 2 | 4 GB | 56 GB | 192.168.0.61/24 | Active | terraform/stacks/postgresql |
 | pg-02 | 362 | pve-lab | PostgreSQL | Debian 13 | 2 | 4 GB | 56 GB | 192.168.0.62/24 | Active | terraform/stacks/postgresql |
-| pg-03 | 363 | pve-infra | PostgreSQL | Debian 13 | 2 | 2 GB | 56 GB | 192.168.0.63/24 | Active | terraform/stacks/postgresql |
-| dns-01 | 370 | pve-infra | DNS | Debian 13 | 1 | 1 GB | 16 GB | 192.168.0.70/24 | Active | terraform/stacks/dns |
+| pg-03 | 363 | pve-compute | PostgreSQL | Debian 13 | 2 | 2 GB | 56 GB | 192.168.0.63/24 | Active | terraform/stacks/postgresql |
+| dns-01 | 370 | pve-core | DNS | Debian 13 | 1 | 1 GB | 16 GB | 192.168.0.70/24 | Active | terraform/stacks/dns |
 
-2 desktop and template machines of this cluster are in NetBox and not listed here.
-
-### Cluster homelab
-
-| Name | VMID | Host | Role | System | vCPU | Memory | Disk | Address | Status | Description |
-|---|---|---|---|---|---|---|---|---|---|---|
-| print-server | 203 | pve-lab-legacy | Legacy service | Debian | 1 | 0.25 GB | 4 GB | 192.168.0.23/24 | Offline (to verify) | Print server (CUPS, print.home); stopped since the rack restart of 2026-11-19 |
-| caddy | 204 | pve-lab-legacy | Legacy service | Debian | 2 | 1 GB | 8 GB | 192.168.0.24/24 | Offline | Caddy and the public tunnel until 2026-11-23; every name and the tunnel moved to k3s, stopped since, kept for rollback |
-| vaultwarden | 206 | pve-lab-legacy | Legacy service | Debian | 1 | 0.75 GB | 8 GB | 192.168.0.26/24 | Active | Vaultwarden until 2026-11-24, now on k3s (TASK-032); its Docker container is stopped, data kept for rollback |
-| garage | 209 | pve-lab-legacy | Legacy service | Debian | 1 | 1 GB | 16 GB | 192.168.0.29/24 | Offline (to verify) | Garage object storage (ansible/playbooks/configure-garage.yml); stopped |
-| tfstate | 300 | pve-lab-legacy | Legacy service | Debian | 1 | 2 GB | 16 GB | 192.168.0.30/24 | Offline (to verify) | OpenTofu state backups (tfstate.doku-lab.net); stopped |
-| forgejo-runner-migration | 301 | pve-lab-legacy | Deployment runner | Debian | 4 | 6 GB | 38 GB | 192.168.0.31/24 | Active | Forgejo Actions runner of this repository (CT301); never holds Proxmox credentials (ADR-008) |
-
-11 desktop and template machines of this cluster are in NetBox and not listed here.
+4 desktop and template machines of this cluster are in NetBox and not listed here.
 
 ### Cluster truenas
 
@@ -150,25 +143,20 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 
 | Address | On | Name | Kind | Description |
 |---|---|---|---|---|
-| 192.168.0.1/24 | pfsense lan | pfsense.doku-lab.net |  | pfsense |
+| 192.168.0.1/24 | pfsense lan |  |  | pfsense |
 | 192.168.0.2/24 | access-point eth0 |  |  | access-point |
-| 192.168.0.3/24 | switch vlan1 | switch.doku-lab.net |  | switch |
+| 192.168.0.3/24 | switch vlan1 |  |  | switch |
 | 192.168.0.9/24 | pve-core amt |  |  | pve-core |
 | 192.168.0.10/24 | pve-management vmbr0 |  |  | pve-management |
 | 192.168.0.11/24 | pve-core vmbr0 |  |  | pve-core |
 | 192.168.0.12/24 | pve-infra vmbr0 |  |  | pve-infra |
 | 192.168.0.13/24 | truenas bond0 |  |  | truenas |
-| 192.168.0.14/24 | pve-lab-legacy vmbr0 |  |  | pve-lab-legacy |
+| 192.168.0.14/24 | pve-compute vmbr0 |  |  | pve-compute |
 | 192.168.0.15/24 | pbs net0 |  | Reserved | pbs |
 | 192.168.0.16/24 | pve-lab vmbr0 |  |  | pve-lab |
 | 192.168.0.20/24 | dns-01 net0 | adguard.doku-lab.net | Secondary | LAN DNS service address (ansible/vars/dns.yml) |
-| 192.168.0.23/24 | print-server net0 |  |  | print-server |
-| 192.168.0.24/24 | caddy net0 |  |  | caddy |
-| 192.168.0.26/24 | vaultwarden net0 |  |  | vaultwarden |
-| 192.168.0.29/24 | garage net0 |  |  | garage |
-| 192.168.0.30/24 | tfstate net0 |  |  | tfstate |
-| 192.168.0.31/24 | forgejo-runner-migration net0 |  |  | forgejo-runner-migration |
 | 192.168.0.32/24 | deploy-runner-01 net0 |  |  | deploy-runner-01 |
+| 192.168.0.33/24 | ci-runner-01 net0 |  |  | ci-runner-01 |
 | 192.168.0.36/24 | ts-router-01 net0 |  |  | ts-router-01 |
 | 192.168.0.37/24 | ts-router-02 net0 |  |  | ts-router-02 |
 | 192.168.0.39/24 | mgmt-control-01 net0 |  |  | mgmt-control-01 |
@@ -181,7 +169,7 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 | 192.168.0.62/24 | pg-02 net0 |  |  | pg-02 |
 | 192.168.0.63/24 | pg-03 net0 |  |  | pg-03 |
 | 192.168.0.70/24 | dns-01 net0 |  |  | dns-01 |
-| 192.168.0.90/24 |  | dropper.doku-lab.net | Reserved | Reserved for the Windows service VM 700 (moved from the old host, kept off); the route dropper.doku-lab.net points at it |
+| 192.168.0.90/24 |  |  | Reserved | Reserved for the Windows service VM 700 (moved from the old host, kept off); the Traefik route dropper.doku-lab.net forwards to it |
 
 ## Services
 
@@ -196,12 +184,13 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 | k3s-server-02 | Kubernetes API | TCP | 6443 |  |
 | k3s-server-03 | Ingress (Traefik) | TCP | 80, 443 |  |
 | k3s-server-03 | Kubernetes API | TCP | 6443 |  |
+| pfsense | Web interface | TCP | 443 | pfsense.doku-lab.net, through Traefik on k3s, from the LAN only |
 | pg-01 | PostgreSQL | TCP | 5432 | Clients use the virtual IP 192.168.0.60 |
 | pg-02 | PostgreSQL | TCP | 5432 | Clients use the virtual IP 192.168.0.60 |
 | pg-03 | PostgreSQL | TCP | 5432 | Clients use the virtual IP 192.168.0.60 |
 | storage-01 | NFS | TCP | 2049 |  |
-| switch | Web interface | TCP | 80, 443 |  |
-| truenas | Forgejo | TCP | 30142, 30143 | git.doku-lab.net, through the legacy Caddy |
-| truenas | Nextcloud | TCP | 30027 | cloud.doku-lab.net, through the legacy Caddy |
+| switch | Web interface | TCP | 80, 443 | switch.doku-lab.net, through Traefik on k3s, from the LAN only |
+| truenas | Forgejo | TCP | 30142, 30143 | git.doku-lab.net, through Traefik on k3s (services/ingress/legacy-routes.yaml) |
+| truenas | Nextcloud | TCP | 30027 | cloud.doku-lab.net, through Traefik on k3s (services/ingress/legacy-routes.yaml) |
 | truenas | TrueNAS web interface | TCP | 81, 444 |  |
 <!-- netbox:generated:end -->

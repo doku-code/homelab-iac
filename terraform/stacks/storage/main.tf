@@ -1,5 +1,5 @@
 # Shared storage VM (M006, ADR-012): user data of k3s applications lives here, outside the k3s cluster, on
-# pve-core's NVMe thin pool, exported over NFS to the k3s nodes only. Single failure domain (one host, one
+# an NVMe thin pool (lab-vms on pve-compute since 2026-11-24; built on pve-core), exported over NFS to the k3s nodes only. Single failure domain (one host, one
 # disk) until dedicated NAS storage or Ceph exists. The data disk is protected: prevent_destroy.
 provider "proxmox" {
   endpoint = var.proxmox_endpoint
@@ -11,7 +11,7 @@ resource "proxmox_download_file" "debian" {
   datastore_id = var.image_datastore
   content_type = "import"
   url          = var.image.url
-  # Own copy: the same image on pve-core belongs to the deploy-runner root; two states must not own one file.
+  # Own copy: the same image on the node may belong to another root; two states must not own one file.
   file_name          = "storage-${basename(var.image.url)}"
   checksum           = var.image.sha512
   checksum_algorithm = "sha512"
@@ -87,6 +87,7 @@ resource "proxmox_virtual_environment_vm" "storage" {
   }
   lifecycle {
     prevent_destroy = true
-    ignore_changes  = [started]
+    # import_from: the image the OS disk was made from; a VM moved to another node keeps its disk.
+    ignore_changes = [started, disk[0].import_from]
   }
 }

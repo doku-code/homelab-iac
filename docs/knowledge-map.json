@@ -2013,7 +2013,6 @@
         "Networks",
         "Virtual machines and containers",
         "Cluster doku-lab",
-        "Cluster homelab",
         "Cluster truenas",
         "Tunnels",
         "Wi-Fi radios",
@@ -6329,7 +6328,7 @@
       "last_verified": null,
       "review_after": null,
       "type": "task",
-      "status": "in-progress",
+      "status": "completed",
       "path": "tasks/TASK-033-clean-ci-runner-ci-runner-01-on-the-new-cluster-replacing-ct.md",
       "tags": [
         "ci",

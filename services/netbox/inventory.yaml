@@ -132,14 +132,13 @@ device_types:
     manufacturer: Custom build
     model: Tower, ASUS mainboard, Ryzen 9 9950X3D
     u_height: 0
-    comments: "Built from parts. The firmware reports an ASUS mainboard and no model name; ports as Proxmox lists them."
+    comments: "Built from parts. The firmware reports the mainboard ASUS ProArt B850-CREATOR WIFI NEO and no model name; ports as the host reports them (2026-11-24)."
     ports:
-      - {name: enp1s0f0np0, type: other, description: "Add-in card, port 1; kind of port not read"}
-      - {name: enp1s0f1np1, type: other, description: "Add-in card, port 2; kind of port not read"}
-      - {name: nic0, type: other, enabled: false, description: "On the mainboard, not used; kind of port not read"}
-      - {name: nic1, type: other, enabled: false, description: "On the mainboard, not used; kind of port not read"}
-      - {name: nic2, type: other, enabled: false, description: "On the mainboard, not used; kind of port not read"}
-      - {name: wlp9s0, type: other-wireless, enabled: false, description: "Wi-Fi, not used"}
+      - {name: enp1s0f0np0, type: 25gbase-x-sfp28, description: "Mellanox ConnectX-4 Lx (add-in card), port 1, no link"}
+      - {name: enp1s0f1np1, type: 25gbase-x-sfp28, description: "Mellanox ConnectX-4 Lx (add-in card), port 2; linked at 10 Gbit/s"}
+      - {name: nic0, type: 5gbase-t, enabled: false, description: "Realtek RTL8126 on the mainboard, not used"}
+      - {name: nic1, type: 5gbase-t, enabled: false, description: "Realtek RTL8126 on the mainboard, not used"}
+      - {name: wlp9s0, type: ieee802.11be, enabled: false, description: "Realtek RTL8922AE (Wi-Fi 7) on the mainboard, not used"}
   - slug: custom-asrock-n100m-nas
     manufacturer: Custom build
     model: NAS, ASRock N100M mainboard
@@ -209,9 +208,10 @@ devices:
     platform: proxmox-ve-9
     cluster: doku-lab
     facts: 192.168.0.11
-    description: "Intel Core i7-11700, 32 GB RAM, 1 TB NVMe"
+    description: "Intel Core i7-11700, 32 GB RAM, 1 TB NVMe, a 25 Gb SFP28 card"
     ports:
       - {name: vmbr0, type: bridge, members: [nic0], address: 192.168.0.11/24, primary: true}
+      - {name: enp1s0np0, type: 25gbase-x-sfp28, description: "Mellanox ConnectX-4 Lx, card added by the operator in November 2026; no link yet"}
       - {name: amt, type: virtual, parent: nic0, mgmt_only: true, address: 192.168.0.9/24,
          description: "Intel AMT: the management engine answers on nic0's hardware address (ports 623 and 16992 open on 2026-11-20)"}
   - name: pve-infra
@@ -247,7 +247,8 @@ devices:
     platform: pfsense
     description: "AMD Ryzen 3, 8 GB RAM. pfSense, LAN gateway and DHCP; never changed or signed in to by automation"
     ports:
-      - {name: lan, address: 192.168.0.1/24, primary: true, dns_name: pfsense.doku-lab.net}
+      # pfsense.doku-lab.net and switch.doku-lab.net answer the ingress (192.168.0.40) since 2026-11-24, not these ports.
+      - {name: lan, address: 192.168.0.1/24, primary: true, dns_name: ""}
   - name: switch
     type: qnap-qsw-m3216r-8s8t
     role: switch
@@ -255,7 +256,7 @@ devices:
     rack: rack-01
     description: "Core switch; every Proxmox host of doku-lab is plugged into it"
     ports:
-      - {name: vlan1, type: virtual, mgmt_only: true, address: 192.168.0.3/24, dns_name: switch.doku-lab.net, primary: true,
+      - {name: vlan1, type: virtual, mgmt_only: true, address: 192.168.0.3/24, dns_name: "", primary: true,
          description: "Management address, set by the operator on 2026-11-22; the switch announces it (LLDP)"}
       - {name: "3", description: ""}
   - name: access-point
@@ -278,11 +279,13 @@ devices:
 # the hosts hear the switch name its port (LLDP) and the reconciliation records them (tag "observed").
 # The three below were found on 2026-11-22 by sending traffic to each machine and reading which port of the switch
 # carried it (the switch's own counters, SNMP). The access point's traffic leaves through port 3 at 2.5 Gbit/s,
-# the speed of the EAP720's own port.
+# the speed of the EAP720's own port. Ports 14 and 16 were told apart wrongly that day (32-bit counters wrap at
+# 10 Gbit/s): on 2026-11-24 the old host, now pve-compute, heard the switch name port 16, which leaves 14, the
+# only other SFP+ port with a link, for TrueNAS.
 cables:
   - {a: [access-point, eth0], b: [switch, "3"], description: "Found by traffic and the switch's port counters, 2026-11-22; link at 2.5 Gbit/s"}
   - {a: [pfsense, lan], b: [switch, "1"], description: "Found by traffic and the switch's port counters, 2026-11-22; link at 2.5 Gbit/s"}
-  - {a: [truenas, enp1s0], b: [switch, "16"], type: dac-passive, description: "Found by traffic and the switch's port counters, 2026-11-22"}
+  - {a: [truenas, enp1s0], b: [switch, "14"], type: dac-passive, description: "The other SFP+ port with a link: pve-compute announces port 16 (LLDP, 2026-11-24)"}
 
 # Other clusters than the Proxmox ones, and the machines on them that no Proxmox API lists.
 clusters:
@@ -304,16 +307,18 @@ virtual_machines:
 device_services:
   truenas:
     - {name: TrueNAS web interface, protocol: tcp, ports: [81, 444]}
-    - {name: Forgejo, protocol: tcp, ports: [30142, 30143], description: "git.doku-lab.net, through the legacy Caddy"}
-    - {name: Nextcloud, protocol: tcp, ports: [30027], description: "cloud.doku-lab.net, through the legacy Caddy"}
+    - {name: Forgejo, protocol: tcp, ports: [30142, 30143], description: "git.doku-lab.net, through Traefik on k3s (services/ingress/legacy-routes.yaml)"}
+    - {name: Nextcloud, protocol: tcp, ports: [30027], description: "cloud.doku-lab.net, through Traefik on k3s (services/ingress/legacy-routes.yaml)"}
   switch:
-    - {name: Web interface, protocol: tcp, ports: [80, 443]}
+    - {name: Web interface, protocol: tcp, ports: [80, 443], description: "switch.doku-lab.net, through Traefik on k3s, from the LAN only"}
+  pfsense:
+    - {name: Web interface, protocol: tcp, ports: [443], description: "pfsense.doku-lab.net, through Traefik on k3s, from the LAN only"}
   access-point:
     - {name: Web interface, protocol: tcp, ports: [443]}
 
 # Addresses that belong to no port listed above. "iac: true": owned by Git; the others are written once.
 addresses:
-  - {address: 192.168.0.90/24, status: reserved, dns_name: dropper.doku-lab.net, iac: true, description: "Reserved for the Windows service VM 700 (moved from the old host, kept off); the route dropper.doku-lab.net points at it"}
+  - {address: 192.168.0.90/24, status: reserved, dns_name: "", iac: true, description: "Reserved for the Windows service VM 700 (moved from the old host, kept off); the Traefik route dropper.doku-lab.net forwards to it"}
   - {address: 192.168.0.60/24, role: vip, iac: true, description: "PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql)"}
   - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address (ansible/vars/dns.yml)"}
 
@@ -338,7 +343,7 @@ tunnels:
 guests:
   doku-lab:
     - {vmids: [306, 307], role: tailscale-router, platform: debian-13, description: "Tailscale subnet router for the LAN (ansible/playbooks/configure-tailscale-routers.yml); container moved from the old host on 2026-11-21, not defined by a root yet"}
-    - {vmids: [500, 599], role: desktop, description: "Desktop VM copied from the old environment on 2026-11-24 while the old host is reinstalled, kept off; the copy on the old host is not the one to start"}
+    - {vmids: [500, 599], role: desktop, description: "Desktop VM copied from the old host on 2026-11-24 before it became pve-compute; verified by the operator, the originals are deleted. Kept off"}
     - {vmids: [700, 799], role: desktop, description: "Windows VM moved from the old environment on 2026-11-21, kept off; its network is set by the operator when it is started again"}
 
 # Records an earlier version of this file created and that are wrong: removed by `make netbox-prune` (the
@@ -374,6 +379,12 @@ retired:
   - {path: virtualization/clusters, name: homelab, reason: "The old environment joined doku-lab as pve-compute on 2026-11-24"}
   - {path: ipam/ip-addresses, address: 192.168.0.116/24, reason: "DHCP lease the switch had until the operator gave it 192.168.0.3 on 2026-11-22"}
   - {path: dcim/device-types, slug: tp-link-eap220, reason: "The access point is an EAP720 (operator, 2026-11-23)"}
+  # Review of every record, 2026-11-24. The two SFP+ cables were recorded on each other's port; the right ones are
+  # created by the reconciliation once these are gone (pve-compute - 16 heard through LLDP, truenas - 14 above).
+  - {path: dcim/cables, between: [[pve-compute, enp1s0f1np1], [switch, "14"]], reason: "pve-compute announces port 16 (LLDP)"}
+  - {path: dcim/cables, between: [[truenas, enp1s0], [switch, "16"]], reason: "Port 16 is pve-compute's; TrueNAS is on 14"}
+  - {path: dcim/interfaces, name: nic2, reason: "pve-compute has two ports on its mainboard, not three"}
+  - {path: dcim/interface-templates, name: nic2, reason: "pve-compute has two ports on its mainboard, not three"}
 
 # OpenTofu roots whose VMs are inventoried from `tofu output -json ansible_inventory` (state on the workstation).
 iac_roots:
@@ -413,7 +424,7 @@ config_contexts:
         opentofu_root: terraform/stacks/k3s
         ansible_group: k3s_cluster
         vmid_range: [310, 349]
-        proxmox_hosts: [pve-core, pve-infra, pve-lab]
+        proxmox_hosts: [pve-core, pve-infra, pve-lab, pve-compute]
         minimum: {cores: 2, memory_mb: 4096, disk_gb: 32}
   - name: role-storage
     description: "Provisioning rules of storage VMs (terraform/stacks/storage)"
@@ -423,7 +434,7 @@ config_contexts:
         opentofu_root: terraform/stacks/storage
         ansible_group: storage
         vmid_range: [350, 359]
-        proxmox_hosts: [pve-core]
+        proxmox_hosts: [pve-core, pve-compute]
         minimum: {cores: 1, memory_mb: 1024, disk_gb: 10}
   - name: role-postgresql
     description: "Provisioning rules of PostgreSQL members (terraform/stacks/postgresql)"
@@ -433,7 +444,7 @@ config_contexts:
         opentofu_root: terraform/stacks/postgresql
         ansible_group: postgresql
         vmid_range: [360, 369]
-        proxmox_hosts: [pve-core, pve-infra, pve-lab]
+        proxmox_hosts: [pve-core, pve-infra, pve-lab, pve-compute]
         minimum: {cores: 2, memory_mb: 2048, disk_gb: 10}
   - name: role-dns
     description: "Provisioning rules of DNS VMs (terraform/stacks/dns)"
@@ -443,7 +454,7 @@ config_contexts:
         opentofu_root: terraform/stacks/dns
         ansible_group: dns
         vmid_range: [370, 379]
-        proxmox_hosts: [pve-core, pve-infra, pve-lab]
+        proxmox_hosts: [pve-core, pve-infra, pve-lab, pve-compute]
         minimum: {cores: 1, memory_mb: 1024, disk_gb: 10}
 
 # What each kind of machine serves, recorded on every VM of the role that a root defines.

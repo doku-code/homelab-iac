@@ -106,10 +106,10 @@ Verified facts: [INV-new-proxmox-cluster-inventory](../investigations/new-proxmo
 | Host | Now | Target |
 |------|-----|--------|
 | `pve-management` 192.168.0.10 | New cluster; i5-10500T, 16 GB; runs `mgmt-control-01` (VM 100) | Management node: workstation |
-| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe | Bootstrap deployment runner `deploy-runner-01` (VM 302, ADR-014), shared storage `storage-01` (VM 350, NFS for k3s user data, M006), PostgreSQL member `pg-01` (VM 361, M007), k3s server `k3s-server-02` (VM 311, .41) |
-| `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD | PostgreSQL member `pg-03` (VM 363, small, M007); LAN DNS `dns-01` (VM 370, AdGuard Home, TASK-022); lightweight services |
-| `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE | k3s servers `k3s-server-01` (VM 310, .40, M004) and `k3s-server-03` (VM 312, .42); PostgreSQL member `pg-02` (VM 362, M007) |
-| `pve-lab` **192.168.0.14** | **Old environment**, independent; Ryzen 9 9950X3D; runs the legacy services | Emptied (M010), reinstalled as `pve-compute`, joined |
+| `pve-core` 192.168.0.11 | New cluster; i7-11700, 32 GB, 1 TB NVMe, a 25 Gb SFP28 card without cable yet | PostgreSQL member `pg-01` (VM 361, M007), k3s server `k3s-server-02` (VM 311, .41), LAN DNS `dns-01` (VM 370, AdGuard Home), a Tailscale router; the stopped desktop VMs |
+| `pve-infra` 192.168.0.12 | New cluster (fresh install, reused name); N5095A, 8 GB, SATA SSD | Hosts nothing since 2026-11-24; will leave the cluster one day (operator) |
+| `pve-lab` 192.168.0.16 | New cluster; Ryzen 7 6800H, 32 GB DDR5, 512 GB NVMe, 2.5 GbE | k3s server `k3s-server-03` (VM 312, .42); PostgreSQL member `pg-02` (VM 362, M007) |
+| `pve-compute` 192.168.0.14 | New cluster since 2026-11-24 (the old environment's host, renamed); Ryzen 9 9950X3D, 32 GB, 1 TB and 2 TB NVMe, 10 Gb | The heavy work: both runners (`deploy-runner-01` VM 302, `ci-runner-01` VM 303), k3s server `k3s-server-01` (VM 310, .40, the ingress address), PostgreSQL member `pg-03` (VM 363), shared storage `storage-01` (VM 350, NFS for k3s user data, disks on the 2 TB NVMe, storage `lab-vms`) |
 | `pve-k8s-01/02` | Legacy | Reclaimed after migration |
 | TrueNAS SCALE | Serves Forgejo and datasets | Backup destination; current apps stay until replaced |
 

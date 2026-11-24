@@ -1366,13 +1366,15 @@ netbox-apply:
 	$(NETBOX_SYNC) apply
 	$(NETBOX_SYNC) icons
 
-# NetBox follows the live state by itself: reads the cluster (GET requests only) and writes what changed, with the
+# NetBox follows the live state by itself: reads the cluster (GET requests only) and the hosts' own hardware and
+# switch port (root SSH, read-only), and writes what changed, with the
 # same rules as `netbox-apply` (never deletes, never overwrites what a person entered). Run by the timer below,
 # every 15 minutes, on the workstation: the roots' states and the secret store session are only there.
 #   scripts/secrets.py run /pve-management /netbox -- make netbox-autosync NETBOX_AUTOSYNC_APPROVED=yes
 netbox-autosync:
 	@test "$(NETBOX_AUTOSYNC_APPROVED)" = yes || (echo "Approve the unattended inventory write with NETBOX_AUTOSYNC_APPROVED=yes" >&2; exit 1)
 	@$(NETBOX_SYNC) discover doku-lab
+	@$(NETBOX_SYNC) discover-hardware >/dev/null || echo "hardware facts not refreshed (a host did not answer); the last ones are used" >&2
 	@$(NETBOX_SYNC) apply
 
 # Installs and starts the timer for this user (units in services/netbox/autosync/), and lets it run without an

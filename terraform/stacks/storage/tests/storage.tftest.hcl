@@ -32,6 +32,22 @@ run "storage_vm_contract" {
   }
 }
 
+run "accepts_pve_compute_and_its_second_disk" {
+  command = plan
+  variables {
+    profile        = { node = "pve-compute", vm_id = 350, name = "storage-01", ipv4 = "192.168.0.50/24", cores = 2, memory = 2048, os_disk_gb = 16, data_disk_gb = 300 }
+    disk_datastore = "lab-vms"
+  }
+  assert {
+    condition = (
+      proxmox_virtual_environment_vm.storage.node_name == "pve-compute" &&
+      alltrue([for d in proxmox_virtual_environment_vm.storage.disk : d.datastore_id == "lab-vms"]) &&
+      proxmox_virtual_environment_vm.storage.initialization[0].datastore_id == "lab-vms"
+    )
+    error_message = "On pve-compute both disks and the cloud-init drive are on lab-vms."
+  }
+}
+
 run "rejects_old_environment" {
   command = plan
   variables {

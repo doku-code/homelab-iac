@@ -20,8 +20,8 @@ variable "profile" {
     data_disk_gb = number
   })
   validation {
-    condition     = var.profile.node == "pve-core"
-    error_message = "The shared storage VM lives on pve-core (1 TB NVMe; operator decision 2026-11-17)."
+    condition     = contains(["pve-core", "pve-compute"], var.profile.node)
+    error_message = "The shared storage VM lives on pve-compute (its 2 TB NVMe, storage lab-vms; operator decision 2026-11-24) or on pve-core, where it was built."
   }
   validation {
     condition     = var.profile.vm_id >= 350 && var.profile.vm_id <= 359 && can(regex("^192\\.168\\.0\\.5[0-9]/24$", var.profile.ipv4))
@@ -29,7 +29,7 @@ variable "profile" {
   }
   validation {
     condition     = var.profile.cores >= 1 && var.profile.memory >= 1024 && var.profile.os_disk_gb >= 10 && var.profile.data_disk_gb >= 50 && var.profile.data_disk_gb <= 700
-    error_message = "Need >= 1 core, 1024 MiB, 10 GiB OS disk and a 50-700 GiB data disk (the pve-core thin pool is 849 GiB)."
+    error_message = "Need >= 1 core, 1024 MiB, 10 GiB OS disk and a 50-700 GiB data disk (thin; lab-vms on pve-compute is 1.8 TiB)."
   }
 }
 
@@ -39,8 +39,9 @@ variable "image_datastore" {
 }
 
 variable "disk_datastore" {
-  type    = string
-  default = "local-lvm"
+  description = "Storage of the two disks and of the cloud-init drive. lab-vms exists on pve-compute only."
+  type        = string
+  default     = "local-lvm"
 }
 
 variable "bridge" {

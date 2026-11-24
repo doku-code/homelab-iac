@@ -8,6 +8,7 @@
   scripts/netbox-sync.py icons                        give each device role its picture in the topology diagram (plugin)
   scripts/netbox-sync.py check-plan <root> <plan>     do the VMIDs and addresses of a saved OpenTofu plan agree with NetBox?
   scripts/netbox-sync.py prune                        remove the records inventory.yaml lists under `retired`, nothing else
+                                                      (a cable is named by its two ports: `between: [[device, port], [device, port]]`)
   scripts/netbox-sync.py identities                   create the two service accounts and store their API tokens
   scripts/netbox-sync.py export <directory>           write the whole inventory as sorted YAML files (for a history in Git)
   scripts/netbox-sync.py document <page.md>           rewrite the generated part of a documentation page from NetBox
@@ -200,6 +201,8 @@ def discover(source_name, source, client):
             nic["ip"] = nic["ip"] or static
             guest["nics"].append(nic)
         guest["ostype"] = config.get("ostype")
+        if config:
+            guest["onboot"] = bool(int(config.get("onboot") or 0))
         guest["disks"] = [disk for key in sorted(k for k in config if DISK_KEY.fullmatch(k)) if (disk := parse_disk(key, config[key]))]
         guests.append(guest)
     return {"source": source_name, "taken": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
@@ -623,7 +626,7 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None, overlay=None):
                 r.hardware_address(port_label, "dcim/interfaces", "interface_id", "dcim.interface", interface, port_facts.get("mac"))
             if port.get("address"):
                 address_fields = {"description": entry["name"], "status": port.get("address_status", "active")}
-                if port.get("dns_name"):
+                if "dns_name" in port:
                     address_fields["dns_name"] = port["dns_name"]
                 ip = r.address(f"{label} address {port['address']}", port["address"], address_fields, ("dcim.interface", interface))
                 managed_at[port["address"].split("/")[0]] = entry["name"]
@@ -699,6 +702,8 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None, overlay=None):
         size = {"vcpus": seen["vcpus"], "memory": seen["memory_mb"]}
         if not seen.get("disks"):
             size["disk"] = seen["disk_mb"]
+        if "onboot" in seen:
+            size["start_on_boot"] = "on" if seen["onboot"] else "off"
         return size
 
     # Intended: the VMs of the OpenTofu roots. They live on the new cluster, the first source.
@@ -716,8 +721,11 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None, overlay=None):
         if host is not None:
             fields["device"] = ref(host)
         seen = observed.get(m["vmid"])
-        if seen:  # sizing is what Proxmox reports; identity and addressing are what Git says
+        if seen:  # sizing and the host it runs on are what Proxmox reports; identity and addressing are what Git says
             fields.update(sizing(seen))
+            running_on = node_device(new_source, seen["node"])
+            if running_on is not None:  # a guest moved by hand: NetBox says where it is, the review line says Git differs
+                fields["device"] = ref(running_on)
             for what, git, proxmox in (("name", m["name"], seen["name"]), ("host", m["node"], seen["node"])):
                 if git != proxmox:
                     r.review.append(f"{label}: {what} is {git!r} in Git and {proxmox!r} on Proxmox")
@@ -1128,6 +1136,10 @@ def retired_query(entry):
     """How a retired record is found: by name, by slug or (an address) by address, and for a guest also by the
     cluster it was in. `every: true` with a cluster names all the records of that cluster (a cluster that no
     longer exists)."""
+    if entry.get("between"):
+        if entry["path"] != "dcim/cables" or len(entry["between"]) != 2:
+            die(f"retired: {entry} with `between` is a cable and names its two ports as [device, port]")
+        return {"between": [list(map(str, end)) for end in entry["between"]]}
     query = {key: entry[key] for key in ("name", "slug", "address") if key in entry}
     if entry.get("every"):
         if query or not entry.get("cluster"):
@@ -1144,6 +1156,15 @@ def retired_records(api, entry):
     """The records a retired entry still matches. NetBox refuses a filter on a cluster it does not have: such
     an entry matches nothing (its cluster was removed, and its guests before it)."""
     query = retired_query(entry)
+    if "between" in query:
+        # The cable both ports name, and only when both name the same one.
+        cables = []
+        for device, port in query["between"]:
+            found = api.list("dcim/interfaces", {"device": device, "name": port})
+            cables.append(norm(found[0].get("cable")) if len(found) == 1 else None)
+        if not cables[0] or cables[0] != cables[1]:
+            return query, []
+        return query, api.list("dcim/cables", {"id": cables[0]})
     if entry.get("cluster") and entry["path"] != "virtualization/clusters" and not api.list("virtualization/clusters", {"name": entry["cluster"]}):
         return query, []
     return query, api.list(entry["path"], query)
