@@ -38,10 +38,11 @@ kube-state-metrics is its own chart; the Prometheus chart is no longer deployed.
 
 ## Acceptance criteria
 
-- [ ] VictoriaMetrics, vmalert and kube-state-metrics run from Argo CD; Alloy in the cluster and the VMs write to VictoriaMetrics.
-- [ ] Grafana dashboards and the dashboard's cards show data; the rules are loaded by vmalert.
-- [ ] The history held by Prometheus is copied.
-- [ ] Prometheus's workloads are removed from the cluster (its volume on the operator's word).
+- [x] VictoriaMetrics, vmalert and kube-state-metrics run from Argo CD; Alloy in the cluster and the VMs write to VictoriaMetrics.
+- [x] Grafana and the dashboard's widget API start on the new address; the rules are loaded by vmalert (the rendering of the panels in a browser is the operator's check).
+- [x] The history held by Prometheus is copied.
+- [x] Prometheus's workloads are removed from the cluster.
+- [ ] The volume `prometheus-server` is deleted (operator's word).
 - [x] Offline tests.
 
 ## Verification
@@ -61,7 +62,16 @@ make observability-check
 
 | Check | Result | Reference (commit / output / doc) | Date |
 |-------|--------|-----------------------------------|------|
+| Deployment | `victoria-metrics-0`, `vmalert`, `kube-state-metrics` Running; application `monitoring` Healthy | `kubectl -n monitoring get pods`, commits 9e30d89 and a66f0b4 | 2026-11-24 |
+| Grafana | first start refused the renamed data source (`data source with the same uid already exists`); fixed with `deleteDatasources`, pod 1/1 | a66f0b4 | 2026-11-24 |
+| Series arriving | seven jobs, 8 hosts report `node_load1`, each less than 21 s ago (`lag()`) | query API of VictoriaMetrics | 2026-11-24 |
+| Rules | 13 rules loaded by vmalert, no evaluation error | `/api/v1/rules` of vmalert | 2026-11-24 |
+| History | `Import finished`, 32,921,308 samples, first sample of `node_load1` from 2026-11-17 | `vmctl remote-read` in a one-off pod | 2026-11-24 |
+| Prometheus removed | Deployments, Services, ConfigMap, accounts and cluster roles of the release deleted; the volume `prometheus-server` is kept | `kubectl delete -l app.kubernetes.io/instance=prometheus` | 2026-11-24 |
+| Use | VictoriaMetrics 199 Mi right after the import, vmalert 12 Mi, kube-state-metrics 28 Mi | `kubectl top` | 2026-11-24 |
+| Snapshot sidecar | 63 `Failed to watch` lines in 10 minutes before, 0 in 3 minutes after the snapshot controller and its CRDs | logs of `csi-snapshotter` | 2026-11-24 |
 
 ## Completion summary
 
-In progress. Remaining: deploy, verify, copy the history, remove the Prometheus workloads.
+In progress. Remaining: the operator looks at the dashboards and says whether the volume `prometheus-server` (the only
+object Argo CD still shows as out of sync) may be deleted; a notification channel for the alerts is not chosen yet.
