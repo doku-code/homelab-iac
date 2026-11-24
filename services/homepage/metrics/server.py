@@ -15,6 +15,7 @@ credential reports "configured": false and the page says so instead of failing. 
   QBIT_USERNAME, QBIT_PASSWORD     qBittorrent web login
 """
 import http.cookiejar
+import functools
 import json
 import os
 import ssl
@@ -61,7 +62,10 @@ class State:
             return data
 
 
+@functools.lru_cache(maxsize=None)
 def tls_context(ca_file=None, verify=True):
+    # One context per distinct source, kept: building one for every request loads the whole CA bundle each time
+    # and the process grew until its memory limit restarted it.
     if not verify:
         return ssl._create_unverified_context()  # noqa: S323 - only for sources marked "verify": false in sources.json
     return ssl.create_default_context(cafile=ca_file) if ca_file else ssl.create_default_context()
