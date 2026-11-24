@@ -7,27 +7,19 @@
       "summary": true,
       "token_env": "PVE_TOKEN",
       "ca_file": "pve-root-ca.crt",
-      "endpoints": ["https://192.168.0.10:8006", "https://192.168.0.11:8006", "https://192.168.0.12:8006", "https://192.168.0.16:8006"],
+      "endpoints": ["https://192.168.0.10:8006", "https://192.168.0.11:8006", "https://192.168.0.12:8006", "https://192.168.0.16:8006", "https://192.168.0.14:8006"],
       "nodes": {
         "pve-management": {"key": "pve_management", "label": "PVE Management"},
         "pve-core": {"key": "pve_core", "label": "PVE Core"},
         "pve-infra": {"key": "pve_infra", "label": "PVE Infra"},
-        "pve-lab": {"key": "pve_lab", "label": "PVE Lab"}
-      }
-    },
-    {
-      "id": "legacy",
-      "token_env": "PVE_LEGACY_TOKEN",
-      "verify": false,
-      "endpoints": ["https://192.168.0.14:8006"],
-      "nodes": {
-        "pve-lab": {"key": "pve_compute", "label": "PVE Compute"}
+        "pve-lab": {"key": "pve_lab", "label": "PVE Lab"},
+        "pve-compute": {"key": "pve_compute", "label": "PVE Compute"}
       }
     }
   ],
   "remote": {
-    "win11-dev": {"card": "win11-dev-service", "label": "Win11 Dev", "cluster": "legacy", "vmid": 502, "host": "192.168.0.51"},
-    "win11-game": {"card": "win11-game-service", "label": "Win11 Game", "cluster": "legacy", "vmid": 501, "host": "192.168.0.52"}
+    "win11-dev": {"card": "win11-dev-service", "label": "Win11 Dev", "cluster": "doku-lab", "vmid": 502, "host": "192.168.0.51"},
+    "win11-game": {"card": "win11-game-service", "label": "Win11 Game", "cluster": "doku-lab", "vmid": 501, "host": "192.168.0.52"}
   },
   "services": {
     "argocd": {"label": "Argo CD", "url": "http://argocd-server.argocd.svc/api/version", "kind": "json-version", "field": "Version"},

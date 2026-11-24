@@ -54,6 +54,26 @@
         description: Local DNS · ad blocking · dns-01
 
 - Infrastructure:
+    - Router:
+        id: router-service
+        icon: pfsense.svg
+        href: https://192.168.0.1
+        description: Gateway · DHCP · internet
+    - Switch:
+        id: switch-service
+        icon: qnap.png
+        href: https://192.168.0.3
+        description: 10G RJ45 · 10G SFP+
+    - k3s:
+        id: k3s-service
+        icon: k3s.png
+        href: https://headlamp.doku-lab.net
+        description: Kubernetes cluster · three servers
+    - PostgreSQL:
+        id: postgres-service
+        icon: postgres.png
+        href: https://grafana.doku-lab.net
+        description: Shared database · Patroni · three members
     - PVE Management:
         id: pve-management-service
         icon: proxmox.png
@@ -74,36 +94,16 @@
         icon: proxmox.png
         href: https://pve-lab.doku-lab.net
         description: k3s · PostgreSQL
-    - k3s:
-        id: k3s-service
-        icon: k3s.png
-        href: https://headlamp.doku-lab.net
-        description: Kubernetes cluster · three servers
-    - PostgreSQL:
-        id: postgres-service
-        icon: postgres.png
-        href: https://grafana.doku-lab.net
-        description: Shared database · Patroni · three members
+    - PVE Compute:
+        id: pve-compute-service
+        icon: proxmox.png
+        href: https://192.168.0.14:8006
+        description: Ryzen 9 9950X3D · joined doku-lab on 2026-11-24
     - TrueNAS:
         id: truenas-service
         icon: truenas.png
         href: https://truenas.doku-lab.net
         description: ZFS · SMB · NFS · apps
-    - PVE Compute:
-        id: pve-compute-service
-        icon: proxmox.png
-        href: https://192.168.0.14:8006
-        description: Old host · legacy guests until they are replaced
-    - Router:
-        id: router-service
-        icon: mdi-router-network
-        href: https://192.168.0.1
-        description: Gateway · DHCP · internet
-    - Switch:
-        id: switch-service
-        icon: mdi-ethernet
-        href: https://192.168.0.3
-        description: 10G RJ45 · 10G SFP+
 
 - Apps:
     - Nextcloud:

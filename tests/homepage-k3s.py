@@ -177,7 +177,7 @@ def widget_api():
     assert nodes["pve_management"]["error"] == "not in the cluster"
     assert server.shared_storage(resources) == (5 * gib, 50 * gib), "shared storage is counted once"
     assert server.guest_states(resources)["311"]["status"] == "running"
-    remote = server.remote_machines(sources, {"legacy": {"502": {"status": "running"}}})["services"]
+    remote = server.remote_machines(sources, {"doku-lab": {"502": {"status": "running"}}})["services"]
     assert remote["win11-dev-service"]["running"] is True and remote["win11-game-service"]["status"] == "missing"
 
     postgres = server.postgres_members({"pg-01": 1, "pg-02": 1, "pg-03": 0}, {"pg-01": 0, "pg-02": 1, "pg-03": 0},
