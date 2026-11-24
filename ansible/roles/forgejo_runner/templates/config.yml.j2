@@ -1,7 +1,7 @@
 log:
   level: info
 runner:
-  capacity: 1
+  capacity: {{ runner_instance.capacity | default(1) }}
   timeout: 3h
   labels: []
 container:

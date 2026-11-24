@@ -620,6 +620,10 @@
         {
           "from": "TASK-015",
           "field": "related_decisions"
+        },
+        {
+          "from": "TASK-033",
+          "field": "related_decisions"
         }
       ]
     },
@@ -1286,6 +1290,10 @@
         },
         {
           "from": "TASK-014",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-033",
           "field": "related_decisions"
         }
       ]
@@ -3536,6 +3544,10 @@
         },
         {
           "from": "TASK-032",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-033",
           "field": "milestone"
         }
       ]
@@ -6290,6 +6302,61 @@
         ]
       },
       "backrefs": []
+    },
+    {
+      "id": "TASK-033",
+      "title": "Clean CI runner ci-runner-01 on the new cluster, replacing CT301",
+      "summary": "One validation runner VM built by OpenTofu and Ansible serves every repository; the hand-grown CT301 on the old host is retired",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-033-clean-ci-runner-ci-runner-01-on-the-new-cluster-replacing-ct.md",
+      "tags": [
+        "ci",
+        "runner",
+        "migration"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "Clean CI runner ci-runner-01 on the new cluster, replacing CT301",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related_decisions": [
+          "ADR-008",
+          "ADR-014"
+        ],
+        "related_implementations": [
+          "terraform/stacks/ci-runner/main.tf",
+          "ansible/playbooks/configure-ci-runner.yml",
+          "ansible/roles/forgejo_runner/templates/config.yml.j2"
+        ],
+        "related_tests": [
+          "tests/ci-runner.py",
+          "terraform/stacks/ci-runner/tests/ci-runner.tftest.hcl"
+        ],
+        "milestone": [
+          "M010"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -6388,7 +6455,8 @@
       "TASK-029",
       "TASK-030",
       "TASK-031",
-      "TASK-032"
+      "TASK-032",
+      "TASK-033"
     ]
   },
   "by_tag": {
@@ -6461,7 +6529,8 @@
     "ci": [
       "ADR-008",
       "ADR-014",
-      "TASK-014"
+      "TASK-014",
+      "TASK-033"
     ],
     "cluster": [
       "ADR-010",
@@ -6641,7 +6710,8 @@
       "TASK-019",
       "TASK-027",
       "TASK-029",
-      "TASK-032"
+      "TASK-032",
+      "TASK-033"
     ],
     "netbox": [
       "ADR-016",
@@ -6775,7 +6845,8 @@
       "ADR-008",
       "ADR-014",
       "TASK-009",
-      "TASK-014"
+      "TASK-014",
+      "TASK-033"
     ],
     "secrets": [
       "ADR-004",

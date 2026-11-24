@@ -23,7 +23,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M009 | active | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | completed: 2 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M013 | active | medium | [NetBox inventory and IPAM](../milestones/M013-netbox-inventory-and-ipam.md) | completed: 1, in-progress: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
 | M014 | active | medium | [Single sign-on with Authentik](../milestones/M014-single-sign-on-with-authentik.md) | completed: 1 | Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator. |
-| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 4, in-progress: 2, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
+| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 4, in-progress: 3, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](../milestones/M012-backups-and-finalization.md) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
 | M001 | completed | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 5, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
@@ -45,6 +45,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
 | TASK-030 | in-progress | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](../tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md) | NetBox holds named hardware models, ports, hardware facts, the cables the switch announces and what every guest is, draws diagrams through plugins, and the roots check their plans against it. |
 | TASK-032 | in-progress | medium | M010 | [Vaultwarden on k3s with its vault in the shared PostgreSQL](../tasks/TASK-032-vaultwarden-on-k3s-with-its-vault-in-the-shared-postgresql.md) | Vaultwarden moves from the container on the old host to k3s; its SQLite vault is copied into the shared PostgreSQL; same name, same account. |
+| TASK-033 | in-progress | medium | M010 | [Clean CI runner ci-runner-01 on the new cluster, replacing CT301](../tasks/TASK-033-clean-ci-runner-ci-runner-01-on-the-new-cluster-replacing-ct.md) | One validation runner VM built by OpenTofu and Ansible serves every repository; the hand-grown CT301 on the old host is retired |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -159,7 +160,7 @@ _No commit records. Generate with `harness history sync`._
 - **caddy**: TASK-022
 - **ceph**: ADR-012
 - **cert-manager**: TASK-022
-- **ci**: ADR-008, ADR-014, TASK-014
+- **ci**: ADR-008, ADR-014, TASK-014, TASK-033
 - **cluster**: ADR-010, INV-new-proxmox-cluster-inventory, TASK-013
 - **compose**: ADR-006
 - **compute**: TASK-013
@@ -200,7 +201,7 @@ _No commit records. Generate with `harness history sync`._
 - **m002**: TASK-013
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
-- **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029, TASK-032
+- **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029, TASK-032, TASK-033
 - **netbox**: ADR-016, ADR-018, DOC-infrastructure-inventory, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026, TASK-030
 - **network**: DOC-infrastructure-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-031
 - **nfs**: TASK-017
@@ -226,7 +227,7 @@ _No commit records. Generate with `harness history sync`._
 - **repository**: TASK-001
 - **roadmap**: M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012, M013, M014
 - **runbook**: TASK-012
-- **runner**: ADR-008, ADR-014, TASK-009, TASK-014
+- **runner**: ADR-008, ADR-014, TASK-009, TASK-014, TASK-033
 - **secrets**: ADR-004, TASK-011, TASK-019
 - **security**: ADR-008
 - **service-catalog**: ADR-005

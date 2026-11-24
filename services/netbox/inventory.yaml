@@ -87,6 +87,7 @@ roles:
   - {name: Storage, slug: storage, color: 009688}
   - {name: DNS, slug: dns, color: 9c27b0}
   - {name: Deployment runner, slug: deploy-runner, color: ffc107}
+  - {name: CI runner, slug: ci-runner, color: ffeb3b}
   - {name: Admin workstation, slug: admin-workstation, color: 00bcd4}
   - {name: Legacy service, slug: legacy-service, color: 9e9e9e}
   - {name: Tailscale router, slug: tailscale-router, color: 8bc34a}
@@ -350,7 +351,7 @@ guests:
     - {vmid: 206, role: legacy-service, description: "Vaultwarden until 2026-11-24, now on k3s (TASK-032); its Docker container is stopped, data kept for rollback"}
     - {vmid: 209, role: legacy-service, description: "Garage object storage (ansible/playbooks/configure-garage.yml); stopped", review: true}
     - {vmid: 300, role: legacy-service, description: "OpenTofu state backups (tfstate.doku-lab.net); stopped", review: true}
-    - {vmid: 301, role: deploy-runner, description: "Forgejo Actions runner of this repository (CT301); never holds Proxmox credentials (ADR-008)"}
+    - {vmid: 301, role: legacy-service, description: "Forgejo Actions runner until 2026-11-24, replaced by ci-runner-01 (TASK-033); its runner service is stopped"}
     - {vmids: [400, 699], role: desktop, description: "Desktop or development VM of the old environment, started by hand when needed"}
     - {vmids: [8000, 8999], role: template, description: "Image other VMs of the old environment were cloned from"}
 
@@ -388,6 +389,7 @@ retired:
 iac_roots:
   - {root: pve-management-control, group: mgmt_control, role: admin-workstation, platform: ubuntu-26-04, node: pve-management}
   - {root: deploy-runner, group: deploy_runner, role: deploy-runner, platform: debian-13}
+  - {root: ci-runner, group: ci_runner, role: ci-runner, platform: debian-13}
   - {root: k3s, group: k3s_cluster, role: k3s-server, platform: debian-13}
   - {root: storage, group: storage, role: storage, platform: debian-13}
   - {root: postgresql, group: postgresql, role: postgresql, platform: debian-13}

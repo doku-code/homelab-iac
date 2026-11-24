@@ -160,6 +160,10 @@ jobs:
       - name: Validate OpenTofu roots terraform/stacks/deploy-runner and terraform/stacks/ci-disposable, wrapper and workflow boundary offline
         run: make deploy-runner-check
 
+      # Offline only: mocked provider, rendered runner configuration; no registration, no token.
+      - name: Validate OpenTofu root terraform/stacks/ci-runner, runner playbook and Make guards offline
+        run: make ci-runner-check
+
       # Offline only: mocked provider, rendered templates, fake tofu/ansible; no cluster, no token.
       - name: Validate OpenTofu root terraform/stacks/k3s, k3s role and Make guards offline
         run: make k3s-cluster-check

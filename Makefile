@@ -657,6 +657,64 @@ deploy-runner-configure:
 	$(TOFU) -chdir=$(DEPLOY_RUNNER_DIR) output -json ansible_inventory > "$$inventory"; \
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-deploy-runner.yml --diff
 
+# ─────────────────────────────────────────────
+# CI runner ci-runner-01 (TASK-033, OpenTofu): the validation runner of every repository. No infrastructure
+# credentials ever reach it (ADR-008); deployments stay on deploy-runner-01.
+# ─────────────────────────────────────────────
+CI_RUNNER_DIR := terraform/stacks/ci-runner
+CI_RUNNER_PLAN := ci-runner.tfplan
+CI_RUNNER_SECRETS := REGISTRY_USERNAME REGISTRY_READ_TOKEN HOMELAB_IAC_CONNECTION_UUID HOMELAB_IAC_CONNECTION_TOKEN CEM_CONNECTION_UUID CEM_CONNECTION_TOKEN CUSTOM_THEME_CONNECTION_UUID CUSTOM_THEME_CONNECTION_TOKEN OSS_ARCHIVE_CONNECTION_UUID OSS_ARCHIVE_CONNECTION_TOKEN
+
+.PHONY: ci-runner-check ci-runner-plan ci-runner-apply ci-runner-hostkeys ci-runner-configure
+
+# Offline only: no credentials, no backend, mocked provider.
+ci-runner-check:
+	@set -euo pipefail; d="$(DEPLOY_RUNNER_CHECK_DATA)/ci-runner"; mkdir -p "$$d"; \
+	$(TOFU) -chdir=$(CI_RUNNER_DIR) fmt -check -recursive; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(CI_RUNNER_DIR) init -backend=false -input=false -lockfile=readonly -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(CI_RUNNER_DIR) validate -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(CI_RUNNER_DIR) test -no-color | tail -n 1
+	$(ANSIBLE) ansible/playbooks/configure-ci-runner.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(VENV)/bin/python tests/ci-runner.py
+
+ci-runner-plan:
+	@test "$(CI_RUNNER_ALLOCATION_REVIEWED)" = yes || (echo "Confirm the allocation in $(CI_RUNNER_DIR)/terraform.tfvars, then set CI_RUNNER_ALLOCATION_REVIEWED=yes" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@test -f "$(CI_RUNNER_DIR)/terraform.tfvars" || (echo "Create the private $(CI_RUNNER_DIR)/terraform.tfvars from terraform.tfvars.example" >&2; exit 1)
+	@test -f "$(CI_RUNNER_DIR)/terraform.tfstate" || test "$(CI_RUNNER_NEW_STATE)" = yes || (echo "No $(CI_RUNNER_DIR)/terraform.tfstate here. Only the first creation starts from an empty state (CI_RUNNER_NEW_STATE=yes); otherwise copy the state from the workstation that holds it." >&2; exit 1)
+	@test ! -e "$(CI_RUNNER_DIR)/$(CI_RUNNER_PLAN)" || mv -f "$(CI_RUNNER_DIR)/$(CI_RUNNER_PLAN)" "$(CI_RUNNER_DIR)/ci-runner.previous.tfplan"
+	$(TOFU) -chdir=$(CI_RUNNER_DIR) init -input=false -lockfile=readonly
+	$(call MGMT_RUN,$(TOFU) -chdir=$(CI_RUNNER_DIR) plan -input=false -out=$(CI_RUNNER_PLAN))
+	$(call NETBOX_ALLOCATION,ci-runner,$(CI_RUNNER_PLAN))
+	@shasum -a 256 "$(CI_RUNNER_DIR)/$(CI_RUNNER_PLAN)"
+
+# Mutates the doku-lab cluster (ci-runner-01): only with explicit approval of the exact saved plan.
+ci-runner-apply:
+	@test "$(CI_RUNNER_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: CI_RUNNER_APPLY_APPROVED=yes" >&2; exit 1)
+	@test -n "$(CI_RUNNER_PLAN_SHA256)" || (echo "Supply CI_RUNNER_PLAN_SHA256 as printed by make ci-runner-plan" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@printf '%s  %s\n' '$(CI_RUNNER_PLAN_SHA256)' '$(CI_RUNNER_DIR)/$(CI_RUNNER_PLAN)' | shasum -a 256 -c
+	$(call MGMT_RUN,$(TOFU) -chdir=$(CI_RUNNER_DIR) apply -input=false $(CI_RUNNER_PLAN))
+	@mv -f "$(CI_RUNNER_DIR)/$(CI_RUNNER_PLAN)" "$(CI_RUNNER_DIR)/ci-runner.applied.tfplan"
+	@chmod 0600 "$(CI_RUNNER_DIR)/terraform.tfstate"
+	@echo "State updated locally: $(CI_RUNNER_DIR)/terraform.tfstate (this workstation only, never in Git)"
+
+ci-runner-hostkeys:
+	@set -euo pipefail; \
+	$(TOFU) -chdir=$(CI_RUNNER_DIR) output -json ansible_inventory | \
+	jq -r '{"pve-management":"192.168.0.10","pve-core":"192.168.0.11","pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.ci_runner.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
+
+# Registrations and registry login come from the environment only:
+#   scripts/secrets.py run /forgejo-runner/connections /forgejo-runner/registry -- make ci-runner-configure CI_RUNNER_CONFIGURE_APPROVED=yes
+ci-runner-configure:
+	@test "$(CI_RUNNER_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of ci-runner-01 with CI_RUNNER_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@for v in $(CI_RUNNER_SECRETS); do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /forgejo-runner/connections and /forgejo-runner/registry)" >&2; exit 1; }; done
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/ci-runner-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
+	$(TOFU) -chdir=$(CI_RUNNER_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-ci-runner.yml --diff
+
 # Approval of a runner plan happens here, over SSH, never in a Forgejo job (whose logs are public and whose
 # code any branch can change). Review shows the saved plan from the runner itself; approve writes the
 # root-owned approval file the wrapper requires before `apply`.

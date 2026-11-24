@@ -1,0 +1,136 @@
+---
+# CI runner ci-runner-01 (TASK-033): the Forgejo Actions runner that validates every repository. Run through
+# `make ci-runner-configure` from the operator workstation; the inventory comes from the OpenTofu outputs of
+# terraform/stacks/ci-runner, the registrations and the registry login from the controller environment (store
+# paths /forgejo-runner/connections and /forgejo-runner/registry). Never logged, never in Git.
+#
+# One runner, one registration per repository or organisation: a registration decides who may send jobs, its
+# label decides the image the job runs in. A new repository is one more entry in ci_runner_connections and one
+# more UUID/token pair in the store. The runner holds no infrastructure credentials (ADR-008).
+- name: Configure the CI runner
+  hosts: ci_runner
+  become: true
+  gather_facts: true
+  force_handlers: true
+  vars:
+    stage_a_hostname: "{{ inventory_hostname }}"
+    forgejo_runner_registry_auth_required: true
+    forgejo_runner_registry_username: "{{ lookup('ansible.builtin.env', 'REGISTRY_USERNAME') }}"
+    forgejo_runner_registry_token: "{{ lookup('ansible.builtin.env', 'REGISTRY_READ_TOKEN') }}"
+    # name: [environment prefix of its UUID/token pair, label]
+    ci_runner_connections:
+      homelab-iac: [HOMELAB_IAC, "homelab-iac:docker://git.doku-lab.net/doku-code/ci-base:1.0.0"]
+      cem: [CEM, "cem:docker://git.doku-lab.net/cem/cem-ci:1.0.3"]
+      forgejo-custom-theme: [CUSTOM_THEME, "forgejo-theme:docker://git.doku-lab.net/doku-code/ci-base:1.0.0"]
+      oss-archive: [OSS_ARCHIVE, "oss-archive:docker://git.doku-lab.net/doku-code/ci-base:1.0.0"]
+    forgejo_runner_instances:
+      - name: main
+        service_name: forgejo-runner
+        user: runner
+        group: runner
+        working_directory: "{{ forgejo_runner_home }}"
+        config_file: /etc/forgejo-runner/config.yml
+        config_owner: runner
+        config_group: runner
+        podman_socket: "{{ forgejo_runner_podman_socket }}"
+        container_options: ""
+        capacity: 2
+        # The socket is for trusted publication workflows only; oss-archive-cache is that project's work cache.
+        valid_volumes:
+          - /run/podman/podman.sock
+          - oss-archive-cache
+        supplementary_groups:
+          - podman
+        connections: "{{ ci_runner_connection_map }}"
+  pre_tasks:
+    - name: Require every registration and the registry login in the environment
+      ansible.builtin.assert:
+        that:
+          - lookup('ansible.builtin.env', item) | length > 0
+        fail_msg: "Set {{ item }} in the environment (store paths /forgejo-runner/connections and /forgejo-runner/registry)."
+      loop: "{{ ['REGISTRY_USERNAME', 'REGISTRY_READ_TOKEN']
+                + (ci_runner_connections.values() | map('first') | map('regex_replace', '$', '_CONNECTION_UUID') | list)
+                + (ci_runner_connections.values() | map('first') | map('regex_replace', '$', '_CONNECTION_TOKEN') | list) }}"
+      delegate_to: localhost
+      become: false
+      no_log: true
+
+    - name: Map the registrations in memory
+      ansible.builtin.set_fact:
+        ci_runner_connection_map: >-
+          {{ ci_runner_connection_map | default({}) | combine({item.key: {
+               'url': 'https://git.doku-lab.net/',
+               'uuid': lookup('ansible.builtin.env', item.value[0] ~ '_CONNECTION_UUID'),
+               'labels': [item.value[1]]}}) }}
+        forgejo_runner_connection_tokens: >-
+          {{ {'main': (forgejo_runner_connection_tokens.main | default({}))
+                      | combine({item.key: lookup('ansible.builtin.env', item.value[0] ~ '_CONNECTION_TOKEN')})} }}
+      loop: "{{ ci_runner_connections | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      no_log: true
+
+    - name: Require one distinct registration per connection
+      ansible.builtin.assert:
+        that:
+          - ci_runner_connection_map.values() | map(attribute='uuid') | map('lower') | unique | length == ci_runner_connections | length
+        fail_msg: "Each connection needs its own Forgejo registration."
+      no_log: true
+  roles:
+    - headless_baseline
+    - forgejo_runner
+  tasks:
+    - name: Keep SSH key-only and without root login
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/10-homelab.conf
+        content: |
+          # Managed by Ansible (configure-ci-runner.yml)
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PermitRootLogin no
+        owner: root
+        group: root
+        mode: "0644"
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Reload SSH
+
+    - name: Install the nightly clean-up of job images nothing has used for two weeks
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/ci-runner-prune.{{ item.key }}"
+        content: "{{ item.value }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ ci_runner_prune_units | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      vars:
+        ci_runner_prune_units:
+          service: |
+            # Managed by Ansible (configure-ci-runner.yml). Named volumes (work caches) are never touched.
+            [Unit]
+            Description=Remove CI job images unused for two weeks
+            [Service]
+            Type=oneshot
+            ExecStart=/usr/bin/podman image prune --all --force --filter until=336h
+          timer: |
+            # Managed by Ansible (configure-ci-runner.yml)
+            [Unit]
+            Description=Nightly clean-up of CI job images
+            [Timer]
+            OnCalendar=*-*-* 04:17:00
+            Persistent=true
+            [Install]
+            WantedBy=timers.target
+
+    - name: Enable the nightly clean-up
+      ansible.builtin.systemd_service:
+        name: ci-runner-prune.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+  handlers:
+    - name: Reload SSH
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: reloaded
