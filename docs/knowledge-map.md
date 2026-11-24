@@ -25,7 +25,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M009 | active | medium | [Argo CD and Windmill](/milestones/m009-argocd-windmill) | completed: 2 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M013 | active | medium | [NetBox inventory and IPAM](/milestones/m013-netbox-inventory-and-ipam) | completed: 1, in-progress: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
 | M014 | active | medium | [Single sign-on with Authentik](/milestones/m014-single-sign-on-with-authentik) | completed: 1 | Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator. |
-| M010 | planned | high | [Rolling application migration](/milestones/m010-rolling-application-migration) | completed: 4, in-progress: 3, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
+| M010 | planned | high | [Rolling application migration](/milestones/m010-rolling-application-migration) | completed: 4, in-progress: 4, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](/milestones/m011-ceph-and-expansion) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](/milestones/m012-backups-and-finalization) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
 | M001 | completed | critical | [Management workstation](/milestones/m001-bootstrap-pve-management) | completed: 5, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
@@ -48,6 +48,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-030 | in-progress | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](/tasks/task-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues) | NetBox holds named hardware models, ports, hardware facts, the cables the switch announces and what every guest is, draws diagrams through plugins, and the roots check their plans against it. |
 | TASK-032 | in-progress | medium | M010 | [Vaultwarden on k3s with its vault in the shared PostgreSQL](/tasks/task-032-vaultwarden-on-k3s-with-its-vault-in-the-shared-postgresql) | Vaultwarden moves from the container on the old host to k3s; its SQLite vault is copied into the shared PostgreSQL; same name, same account. |
 | TASK-033 | in-progress | medium | M010 | [Clean CI runner ci-runner-01 on the new cluster, replacing CT301](/tasks/task-033-clean-ci-runner-ci-runner-01-on-the-new-cluster-replacing-ct) | One validation runner VM built by OpenTofu and Ansible serves every repository; the hand-grown CT301 on the old host is retired |
+| TASK-034 | in-progress | medium | M010 | [VictoriaMetrics replaces Prometheus; vmalert evaluates the rules](/tasks/task-034-victoriametrics-replaces-prometheus-vmalert-evaluates-the-ru) | VictoriaMetrics single node stores the metrics Alloy pushes, vmalert evaluates the alert rules, kube-state-metrics is its own chart; Prometheus is retired |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](/tasks/task-002-live-proxmox-inventory) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](/tasks/task-003-service-dependency-and-data-map) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](/tasks/task-004-pbs-representative-restore) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -208,7 +209,7 @@ _No commit records. Generate with `harness history sync`._
 - **network**: DOC-infrastructure-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-031
 - **nfs**: TASK-017
 - **nvme**: ADR-012
-- **observability**: TASK-020, TASK-031
+- **observability**: TASK-020, TASK-031, TASK-034
 - **opentofu**: ADR-003, TASK-006, TASK-008, TASK-014, TASK-015, TASK-017, TASK-018
 - **overview**: DOC-project-overview
 - **patroni**: ADR-013, ADR-015, TASK-018
@@ -243,6 +244,7 @@ _No commit records. Generate with `harness history sync`._
 - **traefik**: TASK-021, TASK-022
 - **truenas**: ADR-012
 - **vaultwarden**: TASK-032
+- **victoriametrics**: TASK-034
 - **vision**: DOC-project-overview
 - **wiki**: REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-029
 - **windmill**: ADR-005, ADR-011, TASK-025, TASK-026

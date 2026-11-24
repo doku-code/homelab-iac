@@ -130,8 +130,8 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   since 2026-11-18, not deleted.
 - **Observability deployed** 2026-11-17 ([TASK-020](/tasks/task-020-lean-observability-prometheus-loki-grafana-and-alloy)):
   Grafana at `https://grafana.doku-lab.net/` (LAN only; `admin` with `GRAFANA_ADMIN_PASSWORD` from
-  store path `/monitoring`), dashboard "Homelab overview". Prometheus and Loki on k3s; Alloy in the cluster
-  and on every VM, allow-listed metrics only (about 2,800 series with three k3s nodes). Redeploy: `make observability-deploy`;
+  store path `/monitoring`), dashboard "Homelab overview". VictoriaMetrics (since 2026-11-24, [TASK-034](/tasks/task-034-victoriametrics-replaces-prometheus-vmalert-evaluates-the-ru); 90 days), vmalert and Loki on k3s; Alloy in the cluster
+  and on every VM, allow-listed metrics only (about 3,900 series). Redeploy: `make observability-deploy`;
   new VM: `make observability-agents`. Alerts are evaluated but not delivered anywhere yet.
 - **Edge migration in progress** 2026-11-18 ([TASK-022](/tasks/task-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a)):
   Traefik serves a Let's Encrypt wildcard for `*.doku-lab.net` (cert-manager, Cloudflare DNS-01:
