@@ -12,4 +12,5 @@ postgresql_apps:
       - {name: windmill_user}
       - {name: windmill_admin, bypass_rls: true, member_of: [windmill_user]}
   - name: authentik # Authentik single sign-on (M014); sessions and tasks live here too, it needs no Redis
+  - name: vaultwarden # Vaultwarden (TASK-032); moved from SQLite on the old host
   - name: wiki # Wiki.js (TASK-029); it creates the trusted extensions ltree and pg_trgm itself, as owner of its database

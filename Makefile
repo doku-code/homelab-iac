@@ -1177,6 +1177,32 @@ wiki-deploy:
 	kubectl --context doku-lab apply -f services/argocd/apps/wiki.yaml
 	$(call ARGOCD_WAIT,wiki)
 
+# ─────────────────────────────────────────────
+# Vaultwarden, the password manager (TASK-032): one pinned container on k3s, vault in the shared PostgreSQL.
+# ─────────────────────────────────────────────
+.PHONY: vaultwarden-check vaultwarden-secrets vaultwarden-deploy
+
+vaultwarden-check:
+	$(VENV)/bin/python tests/vaultwarden.py
+
+# Creates the database password when it is missing (never shown, never replaced).
+vaultwarden-secrets:
+	@test "$(VAULTWARDEN_SECRETS_APPROVED)" = yes || (echo "Approve the creation of the missing Vaultwarden secret with VAULTWARDEN_SECRETS_APPROVED=yes" >&2; exit 1)
+	scripts/ensure-secrets.py /postgresql PG_APP_VAULTWARDEN_PASSWORD
+
+# Writes the database address with its password into the Secret (environment only, never printed), then hands
+# Vaultwarden to Argo CD and waits until it is in sync and healthy.
+#   scripts/secrets.py run /postgresql -- make vaultwarden-deploy VAULTWARDEN_DEPLOY_APPROVED=yes
+vaultwarden-deploy:
+	@test "$(VAULTWARDEN_DEPLOY_APPROVED)" = yes || (echo "Approve the Vaultwarden deployment with VAULTWARDEN_DEPLOY_APPROVED=yes" >&2; exit 1)
+	@test -n "$${PG_APP_VAULTWARDEN_PASSWORD:-}" || { echo "Set PG_APP_VAULTWARDEN_PASSWORD in the environment (store path /postgresql; make vaultwarden-secrets creates it)" >&2; exit 1; }
+	@kubectl --context doku-lab create namespace vaultwarden --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
+	@set -euo pipefail; kubectl --context doku-lab -n vaultwarden create secret generic vaultwarden-secrets --dry-run=client -o yaml \
+	  --from-env-file=<(printf 'database-url=postgresql://vaultwarden:%s@192.168.0.60:5432/vaultwarden?sslmode=require\n' "$$PG_APP_VAULTWARDEN_PASSWORD") \
+	  | kubectl --context doku-lab apply -f - >/dev/null; echo "secret/vaultwarden-secrets applied"
+	kubectl --context doku-lab apply -f services/argocd/apps/vaultwarden.yaml
+	$(call ARGOCD_WAIT,vaultwarden)
+
 # Site name, Git storage and sign-in through Authentik, written through the wiki's API as its local
 # administrator; then one pull of the whole tree. Changes only what differs.
 #   scripts/secrets.py run /wiki /authentik -- make wiki-configure WIKI_CONFIGURE_APPROVED=yes

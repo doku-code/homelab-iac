@@ -258,52 +258,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: vault
-  namespace: legacy-edge
-spec:
-  ports:
-  - name: backend
-    port: 8080
-    targetPort: 8080
-    protocol: TCP
----
-apiVersion: discovery.k8s.io/v1
-kind: EndpointSlice
-metadata:
-  name: vault
-  namespace: legacy-edge
-  labels:
-    kubernetes.io/service-name: vault
-addressType: IPv4
-ports:
-- name: backend
-  port: 8080
-  protocol: TCP
-endpoints:
-- addresses:
-  - 192.168.0.26
----
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: vault
-  namespace: legacy-edge
-spec:
-  entryPoints:
-  - websecure
-  routes:
-  - match: Host(`vault.doku-lab.net`)
-    kind: Rule
-    services:
-    - name: vault
-      port: 8080
-    middlewares:
-    - name: hsts
-  tls: {}
----
-apiVersion: v1
-kind: Service
-metadata:
   name: git
   namespace: legacy-edge
 spec:

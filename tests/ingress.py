@@ -43,7 +43,7 @@ def legacy_routes():
             for ref in rule["services"]:
                 assert ref["name"] in services and ref["port"] == services[ref["name"]]["spec"]["ports"][0]["port"]
                 assert ("scheme" in ref) == ("serversTransport" in ref), "only HTTPS backends skip verification"
-    assert all(h.endswith(".doku-lab.net") for h in hosts) and {"git.doku-lab.net", "cloud.doku-lab.net", "vault.doku-lab.net"} <= hosts
+    assert all(h.endswith(".doku-lab.net") for h in hosts) and {"git.doku-lab.net", "cloud.doku-lab.net"} <= hosts and "vault.doku-lab.net" not in hosts
     assert "pve-lab.doku-lab.net" not in hosts, "stale Caddy sites are not carried over"
     assert slices["dropper"]["endpoints"][0]["addresses"] == ["192.168.0.90"], "the address reserved for VM 700, not a k3s node"
     # The public tunnel: one pinned connector, token from a Secret, nothing else granted.

@@ -3533,6 +3533,10 @@
         {
           "from": "TASK-031",
           "field": "milestone"
+        },
+        {
+          "from": "TASK-032",
+          "field": "milestone"
         }
       ]
     },
@@ -6238,6 +6242,44 @@
         ]
       },
       "backrefs": []
+    },
+    {
+      "id": "TASK-032",
+      "title": "Vaultwarden on k3s with its vault in the shared PostgreSQL",
+      "summary": "Vaultwarden moves from the container on the old host to k3s; its SQLite vault is copied into the shared PostgreSQL; same name, same account.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-032-vaultwarden-on-k3s-with-its-vault-in-the-shared-postgresql.md",
+      "tags": [],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "Vaultwarden on k3s with its vault in the shared PostgreSQL",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "milestone": [
+          "M010"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -6335,7 +6377,8 @@
       "TASK-028",
       "TASK-029",
       "TASK-030",
-      "TASK-031"
+      "TASK-031",
+      "TASK-032"
     ]
   },
   "by_tag": {

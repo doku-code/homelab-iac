@@ -120,7 +120,7 @@ def access_and_applications(registries):
     assert oci == registries, "every OCI chart registry of a project is declared to Argo CD"
 
     applications = sorted((DIR / "apps").glob("*.yaml"))
-    assert {p.stem for p in applications} == {"netbox", "headlamp", "monitoring", "phase", "ingress", "storage", "windmill", "authentik", "homepage", "wiki"}
+    assert {p.stem for p in applications} == {"netbox", "headlamp", "monitoring", "phase", "ingress", "storage", "windmill", "authentik", "homepage", "wiki", "vaultwarden"}
     used_repos, used_namespaces = set(), set()
     for path in applications:
         (application,) = [d for d in yaml.safe_load_all(path.read_text()) if d]

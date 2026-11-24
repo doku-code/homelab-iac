@@ -1,0 +1,25 @@
+# Vaultwarden under Argo CD (TASK-032): the manifests of services/vaultwarden. The Secret
+# `vaultwarden-secrets` is not in Git: `make vaultwarden-deploy` writes it from the secret store before
+# applying this file.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vaultwarden
+  namespace: argocd
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaultwarden
+  sources:
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/vaultwarden
+      directory:
+        include: vaultwarden.yaml
+  syncPolicy:
+    # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
+    # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.
+    automated:
+      prune: false
+      selfHeal: true

@@ -60,6 +60,7 @@ spec:
     - {server: https://kubernetes.default.svc, namespace: windmill}
     - {server: https://kubernetes.default.svc, namespace: homepage}
     - {server: https://kubernetes.default.svc, namespace: wiki}
+    - {server: https://kubernetes.default.svc, namespace: vaultwarden}
   clusterResourceWhitelist:
     - {group: "", kind: Namespace}
     - {group: rbac.authorization.k8s.io, kind: ClusterRole}
