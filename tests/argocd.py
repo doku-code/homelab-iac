@@ -58,7 +58,9 @@ def chart():
 # Chart pins also used by the offline tests of each service: release -> Makefile variables (repository, version).
 PINS = {
     "headlamp": ("HEADLAMP_REPO", "HEADLAMP_CHART_VERSION"),
-    "prometheus": ("OBS_PROMETHEUS_REPO", "OBS_PROMETHEUS_CHART"),
+    "victoria-metrics": ("OBS_VM_REPO", "OBS_VM_CHART"),
+    "vmalert": ("OBS_VM_REPO", "OBS_VMALERT_CHART"),
+    "kube-state-metrics": ("OBS_PROMETHEUS_REPO", "OBS_KSM_CHART"),
     "loki": ("OBS_GRAFANA_LABS_REPO", "OBS_LOKI_CHART"),
     "alloy": ("OBS_GRAFANA_LABS_REPO", "OBS_ALLOY_CHART"),
     "grafana": ("OBS_GRAFANA_REPO", "OBS_GRAFANA_CHART"),

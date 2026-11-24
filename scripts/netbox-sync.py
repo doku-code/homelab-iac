@@ -50,6 +50,8 @@ TAGS = {
     "discovered": ("Discovered", "ff9800", "Found on a Proxmox host, not defined in Git; created once, then only compared"),
     "needs-review": ("Needs review", "f44336", "Not verified by a person yet; remove this tag once the record is validated"),
     "lxc": ("LXC", "9e9e9e", "Proxmox container (not a virtual machine)"),
+    "gone": ("Not on Proxmox", "b71c1c", "The last discovery did not find this guest on its cluster: the record is out of date. Delete it or "
+             "correct it; the tag goes away by itself when the guest is found again"),
     "observed": ("Observed", "03a9f4", "Recorded from what a machine reported (a cable heard through LLDP), not entered by a person"),
 }
 RACK_DETAILS = ("form_factor", "outer_width", "outer_depth", "outer_height", "outer_unit", "mounting_depth", "desc_units")
@@ -843,7 +845,8 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None, overlay=None):
             host = node_device(source_name, guest["node"])
             if host is not None:
                 fields["device"] = ref(host)
-            vm = machine(label, cluster, guest["vmid"], fields, fill=fill, drop_tags=[] if flagged else tagged("needs-review"))
+            vm = machine(label, cluster, guest["vmid"], fields, fill=fill,
+                         drop_tags=tagged("gone") + ([] if flagged else tagged("needs-review")))
             disks(label, vm, guest)
             first = None
             for nic in guest["nics"]:
@@ -858,13 +861,15 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None, overlay=None):
                 tunnel_end(label, vm, note["role"], guest["vmid"], first[0] if first else None)
             elif not first and guest["status"] == "running" and not any(nic["ip"] for nic in guest["nics"]):
                 r.review.append(f"{label}: no static address in the Proxmox configuration (DHCP or set inside the guest); add it in NetBox")
-        # Records whose guest is gone, and IaC records no root defines any more: reported, never deleted.
+        # Records whose guest is gone are flagged as out of date (tag and status), never deleted; IaC records no
+        # root defines any more are reported.
         for (known_cluster, vmid), vm in known.items():
             if known_cluster != cluster_id or vmid is None:
                 continue
             vm_tags = set(norm(vm.get("tags") or []))
             if vmid not in present:
-                r.review.append(f"vm {vm['name']} ({cluster} {vmid}): in NetBox but no longer on Proxmox; set its status or delete it in NetBox")
+                machine(f"vm {vm['name']} ({cluster} {vmid})", cluster, vmid, {"status": "decommissioning", "tags": tagged("gone")})
+                r.review.append(f"vm {vm['name']} ({cluster} {vmid}): in NetBox but no longer on Proxmox; flagged 'Not on Proxmox', delete it in NetBox")
             elif tag["iac"] in vm_tags and source_name == new_source and vmid not in claimed:
                 r.review.append(f"vm {vm['name']} ({cluster} {vmid}): tagged iac in NetBox but no root defines it")
 

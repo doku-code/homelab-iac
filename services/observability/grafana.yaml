@@ -64,10 +64,11 @@ datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
-      - name: Prometheus
+      # VictoriaMetrics, read through its Prometheus query API; the uid stays so the dashboards need no change.
+      - name: VictoriaMetrics
         type: prometheus
         uid: prometheus
-        url: http://prometheus-server.monitoring.svc
+        url: http://victoria-metrics.monitoring.svc:8428
         isDefault: true
         jsonData:
           timeInterval: 60s

@@ -1,4 +1,4 @@
-# Prometheus, Loki, Alloy and Grafana under Argo CD (TASK-020, M009): four pinned charts with the values
+# VictoriaMetrics, vmalert, kube-state-metrics, Loki, Alloy and Grafana under Argo CD (TASK-020, TASK-034, M009): six pinned charts with the values
 # from this repository, plus services/observability/kustomization.yaml (routes, the Alloy configuration
 # and the dashboards as ConfigMaps). The Secrets `grafana-admin` and `grafana-db` are not in Git:
 # `make observability-deploy` writes them from the secret store before applying this file.
@@ -13,13 +13,27 @@ spec:
     server: https://kubernetes.default.svc
     namespace: monitoring
   sources:
-    - repoURL: https://prometheus-community.github.io/helm-charts
-      chart: prometheus
-      targetRevision: 29.47.2
+    - repoURL: https://victoriametrics.github.io/helm-charts/
+      chart: victoria-metrics-single
+      targetRevision: 0.52.0
       helm:
-        releaseName: prometheus
+        releaseName: victoria-metrics
         valueFiles:
-          - $values/services/observability/prometheus.yaml
+          - $values/services/observability/victoriametrics.yaml
+    - repoURL: https://victoriametrics.github.io/helm-charts/
+      chart: victoria-metrics-alert
+      targetRevision: 0.54.0
+      helm:
+        releaseName: vmalert
+        valueFiles:
+          - $values/services/observability/vmalert.yaml
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-state-metrics
+      targetRevision: 9.1.0
+      helm:
+        releaseName: kube-state-metrics
+        valueFiles:
+          - $values/services/observability/kube-state-metrics.yaml
     - repoURL: https://grafana.github.io/helm-charts
       chart: loki
       targetRevision: 7.6.0

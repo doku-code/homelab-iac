@@ -67,8 +67,8 @@ spec:
       middlewares:
         - name: managed-vms
       services:
-        - name: prometheus-server
-          port: 80
+        - name: victoria-metrics
+          port: 8428
     - kind: Rule
       match: Host(`logs.192.168.0.40.sslip.io`) && Path(`/loki/api/v1/push`)
       middlewares:

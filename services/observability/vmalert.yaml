@@ -1,0 +1,92 @@
+# vmalert (TASK-034): evaluates the alert rules against VictoriaMetrics once a minute and writes their state
+# back as the ALERTS series the dashboards show. No notification channel yet: nothing is sent anywhere.
+server:
+  fullnameOverride: vmalert
+  datasource:
+    url: http://victoria-metrics.monitoring.svc:8428
+  remoteWrite:
+    url: http://victoria-metrics.monitoring.svc:8428
+  remoteRead:
+    url: http://victoria-metrics.monitoring.svc:8428 # alerts keep their "for" state across a restart
+  extraArgs:
+    evaluationInterval: 1m
+    notifier.blackhole: true
+  resources:
+    requests: {cpu: 10m, memory: 32Mi}
+    limits: {cpu: 200m, memory: 128Mi}
+  config:
+    alerts:
+      groups:
+        - name: hosts
+          rules:
+            - alert: HostSilent
+              expr: 'max by (instance) (lag(node_load1[1h])) > 300'
+              for: 5m
+              labels: {severity: critical}
+              annotations: {summary: "{{ $labels.instance }} has sent no metrics for 5 minutes"}
+            - alert: DiskAlmostFull
+              expr: '(1 - node_filesystem_avail_bytes / node_filesystem_size_bytes) > 0.85'
+              for: 15m
+              labels: {severity: warning}
+              annotations: {summary: "{{ $labels.instance }} {{ $labels.mountpoint }} is over 85% full"}
+            - alert: MemoryPressure
+              expr: '(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.92'
+              for: 15m
+              labels: {severity: warning}
+              annotations: {summary: "{{ $labels.instance }} has under 8% memory available"}
+        - name: postgresql
+          rules:
+            - alert: PostgresNoPrimary
+              expr: 'sum(patroni_primary) != 1'
+              for: 2m
+              labels: {severity: critical}
+              annotations: {summary: "The PostgreSQL cluster has {{ $value }} primaries (expected 1)"}
+            - alert: PostgresMemberMissing
+              expr: 'count(patroni_postgres_running == 1) < 3'
+              for: 10m
+              labels: {severity: warning}
+              annotations: {summary: "Only {{ $value }} of 3 PostgreSQL members are running"}
+            - alert: PostgresReplicationLag
+              expr: 'pg_replication_lag_seconds > 120 and on (instance) patroni_replica == 1'
+              for: 10m
+              labels: {severity: warning}
+              annotations: {summary: "{{ $labels.instance }} is {{ $value | humanizeDuration }} behind the primary"}
+        - name: network
+          rules:
+            - alert: SwitchSilent
+              expr: 'absent(sysUpTime{job="switch"})'
+              for: 5m
+              labels: {severity: warning}
+              annotations: {summary: "The switch has not answered SNMP for 5 minutes"}
+            - alert: SwitchPortErrors
+              expr: 'increase(ifInErrors{job="switch"}[15m]) + increase(ifOutErrors{job="switch"}[15m]) > 0'
+              for: 5m
+              labels: {severity: warning}
+              annotations: {summary: "Switch port {{ $labels.ifIndex }} counted {{ $value | humanize }} frame errors in 15 minutes"}
+            - alert: SwitchPortDiscards
+              expr: 'increase(ifInDiscards{job="switch"}[15m]) + increase(ifOutDiscards{job="switch"}[15m]) > 100'
+              for: 10m
+              labels: {severity: warning}
+              annotations: {summary: "Switch port {{ $labels.ifIndex }} discarded {{ $value | humanize }} frames in 15 minutes"}
+            - alert: SwitchRestarted
+              expr: 'sysUpTime{job="switch"} < 60000'
+              for: 1m
+              labels: {severity: warning}
+              annotations: {summary: "The switch restarted less than 10 minutes ago"}
+        - name: kubernetes
+          rules:
+            - alert: PodRestarting
+              expr: 'increase(kube_pod_container_status_restarts_total[30m]) > 3'
+              for: 5m
+              labels: {severity: warning}
+              annotations: {summary: "{{ $labels.namespace }}/{{ $labels.pod }} restarted {{ $value | humanize }} times in 30 minutes"}
+            - alert: PodNotReady
+              expr: 'sum by (namespace, pod) (kube_pod_status_phase{phase=~"Pending|Failed|Unknown"}) > 0'
+              for: 15m
+              labels: {severity: warning}
+              annotations: {summary: "{{ $labels.namespace }}/{{ $labels.pod }} is not running"}
+            - alert: VolumeAlmostFull
+              expr: 'kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 0.85'
+              for: 15m
+              labels: {severity: warning}
+              annotations: {summary: "Volume {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is over 85% full"}

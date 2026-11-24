@@ -1,0 +1,17 @@
+# VictoriaMetrics, single node (TASK-034): storage and queries only. Nothing is scraped from here: Alloy collects
+# a small allow-list of metrics and pushes them (Prometheus remote write on /api/v1/write), in the cluster and
+# on every VM. Grafana and the dashboard's widget API read it through the Prometheus query API.
+server:
+  fullnameOverride: victoria-metrics
+  retentionPeriod: 90d
+  extraArgs:
+    # A series is "stale" for a query after 5 minutes without a sample, as with Prometheus: the agents do
+    # not send staleness marks when a host dies.
+    search.maxStalenessInterval: 5m
+  persistentVolume:
+    enabled: true
+    size: 10Gi
+    storageClassName: local-path # measurements are rebuildable runtime data, not user data
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 1000m, memory: 512Mi}

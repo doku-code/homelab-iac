@@ -3,5 +3,10 @@
 controller:
   replicas: 1
   runOnControlPlane: true
+# The driver's controller always carries the snapshot sidecar; without the snapshot CRDs it logs an error every
+# few seconds. The snapshot controller brings the CRDs (and volume snapshots, for the backups to come).
 externalSnapshotter:
-  enabled: false
+  enabled: true
+  resources:
+    requests: {cpu: 10m, memory: 20Mi}
+    limits: {memory: 128Mi}

@@ -16,7 +16,7 @@ related_implementations:
   - services/observability/snmp.yml
   - services/observability/cluster.alloy
   - services/observability/alloy.yaml
-  - services/observability/prometheus.yaml
+  - services/observability/vmalert.yaml
   - services/observability/dashboards/switch.json
   - scripts/switch-snmp-auth.py
 related_tests:

@@ -586,14 +586,14 @@
     },
     {
       "id": 12,
-      "type": "bargauge",
-      "title": "Port state (1 up, 2 down)",
+      "type": "stat",
+      "title": "Port state",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
-        "h": 6,
+        "h": 4,
         "w": 24,
         "x": 0,
         "y": 32
@@ -601,7 +601,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "ifOperStatus{job=\"switch\"}",
+          "expr": "sort_by_label_numeric(ifOperStatus{job=\"switch\"}, \"ifIndex\")",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -612,8 +612,6 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "min": 0,
-          "max": 2,
           "mappings": [
             {
               "type": "value",
@@ -633,12 +631,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
-              },
-              {
                 "color": "gray",
-                "value": 2
+                "value": null
               }
             ]
           },
@@ -650,7 +644,10 @@
       },
       "options": {
         "orientation": "vertical",
-        "displayMode": "basic",
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"

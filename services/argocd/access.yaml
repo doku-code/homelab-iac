@@ -47,6 +47,7 @@ spec:
     - ghcr.io/requarks/charts
     - https://kubernetes-sigs.github.io/headlamp/
     - https://prometheus-community.github.io/helm-charts
+    - https://victoriametrics.github.io/helm-charts/
     - https://grafana.github.io/helm-charts
     - https://grafana-community.github.io/helm-charts
     - https://windmill-labs.github.io/windmill-helm-charts/

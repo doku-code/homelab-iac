@@ -55,21 +55,28 @@ def keep_regexes(text):
 
 
 def main():
-    # Prometheus: storage and rules only; the chart's discovery jobs, Alertmanager and node exporter are off.
-    docs, text = render("prometheus", "prometheus", "OBS_PROMETHEUS_REPO", "OBS_PROMETHEUS_CHART", "prometheus.yaml")
-    assert not any(d["kind"] == "DaemonSet" for d in docs) and "alertmanager" not in text and "pushgateway" not in text
-    config = next(d for d in docs if d["kind"] == "ConfigMap" and "prometheus.yml" in d["data"])["data"]
-    scrape = yaml.safe_load(config["prometheus.yml"])
-    assert [job["job_name"] for job in scrape["scrape_configs"]] == ["prometheus"], "Alloy collects; Prometheus scrapes only itself"
-    assert scrape["scrape_configs"][0]["metric_relabel_configs"][0]["action"] == "keep"
-    assert scrape["global"]["scrape_interval"] == "1m"
-    for flag in ("--web.enable-remote-write-receiver", "--storage.tsdb.retention.time=15d", "--storage.tsdb.retention.size=8GB"):
+    # VictoriaMetrics: storage and queries only, one StatefulSet that scrapes nothing; 90 days.
+    docs, text = render("victoria-metrics", "victoria-metrics-single", "OBS_VM_REPO", "OBS_VM_CHART", "victoriametrics.yaml")
+    assert [d["kind"] for d in docs].count("StatefulSet") == 1 and not any(d["kind"] in ("Deployment", "DaemonSet", "ConfigMap") for d in docs)
+    assert "promscrape" not in text, "Alloy collects; VictoriaMetrics scrapes nothing"
+    for flag in ("--retentionPeriod=90d", "--search.maxStalenessInterval=5m", "--httpListenAddr=:8428", "storageClassName: local-path"):
         assert flag in text, flag
-    values = yaml.safe_load((OBS / "prometheus.yaml").read_text())
-    ksm_allowed = set(values["kube-state-metrics"]["metricAllowlist"])
-    assert "--metric-allowlist=" + ",".join(values["kube-state-metrics"]["metricAllowlist"]) in text
-    rules = [rule for group in yaml.safe_load(config["alerting_rules.yml"])["groups"] for rule in group["rules"]]
+    assert next(d for d in docs if d["kind"] == "Service")["metadata"]["name"] == "victoria-metrics"
+    # vmalert: the rules, evaluated once a minute, their state written back; no Alertmanager, nothing sent.
+    docs, text = render("vmalert", "victoria-metrics-alert", "OBS_VM_REPO", "OBS_VMALERT_CHART", "vmalert.yaml")
+    assert "alertmanager" not in text.lower() and "--notifier.blackhole" in text and "--evaluationInterval=1m" in text
+    for flag in ("datasource", "remoteWrite", "remoteRead"):
+        assert f"--{flag}.url=http://victoria-metrics.monitoring.svc:8428" in text, flag
+    config = next(d for d in docs if d["kind"] == "ConfigMap")["data"]
+    rules = [rule for group in yaml.safe_load(config["alert-rules.yaml"])["groups"] for rule in group["rules"]]
     assert len(rules) >= 8 and all(r["labels"]["severity"] in ("warning", "critical") and r["annotations"]["summary"] and r["for"] for r in rules)
+    assert not any("timestamp(" in r["expr"] for r in rules), "a silent host is found with lag(): timestamp() never exceeds the staleness interval"
+    # kube-state-metrics: only the allow-list.
+    docs, text = render("kube-state-metrics", "kube-state-metrics", "OBS_PROMETHEUS_REPO", "OBS_KSM_CHART", "kube-state-metrics.yaml")
+    values = yaml.safe_load((OBS / "kube-state-metrics.yaml").read_text())
+    ksm_allowed = set(values["metricAllowlist"])
+    assert "--metric-allowlist=" + ",".join(values["metricAllowlist"]) in text
+    assert next(d for d in docs if d["kind"] == "Service")["metadata"]["name"] == "kube-state-metrics"
 
     # Loki: one process, no caches, canary or gateway; seven days.
     docs, text = render("loki", "loki", "OBS_GRAFANA_LABS_REPO", "OBS_LOKI_CHART", "loki.yaml")
@@ -111,7 +118,7 @@ def main():
     assert (auth["version"], auth["security_level"], auth["auth_protocol"], auth["priv_protocol"]) == (3, "authPriv", "SHA", "DES")
     assert auth["password"] == auth_env["SWITCH_SNMP_AUTH_PASSWORD"] and auth["priv_password"] == "synthetic-priv"
     assert subprocess.run([sys.executable, str(ROOT / "scripts/switch-snmp-auth.py")], capture_output=True, env={}).returncode != 0
-    assert "http://prometheus-server.monitoring.svc/api/v1/write" in cluster and "loki.source.kubernetes" in cluster
+    assert "http://victoria-metrics.monitoring.svc:8428/api/v1/write" in cluster and "kube-state-metrics.monitoring.svc:8080" in cluster and "loki.source.kubernetes" in cluster
 
     # Grafana: state in the shared PostgreSQL over TLS, passwords from Kubernetes Secrets, no volume.
     docs, text = render("grafana", "grafana", "OBS_GRAFANA_REPO", "OBS_GRAFANA_CHART", "grafana.yaml")
@@ -132,6 +139,7 @@ def main():
     assert "192.168.0.0/24" not in managed and "192.168.0.40/29" in managed
     ingest = access[("IngressRoute", "ingest")]["spec"]
     assert ingest["entryPoints"] == ["websecure"] and len(ingest["routes"]) == 2
+    assert ingest["routes"][0]["services"] == [{"name": "victoria-metrics", "port": 8428}]
     assert all([m["name"] for m in route["middlewares"]] == ["managed-vms"] for route in ingest["routes"])
     assert {route["match"].split(" && ")[1] for route in ingest["routes"]} == {"Path(`/api/v1/write`)", "Path(`/loki/api/v1/push`)"}
     assert [m["name"] for m in access[("IngressRoute", "grafana")]["spec"]["routes"][0]["middlewares"]] == ["admin-lan"]
@@ -179,7 +187,7 @@ def main():
         result = subprocess.run(["make", "--no-print-directory", target], cwd=ROOT, capture_output=True, text=True,
                                 env={"PATH": "/usr/bin:/bin", "HOME": "/nonexistent"})
         assert result.returncode != 0 and variable in result.stderr, target
-    print("PASS: pinned charts, Prometheus scrapes only itself, allow-lists cover every dashboard and alert query, "
+    print("PASS: pinned charts, VictoriaMetrics scrapes nothing, allow-lists cover every dashboard and alert query, "
           "least-privilege collector, Grafana state in PostgreSQL, restricted routes, agent templates")
 
 

@@ -491,6 +491,12 @@ def reconciliation():
     assert len(api.objects[vms]) == count, "nothing is deleted"
     assert any("old-monitoring" in line and "no longer on Proxmox" in line for line in vanished.review)
     assert any("dns-01" in line and "no root defines it" in line for line in vanished.review)
+    flagged = api.get(vms, name="old-monitoring")
+    assert tags["gone"] in flagged["tags"] and flagged["status"] == "decommissioning", "an out-of-date record says so"
+    assert not run(False, machines=MACHINES[:1], observed=gone).operations, "flagged once"
+    run(True)  # found again: the flag goes away, Proxmox decides the status again
+    found = api.get(vms, name="old-monitoring")
+    assert tags["gone"] not in found["tags"] and found["status"] == "offline"
 
     # An address a person entered without an owner is not handed to a discovered guest automatically.
     api.create(ips, {"address": "192.168.0.99/24", "status": "reserved", "description": "entered by hand"})

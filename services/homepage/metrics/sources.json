@@ -1,6 +1,6 @@
 {
   "intervals": {"proxmox": 10, "k3s": 30, "postgres": 30, "services": 30, "truenas": 30, "plex": 10, "qbit": 5},
-  "prometheus": "http://prometheus-server.monitoring.svc",
+  "prometheus": "http://victoria-metrics.monitoring.svc:8428",
   "proxmox": [
     {
       "id": "doku-lab",
@@ -37,7 +37,7 @@
     "windmill": {"label": "Windmill", "url": "http://windmill-app.windmill.svc:8000/api/version", "kind": "text-version"},
     "phase": {"label": "Phase", "url": "http://phase-console-frontend.phase.svc:3000/"},
     "headlamp": {"label": "Headlamp", "url": "http://headlamp.headlamp.svc/"},
-    "prometheus": {"label": "Prometheus", "url": "http://prometheus-server.monitoring.svc/-/healthy"},
+    "prometheus": {"label": "VictoriaMetrics", "url": "http://victoria-metrics.monitoring.svc:8428/health"},
     "forgejo": {"label": "Forgejo", "url": "https://git.doku-lab.net/api/v1/version", "kind": "forgejo"},
     "wiki": {"label": "Wiki.js", "url": "https://wiki.doku-lab.net/"},
     "adguard": {"label": "AdGuard Home", "url": "http://192.168.0.20/login.html"},

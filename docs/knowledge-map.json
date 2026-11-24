@@ -3549,6 +3549,10 @@
         {
           "from": "TASK-033",
           "field": "milestone"
+        },
+        {
+          "from": "TASK-034",
+          "field": "milestone"
         }
       ]
     },
@@ -5394,7 +5398,12 @@
           "M010"
         ]
       },
-      "backrefs": []
+      "backrefs": [
+        {
+          "from": "TASK-034",
+          "field": "related"
+        }
+      ]
     },
     {
       "id": "TASK-021",
@@ -6253,7 +6262,12 @@
           "M010"
         ]
       },
-      "backrefs": []
+      "backrefs": [
+        {
+          "from": "TASK-034",
+          "field": "related"
+        }
+      ]
     },
     {
       "id": "TASK-032",
@@ -6351,6 +6365,61 @@
         "related_tests": [
           "tests/ci-runner.py",
           "terraform/stacks/ci-runner/tests/ci-runner.tftest.hcl"
+        ],
+        "milestone": [
+          "M010"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "TASK-034",
+      "title": "VictoriaMetrics replaces Prometheus; vmalert evaluates the rules",
+      "summary": "VictoriaMetrics single node stores the metrics Alloy pushes, vmalert evaluates the alert rules, kube-state-metrics is its own chart; Prometheus is retired",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-034-victoriametrics-replaces-prometheus-vmalert-evaluates-the-ru.md",
+      "tags": [
+        "observability",
+        "victoriametrics"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "VictoriaMetrics replaces Prometheus; vmalert evaluates the rules",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "TASK-020",
+          "TASK-031"
+        ],
+        "related_implementations": [
+          "services/observability/victoriametrics.yaml",
+          "services/observability/vmalert.yaml",
+          "services/observability/kube-state-metrics.yaml",
+          "services/argocd/apps/monitoring.yaml",
+          "services/observability/cluster.alloy"
+        ],
+        "related_tests": [
+          "tests/observability.py",
+          "tests/argocd.py"
         ],
         "milestone": [
           "M010"
@@ -6456,7 +6525,8 @@
       "TASK-030",
       "TASK-031",
       "TASK-032",
-      "TASK-033"
+      "TASK-033",
+      "TASK-034"
     ]
   },
   "by_tag": {
@@ -6737,7 +6807,8 @@
     ],
     "observability": [
       "TASK-020",
-      "TASK-031"
+      "TASK-031",
+      "TASK-034"
     ],
     "opentofu": [
       "ADR-003",
@@ -6894,6 +6965,9 @@
     ],
     "vaultwarden": [
       "TASK-032"
+    ],
+    "victoriametrics": [
+      "TASK-034"
     ],
     "vision": [
       "DOC-project-overview"

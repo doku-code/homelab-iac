@@ -6,7 +6,7 @@ prometheus.remote_write "default" {
 	external_labels = {cluster = "doku-lab"}
 
 	endpoint {
-		url = "http://prometheus-server.monitoring.svc/api/v1/write"
+		url = "http://victoria-metrics.monitoring.svc:8428/api/v1/write"
 	}
 }
 
@@ -94,7 +94,7 @@ prometheus.relabel "cadvisor" {
 }
 
 prometheus.scrape "kube_state_metrics" {
-	targets         = [{"__address__" = "prometheus-kube-state-metrics.monitoring.svc:8080"}]
+	targets         = [{"__address__" = "kube-state-metrics.monitoring.svc:8080"}]
 	job_name        = "kube-state-metrics"
 	scrape_interval = "60s"
 	forward_to      = [prometheus.remote_write.default.receiver]

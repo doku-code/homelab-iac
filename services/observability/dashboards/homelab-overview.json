@@ -987,7 +987,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=\"pods\"} |~ \"(?i)(error|fatal|panic)\"",
+          "expr": "{job=\"pods\"} |~ \"level=(error|fatal|panic)|\\\"level\\\":\\\\s*\\\"(error|fatal|critical|panic)\\\"|\\\\b(ERR|ERROR|FATAL|PANIC)\\\\b|^E[0-9]{4} |panic:\" !~ \"context canceled\"",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -1003,7 +1003,8 @@
         "wrapLogMessage": true,
         "sortOrder": "Descending",
         "enableLogDetails": true
-      }
+      },
+      "description": "Lines whose level is error or worse (level field, upper-case level word, klog E-line, Go panic). Requests the client abandoned are left out."
     }
   ]
 }

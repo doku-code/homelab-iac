@@ -16,7 +16,7 @@
         id: grafana-service
         icon: grafana.png
         href: https://grafana.doku-lab.net
-        description: Metrics and logs · Prometheus · Loki
+        description: Metrics and logs · VictoriaMetrics · Loki
     - NetBox:
         id: netbox-service
         icon: netbox.png

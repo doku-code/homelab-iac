@@ -1044,10 +1044,13 @@ postgresql-configure:
 # ─────────────────────────────────────────────
 
 OBS_DIR := services/observability
-OBS_PROMETHEUS_CHART := 29.47.2
+OBS_VM_CHART := 0.52.0
+OBS_VMALERT_CHART := 0.54.0
+OBS_KSM_CHART := 9.1.0
 OBS_LOKI_CHART := 7.6.0
 OBS_ALLOY_CHART := 1.16.0
 OBS_GRAFANA_CHART := 14.5.0
+OBS_VM_REPO := https://victoriametrics.github.io/helm-charts/
 OBS_PROMETHEUS_REPO := https://prometheus-community.github.io/helm-charts
 OBS_GRAFANA_LABS_REPO := https://grafana.github.io/helm-charts
 OBS_GRAFANA_REPO := https://grafana-community.github.io/helm-charts
