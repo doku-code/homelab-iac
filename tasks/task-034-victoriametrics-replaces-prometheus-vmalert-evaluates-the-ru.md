@@ -4,7 +4,7 @@ description: VictoriaMetrics single node stores the metrics Alloy pushes, vmaler
 published: true
 tags:
 - task
-- in-progress
+- completed
 - observability
 - victoriametrics
 editor: markdown
@@ -14,7 +14,7 @@ dateCreated: '2026-11-24T00:00:00.000Z'
 
 # TASK-034 — VictoriaMetrics replaces Prometheus; vmalert evaluates the rules
 
-> **ID:** TASK-034 · **Type:** task · **Status:** in-progress · **Updated:** 2026-11-24 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-034-victoriametrics-replaces-prometheus-vmalert-evaluates-the-ru.md)
+> **ID:** TASK-034 · **Type:** task · **Status:** completed · **Updated:** 2026-11-24 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-034-victoriametrics-replaces-prometheus-vmalert-evaluates-the-ru.md)
 
 ## Goal
 
@@ -33,7 +33,9 @@ kube-state-metrics is its own chart; the Prometheus chart is no longer deployed.
   need no change. The widget API of the dashboard reads the same query API.
 - `HostSilent` used `timestamp()`, which can never be older than the staleness interval, so it could not fire;
   it now uses MetricsQL `lag()`.
-- No notification channel yet (`-notifier.blackhole`): alerts show in Grafana only.
+- Firing alerts go to the Alertmanager of the vmalert chart, which posts them to the operator's Discord channel: the
+  webhook of the old monitoring VM, still in the store (`DISCORD_ALERT_WEBHOOK`, path `/`), mounted from the Secret
+  `alertmanager-discord` that `make observability-deploy` writes. Same routing as before: critical repeats hourly, the rest every four hours.
 - Retention 90 days (was 15).
 
 ## Acceptance criteria
@@ -42,7 +44,9 @@ kube-state-metrics is its own chart; the Prometheus chart is no longer deployed.
 - [x] Grafana and the dashboard's widget API start on the new address; the rules are loaded by vmalert (the rendering of the panels in a browser is the operator's check).
 - [x] The history held by Prometheus is copied.
 - [x] Prometheus's workloads are removed from the cluster.
-- [ ] The volume `prometheus-server` is deleted (operator's word).
+- [x] The volume `prometheus-server` is deleted (operator's word, 2026-11-24).
+- [x] Alerts reach Discord.
+- [x] The switch dashboard draws the front panel.
 - [x] Offline tests.
 
 ## Verification
@@ -69,9 +73,13 @@ make observability-check
 | History | `Import finished`, 32,921,308 samples, first sample of `node_load1` from 2026-11-17 | `vmctl remote-read` in a one-off pod | 2026-11-24 |
 | Prometheus removed | Deployments, Services, ConfigMap, accounts and cluster roles of the release deleted; the volume `prometheus-server` is kept | `kubectl delete -l app.kubernetes.io/instance=prometheus` | 2026-11-24 |
 | Use | VictoriaMetrics 199 Mi right after the import, vmalert 12 Mi, kube-state-metrics 28 Mi | `kubectl top` | 2026-11-24 |
+| Discord | test alert `DeliveryTest` posted: `alertmanager_notifications_total{integration="discord"} 1`, every `failed` counter 0 | metrics of Alertmanager | 2026-11-24 |
+| Front panel | canvas panel rendered with the 16 ports in place and coloured by link state (ports 2, 9 to 13 and 15 gray, the others green) | screenshot of `/d/switch` through geckodriver | 2026-11-24 |
+| Old volume | `persistentvolumeclaim "prometheus-server" deleted` | `kubectl -n monitoring delete pvc` | 2026-11-24 |
 | Snapshot sidecar | 63 `Failed to watch` lines in 10 minutes before, 0 in 3 minutes after the snapshot controller and its CRDs | logs of `csi-snapshotter` | 2026-11-24 |
 
 ## Completion summary
 
-In progress. Remaining: the operator looks at the dashboards and says whether the volume `prometheus-server` (the only
-object Argo CD still shows as out of sync) may be deleted; a notification channel for the alerts is not chosen yet.
+Done on 2026-11-24: VictoriaMetrics, vmalert and Alertmanager run from Argo CD with the copied history, alerts reach
+Discord, Prometheus and its volume are gone. Not verified: that the drawing matches the physical order of the
+ports (odd numbers assumed on the top row).

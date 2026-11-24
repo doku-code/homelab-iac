@@ -132,7 +132,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   Grafana at `https://grafana.doku-lab.net/` (LAN only; `admin` with `GRAFANA_ADMIN_PASSWORD` from
   store path `/monitoring`), dashboard "Homelab overview". VictoriaMetrics (since 2026-11-24, [TASK-034](/tasks/task-034-victoriametrics-replaces-prometheus-vmalert-evaluates-the-ru); 90 days), vmalert and Loki on k3s; Alloy in the cluster
   and on every VM, allow-listed metrics only (about 3,900 series). Redeploy: `make observability-deploy`;
-  new VM: `make observability-agents`. Alerts are evaluated but not delivered anywhere yet.
+  new VM: `make observability-agents`. Alerts are posted to the operator's Discord channel by Alertmanager (webhook from the store, `DISCORD_ALERT_WEBHOOK`).
 - **Edge migration in progress** 2026-11-18 ([TASK-022](/tasks/task-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a)):
   Traefik serves a Let's Encrypt wildcard for `*.doku-lab.net` (cert-manager, Cloudflare DNS-01:
   `make ingress-certs-deploy`). **LAN DNS is `dns-01`** (VM 370, `192.168.0.70`, pve-infra; AdGuard Home from
