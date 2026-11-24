@@ -62,12 +62,20 @@ def main():
     for flag in ("--retentionPeriod=90d", "--search.maxStalenessInterval=5m", "--httpListenAddr=:8428", "storageClassName: local-path"):
         assert flag in text, flag
     assert next(d for d in docs if d["kind"] == "Service")["metadata"]["name"] == "victoria-metrics"
-    # vmalert: the rules, evaluated once a minute, their state written back; no Alertmanager, nothing sent.
+    # vmalert: the rules, evaluated once a minute, their state written back; firing alerts go to Alertmanager,
+    # which posts to Discord with a webhook read from a mounted Secret, never from Git.
     docs, text = render("vmalert", "victoria-metrics-alert", "OBS_VM_REPO", "OBS_VMALERT_CHART", "vmalert.yaml")
-    assert "alertmanager" not in text.lower() and "--notifier.blackhole" in text and "--evaluationInterval=1m" in text
+    assert "--notifier.url=http://alertmanager.monitoring.svc" in text and "--evaluationInterval=1m" in text
+    alerting = yaml.safe_load((OBS / "vmalert.yaml").read_text())["alertmanager"]
+    (receiver,) = alerting["config"]["receivers"]
+    assert alerting["config"]["route"]["receiver"] == receiver["name"] == "discord"
+    assert receiver["discord_configs"] == [{"webhook_url_file": "/etc/alertmanager-discord/url", "send_resolved": True}]
+    assert "discord.com" not in text and "webhook_url:" not in text, "the webhook address is not in Git"
+    assert alerting["extraVolumes"] == [{"name": "discord", "secret": {"secretName": "alertmanager-discord"}}]
+    assert "alertmanager-discord" in MAKEFILE and "DISCORD_ALERT_WEBHOOK" in MAKEFILE
     for flag in ("datasource", "remoteWrite", "remoteRead"):
         assert f"--{flag}.url=http://victoria-metrics.monitoring.svc:8428" in text, flag
-    config = next(d for d in docs if d["kind"] == "ConfigMap")["data"]
+    config = next(d for d in docs if d["kind"] == "ConfigMap" and "alert-rules.yaml" in d["data"])["data"]
     rules = [rule for group in yaml.safe_load(config["alert-rules.yaml"])["groups"] for rule in group["rules"]]
     assert len(rules) >= 8 and all(r["labels"]["severity"] in ("warning", "critical") and r["annotations"]["summary"] and r["for"] for r in rules)
     assert not any("timestamp(" in r["expr"] for r in rules), "a silent host is found with lag(): timestamp() never exceeds the staleness interval"

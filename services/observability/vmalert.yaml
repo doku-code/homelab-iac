@@ -1,5 +1,38 @@
-# vmalert (TASK-034): evaluates the alert rules against VictoriaMetrics once a minute and writes their state
-# back as the ALERTS series the dashboards show. No notification channel yet: nothing is sent anywhere.
+# vmalert (TASK-034): evaluates the alert rules against VictoriaMetrics once a minute, writes their state back
+# as the ALERTS series the dashboards show, and hands firing alerts to the Alertmanager below, which posts
+# them to the operator's Discord channel. The webhook address is the Secret alertmanager-discord, written by
+# `make observability-deploy` from the store (DISCORD_ALERT_WEBHOOK); it is never in Git.
+alertmanager:
+  enabled: true
+  fullnameOverride: alertmanager
+  retention: 120h
+  resources:
+    requests: {cpu: 5m, memory: 24Mi}
+    limits: {cpu: 100m, memory: 96Mi}
+  extraVolumes:
+    - name: discord
+      secret:
+        secretName: alertmanager-discord
+  extraVolumeMounts:
+    - name: discord
+      mountPath: /etc/alertmanager-discord
+      readOnly: true
+  config:
+    route:
+      receiver: discord
+      group_by: [alertname, severity]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        - matchers: ['severity="critical"']
+          receiver: discord
+          repeat_interval: 1h
+    receivers:
+      - name: discord
+        discord_configs:
+          - webhook_url_file: /etc/alertmanager-discord/url
+            send_resolved: true
 server:
   fullnameOverride: vmalert
   datasource:
@@ -10,7 +43,6 @@ server:
     url: http://victoria-metrics.monitoring.svc:8428 # alerts keep their "for" state across a restart
   extraArgs:
     evaluationInterval: 1m
-    notifier.blackhole: true
   resources:
     requests: {cpu: 10m, memory: 32Mi}
     limits: {cpu: 200m, memory: 128Mi}

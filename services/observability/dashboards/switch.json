@@ -43,6 +43,836 @@
       }
     },
     {
+      "id": 12,
+      "type": "canvas",
+      "title": "Front panel",
+      "description": "Each port where it sits on the switch: green has a link, gray has none. Odd ports on the top row.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sort_by_label_numeric(ifOperStatus{job=\"switch\"}, \"ifIndex\")",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "port {{ifIndex}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "up",
+                  "color": "#2f9e44"
+                },
+                "2": {
+                  "text": "down",
+                  "color": "#3a3f47"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3a3f47",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "inlineEditing": false,
+        "showAdvancedTypes": false,
+        "panZoom": false,
+        "infinitePan": false,
+        "root": {
+          "type": "frame",
+          "name": "root",
+          "elements": [
+            {
+              "type": "rectangle",
+              "name": "chassis",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#111417"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#5a6069"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 1,
+                "right": 1,
+                "top": 6,
+                "bottom": 6
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "label rj45",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "RJ45 10G"
+                },
+                "color": {
+                  "fixed": "#9aa0a8"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 1,
+                "radius": 3
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 4,
+                "right": 54,
+                "top": 9,
+                "bottom": 80
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "label sfp",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "SFP+ 10G"
+                },
+                "color": {
+                  "fixed": "#9aa0a8"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 1,
+                "radius": 3
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 54,
+                "right": 4,
+                "top": 9,
+                "bottom": 80
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 1",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "1"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 1",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 2
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 5.0,
+                "right": 85.75,
+                "top": 24,
+                "bottom": 48
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 2",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "2"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 2",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 2
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 5.0,
+                "right": 85.75,
+                "top": 58,
+                "bottom": 14
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 3",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "3"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 3",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 2
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 15.25,
+                "right": 75.5,
+                "top": 24,
+                "bottom": 48
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 4",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "4"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 4",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 2
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 15.25,
+                "right": 75.5,
+                "top": 58,
+                "bottom": 14
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 5",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "5"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 5",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 2
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 25.5,
+                "right": 65.25,
+                "top": 24,
+                "bottom": 48
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 6",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "6"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 6",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 2
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 25.5,
+                "right": 65.25,
+                "top": 58,
+                "bottom": 14
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 7",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "7"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 7",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 2
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 35.75,
+                "right": 55.0,
+                "top": 24,
+                "bottom": 48
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 8",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "8"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 8",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 2
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 35.75,
+                "right": 55.0,
+                "top": 58,
+                "bottom": 14
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 9",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "9"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 9",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 55.0,
+                "right": 35.75,
+                "top": 24,
+                "bottom": 48
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 10",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "10"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 10",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 55.0,
+                "right": 35.75,
+                "top": 58,
+                "bottom": 14
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 11",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "11"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 11",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 65.25,
+                "right": 25.5,
+                "top": 24,
+                "bottom": 48
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 12",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "12"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 12",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 65.25,
+                "right": 25.5,
+                "top": 58,
+                "bottom": 14
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 13",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "13"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 13",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 75.5,
+                "right": 15.25,
+                "top": 24,
+                "bottom": 48
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 14",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "14"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 14",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 75.5,
+                "right": 15.25,
+                "top": 58,
+                "bottom": 14
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 15",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "15"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 15",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 85.75,
+                "right": 5.0,
+                "top": 24,
+                "bottom": 48
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "port 16",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "16"
+                },
+                "color": {
+                  "fixed": "#ffffff"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "port 16",
+                  "fixed": "#1f2226"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4a4f57"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 85.75,
+                "right": 5.0,
+                "top": 58,
+                "bottom": 14
+              }
+            }
+          ],
+          "background": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "border": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "constraint": {
+            "horizontal": "left",
+            "vertical": "top"
+          },
+          "placement": {
+            "left": 0,
+            "top": 0,
+            "width": 100,
+            "height": 100
+          }
+        }
+      }
+    },
+    {
       "id": 2,
       "type": "stat",
       "title": "Ports up",
@@ -51,9 +881,9 @@
         "uid": "prometheus"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 6,
-        "x": 0,
+        "x": 12,
         "y": 1
       },
       "targets": [
@@ -105,9 +935,9 @@
         "uid": "prometheus"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 6,
-        "x": 6,
+        "x": 18,
         "y": 1
       },
       "targets": [
@@ -159,10 +989,10 @@
         "uid": "prometheus"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 6,
         "x": 12,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -217,10 +1047,10 @@
         "uid": "prometheus"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 6,
         "x": 18,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -279,7 +1109,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 5
+        "y": 7
       },
       "targets": [
         {
@@ -332,7 +1162,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 5
+        "y": 7
       },
       "targets": [
         {
@@ -385,7 +1215,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 14
+        "y": 16
       },
       "targets": [
         {
@@ -438,7 +1268,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 16
       },
       "targets": [
         {
@@ -491,7 +1321,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 23
+        "y": 25
       },
       "targets": [
         {
@@ -544,7 +1374,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 23
+        "y": 25
       },
       "targets": [
         {
@@ -581,77 +1411,6 @@
         "tooltip": {
           "mode": "multi",
           "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 12,
-      "type": "stat",
-      "title": "Port state",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 24,
-        "x": 0,
-        "y": 32
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sort_by_label_numeric(ifOperStatus{job=\"switch\"}, \"ifIndex\")",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "legendFormat": "port {{ifIndex}}",
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "1": {
-                  "text": "up",
-                  "color": "green"
-                },
-                "2": {
-                  "text": "down",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "gray",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "orientation": "vertical",
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value_and_name",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
         }
       }
     }
