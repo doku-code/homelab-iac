@@ -68,7 +68,7 @@ make docs-maps-check
 |-------|--------|-----------------------------------|------|
 | `make wiki-check` | PASS | "documentation maps equal to the repository; Forgejo wiki reproducible with Home from docs/home.md, the maps in the sidebar and no dead link" | 2026-11-25 |
 | Local build | 96 pages | `make forgejo-wiki` | 2026-11-25 |
-| Publication on Forgejo | not verified | | |
+| Publication on Forgejo | `scripts/forgejo-wiki.py --publish` from the workstation (runner host was off) | published 96 pages; the infrastructure map answers 200; diagrams not looked at in a browser | 2026-11-25 |
 
 ## Completion summary
 
