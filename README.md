@@ -23,6 +23,7 @@ new node, `pve-management`, is a standalone bootstrap and recovery host.
 
 | Need | Document |
 |------|----------|
+| What runs where, what deploys what: the maps | [docs/home.md](/docs/home), [docs/hubs/](/docs/hubs) |
 | Vision, strategy, repository map | [docs/project-overview.md](/docs/project-overview) |
 | Target architecture and layer ownership | [docs/architecture/platform.md](/docs/architecture/platform) |
 | Decisions | [docs/decisions/](/docs/decisions) |

@@ -25,7 +25,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M009 | active | medium | [Argo CD and Windmill](/milestones/m009-argocd-windmill) | completed: 2 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M013 | active | medium | [NetBox inventory and IPAM](/milestones/m013-netbox-inventory-and-ipam) | completed: 1, in-progress: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
 | M014 | active | medium | [Single sign-on with Authentik](/milestones/m014-single-sign-on-with-authentik) | completed: 1 | Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator. |
-| M010 | planned | high | [Rolling application migration](/milestones/m010-rolling-application-migration) | completed: 7, in-progress: 1, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
+| M010 | planned | high | [Rolling application migration](/milestones/m010-rolling-application-migration) | completed: 7, in-progress: 2, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](/milestones/m011-ceph-and-expansion) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](/milestones/m012-backups-and-finalization) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
 | M001 | completed | critical | [Management workstation](/milestones/m001-bootstrap-pve-management) | completed: 5, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
@@ -46,6 +46,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-019 | in-progress | high | M008 | [Phase on k3s with the shared PostgreSQL and migration from Infisical](/tasks/task-019-phase-on-k3s-with-the-shared-postgresql-and-migration-from-i) | Phase Console v2.79.0 runs on k3s with its database on the shared PostgreSQL; scripts/secrets.py selects the store, migrates and verifies; cutover waits for the operator's Phase account. |
 | TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](/tasks/task-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
 | TASK-030 | in-progress | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](/tasks/task-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues) | NetBox holds named hardware models, ports, hardware facts, the cables the switch announces and what every guest is, draws diagrams through plugins, and the roots check their plans against it. |
+| TASK-035 | in-progress | medium | M010 | [Documentation maps: hub pages generated from the repository and a wiki with a curated sidebar](/tasks/task-035-documentation-maps-hub-pages-generated-from-the-repository-a) | docs/hubs holds one map per question, with tables and diagrams generated from the repository's own files; the Forgejo wiki opens on docs/home.md and lists the maps in its sidebar. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](/tasks/task-002-live-proxmox-inventory) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](/tasks/task-003-service-dependency-and-data-map) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](/tasks/task-004-pbs-representative-restore) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -136,6 +137,18 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 ### Guide
 
 - **GUIDE-handoff** [Current handoff and next steps](/docs/handoff) (current) `guide, handoff, workstation, pve-management` — Read first in a new session: what exists, where the state lives, how to work from mgmt-control-01, the current and next task.
+- **GUIDE-home** [homelab-iac](/docs/home) (current) `map, home` — Entry page of the documentation: what the platform is, the cluster at a glance and the maps that answer one question each.
+- **GUIDE-map-architecture** [Architecture map](/docs/hubs/architecture-map) (current) `map, architecture` — How the pieces fit: the layers from the hardware to the applications, and which tool owns which concern.
+- **GUIDE-map-ci-cd** [CI/CD map](/docs/hubs/ci-cd-map) (current) `map, ci, forgejo` — The Forgejo workflows, what starts them, which runner executes them and the checks they run.
+- **GUIDE-map-decisions** [Architecture decisions](/docs/hubs/architecture-decisions) (current) `map, decisions` — Every decision record, its status and what it replaced.
+- **GUIDE-map-dependencies** [Dependency map](/docs/hubs/dependency-map) (current) `map, dependencies, bootstrap` — What needs what to run, the order in which the platform starts, and the order in which it was built.
+- **GUIDE-map-deployment** [Deployment map](/docs/hubs/deployment-map) (current) `map, deployment, opentofu, ansible, argocd` — What deploys what: the OpenTofu root of each guest, the playbook that configures it and the Argo CD application of each service.
+- **GUIDE-map-history** [Development history](/docs/hubs/development-history) (current) `map, roadmap, history` — Milestones, the tasks under each and what is open now.
+- **GUIDE-map-identity** [Identity and secrets map](/docs/hubs/identity-and-secrets-map) (current) `map, identity, secrets, authentik, phase` — Who signs in where and through what, and which secret-store path feeds which deployment.
+- **GUIDE-map-infrastructure** [Infrastructure map](/docs/hubs/infrastructure-map) (current) `map, infrastructure, proxmox` — Hosts, guests and how they are wired: which machine runs what, with its size and address.
+- **GUIDE-map-network** [Network and names](/docs/hubs/network-map) (current) `map, network, dns, ingress` — Which name answers where: the LAN's DNS answers, the shared addresses and the route behind each name.
+- **GUIDE-map-operations** [Operations](/docs/hubs/operations) (current) `map, operations` — Day-to-day procedures: where the commands are, how to take a host down, what is known to be broken.
+- **GUIDE-map-services** [Service catalog](/docs/hubs/service-catalog) (current) `map, services, k3s` — Every service of the platform: its site, where it runs, what signs people in and where its data lives.
 
 ### Project reference
 
@@ -151,19 +164,19 @@ _No commit records. Generate with `harness history sync`._
 - **adguard**: TASK-022
 - **age**: ADR-004, TASK-011
 - **alloy**: TASK-020
-- **ansible**: TASK-009, TASK-014, TASK-015, TASK-017, TASK-018
-- **architecture**: ARCH-platform
+- **ansible**: GUIDE-map-deployment, TASK-009, TASK-014, TASK-015, TASK-017, TASK-018
+- **architecture**: ARCH-platform, GUIDE-map-architecture
 - **archive**: ADR-007
-- **argocd**: ADR-006, ADR-011, TASK-024, TASK-026
+- **argocd**: ADR-006, ADR-011, GUIDE-map-deployment, TASK-024, TASK-026
 - **authentication**: ADR-017
-- **authentik**: ADR-017, M014, TASK-026, TASK-027, TASK-029
+- **authentik**: ADR-017, GUIDE-map-identity, M014, TASK-026, TASK-027, TASK-029
 - **automation**: TASK-025
 - **backup**: ADR-012, TASK-003, TASK-004, TASK-010
-- **bootstrap**: ADR-002, ADR-008, INV-pve-management-bootstrap, M001
+- **bootstrap**: ADR-002, ADR-008, GUIDE-map-dependencies, INV-pve-management-bootstrap, M001
 - **caddy**: TASK-022
 - **ceph**: ADR-012
 - **cert-manager**: TASK-022
-- **ci**: ADR-008, ADR-014, TASK-014, TASK-033
+- **ci**: ADR-008, ADR-014, GUIDE-map-ci-cd, TASK-014, TASK-033
 - **cluster**: ADR-010, INV-new-proxmox-cluster-inventory, TASK-013
 - **compose**: ADR-006
 - **compute**: TASK-013
@@ -171,15 +184,16 @@ _No commit records. Generate with `harness history sync`._
 - **dashboard**: TASK-027
 - **database**: ADR-013, ADR-015
 - **decision**: ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-016, ADR-017
-- **dependencies**: TASK-003
-- **deployment**: ADR-014
+- **decisions**: GUIDE-map-decisions
+- **dependencies**: GUIDE-map-dependencies, TASK-003
+- **deployment**: ADR-014, GUIDE-map-deployment
 - **desktop**: ADR-009
-- **dns**: TASK-022
-- **documentation**: TASK-029
+- **dns**: GUIDE-map-network, TASK-022
+- **documentation**: TASK-029, TASK-035
 - **etcd**: TASK-018, TASK-021
 - **external**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
 - **flux**: ADR-006
-- **forgejo**: ADR-014, TASK-014
+- **forgejo**: ADR-014, GUIDE-map-ci-cd, TASK-014
 - **forward-auth**: TASK-027
 - **gitops**: ADR-005, TASK-024
 - **gpu**: TASK-028
@@ -189,14 +203,18 @@ _No commit records. Generate with `harness history sync`._
 - **hardware**: ADR-018, DOC-infrastructure-inventory, INV-new-proxmox-cluster-inventory, TASK-030
 - **harness**: TASK-001
 - **headlamp**: ADR-011, TASK-016
+- **history**: GUIDE-map-history
+- **home**: GUIDE-home
 - **homepage**: TASK-027
+- **identity**: GUIDE-map-identity
 - **infisical**: ADR-004, TASK-019
-- **ingress**: TASK-022
+- **infrastructure**: GUIDE-map-infrastructure
+- **ingress**: GUIDE-map-network, TASK-022
 - **inventory**: ADR-016, ADR-018, DOC-infrastructure-inventory, INV-legacy-inventory, INV-new-proxmox-cluster-inventory, M000, M013, TASK-002, TASK-003, TASK-023, TASK-030
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
 - **ipam**: ADR-016, TASK-023
 - **issue**: ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte
-- **k3s**: ADR-006, ADR-011, TASK-015, TASK-016, TASK-017, TASK-019, TASK-021
+- **k3s**: ADR-006, ADR-011, GUIDE-map-services, TASK-015, TASK-016, TASK-017, TASK-019, TASK-021
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
 - **legacy**: ADR-007, INV-legacy-inventory
@@ -204,36 +222,40 @@ _No commit records. Generate with `harness history sync`._
 - **m002**: TASK-013
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009
+- **map**: GUIDE-home, GUIDE-map-architecture, GUIDE-map-ci-cd, GUIDE-map-decisions, GUIDE-map-dependencies, GUIDE-map-deployment, GUIDE-map-history, GUIDE-map-identity, GUIDE-map-infrastructure, GUIDE-map-network, GUIDE-map-operations, GUIDE-map-services
+- **maps**: TASK-035
 - **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029, TASK-032, TASK-033
 - **netbox**: ADR-016, ADR-018, DOC-infrastructure-inventory, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026, TASK-030
-- **network**: DOC-infrastructure-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-031
+- **network**: DOC-infrastructure-inventory, GUIDE-map-network, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-031
 - **nfs**: TASK-017
 - **nvme**: ADR-012
 - **observability**: TASK-020, TASK-031, TASK-034
-- **opentofu**: ADR-003, TASK-006, TASK-008, TASK-014, TASK-015, TASK-017, TASK-018
+- **opentofu**: ADR-003, GUIDE-map-deployment, TASK-006, TASK-008, TASK-014, TASK-015, TASK-017, TASK-018
+- **operations**: GUIDE-map-operations
 - **overview**: DOC-project-overview
 - **patroni**: ADR-013, ADR-015, TASK-018
 - **pbs**: TASK-004
 - **performance**: TASK-028
-- **phase**: ADR-004, TASK-019
+- **phase**: ADR-004, GUIDE-map-identity, TASK-019
 - **plan**: INV-pve-management-bootstrap
 - **planning**: M000, TASK-005
 - **platform**: ARCH-platform
 - **postgresql**: ADR-013, ADR-015, TASK-018
 - **prometheus**: TASK-020
-- **proxmox**: ADR-002, ADR-010, INV-new-proxmox-cluster-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-002, TASK-013, TASK-021, TASK-028
+- **proxmox**: ADR-002, ADR-010, GUIDE-map-infrastructure, INV-new-proxmox-cluster-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-002, TASK-013, TASK-021, TASK-028
 - **pve-core**: ADR-010, TASK-013
 - **pve-management**: ADR-009, ADR-010, GUIDE-handoff, INV-pve-management-bootstrap, M001, TASK-007, TASK-008
 - **rebuild**: ARCH-platform, DOC-project-overview
 - **recovery**: TASK-004, TASK-012
 - **reference**: DOC-infrastructure-inventory, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
 - **repository**: TASK-001
-- **roadmap**: M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012, M013, M014
+- **roadmap**: GUIDE-map-history, M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012, M013, M014
 - **runbook**: TASK-012
 - **runner**: ADR-008, ADR-014, TASK-009, TASK-014, TASK-033
-- **secrets**: ADR-004, TASK-011, TASK-019
+- **secrets**: ADR-004, GUIDE-map-identity, TASK-011, TASK-019
 - **security**: ADR-008
 - **service-catalog**: ADR-005
+- **services**: GUIDE-map-services
 - **sops**: ADR-004, TASK-011
 - **sso**: ADR-017, M014, TASK-026
 - **state**: ADR-007, TASK-010
@@ -246,7 +268,7 @@ _No commit records. Generate with `harness history sync`._
 - **vaultwarden**: TASK-032
 - **victoriametrics**: TASK-034
 - **vision**: DOC-project-overview
-- **wiki**: REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-029
+- **wiki**: REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-029, TASK-035
 - **windmill**: ADR-005, ADR-011, TASK-025, TASK-026
 - **workstation**: ADR-009, GUIDE-handoff, TASK-028
 
