@@ -1220,6 +1220,23 @@ WIKI_SECRET_INPUTS := WIKI_ADMIN_PASSWORD PG_APP_WIKI_PASSWORD
 wiki-check:
 	$(VENV)/bin/python tests/wiki.py
 
+# The documentation maps (docs/home.md, docs/hubs; TASK-035): their tables and diagrams are written from the
+# files of the repository, nothing is read from a machine. Run docs-maps after changing what a map shows (an
+# application, a Make target, a DNS answer, a decision, a task) and commit the result; `make wiki-check` fails
+# when a map no longer says what the repository says. `make netbox-docs` runs it after the inventory page.
+# forgejo-wiki writes the Forgejo wiki's pages into FORGEJO_WIKI_DIR to look at them; CI publishes them on every
+# change of main (.forgejo/workflows/harness-wiki-publish.yml).
+FORGEJO_WIKI_DIR ?= .local/forgejo-wiki
+.PHONY: docs-maps docs-maps-check forgejo-wiki
+docs-maps:
+	$(VENV)/bin/python scripts/docs-maps.py
+
+docs-maps-check:
+	$(VENV)/bin/python scripts/docs-maps.py --check
+
+forgejo-wiki:
+	$(VENV)/bin/python scripts/forgejo-wiki.py --out $(FORGEJO_WIKI_DIR)
+
 # Generates the values the store does not hold yet (never replaces one, never prints one).
 wiki-secrets:
 	@test "$(WIKI_SECRETS_APPROVED)" = yes || (echo "Approve the creation of the missing wiki secrets with WIKI_SECRETS_APPROVED=yes" >&2; exit 1)
@@ -1408,6 +1425,7 @@ netbox-export:
 NETBOX_DOCS_PAGE := docs/reference/infrastructure-inventory.md
 netbox-docs:
 	$(NETBOX_SYNC) document $(NETBOX_DOCS_PAGE)
+	$(VENV)/bin/python scripts/docs-maps.py
 
 # The Ansible inventory as NetBox serves it (read-only token):
 #   scripts/secrets.py run /netbox -- make netbox-inventory

@@ -54,8 +54,12 @@ use IPs**. The new nodes have no DNS records.
   as `ubuntu` on itself and as `root` on the four new nodes (cluster-wide `authorized_keys`). Not on `.14`.
 - Repository: `~/homelab-iac`, branch `main`, `origin` = Forgejo `https://git.doku-lab.net/Homelab/homelab-iac.git`,
   `github` = push mirror (used by `mgmt-configure` as an independent source). The Forgejo wiki is generated
-  from `README.md` (Home), `docs/`, `milestones/`, `tasks/` and `history/` with a `_Sidebar` by
-  `harness-wiki-publish.yml` on each push to `main`: never edit wiki pages by hand.
+  from `docs/`, `milestones/`, `tasks/` and `history/` by `harness-wiki-publish.yml` on each push to `main`
+  (`scripts/forgejo-wiki.py`, TASK-035): Home is `docs/home.md`, the sidebar lists the maps of `docs/hubs`
+  (infrastructure, services, names, deployment, dependencies, identity, CI, decisions, operations, history).
+  The maps' tables and diagrams are written by `make docs-maps` from the repository's own files; run it after
+  changing what a map shows (an application, a Make target, a DNS answer, a task's status) or `make wiki-check`
+  fails. Never edit wiki pages by hand.
 - Tools for `ubuntu` (interactive shells, via mise): Node, Python, Go, uv, Terraform, kubectl, Helm,
   Infisical CLI, Claude Code, Codex; plus OpenTofu, SOPS, age, Docker, Git, `.venv` with Ansible and the
   harness. Zed, Obsidian, Sublime Merge in the GNOME app grid. The PVE root CA is trusted system-wide.

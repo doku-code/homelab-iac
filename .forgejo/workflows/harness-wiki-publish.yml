@@ -1,6 +1,7 @@
 # Agent harness wiki publication (harness v0.1.0 template, adapted for homelab-iac; operator decision
-# 2026-11-17). Publishes README.md as Home, docs/, milestones/, tasks/ and history/ as pages, plus the
-# generated _Sidebar and _Footer, to the repository wiki (Homelab/homelab-iac.wiki.git).
+# 2026-11-17). Publishes docs/, milestones/, tasks/ and history/ as pages to the repository wiki
+# (Homelab/homelab-iac.wiki.git). Since TASK-035 the pages are still the harness's, and scripts/forgejo-wiki.py
+# puts our navigation around them: Home is docs/home.md, the sidebar lists the maps of docs/hubs.
 # Deliberately diverges from the upstream template:
 #   - same main-only activation gate and `homelab-iac` runner (CT301) as validate.yml, no pull_request trigger;
 #   - the harness is installed from the copy vendored in tools/agent-harness (no other repository fetched);
@@ -18,6 +19,8 @@ on:
       - "README.md"
       - "AGENTS.md"
       - "scripts/wiki-export.py"
+      - "scripts/forgejo-wiki.py"
+      - "scripts/docs-maps.py"
       - "docs/**"
       - "milestones/**"
       - "tasks/**"
@@ -53,7 +56,10 @@ jobs:
           /tmp/harness-venv/bin/python -m pip install -r requirements-agents.txt
 
       - name: Validate documents before publishing
-        run: /tmp/harness-venv/bin/harness check --no-content-scan
+        run: |
+          set -euo pipefail
+          /tmp/harness-venv/bin/harness check --no-content-scan
+          /tmp/harness-venv/bin/python scripts/docs-maps.py --check
 
       - name: Export and publish wiki pages
         env:
@@ -62,7 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           /tmp/harness-venv/bin/harness docs index >/dev/null
-          /tmp/harness-venv/bin/harness docs publish-wiki
+          /tmp/harness-venv/bin/python scripts/forgejo-wiki.py --publish
 
       # The same documentation as the page tree the Wiki.js instance pulls (services/wiki, TASK-029): pushed to
       # the branch `wiki` of this repository with the job's own token, sent as a header from the environment.

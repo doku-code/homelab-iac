@@ -27,6 +27,8 @@ def load(name, path):
 
 
 export = load("wiki_export", "scripts/wiki-export.py")
+maps = load("docs_maps", "scripts/docs-maps.py")
+forgejo = load("forgejo_wiki", "scripts/forgejo-wiki.py")
 admin = load("wiki_admin", "scripts/wiki-admin.py")
 
 
@@ -216,14 +218,95 @@ def configuration():
     assert "print(secret" not in text and "print(password" not in text
 
 
+def documentation_maps():
+    """docs/home.md and docs/hubs say what the repository says, and every block they hold is generated."""
+    hubs = sorted((ROOT / "docs/hubs").glob("*.md"))
+    assert len(hubs) >= 10 and (ROOT / "docs/home.md").exists()
+    orders = []
+    for path in maps.pages():
+        text = path.read_text()
+        assert maps.render(path) == text, f"{path.relative_to(ROOT)}: run `make docs-maps` and commit the result"
+        assert text.count(":start -->") == text.count(":end -->") == len(maps.BLOCK.findall(text)), f"{path.name}: a block is not closed"
+        if path in hubs:
+            orders.append(maps.meta(path.relative_to(ROOT))["nav_order"])
+    assert len(set(orders)) == len(orders) == len(hubs), "each map has its own place in the sidebar"
+    # What the blocks are built from: a few facts that must hold whatever the repository says today.
+    home = (ROOT / "docs/home.md").read_text()
+    assert all(f"](hubs/{hub.name})" in home for hub in hubs), "Home lists every map"
+    apps = {app["name"]: app for app in maps.applications()}
+    assert set(apps) == {p.stem for p in (ROOT / "services/argocd/apps").glob("*.yaml")}
+    assert apps["wiki"]["sites"] == [HOST] and apps["wiki"]["database"] and apps["wiki"]["namespace"] == "wiki"
+    assert apps["ingress"]["sites"] == [], "the routes to machines outside k3s are not sites of the ingress"
+    assert maps.blueprints()[HOST] == "Authentik (OpenID Connect)"
+    assert maps.secret_paths()["wiki-deploy"] == ["/wiki", "/postgresql"]
+    assert "/switch" in maps.secret_paths()["observability-deploy"], "paths named in a sentence count too"
+    assert maps.cell("a | b\n c") == "a \\| b c" and maps.table(["A"], [("x",)]) == "| A |\n|---|\n| x |"
+    diagram = maps.view_infrastructure_diagram("docs/home.md")
+    assert diagram.startswith("```mermaid\nflowchart TB\n") and diagram.endswith("\n```") and 'subgraph pve_core["pve-core' in diagram
+    names = maps.view_names("docs/hubs/network-map.md")
+    assert f"| `{HOST}` | 192.168.0.45 | Traefik on k3s (shared address) | [`services/wiki/access.yaml`](../../services/wiki/access.yaml) |" in names
+    roots = maps.view_roots("docs/hubs/deployment-map.md")
+    assert "`make k3s-cluster-apply`" in roots and "`make k3s-install`" not in roots, "the root's own targets, not the retired lab's"
+    for name, view in maps.VIEWS.items():  # nothing of a private file or a secret can reach a map
+        assert "terraform.tfvars" not in view("docs/hubs/x.md") and ".local/" not in view("docs/hubs/x.md"), name
+
+
+def forgejo_wiki():
+    """The Forgejo wiki: the harness's pages with Home from docs/home.md and the maps in the sidebar."""
+    with tempfile.TemporaryDirectory(prefix="forgejo-wiki-test-") as first, tempfile.TemporaryDirectory(prefix="forgejo-wiki-test-") as second:
+        config = forgejo.load_config(ROOT)
+        forgejo.wiki.export(config, Path(first), clean=True)
+        forgejo.wiki.export(config, Path(second), clean=True)
+        files = sorted(p.name for p in Path(first).glob("*.md"))
+        assert files == sorted(p.name for p in Path(second).glob("*.md"))
+        for name in files:
+            assert (Path(first) / name).read_bytes() == (Path(second) / name).read_bytes(), f"{name}: not reproducible"
+        pages = {name[:-3] for name in files}
+        assert {"Home", "_Sidebar", "_Footer", "All-pages", "handoff", "hubs-infrastructure-map"} <= pages
+        assert not [p for p in pages if p.lower() in ("home", "page-home") and p != "Home"], "docs/home.md is published once, as Home"
+        home = (Path(first) / "Home.md").read_text()
+        assert home.startswith("> Generated from [`docs/home.md`](") and "**ID:**" not in home and "```mermaid" in home
+        assert "](hubs-infrastructure-map)" in home and "<!--" not in home
+        sidebar = (Path(first) / "_Sidebar.md").read_text()
+        hubs = sorted((ROOT / "docs/hubs").glob("*.md"), key=lambda p: maps.meta(p.relative_to(ROOT))["nav_order"])
+        listed = re.findall(r"\]\((hubs-[a-z0-9-]+)\)", sidebar)
+        assert listed == [f"hubs-{hub.stem}" for hub in hubs], "every map, in its order"
+        assert "tasks-TASK" not in sidebar and "decisions-ADR" not in sidebar, "the sidebar is a way in, not the list of every page"
+        assert sidebar.index("**Maps**") < sidebar.index("**Start here**") < sidebar.index("**Indexes**") and "](All-pages)" in sidebar
+        everything = (Path(first) / "All-pages.md").read_text()
+        for name in files:
+            text = (Path(first) / name).read_text()
+            if not name.startswith(("_", "All-pages", "Home")):
+                assert text.startswith(f"> Generated from [`"), f"{name}: every page names its source"
+                assert f"]({name[:-3]})" in everything, f"{name}: not in All pages"
+            for _, link, _ in forgejo.LINK.findall(forgejo.FENCE.sub("", text)):
+                target = link.split("#")[0]
+                if target and not re.match(r"[a-z][a-z0-9+.-]*:", link, re.I):
+                    assert target in pages, f"{name}: {link} leads to no page"
+    # Link rules on a made-up page.
+    page = forgejo.wiki.Page("hubs-x", "docs/hubs/x.md", "X", "guide", None,
+                             "[p](handoff#now) [f](../../Makefile) [d](../../services/wiki) [e](https://example.org) [n](../nothing.txt)\n```\n[c](../../Makefile)\n```\n")
+    out = forgejo.repository_links(page, {"handoff"})
+    assert "[p](handoff#now)" in out and f"[f]({forgejo.SOURCE_URL}Makefile)" in out and f"[d]({forgejo.SOURCE_URL}services/wiki)" in out
+    assert "[e](https://example.org)" in out and "[n](../nothing.txt)" in out and "```\n[c](../../Makefile)\n```" in out
+    workflow = (ROOT / ".forgejo/workflows/harness-wiki-publish.yml").read_text()
+    assert "scripts/forgejo-wiki.py --publish" in workflow and "docs-maps.py --check" in workflow and "harness docs publish-wiki" not in workflow
+    assert workflow.index("docs-maps.py --check") < workflow.index("HARNESS_WIKI_TOKEN"), "checked before the token is in the environment"
+    assert "pull_request" not in yaml.safe_load(workflow).get(True, {}), "never on a pull request"
+    assert "scripts/docs-maps.py" in recipe("netbox-docs") and "--check" in recipe("docs-maps-check")
+
+
 def main():
     service, port = chart()
     access_and_database(service, port)
     exported_tree()
     configuration()
+    documentation_maps()
+    forgejo_wiki()
     print("PASS: Wiki.js chart pinned with one replica, no volume and no bundled database, encrypted connection to the shared "
           "PostgreSQL, LAN-only route, legacy route removed, reproducible export with wiki front matter and working links, "
-          "configuration tool idempotent with pull-only Git storage and the local sign-in kept")
+          "configuration tool idempotent with pull-only Git storage and the local sign-in kept; documentation maps equal to "
+          "the repository; Forgejo wiki reproducible with Home from docs/home.md, the maps in the sidebar and no dead link")
 
 
 if __name__ == "__main__":

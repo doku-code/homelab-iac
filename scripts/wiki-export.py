@@ -43,7 +43,7 @@ TREES = ["docs", "milestones", "tasks", "history"]
 EXCLUDED = ("docs/archive/",)
 INDEX_TITLES = {
     "docs": "Documentation", "docs/architecture": "Architecture", "docs/decisions": "Decisions",
-    "docs/investigations": "Investigations", "docs/reference": "Reference", "docs/reference/external": "External references",
+    "docs/investigations": "Investigations", "docs/hubs": "Maps", "docs/reference": "Reference", "docs/reference/external": "External references",
     "milestones": "Milestones", "tasks": "Tasks", "history": "History",
 }
 FRONT_MATTER = re.compile(r"\A---\n(.*?)\n---\n", re.S)

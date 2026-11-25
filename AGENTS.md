@@ -77,6 +77,8 @@ planning metadata, never authorization.
 - Terraform/OpenTofu: `fmt` + `validate` (backend disabled) before done; `plan` when credentials
   exist; no `-target` except recovery; imports over recreation.
 - Ansible: `--syntax-check`, then `--check --diff` when meaningful and safe.
+- The maps in `docs/home.md` and `docs/hubs/` hold generated tables: after changing what one shows (an Argo CD
+  application, a Make target, a DNS answer, a decision, a task's status) run `make docs-maps` and commit the result.
 - Commits: Conventional Commits `type(scope): description` (`feat`, `fix`, `refactor`, `chore`,
   `docs`, `test`), small and coherent; never push without explicit authorization.
 - Do not introduce a major tool or dependency without stating the value it adds; reuse mature

@@ -57,6 +57,10 @@
           "field": "related"
         },
         {
+          "from": "GUIDE-map-dependencies",
+          "field": "related_decisions"
+        },
+        {
           "from": "M000",
           "field": "related_decisions"
         },
@@ -202,6 +206,14 @@
           "field": "related_decisions"
         },
         {
+          "from": "GUIDE-map-architecture",
+          "field": "related_decisions"
+        },
+        {
+          "from": "GUIDE-map-deployment",
+          "field": "related_decisions"
+        },
+        {
           "from": "INV-pve-management-bootstrap",
           "field": "related"
         },
@@ -296,6 +308,10 @@
         },
         {
           "from": "ARCH-platform",
+          "field": "related_decisions"
+        },
+        {
+          "from": "GUIDE-map-identity",
           "field": "related_decisions"
         },
         {
@@ -590,6 +606,10 @@
           "field": "related_decisions"
         },
         {
+          "from": "GUIDE-map-ci-cd",
+          "field": "related_decisions"
+        },
+        {
           "from": "INV-legacy-inventory",
           "field": "related"
         },
@@ -777,6 +797,10 @@
           "field": "related"
         },
         {
+          "from": "GUIDE-map-infrastructure",
+          "field": "related_decisions"
+        },
+        {
           "from": "INV-new-proxmox-cluster-inventory",
           "field": "related"
         },
@@ -895,6 +919,18 @@
         {
           "from": "DOC-project-overview",
           "field": "related"
+        },
+        {
+          "from": "GUIDE-map-architecture",
+          "field": "related_decisions"
+        },
+        {
+          "from": "GUIDE-map-deployment",
+          "field": "related_decisions"
+        },
+        {
+          "from": "GUIDE-map-services",
+          "field": "related_decisions"
         },
         {
           "from": "M004",
@@ -1281,6 +1317,14 @@
           "field": "related"
         },
         {
+          "from": "GUIDE-map-ci-cd",
+          "field": "related_decisions"
+        },
+        {
+          "from": "GUIDE-map-deployment",
+          "field": "related_decisions"
+        },
+        {
           "from": "M003",
           "field": "related_decisions"
         },
@@ -1364,6 +1408,10 @@
         {
           "from": "ADR-017",
           "field": "related"
+        },
+        {
+          "from": "GUIDE-map-dependencies",
+          "field": "related_decisions"
         },
         {
           "from": "M007",
@@ -1473,6 +1521,14 @@
           "field": "related_decisions"
         },
         {
+          "from": "GUIDE-map-infrastructure",
+          "field": "related_decisions"
+        },
+        {
+          "from": "GUIDE-map-network",
+          "field": "related_decisions"
+        },
+        {
           "from": "M013",
           "field": "related_decisions"
         },
@@ -1549,6 +1605,18 @@
         ]
       },
       "backrefs": [
+        {
+          "from": "GUIDE-map-dependencies",
+          "field": "related_decisions"
+        },
+        {
+          "from": "GUIDE-map-identity",
+          "field": "related_decisions"
+        },
+        {
+          "from": "GUIDE-map-services",
+          "field": "related_decisions"
+        },
         {
           "from": "M014",
           "field": "related_decisions"
@@ -1783,6 +1851,38 @@
         },
         {
           "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-home",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-architecture",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-ci-cd",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-dependencies",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-deployment",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-identity",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-infrastructure",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-services",
           "field": "related"
         },
         {
@@ -2039,6 +2139,14 @@
           "field": "related"
         },
         {
+          "from": "GUIDE-map-infrastructure",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-network",
+          "field": "related"
+        },
+        {
           "from": "TASK-030",
           "field": "related"
         }
@@ -2121,6 +2229,22 @@
         },
         {
           "from": "GUIDE-handoff",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-home",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-architecture",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-decisions",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-history",
           "field": "related"
         },
         {
@@ -2248,6 +2372,22 @@
           "field": "related"
         },
         {
+          "from": "GUIDE-home",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-deployment",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-history",
+          "field": "related"
+        },
+        {
+          "from": "GUIDE-map-operations",
+          "field": "related"
+        },
+        {
           "from": "INV-new-proxmox-cluster-inventory",
           "field": "related"
         },
@@ -2290,8 +2430,565 @@
         {
           "from": "TASK-022",
           "field": "related"
+        },
+        {
+          "from": "TASK-035",
+          "field": "related"
         }
       ]
+    },
+    {
+      "id": "GUIDE-home",
+      "title": "homelab-iac",
+      "summary": "Entry page of the documentation: what the platform is, the cluster at a glance and the maps that answer one question each.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/home.md",
+      "tags": [
+        "map",
+        "home"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "homelab-iac",
+        "Maps",
+        "The cluster at a glance",
+        "Working on the repository"
+      ],
+      "relations": {
+        "related": [
+          "DOC-project-overview",
+          "ARCH-platform",
+          "GUIDE-handoff"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "TASK-035",
+          "field": "related"
+        }
+      ]
+    },
+    {
+      "id": "GUIDE-map-architecture",
+      "title": "Architecture map",
+      "summary": "How the pieces fit: the layers from the hardware to the applications, and which tool owns which concern.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/architecture-map.md",
+      "tags": [
+        "map",
+        "architecture"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Architecture map",
+        "Layers",
+        "Responsibilities"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "DOC-project-overview"
+        ],
+        "related_decisions": [
+          "ADR-011",
+          "ADR-003"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-ci-cd",
+      "title": "CI/CD map",
+      "summary": "The Forgejo workflows, what starts them, which runner executes them and the checks they run.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/ci-cd-map.md",
+      "tags": [
+        "map",
+        "ci",
+        "forgejo"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "CI/CD map",
+        "Workflows",
+        "Checks",
+        "Documentation and wikis"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform"
+        ],
+        "related_decisions": [
+          "ADR-008",
+          "ADR-014"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-decisions",
+      "title": "Architecture decisions",
+      "summary": "Every decision record, its status and what it replaced.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/architecture-decisions.md",
+      "tags": [
+        "map",
+        "decisions"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Architecture decisions"
+      ],
+      "relations": {
+        "related": [
+          "DOC-project-overview"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-dependencies",
+      "title": "Dependency map",
+      "summary": "What needs what to run, the order in which the platform starts, and the order in which it was built.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/dependency-map.md",
+      "tags": [
+        "map",
+        "dependencies",
+        "bootstrap"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Dependency map",
+        "At run time",
+        "Start order after a full stop",
+        "Build order"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform"
+        ],
+        "related_decisions": [
+          "ADR-001",
+          "ADR-015",
+          "ADR-017"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-deployment",
+      "title": "Deployment map",
+      "summary": "What deploys what: the OpenTofu root of each guest, the playbook that configures it and the Argo CD application of each service.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/deployment-map.md",
+      "tags": [
+        "map",
+        "deployment",
+        "opentofu",
+        "ansible",
+        "argocd"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Deployment map",
+        "Guests: OpenTofu roots",
+        "Services: Argo CD applications"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform",
+          "GUIDE-handoff"
+        ],
+        "related_decisions": [
+          "ADR-003",
+          "ADR-011",
+          "ADR-014"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-history",
+      "title": "Development history",
+      "summary": "Milestones, the tasks under each and what is open now.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/development-history.md",
+      "tags": [
+        "map",
+        "roadmap",
+        "history"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Development history",
+        "Open tasks",
+        "Milestones"
+      ],
+      "relations": {
+        "related": [
+          "DOC-project-overview",
+          "GUIDE-handoff"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-identity",
+      "title": "Identity and secrets map",
+      "summary": "Who signs in where and through what, and which secret-store path feeds which deployment.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/identity-and-secrets-map.md",
+      "tags": [
+        "map",
+        "identity",
+        "secrets",
+        "authentik",
+        "phase"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Identity and secrets map",
+        "Sign-in",
+        "Secrets",
+        "Credentials that are deliberately narrow"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform"
+        ],
+        "related_decisions": [
+          "ADR-004",
+          "ADR-017"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-infrastructure",
+      "title": "Infrastructure map",
+      "summary": "Hosts, guests and how they are wired: which machine runs what, with its size and address.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/infrastructure-map.md",
+      "tags": [
+        "map",
+        "infrastructure",
+        "proxmox"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Infrastructure map",
+        "Devices",
+        "Guests of the platform",
+        "Shared addresses"
+      ],
+      "relations": {
+        "related": [
+          "DOC-infrastructure-inventory",
+          "ARCH-platform"
+        ],
+        "related_decisions": [
+          "ADR-010",
+          "ADR-016"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-network",
+      "title": "Network and names",
+      "summary": "Which name answers where: the LAN's DNS answers, the shared addresses and the route behind each name.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/network-map.md",
+      "tags": [
+        "map",
+        "network",
+        "dns",
+        "ingress"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Network and names",
+        "Names answered on the LAN"
+      ],
+      "relations": {
+        "related": [
+          "DOC-infrastructure-inventory"
+        ],
+        "related_decisions": [
+          "ADR-016"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-operations",
+      "title": "Operations",
+      "summary": "Day-to-day procedures: where the commands are, how to take a host down, what is known to be broken.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/operations.md",
+      "tags": [
+        "map",
+        "operations"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Operations",
+        "Routine",
+        "Taking a Proxmox host down",
+        "Known issues",
+        "Investigations"
+      ],
+      "relations": {
+        "related": [
+          "GUIDE-handoff"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
+    },
+    {
+      "id": "GUIDE-map-services",
+      "title": "Service catalog",
+      "summary": "Every service of the platform: its site, where it runs, what signs people in and where its data lives.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [
+        "scripts/docs-maps.py"
+      ],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/hubs/service-catalog.md",
+      "tags": [
+        "map",
+        "services",
+        "k3s"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Service catalog",
+        "On k3s, under Argo CD",
+        "Outside k3s"
+      ],
+      "relations": {
+        "related": [
+          "ARCH-platform"
+        ],
+        "related_decisions": [
+          "ADR-011",
+          "ADR-017"
+        ],
+        "source_paths": [
+          "scripts/docs-maps.py"
+        ]
+      },
+      "backrefs": []
     },
     {
       "id": "INV-legacy-inventory",
@@ -3551,6 +4248,10 @@
         },
         {
           "from": "TASK-034",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-035",
           "field": "milestone"
         }
       ]
@@ -6119,7 +6820,12 @@
           "M010"
         ]
       },
-      "backrefs": []
+      "backrefs": [
+        {
+          "from": "TASK-035",
+          "field": "related"
+        }
+      ]
     },
     {
       "id": "TASK-030",
@@ -6426,6 +7132,64 @@
         ]
       },
       "backrefs": []
+    },
+    {
+      "id": "TASK-035",
+      "title": "Documentation maps: hub pages generated from the repository and a wiki with a curated sidebar",
+      "summary": "docs/hubs holds one map per question, with tables and diagrams generated from the repository's own files; the Forgejo wiki opens on docs/home.md and lists the maps in its sidebar.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-035-documentation-maps-hub-pages-generated-from-the-repository-a.md",
+      "tags": [
+        "documentation",
+        "wiki",
+        "maps"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "Documentation maps: hub pages generated from the repository and a wiki with a curated sidebar",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "GUIDE-home",
+          "GUIDE-handoff",
+          "TASK-029"
+        ],
+        "related_implementations": [
+          "scripts/docs-maps.py",
+          "scripts/forgejo-wiki.py",
+          "docs/home.md",
+          "docs/hubs",
+          ".forgejo/workflows/harness-wiki-publish.yml",
+          "Makefile"
+        ],
+        "related_tests": [
+          "tests/wiki.py"
+        ],
+        "milestone": [
+          "M010"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -6456,7 +7220,19 @@
       "ADR-018"
     ],
     "guide": [
-      "GUIDE-handoff"
+      "GUIDE-handoff",
+      "GUIDE-home",
+      "GUIDE-map-architecture",
+      "GUIDE-map-ci-cd",
+      "GUIDE-map-decisions",
+      "GUIDE-map-dependencies",
+      "GUIDE-map-deployment",
+      "GUIDE-map-history",
+      "GUIDE-map-identity",
+      "GUIDE-map-infrastructure",
+      "GUIDE-map-network",
+      "GUIDE-map-operations",
+      "GUIDE-map-services"
     ],
     "investigation": [
       "INV-legacy-inventory",
@@ -6526,7 +7302,8 @@
       "TASK-031",
       "TASK-032",
       "TASK-033",
-      "TASK-034"
+      "TASK-034",
+      "TASK-035"
     ]
   },
   "by_tag": {
@@ -6544,6 +7321,7 @@
       "TASK-020"
     ],
     "ansible": [
+      "GUIDE-map-deployment",
       "TASK-009",
       "TASK-014",
       "TASK-015",
@@ -6551,7 +7329,8 @@
       "TASK-018"
     ],
     "architecture": [
-      "ARCH-platform"
+      "ARCH-platform",
+      "GUIDE-map-architecture"
     ],
     "archive": [
       "ADR-007"
@@ -6559,6 +7338,7 @@
     "argocd": [
       "ADR-006",
       "ADR-011",
+      "GUIDE-map-deployment",
       "TASK-024",
       "TASK-026"
     ],
@@ -6567,6 +7347,7 @@
     ],
     "authentik": [
       "ADR-017",
+      "GUIDE-map-identity",
       "M014",
       "TASK-026",
       "TASK-027",
@@ -6584,6 +7365,7 @@
     "bootstrap": [
       "ADR-002",
       "ADR-008",
+      "GUIDE-map-dependencies",
       "INV-pve-management-bootstrap",
       "M001"
     ],
@@ -6599,6 +7381,7 @@
     "ci": [
       "ADR-008",
       "ADR-014",
+      "GUIDE-map-ci-cd",
       "TASK-014",
       "TASK-033"
     ],
@@ -6642,20 +7425,27 @@
       "ADR-016",
       "ADR-017"
     ],
+    "decisions": [
+      "GUIDE-map-decisions"
+    ],
     "dependencies": [
+      "GUIDE-map-dependencies",
       "TASK-003"
     ],
     "deployment": [
-      "ADR-014"
+      "ADR-014",
+      "GUIDE-map-deployment"
     ],
     "desktop": [
       "ADR-009"
     ],
     "dns": [
+      "GUIDE-map-network",
       "TASK-022"
     ],
     "documentation": [
-      "TASK-029"
+      "TASK-029",
+      "TASK-035"
     ],
     "etcd": [
       "TASK-018",
@@ -6670,6 +7460,7 @@
     ],
     "forgejo": [
       "ADR-014",
+      "GUIDE-map-ci-cd",
       "TASK-014"
     ],
     "forward-auth": [
@@ -6705,14 +7496,27 @@
       "ADR-011",
       "TASK-016"
     ],
+    "history": [
+      "GUIDE-map-history"
+    ],
+    "home": [
+      "GUIDE-home"
+    ],
     "homepage": [
       "TASK-027"
+    ],
+    "identity": [
+      "GUIDE-map-identity"
     ],
     "infisical": [
       "ADR-004",
       "TASK-019"
     ],
+    "infrastructure": [
+      "GUIDE-map-infrastructure"
+    ],
     "ingress": [
+      "GUIDE-map-network",
       "TASK-022"
     ],
     "inventory": [
@@ -6743,6 +7547,7 @@
     "k3s": [
       "ADR-006",
       "ADR-011",
+      "GUIDE-map-services",
       "TASK-015",
       "TASK-016",
       "TASK-017",
@@ -6773,6 +7578,23 @@
       "ADR-002",
       "ADR-009"
     ],
+    "map": [
+      "GUIDE-home",
+      "GUIDE-map-architecture",
+      "GUIDE-map-ci-cd",
+      "GUIDE-map-decisions",
+      "GUIDE-map-dependencies",
+      "GUIDE-map-deployment",
+      "GUIDE-map-history",
+      "GUIDE-map-identity",
+      "GUIDE-map-infrastructure",
+      "GUIDE-map-network",
+      "GUIDE-map-operations",
+      "GUIDE-map-services"
+    ],
+    "maps": [
+      "TASK-035"
+    ],
     "migration": [
       "ADR-001",
       "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr",
@@ -6796,6 +7618,7 @@
     ],
     "network": [
       "DOC-infrastructure-inventory",
+      "GUIDE-map-network",
       "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte",
       "TASK-031"
     ],
@@ -6812,12 +7635,16 @@
     ],
     "opentofu": [
       "ADR-003",
+      "GUIDE-map-deployment",
       "TASK-006",
       "TASK-008",
       "TASK-014",
       "TASK-015",
       "TASK-017",
       "TASK-018"
+    ],
+    "operations": [
+      "GUIDE-map-operations"
     ],
     "overview": [
       "DOC-project-overview"
@@ -6835,6 +7662,7 @@
     ],
     "phase": [
       "ADR-004",
+      "GUIDE-map-identity",
       "TASK-019"
     ],
     "plan": [
@@ -6858,6 +7686,7 @@
     "proxmox": [
       "ADR-002",
       "ADR-010",
+      "GUIDE-map-infrastructure",
       "INV-new-proxmox-cluster-inventory",
       "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte",
       "TASK-002",
@@ -6895,6 +7724,7 @@
       "TASK-001"
     ],
     "roadmap": [
+      "GUIDE-map-history",
       "M002",
       "M003",
       "M004",
@@ -6921,6 +7751,7 @@
     ],
     "secrets": [
       "ADR-004",
+      "GUIDE-map-identity",
       "TASK-011",
       "TASK-019"
     ],
@@ -6929,6 +7760,9 @@
     ],
     "service-catalog": [
       "ADR-005"
+    ],
+    "services": [
+      "GUIDE-map-services"
     ],
     "sops": [
       "ADR-004",
@@ -6974,7 +7808,8 @@
     ],
     "wiki": [
       "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr",
-      "TASK-029"
+      "TASK-029",
+      "TASK-035"
     ],
     "windmill": [
       "ADR-005",
