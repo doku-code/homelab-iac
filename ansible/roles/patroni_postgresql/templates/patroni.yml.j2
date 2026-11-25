@@ -53,6 +53,11 @@ postgresql:
   # and only to the database named like their role.
   pg_hba:
     - local all all peer
+    # Patroni reads this member's own timeline through a replication connection to localhost before it rewinds
+    # a member that was leader when its host went down. Without these two rules the member never came back
+    # by itself (pg-03, 2026-11-24).
+    - hostssl replication replicator 127.0.0.1/32 scram-sha-256
+    - hostssl replication replicator ::1/128 scram-sha-256
 {% for address in patroni_member_addresses %}
     - hostssl replication replicator {{ address }}/32 scram-sha-256
     - hostssl postgres rewinder {{ address }}/32 scram-sha-256

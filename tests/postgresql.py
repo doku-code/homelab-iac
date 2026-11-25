@@ -73,6 +73,8 @@ def test_templates():
     assert all(rule.startswith("hostssl ") and rule.endswith(" scram-sha-256") for rule in network), "TLS and SCRAM only"
     for ip in MEMBERS.values():
         assert f"hostssl replication replicator {ip}/32 scram-sha-256" in network
+    # A member that was leader when its host stopped rewinds by itself: Patroni asks it for its own timeline first.
+    assert network[:2] == ["hostssl replication replicator 127.0.0.1/32 scram-sha-256", "hostssl replication replicator ::1/128 scram-sha-256"]
     # Applications reach only the database named like their role; the superuser has no network rule at all.
     clients = [rule for rule in network if "192.168.0.4" in rule]
     assert clients == ["hostssl sameuser +app 192.168.0.40/29 scram-sha-256", "hostssl sameuser +app 192.168.0.48/31 scram-sha-256"]
