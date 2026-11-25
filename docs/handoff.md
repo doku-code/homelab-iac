@@ -107,8 +107,11 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   configure (commands in TASK-015). Add servers as tfvars entries in `terraform/stacks/k3s`.
   **Three servers since 2026-11-18** ([TASK-021](/tasks/task-021-k3s-servers-on-pve-core-and-pve-lab-three-etcd-members)):
   `k3s-server-02` (VM 311, .41, pve-core) and `k3s-server-03` (VM 312, .42, pve-lab), three etcd members,
-  Traefik on every node. Two members are on pve-lab (operator decision): losing pve-lab stops the API,
-  losing pve-core does not. kubeconfig and the published names still use `.40`.
+  Traefik on every node. Since 2026-11-24 each server is on its own host (`k3s-server-01` on pve-compute): the cluster survives the loss
+  of any one. **Since 2026-11-25 the kubeconfig and every published name use the shared address `192.168.0.45`**,
+  held by one server at a time (kube-vip v1.3.2, ARP, manifest from `ansible/roles/k3s`; the Traefik Service has
+  it as an external IP so the client address survives). Takeover measured without a failed request. Still on
+  `.40`: the `*.192.168.0.40.sslip.io` names the VMs push metrics and logs to (their certificate names that address).
 - **M005 completed** 2026-11-17: Headlamp at `https://headlamp.doku-lab.net/` (LAN only); sign in through Authentik, or with `HEADLAMP_ADMIN_TOKEN` (store path `/headlamp`) when Authentik is down. Redeploy: `scripts/secrets.py run /authentik -- make headlamp-deploy HEADLAMP_DEPLOY_APPROVED=yes`.
 - **M006 completed** 2026-11-17 ([TASK-017](/tasks/task-017-shared-nfs-storage-vm-on-pve-core-and-nvme-shared-storagecla)):
   `storage-01` (VM 350, 192.168.0.50; on `pve-compute` since 2026-11-24, both disks on its storage `lab-vms`, the 2 TB

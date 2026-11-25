@@ -10,13 +10,13 @@ tags:
 - hardware
 - network
 editor: markdown
-date: '2026-11-24T00:00:00.000Z'
+date: '2026-11-25T00:00:00.000Z'
 dateCreated: '2026-11-21T00:00:00.000Z'
 ---
 
 # Infrastructure inventory
 
-> **ID:** DOC-infrastructure-inventory · **Type:** reference · **Status:** current · **Updated:** 2026-11-24 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/reference/infrastructure-inventory.md)
+> **ID:** DOC-infrastructure-inventory · **Type:** reference · **Status:** current · **Updated:** 2026-11-25 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/reference/infrastructure-inventory.md)
 
 This page is written by `make netbox-docs` from [NetBox](https://netbox.doku-lab.net) (LAN only), which is where
 the inventory lives; NetBox also draws it (Topology Views for the network, Floorplan for the room). To change
@@ -61,8 +61,8 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 
 | Device | Part | Kind | Model | Details |
 |---|---|---|---|---|
-| pve-compute | nvme0n1 | Disk | Samsung SSD 990 PRO 2TB | 2000 GB nvme |
-| pve-compute | nvme1n1 | Disk | Samsung SSD 970 EVO 1TB | 1000 GB nvme |
+| pve-compute | nvme0n1 | Disk | Samsung SSD 970 EVO 1TB | 1000 GB nvme |
+| pve-compute | nvme1n1 | Disk | Samsung SSD 990 PRO 2TB | 2000 GB nvme |
 | pve-compute | Memory 1 | Memory | CP16G64C38U5B.M8D1 | 16 GB DDR5 5600 MT/s |
 | pve-compute | Memory 2 | Memory | CP16G64C38U5B.M8D1 | 16 GB DDR5 5600 MT/s |
 | pve-compute | CPU | Processor | AMD Ryzen 9 9950X3D 16-Core Processor | 16 cores, 32 threads |
@@ -165,6 +165,7 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 | 192.168.0.40/24 | k3s-server-01 net0 |  |  | k3s-server-01 |
 | 192.168.0.41/24 | k3s-server-02 net0 |  |  | k3s-server-02 |
 | 192.168.0.42/24 | k3s-server-03 net0 |  |  | k3s-server-03 |
+| 192.168.0.45/24 |  |  | VIP | k3s shared address: API and ingress, held by one server at a time (kube-vip, ansible/roles/k3s); the published names answer it |
 | 192.168.0.50/24 | storage-01 net0 |  |  | storage-01 |
 | 192.168.0.60/24 |  |  | VIP | PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql) |
 | 192.168.0.61/24 | pg-01 net0 |  |  | pg-01 |
