@@ -92,6 +92,22 @@
     mode: "0600"
   when: k3s_role == 'server'
 
+- name: Require the interface the shared address is announced on
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.default_ipv4.interface == k3s_vip_interface
+    fail_msg: "k3s_vip_interface is {{ k3s_vip_interface }} but this server's LAN interface is {{ ansible_facts.default_ipv4.interface }}."
+  when: k3s_role == 'server' and k3s_vip | length > 0
+
+- name: Hold the shared address of the cluster on one server at a time (kube-vip)
+  ansible.builtin.template:
+    src: kube-vip.yaml.j2
+    dest: /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  when: k3s_role == 'server' and k3s_vip | length > 0
+
 - name: Install the k3s service
   ansible.builtin.template:
     src: k3s.service.j2

@@ -101,7 +101,7 @@ def access_and_applications(registries):
     (lan,) = [d for d in docs if d["kind"] == "Middleware"]
     assert lan["spec"]["ipAllowList"]["sourceRange"] == ["192.168.0.0/24"]
     rewrites = {r["domain"]: r["answer"] for r in yaml.safe_load((ROOT / "ansible/vars/dns.yml").read_text())["adguard_rewrites"]}
-    assert rewrites[HOST] == "192.168.0.40"
+    assert rewrites[HOST] == "192.168.0.45"
 
     projects = {d["metadata"]["name"]: d["spec"] for d in docs if d["kind"] == "AppProject"}
     assert set(projects) == {"platform", "infrastructure"}

@@ -47,6 +47,8 @@
   hosts: k3s_cluster
   become: true
   gather_facts: false
+  vars_files:
+    - ../roles/k3s/defaults/main.yml # k3s_vip: the address the kubeconfig names
   vars:
     k3s_kubeconfig_dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.kube/config"
     k3s_kubeconfig_context: doku-lab
@@ -69,12 +71,12 @@
       delegate_to: localhost
       become: false
 
-    - name: Write the admin kubeconfig on the workstation (API by IP, context doku-lab)
+    - name: Write the admin kubeconfig on the workstation (API at the shared address, context doku-lab)
       ansible.builtin.copy:
         dest: "{{ k3s_kubeconfig_dest }}"
         content: >-
           {{ (k3s_admin_kubeconfig.content | b64decode)
-             | replace('https://127.0.0.1:6443', 'https://' + ansible_host + ':6443')
+             | replace('https://127.0.0.1:6443', 'https://' + (k3s_vip or ansible_host) + ':6443')
              | regex_replace('(?m)^(\s*(- )?(name|cluster|user|current-context):\s*)default$', '\g<1>' + k3s_kubeconfig_context) }}
         mode: "0600"
       delegate_to: localhost

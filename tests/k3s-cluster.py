@@ -5,6 +5,7 @@ No infrastructure calls: templates render on localhost, Make runs in a sandbox w
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -37,7 +38,8 @@ def test_config_template():
     base = {"ansible_host": "192.168.0.40", "k3s_init_node": "localhost", "k3s_role": "server"}
     init = yaml.safe_load(render("config.yaml.j2", base))
     assert init["cluster-init"] is True and "server" not in init, "the first server initialises embedded etcd"
-    assert init["token"] == TOKEN and init["node-ip"] == "192.168.0.40" and init["tls-san"] == ["192.168.0.40"]
+    assert init["token"] == TOKEN and init["node-ip"] == "192.168.0.40" and init["tls-san"] == ["192.168.0.40", "192.168.0.45"]
+    assert yaml.safe_load(render("config.yaml.j2", {**base, "k3s_vip": ""}))["tls-san"] == ["192.168.0.40"], "no shared address: only its own"
     assert init["write-kubeconfig-mode"] == "0600" and "disable" not in init, "Traefik and ServiceLB stay (M004)"
     assert init["cluster-cidr"] == "10.42.0.0/16" and init["service-cidr"] == "10.43.0.0/16"
     # People sign in through Authentik (ADR-017): the API accepts tokens of the client `headlamp`, and what a
@@ -58,8 +60,22 @@ def test_config_template():
     assert agent["server"] == "https://192.168.0.40:6443" and "tls-san" not in agent and "kube-apiserver-arg" not in agent
     assert join["kube-apiserver-arg"] == init["kube-apiserver-arg"], "every API server accepts the same tokens"
 
+    # The shared address: held by one control-plane node at a time, API only (ServiceLB keeps the Services), pinned image.
+    vip = list(yaml.safe_load_all(render("kube-vip.yaml.j2", base)))
+    assert [d["kind"] for d in vip] == ["ServiceAccount", "ClusterRole", "ClusterRoleBinding", "DaemonSet"]
+    pod = vip[3]["spec"]["template"]["spec"]
+    env = {e["name"]: e["value"] for e in pod["containers"][0]["env"]}
+    assert env["address"] == "192.168.0.45" and env["vip_interface"] == "eth0" and env["vip_arp"] == env["cp_enable"] == env["vip_leaderelection"] == "true"
+    assert env["svc_enable"] == "false" and env["port"] == "6443" and pod["hostNetwork"] is True
+    assert re.fullmatch(r"ghcr\.io/kube-vip/kube-vip:v\d+\.\d+\.\d+", pod["containers"][0]["image"]), "pinned release"
+    assert pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["key"] == "node-role.kubernetes.io/control-plane"
+    assert not any("secrets" in rule["resources"] for rule in vip[1]["rules"]), "it reads no Secret"
+    tasks = (ROOT / "ansible/roles/k3s/tasks/main.yml").read_text()
+    assert "manifests/kube-vip.yaml" in tasks and "default_ipv4.interface == k3s_vip_interface" in tasks
+
     traefik = yaml.safe_load(yaml.safe_load(render("traefik-config.yaml.j2", base))["spec"]["valuesContent"])
     assert traefik["service"]["spec"]["externalTrafficPolicy"] == "Local", "ingress allow-lists need the client address"
+    assert traefik["service"]["spec"]["externalIPs"] == ["192.168.0.45"], "also on the shared address"
     assert traefik["deployment"]["kind"] == "DaemonSet", "with the Local policy every node needs its own Traefik"
     assert traefik["ports"]["websecure"]["transport"]["respondingTimeouts"]["readTimeout"] == "1800s", "uploads longer than a minute must pass"
 
@@ -107,7 +123,7 @@ def test_playbook():
         play.write_text(yaml.safe_dump([{
             "hosts": "localhost", "gather_facts": False, "vars": kubeconfig["vars"],
             "tasks": [{"ansible.builtin.copy": {"dest": str(out), "content": expression}}]}]))
-        extra = {"ansible_host": "192.168.0.40",
+        extra = {"ansible_host": "192.168.0.40", "k3s_vip": "192.168.0.45",
                  "k3s_admin_kubeconfig": {"content": __import__("base64").b64encode(sample.encode()).decode()}}
         result = subprocess.run([str(ROOT / ".venv/bin/ansible-playbook"), "-i", "localhost,", "-c", "local",
                                  "-e", json.dumps(extra), str(play)], capture_output=True, text=True,
@@ -115,14 +131,14 @@ def test_playbook():
         assert result.returncode == 0, result.stdout + result.stderr
         config = yaml.safe_load(out.read_text())
     assert config["current-context"] == "doku-lab"
-    assert config["clusters"][0]["name"] == "doku-lab" and config["clusters"][0]["cluster"]["server"] == "https://192.168.0.40:6443"
+    assert config["clusters"][0]["name"] == "doku-lab" and config["clusters"][0]["cluster"]["server"] == "https://192.168.0.45:6443", "the shared address, not one node"
     assert config["contexts"][0] == {"name": "doku-lab", "context": {"cluster": "doku-lab", "user": "doku-lab"}}
     assert config["users"][0]["name"] == "doku-lab" and config["users"][0]["user"]["client-key-data"] == "S0VZ"
 
 
-def test_hostkey_script_refuses_old_environment():
+def test_hostkey_script_refuses_other_hosts():  # only the five nodes of doku-lab (pve-compute is .14 since 2026-11-24)
     script = ROOT / "scripts/pin-guest-hostkey.sh"
-    for args in (["192.168.0.14", "310", "192.168.0.40"], ["192.168.0.16", "31x", "192.168.0.40"],
+    for args in (["192.168.0.13", "310", "192.168.0.40"], ["192.168.0.16", "31x", "192.168.0.40"],
                  ["192.168.0.16", "310", "10.0.0.1"]):
         result = subprocess.run([str(script), *args], capture_output=True, text=True)
         assert result.returncode == 2 and "refused" in result.stderr, args
@@ -188,7 +204,7 @@ def main():
     test_config_template()
     test_role()
     test_playbook()
-    test_hostkey_script_refuses_old_environment()
+    test_hostkey_script_refuses_other_hosts()
     test_make_guards()
     print("PASS: k3s config/unit templates, pinned binary and no_log, kubeconfig hand-off, host-key refusals, Make guards")
 

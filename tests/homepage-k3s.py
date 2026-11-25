@@ -102,7 +102,7 @@ def route(objects):
     assert api["match"] == f"Host(`{HOST}`) && (Path(`/api/snapshot`) || PathPrefix(`/api/rdp/`))" and api["services"] == [{"name": "homepage", "port": 9101}]
     assert page["match"] == f"Host(`{HOST}`)" and page["services"] == [{"name": "homepage", "port": 3000}]
     rewrites = {r["domain"]: r["answer"] for r in yaml.safe_load((ROOT / "ansible/vars/dns.yml").read_text())["adguard_rewrites"]}
-    assert rewrites[HOST] == rewrites["homepage.doku-lab.net"] == "192.168.0.40", "both names reach Traefik"
+    assert rewrites[HOST] == rewrites["homepage.doku-lab.net"] == "192.168.0.45", "both names reach Traefik"
     legacy = (ROOT / "services/ingress/legacy-routes.yaml").read_text()
     assert "homepage" not in legacy, "the route to the legacy container is gone: the name is served by services/homepage"
     application = yaml.safe_load((ROOT / "services/argocd/apps/homepage.yaml").read_text())

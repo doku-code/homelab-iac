@@ -247,7 +247,7 @@ devices:
     platform: pfsense
     description: "AMD Ryzen 3, 8 GB RAM. pfSense, LAN gateway and DHCP; never changed or signed in to by automation"
     ports:
-      # pfsense.doku-lab.net and switch.doku-lab.net answer the ingress (192.168.0.40) since 2026-11-24, not these ports.
+      # pfsense.doku-lab.net and switch.doku-lab.net answer the ingress (192.168.0.45) since 2026-11-24, not these ports.
       - {name: lan, address: 192.168.0.1/24, primary: true, dns_name: ""}
   - name: switch
     type: qnap-qsw-m3216r-8s8t
@@ -319,6 +319,7 @@ device_services:
 # Addresses that belong to no port listed above. "iac: true": owned by Git; the others are written once.
 addresses:
   - {address: 192.168.0.90/24, status: reserved, dns_name: "", iac: true, description: "Reserved for the Windows service VM 700 (moved from the old host, kept off); the Traefik route dropper.doku-lab.net forwards to it"}
+  - {address: 192.168.0.45/24, role: vip, iac: true, description: "k3s shared address: API and ingress, held by one server at a time (kube-vip, ansible/roles/k3s); the published names answer it"}
   - {address: 192.168.0.60/24, role: vip, iac: true, description: "PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql)"}
   - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address (ansible/vars/dns.yml)"}
 

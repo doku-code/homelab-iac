@@ -90,7 +90,7 @@ def access_database_and_make():
     (allow,) = [d for d in docs if d["kind"] == "Middleware"]
     assert allow["spec"]["ipAllowList"]["sourceRange"] == ["192.168.0.0/24", "10.42.0.0/16"], "the LAN, and the pods that exchange tokens"
     rewrites = {r["domain"]: r["answer"] for r in yaml.safe_load((ROOT / "ansible/vars/dns.yml").read_text())["adguard_rewrites"]}
-    assert rewrites[HOST] == "192.168.0.40"
+    assert rewrites[HOST] == "192.168.0.45"
     apps = {a["name"] for a in yaml.safe_load((ROOT / "ansible/vars/postgresql-apps.yml").read_text())["postgresql_apps"]}
     assert "authentik" in apps
     deploy = recipe("authentik-deploy")

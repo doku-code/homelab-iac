@@ -34,7 +34,7 @@ def main():
     assert len(rewrites) == len(content["adguard_rewrites"]) >= 17, "one answer per name"
     assert rewrites["adguard.doku-lab.net"] == "192.168.0.20"
     # The router and the switch are reached through the ingress (valid certificate), like every other name.
-    assert rewrites["pfsense.doku-lab.net"] == rewrites["switch.doku-lab.net"] == rewrites["pve-compute.doku-lab.net"] == "192.168.0.40"
+    assert rewrites["pfsense.doku-lab.net"] == rewrites["switch.doku-lab.net"] == rewrites["pve-compute.doku-lab.net"] == "192.168.0.45"
     assert "git.doku-lab.net" in rewrites and "secrets.doku-lab.net" not in rewrites, "Infisical is shut down"
 
     config = yaml.safe_load(render("AdGuardHome.yaml.j2"))

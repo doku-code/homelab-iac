@@ -56,7 +56,7 @@ def access_and_database():
     assert rule["match"] == f"Host(`{HOST}`)" and rule["middlewares"] == [{"name": "admin-lan"}] and route["spec"]["tls"] == {}
     assert rule["services"] == [{"name": "windmill-app", "port": 8000}]
     rewrites = {r["domain"]: r["answer"] for r in yaml.safe_load((ROOT / "ansible/vars/dns.yml").read_text())["adguard_rewrites"]}
-    assert rewrites[HOST] == "192.168.0.40"
+    assert rewrites[HOST] == "192.168.0.45"
     apps = {a["name"]: a for a in yaml.safe_load((ROOT / "ansible/vars/postgresql-apps.yml").read_text())["postgresql_apps"]}
     helpers = {r["name"]: r for r in apps["windmill"]["helper_roles"]}
     assert set(helpers) == {"windmill_user", "windmill_admin"} and helpers["windmill_admin"]["bypass_rls"] is True

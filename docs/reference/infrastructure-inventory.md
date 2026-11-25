@@ -6,7 +6,7 @@ type: reference
 status: current
 importance: 3
 created: 2026-11-21
-updated: 2026-11-24
+updated: 2026-11-25
 tags: [reference, netbox, inventory, hardware, network]
 related: [ARCH-platform, M013, TASK-030]
 related_decisions: [ADR-016]
@@ -59,8 +59,8 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 
 | Device | Part | Kind | Model | Details |
 |---|---|---|---|---|
-| pve-compute | nvme0n1 | Disk | Samsung SSD 990 PRO 2TB | 2000 GB nvme |
-| pve-compute | nvme1n1 | Disk | Samsung SSD 970 EVO 1TB | 1000 GB nvme |
+| pve-compute | nvme0n1 | Disk | Samsung SSD 970 EVO 1TB | 1000 GB nvme |
+| pve-compute | nvme1n1 | Disk | Samsung SSD 990 PRO 2TB | 2000 GB nvme |
 | pve-compute | Memory 1 | Memory | CP16G64C38U5B.M8D1 | 16 GB DDR5 5600 MT/s |
 | pve-compute | Memory 2 | Memory | CP16G64C38U5B.M8D1 | 16 GB DDR5 5600 MT/s |
 | pve-compute | CPU | Processor | AMD Ryzen 9 9950X3D 16-Core Processor | 16 cores, 32 threads |
@@ -163,6 +163,7 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 | 192.168.0.40/24 | k3s-server-01 net0 |  |  | k3s-server-01 |
 | 192.168.0.41/24 | k3s-server-02 net0 |  |  | k3s-server-02 |
 | 192.168.0.42/24 | k3s-server-03 net0 |  |  | k3s-server-03 |
+| 192.168.0.45/24 |  |  | VIP | k3s shared address: API and ingress, held by one server at a time (kube-vip, ansible/roles/k3s); the published names answer it |
 | 192.168.0.50/24 | storage-01 net0 |  |  | storage-01 |
 | 192.168.0.60/24 |  |  | VIP | PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql) |
 | 192.168.0.61/24 | pg-01 net0 |  |  | pg-01 |

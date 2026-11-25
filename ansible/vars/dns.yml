@@ -9,34 +9,35 @@ adguard_filters:
 # The LAN's DNS address, held by dns-01 next to its own address since the cutover of 2026-11-18.
 adguard_service_address: 192.168.0.20
 
-# Local answers. 192.168.0.40 is the k3s ingress (Traefik): a name is served there when
+# Local answers. 192.168.0.45 is the k3s ingress (Traefik) on the cluster's shared address, held by one of
+# the three servers at a time (kube-vip, ansible/roles/k3s): a name is served there when
 # services/ingress/legacy-routes.yaml has its route. The legacy Caddy (192.168.0.24) no longer exists. git and cloud (hosted on TrueNAS) moved on 2026-11-23 by the operator's decision; the public
 # tunnel in the Caddy container follows these names, so it reaches them through Traefik too. dropper is the
 # operator's own service on the Windows VM 700 (route in legacy-routes.yaml; answers when that VM runs).
 adguard_rewrites:
-  - {domain: plex.doku-lab.net, answer: 192.168.0.40}
+  - {domain: plex.doku-lab.net, answer: 192.168.0.45}
   - {domain: adguard.doku-lab.net, answer: 192.168.0.20}
-  - {domain: qbit.doku-lab.net, answer: 192.168.0.40}
-  - {domain: wiki.doku-lab.net, answer: 192.168.0.40}
-  - {domain: home.doku-lab.net, answer: 192.168.0.40}
-  - {domain: truenas.doku-lab.net, answer: 192.168.0.40}
-  - {domain: cloud.doku-lab.net, answer: 192.168.0.40}
-  - {domain: pve-lab.doku-lab.net, answer: 192.168.0.40}
-  - {domain: vault.doku-lab.net, answer: 192.168.0.40}
-  - {domain: git.doku-lab.net, answer: 192.168.0.40}
-  - {domain: pbs.doku-lab.net, answer: 192.168.0.40}
-  - {domain: dropper.doku-lab.net, answer: 192.168.0.40}
-  - {domain: pfsense.doku-lab.net, answer: 192.168.0.40}
-  - {domain: switch.doku-lab.net, answer: 192.168.0.40}
-  - {domain: homepage.doku-lab.net, answer: 192.168.0.40}
-  - {domain: phase.doku-lab.net, answer: 192.168.0.40}
-  - {domain: grafana.doku-lab.net, answer: 192.168.0.40}
-  - {domain: headlamp.doku-lab.net, answer: 192.168.0.40}
-  - {domain: netbox.doku-lab.net, answer: 192.168.0.40}
-  - {domain: argocd.doku-lab.net, answer: 192.168.0.40}
-  - {domain: windmill.doku-lab.net, answer: 192.168.0.40}
-  - {domain: auth.doku-lab.net, answer: 192.168.0.40}
-  - {domain: pve-management.doku-lab.net, answer: 192.168.0.40}
-  - {domain: pve-core.doku-lab.net, answer: 192.168.0.40}
-  - {domain: pve-infra.doku-lab.net, answer: 192.168.0.40}
-  - {domain: pve-compute.doku-lab.net, answer: 192.168.0.40}
+  - {domain: qbit.doku-lab.net, answer: 192.168.0.45}
+  - {domain: wiki.doku-lab.net, answer: 192.168.0.45}
+  - {domain: home.doku-lab.net, answer: 192.168.0.45}
+  - {domain: truenas.doku-lab.net, answer: 192.168.0.45}
+  - {domain: cloud.doku-lab.net, answer: 192.168.0.45}
+  - {domain: pve-lab.doku-lab.net, answer: 192.168.0.45}
+  - {domain: vault.doku-lab.net, answer: 192.168.0.45}
+  - {domain: git.doku-lab.net, answer: 192.168.0.45}
+  - {domain: pbs.doku-lab.net, answer: 192.168.0.45}
+  - {domain: dropper.doku-lab.net, answer: 192.168.0.45}
+  - {domain: pfsense.doku-lab.net, answer: 192.168.0.45}
+  - {domain: switch.doku-lab.net, answer: 192.168.0.45}
+  - {domain: homepage.doku-lab.net, answer: 192.168.0.45}
+  - {domain: phase.doku-lab.net, answer: 192.168.0.45}
+  - {domain: grafana.doku-lab.net, answer: 192.168.0.45}
+  - {domain: headlamp.doku-lab.net, answer: 192.168.0.45}
+  - {domain: netbox.doku-lab.net, answer: 192.168.0.45}
+  - {domain: argocd.doku-lab.net, answer: 192.168.0.45}
+  - {domain: windmill.doku-lab.net, answer: 192.168.0.45}
+  - {domain: auth.doku-lab.net, answer: 192.168.0.45}
+  - {domain: pve-management.doku-lab.net, answer: 192.168.0.45}
+  - {domain: pve-core.doku-lab.net, answer: 192.168.0.45}
+  - {domain: pve-infra.doku-lab.net, answer: 192.168.0.45}
+  - {domain: pve-compute.doku-lab.net, answer: 192.168.0.45}
