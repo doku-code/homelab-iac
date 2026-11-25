@@ -4,7 +4,7 @@ description: One validation runner VM built by OpenTofu and Ansible serves every
 published: true
 tags:
 - task
-- in-progress
+- completed
 - ci
 - runner
 - migration
@@ -15,7 +15,7 @@ dateCreated: '2026-11-24T00:00:00.000Z'
 
 # TASK-033 — Clean CI runner ci-runner-01 on the new cluster, replacing CT301
 
-> **ID:** TASK-033 · **Type:** task · **Status:** in-progress · **Updated:** 2026-11-24 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-033-clean-ci-runner-ci-runner-01-on-the-new-cluster-replacing-ct.md)
+> **ID:** TASK-033 · **Type:** task · **Status:** completed · **Updated:** 2026-11-24 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-033-clean-ci-runner-ci-runner-01-on-the-new-cluster-replacing-ct.md)
 
 ## Goal
 
@@ -43,7 +43,7 @@ playbook, so the old host can be emptied. It replaces CT301 `forgejo-runner-migr
 - [x] A validation job of this repository succeeds on the new runner.
 - [x] The work cache of `oss-archive` is on the new runner.
 - [x] Offline tests.
-- [ ] CT301 deleted from the old host (operator's word).
+- [x] CT301 deleted from the old host (operator's word).
 
 ## Verification
 
@@ -70,10 +70,10 @@ scripts/secrets.py run /forgejo-runner/connections /forgejo-runner/registry -- m
 | Old runner | no job was running; `forgejo-runner` stopped and disabled in CT301 | `systemctl is-active` → `inactive` | 2026-11-24 |
 | Jobs on the new runner | `Documentation validation`, `Wiki publication` and `Validate` succeeded on `ci-runner-01` (tasks 1491 to 1495; one `Validate` run was cancelled by the next push, not by the runner) | commit statuses of 4a4023d and 4c2c451 in Forgejo | 2026-11-24 |
 | Work cache copy | `exit 0`; 56,935 files and 20,661,798,662 bytes on both sides | `.local/ci-runner-cache-copy.log`; `find -type f \| wc -l` and `du -sb --apparent-size` in CT301 and on the VM | 2026-11-24 |
+| CT301 deleted | `pct destroy 301 --purge 1` during the reset of the old host, on the operator's word ("reset the legacy node like we planned to"); no container is left on the host, now `pve-compute` | `.local/legacy-reset-2026-11-24.log` | 2026-11-24 |
 
 ## Completion summary
 
-In progress. Remaining: CT301 is deleted on the operator's word, once the daily job of `oss-archive-manager`
-(08:00 UTC) has passed on the new runner with the copied cache. Way back until then:
-`systemctl enable --now forgejo-runner` in CT301 and stop the service on `ci-runner-01` (same registrations:
-never both at once).
+Completed 2026-11-24. `ci-runner-01` (moved live to `pve-compute` the same day) is the only validation runner; CT301
+was deleted with the reset of the old host, so there is no way back to it. Not verified: the daily job of
+`oss-archive-manager` (08:00 UTC) on the new runner with the copied cache; its first run after the move is the check.
