@@ -10,13 +10,13 @@ tags:
 - hardware
 - network
 editor: markdown
-date: '2026-11-25T00:00:00.000Z'
+date: '2026-11-26T00:00:00.000Z'
 dateCreated: '2026-11-21T00:00:00.000Z'
 ---
 
 # Infrastructure inventory
 
-> **ID:** DOC-infrastructure-inventory · **Type:** reference · **Status:** current · **Updated:** 2026-11-25 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/reference/infrastructure-inventory.md)
+> **ID:** DOC-infrastructure-inventory · **Type:** reference · **Status:** current · **Updated:** 2026-11-26 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/docs/reference/infrastructure-inventory.md)
 
 This page is written by `make netbox-docs` from [NetBox](https://netbox.doku-lab.net) (LAN only), which is where
 the inventory lives; NetBox also draws it (Topology Views for the network, Floorplan for the room). To change
@@ -96,6 +96,7 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 | 192.168.0.50 to 192.168.0.59 | Storage | Storage VMs (VMIDs 350-359) |
 | 192.168.0.60 to 192.168.0.69 | PostgreSQL | PostgreSQL: .60 virtual IP, .61-.69 members (VMIDs 360-369) |
 | 192.168.0.70 to 192.168.0.79 | DNS | DNS VMs (VMIDs 370-379) |
+| 192.168.0.80 to 192.168.0.89 | Media | Media VMs (VMIDs 380-389) |
 | 192.168.0.100 to 192.168.0.200 |  | DHCP pool (pfSense), as stated in the k3s root; leases seen between .101 and .130 on 2026-11-20, the limits are not read from pfSense |
 
 ## Virtual machines and containers
@@ -117,6 +118,7 @@ Serial numbers and hardware addresses are in NetBox only. "(to verify)" marks a 
 | pg-02 | 362 | pve-lab | PostgreSQL | Debian 13 | 2 | 4 GB | 56 GB | 192.168.0.62/24 | Active | terraform/stacks/postgresql |
 | pg-03 | 363 | pve-compute | PostgreSQL | Debian 13 | 2 | 2 GB | 56 GB | 192.168.0.63/24 | Active | terraform/stacks/postgresql |
 | dns-01 | 370 | pve-core | DNS | Debian 13 | 1 | 1 GB | 16 GB | 192.168.0.70/24 | Active | terraform/stacks/dns |
+| media-01 | 380 | pve-infra | Media | Debian 13 | 4 | 5.5 GB | 156 GB | 192.168.0.80/24 | Active | terraform/stacks/media |
 
 4 desktop and template machines of this cluster are in NetBox and not listed here.
 
@@ -172,6 +174,7 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 | 192.168.0.62/24 | pg-02 net0 |  |  | pg-02 |
 | 192.168.0.63/24 | pg-03 net0 |  |  | pg-03 |
 | 192.168.0.70/24 | dns-01 net0 |  |  | dns-01 |
+| 192.168.0.80/24 | media-01 net0 |  |  | media-01 |
 | 192.168.0.90/24 |  |  | Reserved | Reserved for the Windows service VM 700 (moved from the old host, kept off); the Traefik route dropper.doku-lab.net forwards to it |
 
 ## Services
@@ -187,6 +190,10 @@ The names of the Wi-Fi networks and the addresses inside the tailnet are in NetB
 | k3s-server-02 | Kubernetes API | TCP | 6443 |  |
 | k3s-server-03 | Ingress (Traefik) | TCP | 80, 443 |  |
 | k3s-server-03 | Kubernetes API | TCP | 6443 |  |
+| media-01 | BitTorrent | TCP | 6881 |  |
+| media-01 | Jellyfin | TCP | 8096 | jellyfin.doku-lab.net through Traefik on k3s |
+| media-01 | Media tools | TCP | 7878, 8080, 8989, 9696 | Radarr, Sonarr, Prowlarr, qBittorrent: media.doku-lab.net behind Authentik; the k3s nodes only |
+| media-01 | Seerr | TCP | 5055 | seerr.doku-lab.net through Traefik on k3s |
 | pfsense | Web interface | TCP | 443 | pfsense.doku-lab.net, through Traefik on k3s, from the LAN only |
 | pg-01 | PostgreSQL | TCP | 5432 | Clients use the virtual IP 192.168.0.60 |
 | pg-02 | PostgreSQL | TCP | 5432 | Clients use the virtual IP 192.168.0.60 |

@@ -69,7 +69,7 @@ flowchart TB
     dns_01["dns-01<br/>DNS"]
   end
   subgraph pve_infra["pve-infra · 192.168.0.12"]
-    pve_infra_empty["no guest of the platform"]
+    media_01["media-01<br/>Media"]
   end
   subgraph pve_lab["pve-lab · 192.168.0.16"]
     k3s_server_03["k3s-server-03<br/>k3s server"]

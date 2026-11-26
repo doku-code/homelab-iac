@@ -224,6 +224,17 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   completed): VM 100 gets the host's Intel adapter (`profile.gpu_mapping`, `make mgmt-gpu-mapping`), 12 cores
   and Proxmox protection. Running since 2026-11-20 after a failed first start (see Known issues): GNOME
   Shell went from about one core to 5 %, the host load from 4–5 to under 1.
+- **Media stack (test)** 2026-11-26 ([TASK-036](/tasks/task-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla),
+  [guide](/docs/guides/media-stack)): `media-01` (VM 380, `192.168.0.80`, `pve-infra`, root `terraform/stacks/media`), Docker
+  Compose outside k3s by the operator's choice: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr, qBittorrent. Seerr and the
+  three Arr tools use the shared PostgreSQL (the Arr tools a second database for their logs, `extra_databases` in
+  `ansible/vars/postgresql-apps.yml`; the VM is a PostgreSQL client next to the k3s nodes). `pve-infra`'s graphics
+  adapter is passed to the VM (mapping `igpu`, one more node in it) and Jellyfin transcodes on it (VA-API, verified with
+  a real session). Names: `jellyfin`, `seerr` (their own sign-in) and `media.doku-lab.net` (the tools, behind Authentik).
+  Plex on the NAS is untouched. **Open: the NAS exports nothing over NFS yet, so the existing library is not mounted**
+  (guide, "NAS": one read-only share for `192.168.0.80`, then `media_nas_export`); no indexer in Prowlarr (operator's
+  accounts). Redeploy: `scripts/secrets.py run /media /postgresql -- make media-configure MEDIA_CONFIGURE_APPROVED=yes`;
+  state: `make media-status`.
 - **Operator roadmap (2026-11-17):** all items are deployed.
 
 ## Commands

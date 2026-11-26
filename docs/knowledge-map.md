@@ -150,6 +150,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 - **GUIDE-map-network** [Network and names](/docs/hubs/network-map) (current) `map, network, dns, ingress` — Which name answers where: the LAN's DNS answers, the shared addresses and the route behind each name.
 - **GUIDE-map-operations** [Operations](/docs/hubs/operations) (current) `map, operations` — Day-to-day procedures: where the commands are, how to take a host down, what is known to be broken.
 - **GUIDE-map-services** [Service catalog](/docs/hubs/service-catalog) (current) `map, services, k3s` — Every service of the platform: its site, where it runs, what signs people in and where its data lives.
+- **GUIDE-media-stack** [Media stack: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on media-01](/docs/guides/media-stack) (current) `guide, media, jellyfin, docker-compose` — What runs on media-01, where its data lives, how to operate, test, back up and restore it, and how to give it the NAS library.
 
 ### Project reference
 
@@ -190,6 +191,7 @@ _No commit records. Generate with `harness history sync`._
 - **deployment**: ADR-014, GUIDE-map-deployment
 - **desktop**: ADR-009
 - **dns**: GUIDE-map-network, TASK-022
+- **docker-compose**: GUIDE-media-stack, TASK-036
 - **documentation**: TASK-029, TASK-035
 - **etcd**: TASK-018, TASK-021
 - **external**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
@@ -199,7 +201,7 @@ _No commit records. Generate with `harness history sync`._
 - **gitops**: ADR-005, TASK-024
 - **gpu**: TASK-028
 - **grafana**: TASK-020, TASK-026
-- **guide**: GUIDE-handoff
+- **guide**: GUIDE-handoff, GUIDE-media-stack
 - **handoff**: GUIDE-handoff
 - **hardware**: ADR-018, DOC-infrastructure-inventory, INV-new-proxmox-cluster-inventory, TASK-030
 - **harness**: TASK-001
@@ -215,6 +217,7 @@ _No commit records. Generate with `harness history sync`._
 - **investigation**: INV-legacy-inventory, INV-new-proxmox-cluster-inventory, INV-pve-management-bootstrap
 - **ipam**: ADR-016, TASK-023
 - **issue**: ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte
+- **jellyfin**: GUIDE-media-stack, TASK-036
 - **k3s**: ADR-006, ADR-011, GUIDE-map-services, TASK-015, TASK-016, TASK-017, TASK-019, TASK-021
 - **kubernetes**: ADR-006, ADR-011
 - **layout**: TASK-006
@@ -225,6 +228,7 @@ _No commit records. Generate with `harness history sync`._
 - **management**: ADR-002, ADR-009
 - **map**: GUIDE-home, GUIDE-map-architecture, GUIDE-map-ci-cd, GUIDE-map-decisions, GUIDE-map-dependencies, GUIDE-map-deployment, GUIDE-map-history, GUIDE-map-identity, GUIDE-map-infrastructure, GUIDE-map-network, GUIDE-map-operations, GUIDE-map-services
 - **maps**: TASK-035
+- **media**: GUIDE-media-stack, TASK-036
 - **migration**: ADR-001, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr, TASK-005, TASK-019, TASK-027, TASK-029, TASK-032, TASK-033
 - **netbox**: ADR-016, ADR-018, DOC-infrastructure-inventory, M013, REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, TASK-023, TASK-025, TASK-026, TASK-030
 - **network**: DOC-infrastructure-inventory, GUIDE-map-network, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-031

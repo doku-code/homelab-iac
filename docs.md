@@ -15,6 +15,7 @@ editor: markdown
 
 - [Architecture](/docs/architecture)
 - [Decisions](/docs/decisions)
+- [guides](/docs/guides)
 - [Maps](/docs/hubs)
 - [Investigations](/docs/investigations)
 - [issues](/docs/issues)
