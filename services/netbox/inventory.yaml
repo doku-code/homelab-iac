@@ -212,8 +212,8 @@ devices:
     facts: 192.168.0.11
     description: "Intel Core i7-11700, 32 GB RAM, 1 TB NVMe, a 25 Gb SFP28 card"
     ports:
-      - {name: vmbr0, type: bridge, members: [nic0], address: 192.168.0.11/24, primary: true}
-      - {name: enp1s0np0, type: 25gbase-x-sfp28, description: "Mellanox ConnectX-4 Lx, card added by the operator in November 2026; no link yet"}
+      - {name: vmbr0, type: bridge, members: [enp1s0np0], address: 192.168.0.11/24, primary: true}
+      - {name: enp1s0np0, type: 25gbase-x-sfp28, description: "Mellanox ConnectX-4 Lx, card added by the operator in November 2026; carries vmbr0 since 2026-11-26, linked at 10 Gbit/s over a 2 m SFP28 DAC"}
       - {name: amt, type: virtual, parent: nic0, mgmt_only: true, address: 192.168.0.9/24,
          description: "Intel AMT: the management engine answers on nic0's hardware address (ports 623 and 16992 open on 2026-11-20)"}
   - name: pve-infra

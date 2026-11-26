@@ -409,7 +409,7 @@ def reconciliation():
     # A device has the ports of its type and its own; bridge, aggregate and parent tie them together.
     port = {(p["device"], p["name"]): p for p in api.objects[ports]}
     core, nas, switch = device["pve-core"]["id"], device["truenas"]["id"], device["switch"]["id"]
-    assert port[(core, "nic0")]["bridge"] == port[(core, "vmbr0")]["id"] and port[(core, "vmbr0")]["type"] == "bridge"
+    assert port[(core, "enp1s0np0")]["bridge"] == port[(core, "vmbr0")]["id"] and port[(core, "vmbr0")]["type"] == "bridge"
     assert port[(core, "amt")]["parent"] == port[(core, "nic0")]["id"] and port[(core, "amt")]["mgmt_only"] is True
     assert port[(nas, "enp1s0")]["lag"] == port[(nas, "bond0")]["id"] == port[(nas, "enp3s0")]["lag"]
     assert port[(core, "wlo1")]["enabled"] is False and len([p for p in port if p[0] == switch]) == 18
