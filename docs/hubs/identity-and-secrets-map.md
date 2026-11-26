@@ -33,6 +33,7 @@ with a web interface gets its blueprint in the change that deploys it; every ser
 | [`homelab-grafana.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/authentik/blueprints/homelab-grafana.yaml) | <https://grafana.doku-lab.net> | OpenID Connect client |
 | [`homelab-headlamp.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/authentik/blueprints/homelab-headlamp.yaml) | <https://headlamp.doku-lab.net> | OpenID Connect client |
 | [`homelab-homepage.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/authentik/blueprints/homelab-homepage.yaml) | <https://home.doku-lab.net> | Authentik in front of the service (forward auth) |
+| [`homelab-media.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/authentik/blueprints/homelab-media.yaml) | <https://media.doku-lab.net> | Authentik in front of the service (forward auth) |
 | [`homelab-netbox.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/authentik/blueprints/homelab-netbox.yaml) | <https://netbox.doku-lab.net> | OpenID Connect client |
 | [`homelab-outpost.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/authentik/blueprints/homelab-outpost.yaml) |  | shared: groups, outpost |
 | [`homelab-proxmox.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/authentik/blueprints/homelab-proxmox.yaml) | <https://pve-management.doku-lab.net> | OpenID Connect client |
@@ -61,9 +62,10 @@ The table lists paths, never values.
 | `/homepage` | `make homepage-deploy` |
 | `/ingress` | `make ingress-certs-deploy`, `make ingress-tls-deploy` |
 | `/k3s` | `make k3s-cluster-configure` |
+| `/media` | `make media-configure` |
 | `/monitoring` | `make observability-deploy` |
 | `/netbox` | `make netbox-apply`, `make netbox-autosync`, `make netbox-deploy`, `make netbox-docs`, `make netbox-export`, `make netbox-identities`, `make netbox-inventory`, `make netbox-plan`, `make netbox-prune`, `make windmill-bootstrap` |
-| `/postgresql` | `make authentik-deploy`, `make netbox-deploy`, `make observability-deploy`, `make postgresql-configure`, `make vaultwarden-deploy`, `make wiki-deploy`, `make windmill-deploy` |
+| `/postgresql` | `make authentik-deploy`, `make media-configure`, `make netbox-deploy`, `make observability-deploy`, `make postgresql-configure`, `make vaultwarden-deploy`, `make wiki-deploy`, `make windmill-deploy` |
 | `/pve-management` | `make netbox-autosync` |
 | `/switch` | `make observability-deploy` |
 | `/wiki` | `make wiki-configure`, `make wiki-deploy`, `make wiki-sync` |
