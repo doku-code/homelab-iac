@@ -13,11 +13,11 @@ patroni_virtual_ip: 192.168.0.60
 patroni_failover_priority: 1
 
 # Members: every host of the inventory group. Clients: the k3s node range .40-.49 (pods leave their node
-# with the node address). Nobody else reaches 5432.
+# with the node address) and the media VM (.80, Docker Compose outside k3s, TASK-036). Nobody else reaches 5432.
 patroni_group: postgresql
 patroni_members: "{{ groups[patroni_group] | sort }}"
 patroni_member_addresses: "{{ patroni_members | map('extract', hostvars, 'ansible_host') | list }}"
-patroni_clients: [192.168.0.40/29, 192.168.0.48/31]
+patroni_clients: [192.168.0.40/29, 192.168.0.48/31, 192.168.0.80/32]
 patroni_etcd_endpoints: "{{ patroni_member_addresses | map('regex_replace', '^(.*)$', 'http://\\1:2379') | join(',') }}"
 patroni_etcd_initial_cluster: "{% for member in patroni_members %}{{ member }}=http://{{ hostvars[member].ansible_host }}:2380{{ ',' if not loop.last }}{% endfor %}"
 
@@ -57,7 +57,8 @@ patroni_dcs:
       log_checkpoints: "on"
       log_lock_waits: "on"
 
-# Applications: one database and one login role of the same name each (ansible/vars/postgresql-apps.yml).
+# Applications: one database and one login role of the same name each (ansible/vars/postgresql-apps.yml);
+# `extra_databases` names further databases the same role owns (the Arr tools keep their logs in a second one).
 # The password of application "phase" comes from PG_APP_PHASE_PASSWORD. Nothing is ever dropped here.
 postgresql_apps: []
 postgresql_app_group: app

@@ -180,6 +180,10 @@ jobs:
       - name: Validate OpenTofu root terraform/stacks/dns, AdGuard Home role and Make guards offline
         run: make dns-check
 
+      # Offline only: mocked provider, rendered templates; synthetic credentials.
+      - name: Validate OpenTofu root terraform/stacks/media, the media stack role, routes and Make guards offline
+        run: make media-check
+
       - name: Validate monitoring Compose configuration
         run: docker-compose -f services/monitoring/compose.yml config --quiet
 

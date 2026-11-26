@@ -3,6 +3,7 @@
 # same name each. The password of "example" comes from PG_APP_EXAMPLE_PASSWORD in the environment
 # (secret store path /postgresql). Removing an entry never drops anything.
 # helper_roles: roles without login that the application expects to exist and to be a member of.
+# extra_databases: further databases owned by the same role (reachable by that role only).
 postgresql_apps:
   - name: phase # Phase Console (M008)
   - name: grafana # Grafana users, folders and edited dashboards (TASK-020)
@@ -14,3 +15,12 @@ postgresql_apps:
   - name: authentik # Authentik single sign-on (M014); sessions and tasks live here too, it needs no Redis
   - name: vaultwarden # Vaultwarden (TASK-032); moved from SQLite on the old host
   - name: wiki # Wiki.js (TASK-029); it creates the trusted extensions ltree and pg_trgm itself, as owner of its database
+  # Media stack on media-01 (TASK-036, Docker Compose outside k3s). The Arr tools need two databases each and
+  # do not create them; Jellyfin supports SQLite only and keeps its database on the VM.
+  - name: seerr # Seerr, the request interface
+  - name: radarr # Radarr (movies)
+    extra_databases: [radarr_log]
+  - name: sonarr # Sonarr (series)
+    extra_databases: [sonarr_log]
+  - name: prowlarr # Prowlarr (indexers)
+    extra_databases: [prowlarr_log]

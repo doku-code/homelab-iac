@@ -1,0 +1,75 @@
+---
+# Media stack on media-01 (TASK-036): Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent under Docker
+# Compose, outside k3s by the operator's choice. What an operator edits is in ansible/vars/media.yml.
+
+# The data disk (never the system disk): configuration, Jellyfin's metadata and cache, the test area, archives.
+media_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
+media_root: /srv/media
+media_project_dir: /opt/media
+
+# One user for every application, so a file written by one can be read and hard-linked by the others.
+media_user: media
+media_uid: 2000
+media_gid: 2000
+media_timezone: America/Toronto
+
+# One tree, one filesystem (the data disk), seen under the same path /data by every container that needs it:
+# an import is then a hard link, instant and without a second copy, and the torrent keeps seeding.
+# Everything here is the TEST area. Nothing of it is on the NAS.
+media_test_dirs:
+  - data/torrents
+  - data/media/test-movies
+  - data/media/test-series
+media_test_movies: /data/media/test-movies
+media_test_series: /data/media/test-series
+
+# Pinned images (overridden by ansible/vars/media.yml).
+media_images: {}
+
+# The existing library on the NAS, read-only, for Jellyfin alone. Empty export: not mounted, Jellyfin shows the
+# test area only. Docker mounts the share itself when Jellyfin starts (an NFS volume): when the NAS does not
+# answer, Jellyfin does not start, instead of showing an empty local directory.
+media_nas_server: 192.168.0.13
+media_nas_export: ""
+media_nas_nfs_version: "4.2"
+# Jellyfin libraries inside the share: [{name: "Movies (NAS)", type: movies, path: Movies}] (path below the export).
+media_nas_libraries: []
+
+# The graphics adapter of the host, handed to the VM (inventory: terraform/stacks/media, gpu_mapping).
+media_gpu: false
+media_gpu_render_device: /dev/dri/renderD128
+
+# Shared PostgreSQL (ADR-015): virtual IP of the Patroni cluster, TLS only. Passwords from the environment.
+media_postgresql_host: 192.168.0.60
+media_postgresql_port: 5432
+
+# Who may reach the administration tools (Radarr, Sonarr, Prowlarr, qBittorrent) from the network: the k3s
+# nodes only, where Traefik asks Authentik first (services/media/access.yaml). Jellyfin and Seerr have their
+# own sign-in and stay open to the LAN, as television and phone applications need.
+media_ingress_sources: [192.168.0.40/29, 192.168.0.48/31]
+media_admin_ports: [7878, 8989, 9696, 8080]
+media_admin_user: admin
+media_url: https://media.doku-lab.net
+media_jellyfin_url: https://jellyfin.doku-lab.net
+media_seerr_url: https://seerr.doku-lab.net
+
+media_backup_keep: 7
+
+# Credentials: environment only (store paths /media and /postgresql), never Git.
+media_admin_password: "{{ lookup('ansible.builtin.env', 'MEDIA_ADMIN_PASSWORD') }}"
+media_api_keys:
+  radarr: "{{ lookup('ansible.builtin.env', 'RADARR_API_KEY')[:32] }}"
+  sonarr: "{{ lookup('ansible.builtin.env', 'SONARR_API_KEY')[:32] }}"
+  prowlarr: "{{ lookup('ansible.builtin.env', 'PROWLARR_API_KEY')[:32] }}"
+  seerr: "{{ lookup('ansible.builtin.env', 'SEERR_API_KEY') }}"
+media_database_passwords:
+  seerr: "{{ lookup('ansible.builtin.env', 'PG_APP_SEERR_PASSWORD') }}"
+  radarr: "{{ lookup('ansible.builtin.env', 'PG_APP_RADARR_PASSWORD') }}"
+  sonarr: "{{ lookup('ansible.builtin.env', 'PG_APP_SONARR_PASSWORD') }}"
+  prowlarr: "{{ lookup('ansible.builtin.env', 'PG_APP_PROWLARR_PASSWORD') }}"
+
+# The three Servarr tools share one shape. data: sees the test area (Prowlarr only talks to indexers).
+media_arr_apps:
+  - {name: radarr, port: 7878, data: true}
+  - {name: sonarr, port: 8989, data: true}
+  - {name: prowlarr, port: 9696, data: false}

@@ -75,6 +75,46 @@
   loop_control:
     label: "{{ item.name }}"
 
+# Further databases of an application (the Arr tools: one for the data, one for the logs), owned by the same
+# role and closed to every other one. pg_hba names each of them for that role (templates/patroni.yml.j2).
+- name: Validate the further databases
+  ansible.builtin.assert:
+    that:
+      - item.1 is match('^[a-z][a-z0-9_]{1,30}$')
+      - item.1 not in ['postgres', 'template0', 'template1']
+      - item.1 not in (postgresql_apps | map(attribute='name'))
+    fail_msg: "Database {{ item.1 }} of {{ item.0.name }}: use a lowercase name that is not an application's own."
+  loop: "{{ postgresql_apps | subelements('extra_databases', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.1 }}"
+
+- name: Create the further databases of an application
+  community.postgresql.postgresql_db:
+    login_unix_socket: /var/run/postgresql
+    name: "{{ item.1 }}"
+    owner: "{{ item.0.name }}"
+    encoding: UTF8
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_apps | subelements('extra_databases', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.1 }}"
+
+- name: Close the further databases to every other role
+  community.postgresql.postgresql_privs:
+    login_unix_socket: /var/run/postgresql
+    login_db: "{{ item.1 }}"
+    type: database
+    objs: "{{ item.1 }}"
+    privs: CONNECT,TEMPORARY
+    roles: PUBLIC
+    state: absent
+  become: true
+  become_user: postgres
+  loop: "{{ postgresql_apps | subelements('extra_databases', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.1 }}"
+
 # Some applications expect helper roles to exist (Windmill: windmill_user, windmill_admin). They cannot log
 # in and get no rights here beyond the one attribute asked for; the application role is made a member.
 - name: Validate the helper roles

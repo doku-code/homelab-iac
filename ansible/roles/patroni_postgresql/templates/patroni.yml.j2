@@ -50,7 +50,7 @@ postgresql:
     log_filename: postgresql-{{ patroni_postgresql_version }}-{{ patroni_scope }}.log
   # The superuser is reachable through the local socket only. Members replicate and rewind over TLS.
   # Applications: members of the group role "{{ postgresql_app_group }}", from the k3s nodes, over TLS,
-  # and only to the database named like their role.
+  # and only to the database named like their role (and to the further databases listed for that role).
   pg_hba:
     - local all all peer
     # Patroni reads this member's own timeline through a replication connection to localhost before it rewinds
@@ -64,6 +64,14 @@ postgresql:
 {% endfor %}
 {% for client in patroni_clients %}
     - hostssl sameuser +{{ postgresql_app_group }} {{ client }} scram-sha-256
+{% endfor %}
+{# A further database of an application: its own role only, named explicitly. #}
+{% for app in postgresql_apps %}
+{% for database in app.extra_databases | default([]) %}
+{% for client in patroni_clients %}
+    - hostssl {{ database }} {{ app.name }} {{ client }} scram-sha-256
+{% endfor %}
+{% endfor %}
 {% endfor %}
 
 tags:

@@ -1,0 +1,22 @@
+---
+# Media stack (TASK-036): what an operator changes. Edit here, then
+#   scripts/secrets.py run /media /postgresql -- make media-configure MEDIA_CONFIGURE_APPROVED=yes
+
+# Images, pinned to the stable releases read on 2026-11-26. Jellyfin and qBittorrent publish their own images;
+# Seerr too (GHCR). Radarr, Sonarr and Prowlarr publish none: the Servarr wiki names linuxserver.io and hotio.
+media_images:
+  jellyfin: docker.io/jellyfin/jellyfin:12.4
+  seerr: ghcr.io/seerr-team/seerr:v3.5.2
+  radarr: lscr.io/linuxserver/radarr:7.0.3.10918-ls328
+  sonarr: lscr.io/linuxserver/sonarr:4.0.20.3014-ls6
+  prowlarr: lscr.io/linuxserver/prowlarr:3.1.0.5799-ls170
+  qbittorrent: docker.io/qbittorrentofficial/qbittorrent-nox:5.3.1-1
+
+# The existing library on the NAS (TrueNAS, 192.168.0.13), mounted read-only for Jellyfin alone.
+# Empty until the NAS exports it: on 2026-11-26 the NAS offered no NFS share (`showmount -e` empty) and its SMB
+# shares need an account. Set the export path of the read-only NFS share (docs/guides/media-stack.md, "NAS").
+media_nas_export: ""
+# Jellyfin libraries inside that share; `path` is below the export. Example:
+#   - {name: "Movies (NAS)", type: movies, path: Movies}
+#   - {name: "Series (NAS)", type: tvshows, path: TV}
+media_nas_libraries: []

@@ -1167,6 +1167,102 @@ dns-configure:
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-dns.yml --diff $(if $(DNS_SERVICE_ADDRESS),-e adguard_service_address=$(DNS_SERVICE_ADDRESS))
 
 # ─────────────────────────────────────────────
+# Media stack (TASK-036): media-01 on pve-infra, Docker Compose, outside k3s (operator's choice). Jellyfin,
+# Seerr, Radarr, Sonarr, Prowlarr and qBittorrent; databases on the shared PostgreSQL where the application
+# supports it; the NAS library read-only for Jellyfin; a test area on the VM's own data disk.
+# Same gates as the other workstation roots. Guide: docs/guides/media-stack.md.
+# ─────────────────────────────────────────────
+
+MEDIA_DIR := terraform/stacks/media
+MEDIA_PLAN := media.tfplan
+MEDIA_GPU_HOST := 192.168.0.12
+MEDIA_GPU_DEVICE := 0000:00:02.0
+MEDIA_GPU_MAPPING := igpu
+# Generated once, never printed: the applications' own administrator, their API keys, their database passwords.
+MEDIA_SECRET_INPUTS := MEDIA_ADMIN_PASSWORD RADARR_API_KEY SONARR_API_KEY PROWLARR_API_KEY SEERR_API_KEY
+MEDIA_DATABASES := SEERR RADARR SONARR PROWLARR
+MEDIA_BACKUP_DIR ?= .local/media-backups
+MEDIA_TARGET = $$($(TOFU) -chdir=$(MEDIA_DIR) output -json ansible_inventory | jq -r '.all.children.media.hosts | to_entries[0].value | "\(.ansible_user)@\(.ansible_host)"')
+
+.PHONY: media-check media-plan media-apply media-hostkeys media-gpu-mapping media-secrets media-configure media-status media-backup
+
+# Offline only: no credentials, no backend, mocked provider.
+media-check:
+	@set -euo pipefail; d="$(DEPLOY_RUNNER_CHECK_DATA)/media"; mkdir -p "$$d"; \
+	$(TOFU) -chdir=$(MEDIA_DIR) fmt -check -recursive; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(MEDIA_DIR) init -backend=false -input=false -lockfile=readonly -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(MEDIA_DIR) validate -no-color >/dev/null; \
+	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(MEDIA_DIR) test -no-color | tail -n 1
+	$(ANSIBLE) ansible/playbooks/configure-media.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(VENV)/bin/python tests/media.py
+
+media-plan:
+	@test "$(MEDIA_ALLOCATION_REVIEWED)" = yes || (echo "Confirm the allocation in $(MEDIA_DIR)/terraform.tfvars, then set MEDIA_ALLOCATION_REVIEWED=yes" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@test -f "$(MEDIA_DIR)/terraform.tfvars" || (echo "Create the private $(MEDIA_DIR)/terraform.tfvars from terraform.tfvars.example" >&2; exit 1)
+	@test -f "$(MEDIA_DIR)/terraform.tfstate" || test "$(MEDIA_NEW_STATE)" = yes || (echo "No $(MEDIA_DIR)/terraform.tfstate here. Only the first creation starts from an empty state (MEDIA_NEW_STATE=yes); otherwise copy the state from the workstation that holds it." >&2; exit 1)
+	@test ! -e "$(MEDIA_DIR)/$(MEDIA_PLAN)" || mv -f "$(MEDIA_DIR)/$(MEDIA_PLAN)" "$(MEDIA_DIR)/media.previous.tfplan"
+	$(TOFU) -chdir=$(MEDIA_DIR) init -input=false -lockfile=readonly
+	$(call MGMT_RUN,$(TOFU) -chdir=$(MEDIA_DIR) plan -input=false -out=$(MEDIA_PLAN))
+	$(call NETBOX_ALLOCATION,media,$(MEDIA_PLAN))
+	@shasum -a 256 "$(MEDIA_DIR)/$(MEDIA_PLAN)"
+
+# Mutates the doku-lab cluster (media-01 on pve-infra): only with explicit approval of the exact saved plan.
+media-apply:
+	@test "$(MEDIA_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: MEDIA_APPLY_APPROVED=yes" >&2; exit 1)
+	@test -n "$(MEDIA_PLAN_SHA256)" || (echo "Supply MEDIA_PLAN_SHA256 as printed by make media-plan" >&2; exit 1)
+	$(MGMT_REQUIRE_SOURCE)
+	@printf '%s  %s\n' '$(MEDIA_PLAN_SHA256)' '$(MEDIA_DIR)/$(MEDIA_PLAN)' | shasum -a 256 -c
+	$(call MGMT_RUN,$(TOFU) -chdir=$(MEDIA_DIR) apply -input=false $(MEDIA_PLAN))
+	@mv -f "$(MEDIA_DIR)/$(MEDIA_PLAN)" "$(MEDIA_DIR)/media.applied.tfplan"
+	@chmod 0600 "$(MEDIA_DIR)/terraform.tfstate"
+	@echo "State updated locally: $(MEDIA_DIR)/terraform.tfstate (this workstation only, never in Git)"
+
+media-hostkeys:
+	@set -euo pipefail; \
+	$(TOFU) -chdir=$(MEDIA_DIR) output -json ansible_inventory | \
+	jq -r '{"pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.media.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
+	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
+
+# Adds pve-infra's graphics adapter to the Proxmox resource mapping the OpenTofu token may already use
+# (`make mgmt-gpu-mapping` created it and its permission for the workstation VM): one more node in the same
+# mapping, no new permission. Refuses a device that shares its IOMMU group. Run once, before media-plan.
+media-gpu-mapping:
+	@test "$(MEDIA_GPU_MAPPING_APPROVED)" = yes || (echo "Approve the change of the resource mapping $(MEDIA_GPU_MAPPING) with MEDIA_GPU_MAPPING_APPROVED=yes" >&2; exit 1)
+	@ssh -o BatchMode=yes root@$(MEDIA_GPU_HOST) bash -s -- $(MEDIA_GPU_MAPPING) $(MEDIA_GPU_DEVICE) '"Graphics adapters handed to a VM: pve-management (workstation), pve-infra (media-01)"' < scripts/pve-gpu-mapping-add.sh
+
+# Generates the values the store does not hold yet (never replaces one, never prints one).
+media-secrets:
+	@test "$(MEDIA_SECRETS_APPROVED)" = yes || (echo "Approve the creation of the missing media secrets with MEDIA_SECRETS_APPROVED=yes" >&2; exit 1)
+	scripts/ensure-secrets.py /postgresql $(foreach d,$(MEDIA_DATABASES),PG_APP_$(d)_PASSWORD)
+	scripts/ensure-secrets.py /media $(MEDIA_SECRET_INPUTS)
+
+# Installs Docker, prepares the data disk and the test area, writes the Compose project and starts it, then
+# connects the applications to each other through their APIs. Credentials come from the environment only:
+#   scripts/secrets.py run /media /postgresql -- make media-configure MEDIA_CONFIGURE_APPROVED=yes
+# MEDIA_ANSIBLE_ARGS passes extra arguments to ansible-playbook, e.g. --check or --tags compose.
+media-configure:
+	@test "$(MEDIA_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of media-01 with MEDIA_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@for v in $(MEDIA_SECRET_INPUTS) $(foreach d,$(MEDIA_DATABASES),PG_APP_$(d)_PASSWORD); do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /media and /postgresql; make media-secrets creates what is missing)" >&2; exit 1; }; done
+	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
+	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/media-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
+	$(TOFU) -chdir=$(MEDIA_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-media.yml --diff $(MEDIA_ANSIBLE_ARGS)
+
+# Read-only: containers, mounts, the graphics adapter and each application's own health answer.
+media-status:
+	@set -euo pipefail; ssh -o BatchMode=yes -o ConnectTimeout=5 "$(MEDIA_TARGET)" sudo /usr/local/sbin/media-status
+
+# Runs the nightly archive now (configuration of every application and a dump of their databases, kept on the
+# data disk) and copies the newest one to MEDIA_BACKUP_DIR on this workstation (default .local/media-backups).
+media-backup:
+	@set -euo pipefail; umask 077; mkdir -p "$(MEDIA_BACKUP_DIR)"; target="$(MEDIA_TARGET)"; \
+	ssh -o BatchMode=yes "$$target" sudo systemctl start media-backup.service; \
+	newest="$$(ssh -o BatchMode=yes "$$target" 'sudo ls -1t /srv/media/backups/ | head -n 1')"; test -n "$$newest"; \
+	ssh -o BatchMode=yes "$$target" "sudo cat /srv/media/backups/$$newest" > "$(MEDIA_BACKUP_DIR)/$$newest"; \
+	ls -l "$(MEDIA_BACKUP_DIR)/$$newest"
+
+# ─────────────────────────────────────────────
 # Argo CD (M009, ADR-011): keeps the applications of services/argocd/apps in sync with the main branch on
 # Forgejo. Argo CD itself is installed from the workstation: on a rebuilt cluster it is what deploys the rest.
 # ─────────────────────────────────────────────
@@ -1495,7 +1591,7 @@ AUTHENTIK_REPO := https://charts.goauthentik.io
 # One OIDC client secret per application that signs in through Authentik: SSO_<NAME>_CLIENT_SECRET.
 AUTHENTIK_CLIENTS := ARGOCD GRAFANA HEADLAMP NETBOX PROXMOX WIKI WINDMILL
 # Applications without a login of their own, protected by forward authentication at Traefik (no secret to share).
-AUTHENTIK_FORWARD_AUTH := HOMEPAGE
+AUTHENTIK_FORWARD_AUTH := HOMEPAGE MEDIA
 AUTHENTIK_SECRET_INPUTS := AUTHENTIK_SECRET_KEY AUTHENTIK_BOOTSTRAP_PASSWORD AUTHENTIK_BOOTSTRAP_TOKEN $(foreach c,$(AUTHENTIK_CLIENTS),SSO_$(c)_CLIENT_SECRET)
 AUTHENTIK_ADMIN := $(VENV)/bin/python scripts/authentik-admin.py
 

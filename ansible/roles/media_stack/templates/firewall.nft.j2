@@ -1,0 +1,21 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (role media_stack). Own table only; Docker's rules are left alone (never "flush ruleset").
+# The administration tools (Radarr, Sonarr, Prowlarr, qBittorrent: ports {{ media_admin_ports | join(', ') }}) answer the k3s
+# nodes only, where Traefik asks Authentik first. Docker forwards published ports (they do not pass the input
+# chain), so the rule is in the forward chain; the input chain covers Docker's own proxy (IPv6).
+# Jellyfin (8096), Seerr (5055) and the torrent port (6881) stay open to the LAN.
+table inet media_stack
+delete table inet media_stack
+table inet media_stack {
+  chain forward {
+    type filter hook forward priority -1; policy accept;
+    iifname "{{ media_lan_interface }}" ip saddr != { {{ media_ingress_sources | join(', ') }} } tcp dport { {{ media_admin_ports | join(', ') }} } drop
+    iifname "{{ media_lan_interface }}" meta nfproto ipv6 tcp dport { {{ media_admin_ports | join(', ') }} } drop
+  }
+  chain input {
+    type filter hook input priority 0; policy accept;
+    iifname "lo" accept
+    iifname "{{ media_lan_interface }}" ip saddr { {{ media_ingress_sources | join(', ') }} } tcp dport { {{ media_admin_ports | join(', ') }} } accept
+    iifname "{{ media_lan_interface }}" tcp dport { {{ media_admin_ports | join(', ') }} } drop
+  }
+}

@@ -41,3 +41,6 @@ adguard_rewrites:
   - {domain: pve-core.doku-lab.net, answer: 192.168.0.45}
   - {domain: pve-infra.doku-lab.net, answer: 192.168.0.45}
   - {domain: pve-compute.doku-lab.net, answer: 192.168.0.45}
+  - {domain: jellyfin.doku-lab.net, answer: 192.168.0.45}
+  - {domain: seerr.doku-lab.net, answer: 192.168.0.45}
+  - {domain: media.doku-lab.net, answer: 192.168.0.45}

@@ -52,6 +52,7 @@ ranges:
   - {start: 192.168.0.50, end: 192.168.0.59, role: storage, description: "Storage VMs (VMIDs 350-359)"}
   - {start: 192.168.0.60, end: 192.168.0.69, role: postgresql, description: "PostgreSQL: .60 virtual IP, .61-.69 members (VMIDs 360-369)"}
   - {start: 192.168.0.70, end: 192.168.0.79, role: dns, description: "DNS VMs (VMIDs 370-379)"}
+  - {start: 192.168.0.80, end: 192.168.0.89, role: media, description: "Media VMs (VMIDs 380-389)"}
   - {start: 192.168.0.100, end: 192.168.0.200, description: "DHCP pool (pfSense), as stated in the k3s root; leases seen between .101 and .130 on 2026-11-20, the limits are not read from pfSense", review: true}
 
 platforms:
@@ -81,6 +82,7 @@ roles:
   - {name: PostgreSQL, slug: postgresql, color: 3f51b5}
   - {name: Storage, slug: storage, color: 009688}
   - {name: DNS, slug: dns, color: 9c27b0}
+  - {name: Media, slug: media, color: e91e63}
   - {name: Deployment runner, slug: deploy-runner, color: ffc107}
   - {name: CI runner, slug: ci-runner, color: ffeb3b}
   - {name: Admin workstation, slug: admin-workstation, color: 00bcd4}
@@ -396,6 +398,7 @@ iac_roots:
   - {root: storage, group: storage, role: storage, platform: debian-13}
   - {root: postgresql, group: postgresql, role: postgresql, platform: debian-13}
   - {root: dns, group: dns, role: dns, platform: debian-13}
+  - {root: media, group: media, role: media, platform: debian-13}
 
 # Configuration contexts: the parameters automation reads from NetBox (GET /api/virtualization/virtual-machines/
 # returns them merged per machine as "config_context"). Git owns them: the script creates and updates them,
@@ -457,6 +460,16 @@ config_contexts:
         vmid_range: [370, 379]
         proxmox_hosts: [pve-core, pve-infra, pve-lab, pve-compute]
         minimum: {cores: 1, memory_mb: 1024, disk_gb: 10}
+  - name: role-media
+    description: "Provisioning rules of media VMs (terraform/stacks/media)"
+    roles: [media]
+    data:
+      provisioning:
+        opentofu_root: terraform/stacks/media
+        ansible_group: media
+        vmid_range: [380, 389]
+        proxmox_hosts: [pve-infra, pve-lab]
+        minimum: {cores: 2, memory_mb: 4096, disk_gb: 12}
 
 # What each kind of machine serves, recorded on every VM of the role that a root defines.
 services:

@@ -23,6 +23,7 @@ groups:
   storage: role == 'storage'
   postgresql: role == 'postgresql'
   dns: role == 'dns'
+  media: role == 'media'
 # compose reads the record as the NetBox API returns it (platform and device are objects there).
 compose:
   ansible_user: "'ubuntu' if platform.slug == 'ubuntu-26-04' else 'debian'"

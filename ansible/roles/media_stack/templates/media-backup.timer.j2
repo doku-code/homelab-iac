@@ -1,0 +1,11 @@
+# Managed by Ansible (role media_stack)
+[Unit]
+Description=Nightly archive of the media stack
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -4253,6 +4253,10 @@
         {
           "from": "TASK-035",
           "field": "milestone"
+        },
+        {
+          "from": "TASK-036",
+          "field": "milestone"
         }
       ]
     },
@@ -7190,6 +7194,49 @@
         ]
       },
       "backrefs": []
+    },
+    {
+      "id": "TASK-036",
+      "title": "Media stack on pve-infra: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on a Compose VM",
+      "summary": "VM media-01 on pve-infra with Docker Compose: Jellyfin, Seerr, the Arr tools and qBittorrent; shared PostgreSQL, NAS read-only, a test area.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md",
+      "tags": [],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "Media stack on pve-infra: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on a Compose VM",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related_tests": [
+          "tests/media.py",
+          "terraform/stacks/media/tests/media.tftest.hcl",
+          "tests/postgresql.py"
+        ],
+        "milestone": [
+          "M010"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -7303,7 +7350,8 @@
       "TASK-032",
       "TASK-033",
       "TASK-034",
-      "TASK-035"
+      "TASK-035",
+      "TASK-036"
     ]
   },
   "by_tag": {

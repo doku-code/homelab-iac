@@ -15,6 +15,7 @@ configMapGenerator:
       - blueprints/homelab-grafana.yaml
       - blueprints/homelab-headlamp.yaml
       - blueprints/homelab-homepage.yaml
+      - blueprints/homelab-media.yaml
       - blueprints/homelab-netbox.yaml
       - blueprints/homelab-outpost.yaml
       - blueprints/homelab-proxmox.yaml

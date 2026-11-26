@@ -37,7 +37,7 @@ verification:
     detected: false
     verified: true
   - name: terraform-validate
-    run: d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do case "$r" in terraform/stacks/pve-management-control/|terraform/stacks/deploy-runner/|terraform/stacks/ci-runner/|terraform/stacks/ci-disposable/|terraform/stacks/k3s/|terraform/stacks/storage/|terraform/stacks/postgresql/|terraform/stacks/dns/)
+    run: d="$(mktemp -d)"; for r in terraform/stacks/*/ terraform/examples/cloud-image-vm/; do case "$r" in terraform/stacks/pve-management-control/|terraform/stacks/deploy-runner/|terraform/stacks/ci-runner/|terraform/stacks/ci-disposable/|terraform/stacks/k3s/|terraform/stacks/storage/|terraform/stacks/postgresql/|terraform/stacks/dns/|terraform/stacks/media/)
       continue;; esac; n="$d/$(basename "$r")"; TF_DATA_DIR="$n" terraform -chdir="$r" init -backend=false -input=false -lockfile=readonly
       >/dev/null && TF_DATA_DIR="$n" terraform -chdir="$r" validate >/dev/null || { echo "FAIL $r"; exit
       1; }; done; rm -rf "$d"
@@ -82,6 +82,11 @@ verification:
     detected: false
     verified: true
     description: OpenTofu root dns (fmt, validate, mocked tofu test), playbook syntax, AdGuard Home role/configuration/Make guard tests; offline
+  - name: media-check
+    run: make media-check
+    detected: false
+    verified: true
+    description: OpenTofu root media (fmt, validate, mocked tofu test), playbook syntax, Compose project, NAS protection, firewall, routes and Make guard tests; offline
   - name: phase-check
     run: make phase-check
     detected: false

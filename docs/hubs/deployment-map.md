@@ -45,6 +45,7 @@ listed here describe guests that are gone: never apply them.
 | [`terraform/stacks/storage`](../../terraform/stacks/storage) | storage-01 | `make storage-check`, `make storage-plan`, `make storage-apply`, `make storage-configure` | [`configure-storage.yml`](../../ansible/playbooks/configure-storage.yml) |
 | [`terraform/stacks/postgresql`](../../terraform/stacks/postgresql) | pg-01, pg-02, pg-03 | `make postgresql-check`, `make postgresql-plan`, `make postgresql-apply`, `make postgresql-configure` | [`configure-postgresql.yml`](../../ansible/playbooks/configure-postgresql.yml) |
 | [`terraform/stacks/dns`](../../terraform/stacks/dns) | dns-01 | `make dns-check`, `make dns-plan`, `make dns-apply`, `make dns-configure` | [`configure-dns.yml`](../../ansible/playbooks/configure-dns.yml) |
+| [`terraform/stacks/media`](../../terraform/stacks/media) |  | `make media-check`, `make media-plan`, `make media-apply`, `make media-configure` | [`configure-media.yml`](../../ansible/playbooks/configure-media.yml) |
 <!-- map:roots:end -->
 
 Also configured by Ansible, without a root of their own yet: the two Tailscale routers

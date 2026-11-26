@@ -28,6 +28,12 @@ spec:
       path: services/ingress
       directory:
         include: '{certificates.yaml,tls-store.yaml,legacy-routes.yaml,proxmox-routes.yaml,tunnel.yaml}'
+    # The media stack on media-01, outside k3s (TASK-036): its routes and the Authentik check of its tools.
+    - repoURL: https://git.doku-lab.net/Homelab/homelab-iac.git
+      targetRevision: main
+      path: services/media
+      directory:
+        include: 'access.yaml'
   syncPolicy:
     # A change merged on main is applied; a change made by hand in the cluster is reverted. Nothing is
     # deleted automatically: removing an object from Git leaves it in the cluster until a person prunes it.

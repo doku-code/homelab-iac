@@ -19,7 +19,7 @@ MEMBERS = {"pg-01": "192.168.0.61", "pg-02": "192.168.0.62", "pg-03": "192.168.0
 SYNTHETIC = {name: f"synthetic-{name}-" + "x" * 32 for name in ("SUPERUSER", "REPLICATION", "REWIND", "RESTAPI")}
 
 
-def render(template, host="pg-02"):
+def render(template, host="pg-02", extra=None):
     with tempfile.TemporaryDirectory() as directory:
         base = Path(directory)
         # Role defaults go in at the lowest precedence (group "all"), as in a real run.
@@ -31,7 +31,7 @@ def render(template, host="pg-02"):
         (base / "render.yml").write_text(yaml.safe_dump([{
             "hosts": host, "gather_facts": False,
             "tasks": [{"ansible.builtin.template": {"src": str(ROLE / "templates" / template), "dest": str(base / "out")}}]}]))
-        facts = {"ansible_facts": {"memtotal_mb": 3916, "default_ipv4": {"interface": "eth0"}}}
+        facts = {"ansible_facts": {"memtotal_mb": 3916, "default_ipv4": {"interface": "eth0"}}, **(extra or {})}
         result = subprocess.run(
             [str(ROOT / ".venv/bin/ansible-playbook"), "-i", str(base / "inventory.json"), "-e", json.dumps(facts),
              str(base / "render.yml")], capture_output=True, text=True,
@@ -54,7 +54,7 @@ def test_templates():
     firewall = render("firewall.nft.j2")
     members = ", ".join(MEMBERS.values())
     assert f"ip saddr {{ {members} }} tcp dport {{ 2379, 2380, 5432, 8008 }} accept" in firewall
-    assert "ip saddr { 192.168.0.40/29, 192.168.0.48/31 } tcp dport 5432 accept" in firewall
+    assert "ip saddr { 192.168.0.40/29, 192.168.0.48/31, 192.168.0.80/32 } tcp dport 5432 accept" in firewall, "k3s nodes and the media VM"
     assert "tcp dport { 2379, 2380, 5432, 8008 } drop" in firewall and "flush ruleset" not in firewall
 
     patroni = yaml.safe_load(render("patroni.yml.j2"))
@@ -76,10 +76,18 @@ def test_templates():
     # A member that was leader when its host stopped rewinds by itself: Patroni asks it for its own timeline first.
     assert network[:2] == ["hostssl replication replicator 127.0.0.1/32 scram-sha-256", "hostssl replication replicator ::1/128 scram-sha-256"]
     # Applications reach only the database named like their role; the superuser has no network rule at all.
-    clients = [rule for rule in network if "192.168.0.4" in rule]
-    assert clients == ["hostssl sameuser +app 192.168.0.40/29 scram-sha-256", "hostssl sameuser +app 192.168.0.48/31 scram-sha-256"]
+    clients = [rule for rule in network if "192.168.0.4" in rule or "192.168.0.80" in rule]
+    assert clients == ["hostssl sameuser +app 192.168.0.40/29 scram-sha-256", "hostssl sameuser +app 192.168.0.48/31 scram-sha-256",
+                       "hostssl sameuser +app 192.168.0.80/32 scram-sha-256"]
     assert {tuple(rule.split()[1:3]) for rule in network} == {
         ("replication", "replicator"), ("postgres", "rewinder"), ("sameuser", "+app")}
+    # A further database of an application (the Arr tools' logs) is opened to its own role only, by name.
+    listed = yaml.safe_load((ROOT / "ansible/vars/postgresql-apps.yml").read_text())["postgresql_apps"]
+    further = [rule.split()[1:3] for rule in yaml.safe_load(render("patroni.yml.j2", extra={"postgresql_apps": listed}))["postgresql"]["pg_hba"][1:]
+               if rule.split()[1] not in ("replication", "postgres", "sameuser")]
+    expected = {(database, app["name"]) for app in listed for database in app.get("extra_databases", [])}
+    assert {tuple(pair) for pair in further} == expected == {("radarr_log", "radarr"), ("sonarr_log", "sonarr"), ("prowlarr_log", "prowlarr")}
+    assert len(further) == 3 * len(expected), "one rule per client range"
     dcs = patroni["bootstrap"]["dcs"]
     assert dcs == yaml.safe_load(render("dcs.yml.j2")), "bootstrap settings and the applied settings are one source"
     assert dcs["synchronous_mode"] == "quorum" and dcs["failsafe_mode"] is True
@@ -116,7 +124,7 @@ def test_role():
     assert "NOSUPERUSER" in role["community.postgresql.postgresql_user"]["role_attr_flags"]
     assert "PG_APP_" in role["community.postgresql.postgresql_user"]["password"]
     listed = yaml.safe_load((ROOT / "ansible/vars/postgresql-apps.yml").read_text())["postgresql_apps"]
-    assert all(set(app) <= {"name", "helper_roles"} for app in listed), "the application list holds names only, never credentials"
+    assert all(set(app) <= {"name", "helper_roles", "extra_databases"} for app in listed), "the application list holds names only, never credentials"
     helper = apps["Create the helper roles an application expects"]["community.postgresql.postgresql_user"]
     assert helper["role_attr_flags"].startswith("NOLOGIN,NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOREPLICATION"), "helper roles cannot log in"
     assert "password" not in helper

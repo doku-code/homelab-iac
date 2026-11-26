@@ -1,0 +1,317 @@
+# Routes to the media stack (TASK-036), which runs outside k3s on media-01 (192.168.0.80, Docker Compose,
+# ansible/roles/media_stack). Applied by Argo CD with the other routes (services/argocd/apps/ingress.yaml).
+#   jellyfin.doku-lab.net   Jellyfin, its own sign-in (television and phone applications cannot pass Authentik)
+#   seerr.doku-lab.net      Seerr, signs in with Jellyfin's accounts
+#   media.doku-lab.net      the administration tools under one name and one Authentik session (ADR-017, forward
+#                           authentication): /radarr, /sonarr, /prowlarr, /qbittorrent
+# Everything from the LAN only. The VM's firewall lets nobody but the k3s nodes reach the four tools.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: media-edge
+---
+# Needs the real client address: the k3s role sets externalTrafficPolicy: Local on Traefik.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-lan
+  namespace: media-edge
+spec:
+  ipAllowList:
+    sourceRange:
+      - 192.168.0.0/24
+---
+# Traefik asks Authentik's embedded outpost before every request to the administration tools; the paths under
+# /outpost.goauthentik.io/ of the name are routed to Authentik by services/authentik/access.yaml.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authentik
+  namespace: media-edge
+spec:
+  forwardAuth:
+    address: http://authentik-server.authentik.svc.cluster.local/outpost.goauthentik.io/auth/traefik
+    trustForwardHeader: true
+    authResponseHeaders:
+      - X-authentik-username
+      - X-authentik-groups
+---
+# qBittorrent has no setting for a path of its own: the prefix is removed before the request reaches it.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-qbittorrent
+  namespace: media-edge
+spec:
+  stripPrefix:
+    prefixes:
+      - /qbittorrent
+---
+# The bare name opens Radarr.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: to-radarr
+  namespace: media-edge
+spec:
+  redirectRegex:
+    regex: ^https://media\.doku-lab\.net/?$
+    replacement: https://media.doku-lab.net/radarr/
+    permanent: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jellyfin
+  namespace: media-edge
+spec:
+  ports:
+    - name: backend
+      port: 8096
+      targetPort: 8096
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: jellyfin
+  namespace: media-edge
+  labels:
+    kubernetes.io/service-name: jellyfin
+addressType: IPv4
+ports:
+  - name: backend
+    port: 8096
+    protocol: TCP
+endpoints:
+  - addresses:
+      - 192.168.0.80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seerr
+  namespace: media-edge
+spec:
+  ports:
+    - name: backend
+      port: 5055
+      targetPort: 5055
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: seerr
+  namespace: media-edge
+  labels:
+    kubernetes.io/service-name: seerr
+addressType: IPv4
+ports:
+  - name: backend
+    port: 5055
+    protocol: TCP
+endpoints:
+  - addresses:
+      - 192.168.0.80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: radarr
+  namespace: media-edge
+spec:
+  ports:
+    - name: backend
+      port: 7878
+      targetPort: 7878
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: radarr
+  namespace: media-edge
+  labels:
+    kubernetes.io/service-name: radarr
+addressType: IPv4
+ports:
+  - name: backend
+    port: 7878
+    protocol: TCP
+endpoints:
+  - addresses:
+      - 192.168.0.80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarr
+  namespace: media-edge
+spec:
+  ports:
+    - name: backend
+      port: 8989
+      targetPort: 8989
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: sonarr
+  namespace: media-edge
+  labels:
+    kubernetes.io/service-name: sonarr
+addressType: IPv4
+ports:
+  - name: backend
+    port: 8989
+    protocol: TCP
+endpoints:
+  - addresses:
+      - 192.168.0.80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prowlarr
+  namespace: media-edge
+spec:
+  ports:
+    - name: backend
+      port: 9696
+      targetPort: 9696
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: prowlarr
+  namespace: media-edge
+  labels:
+    kubernetes.io/service-name: prowlarr
+addressType: IPv4
+ports:
+  - name: backend
+    port: 9696
+    protocol: TCP
+endpoints:
+  - addresses:
+      - 192.168.0.80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent
+  namespace: media-edge
+spec:
+  ports:
+    - name: backend
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: qbittorrent
+  namespace: media-edge
+  labels:
+    kubernetes.io/service-name: qbittorrent
+addressType: IPv4
+ports:
+  - name: backend
+    port: 8080
+    protocol: TCP
+endpoints:
+  - addresses:
+      - 192.168.0.80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: jellyfin
+  namespace: media-edge
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`jellyfin.doku-lab.net`)
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+      services:
+        - name: jellyfin
+          port: 8096
+  tls: {}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: seerr
+  namespace: media-edge
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`seerr.doku-lab.net`)
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+      services:
+        - name: seerr
+          port: 5055
+  tls: {}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: media
+  namespace: media-edge
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`media.doku-lab.net`) && PathPrefix(`/radarr`)
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+        - name: authentik
+      services:
+        - name: radarr
+          port: 7878
+    - match: Host(`media.doku-lab.net`) && PathPrefix(`/sonarr`)
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+        - name: authentik
+      services:
+        - name: sonarr
+          port: 8989
+    - match: Host(`media.doku-lab.net`) && PathPrefix(`/prowlarr`)
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+        - name: authentik
+      services:
+        - name: prowlarr
+          port: 9696
+    - match: Host(`media.doku-lab.net`) && PathPrefix(`/qbittorrent`)
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+        - name: authentik
+        - name: strip-qbittorrent
+      services:
+        - name: qbittorrent
+          port: 8080
+    - match: Host(`media.doku-lab.net`)
+      kind: Rule
+      middlewares:
+        - name: admin-lan
+        - name: authentik
+        - name: to-radarr
+      services:
+        - name: radarr
+          port: 7878
+  tls: {}

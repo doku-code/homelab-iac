@@ -1,0 +1,143 @@
+# Managed by Ansible (role media_stack, TASK-036). Secrets are read from {{ media_project_dir }}/.env (root, 0600).
+# One tree /data (the data disk) under the same path in every container that needs it: imports are hard links.
+# Only Jellyfin sees the NAS, read-only. Radarr, Sonarr and qBittorrent have no path to it at all.
+name: media
+
+x-common: &common
+  restart: unless-stopped
+  security_opt: ["no-new-privileges:true"]
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+x-arr-environment: &arr-environment
+  PUID: "{{ media_uid }}"
+  PGID: "{{ media_gid }}"
+  UMASK: "002"
+  TZ: {{ media_timezone }}
+
+services:
+  jellyfin:
+    <<: *common
+    image: {{ media_images.jellyfin }}
+    user: "{{ media_uid }}:{{ media_gid }}"
+{% if media_gpu %}
+    # The host's graphics adapter (passed to the VM) for hardware transcoding.
+    group_add: ["{{ media_render_gid }}"]
+    devices:
+      - {{ media_gpu_render_device }}:{{ media_gpu_render_device }}
+{% endif %}
+    environment:
+      TZ: {{ media_timezone }}
+      JELLYFIN_PublishedServerUrl: {{ media_jellyfin_url }}
+    ports: ["8096:8096"]
+    volumes:
+      - {{ media_root }}/config/jellyfin:/config
+      - {{ media_root }}/cache/jellyfin:/cache
+      # The test area: what Radarr and Sonarr imported. Read-only here too, Jellyfin only plays.
+      - {{ media_root }}/data/media:/data/media:ro
+{% if media_nas_export %}
+      # The existing library, read-only twice: the share is mounted read-only and so is the volume.
+      - nas-library:/data/nas:ro
+{% endif %}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  seerr:
+    <<: *common
+    image: {{ media_images.seerr }}
+    init: true
+    user: "{{ media_uid }}:{{ media_gid }}"
+    cap_drop: [ALL]
+    environment:
+      TZ: {{ media_timezone }}
+      PORT: "5055"
+      LOG_LEVEL: info
+      API_KEY: ${SEERR_API_KEY}
+      DB_TYPE: postgres
+      DB_HOST: {{ media_postgresql_host }}
+      DB_PORT: "{{ media_postgresql_port }}"
+      DB_USER: seerr
+      DB_PASS: ${PG_APP_SEERR_PASSWORD}
+      DB_NAME: seerr
+      # The members present a self-signed certificate: encrypted, like every application of the platform.
+      DB_USE_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "false"
+    ports: ["5055:5055"]
+    volumes:
+      - {{ media_root }}/config/seerr:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:5055/api/v1/status || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+{% for app in media_arr_apps %}
+  {{ app.name }}:
+    <<: *common
+    image: {{ media_images[app.name] }}
+    environment:
+      <<: *arr-environment
+      {{ app.name | upper }}__POSTGRES__HOST: {{ media_postgresql_host }}
+      {{ app.name | upper }}__POSTGRES__PORT: "{{ media_postgresql_port }}"
+      {{ app.name | upper }}__POSTGRES__USER: {{ app.name }}
+      {{ app.name | upper }}__POSTGRES__PASSWORD: ${PG_APP_{{ app.name | upper }}_PASSWORD}
+      {{ app.name | upper }}__POSTGRES__MAINDB: {{ app.name }}
+      {{ app.name | upper }}__POSTGRES__LOGDB: {{ app.name }}_log
+      {{ app.name | upper }}__AUTH__APIKEY: ${ {{- app.name | upper }}_API_KEY}
+      # The application's own sign-in stays (administrator in the secret store); it is not asked from private
+      # addresses, because the only way in from the network is Traefik after Authentik (firewall of the VM).
+      {{ app.name | upper }}__AUTH__METHOD: Forms
+      {{ app.name | upper }}__AUTH__REQUIRED: DisabledForLocalAddresses
+      {{ app.name | upper }}__SERVER__URLBASE: /{{ app.name }}
+      {{ app.name | upper }}__LOG__ANALYTICSENABLED: "False"
+    ports: ["{{ app.port }}:{{ app.port }}"]
+    volumes:
+      - {{ media_root }}/config/{{ app.name }}:/config
+{% if app.data %}
+      - {{ media_root }}/data:/data
+{% endif %}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:{{ app.port }}/{{ app.name }}/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+{% endfor %}
+  qbittorrent:
+    <<: *common
+    image: {{ media_images.qbittorrent }}
+    stop_grace_period: 2m
+    environment:
+      QBT_LEGAL_NOTICE: confirm
+      QBT_WEBUI_PORT: "8080"
+      QBT_TORRENTING_PORT: "6881"
+      PUID: "{{ media_uid }}"
+      PGID: "{{ media_gid }}"
+      UMASK: "002"
+      TZ: {{ media_timezone }}
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    volumes:
+      - {{ media_root }}/config/qbittorrent:/config
+      # Downloads only: the client never sees the imported media, and nothing of the NAS.
+      - {{ media_root }}/data/torrents:/data/torrents
+{% if media_nas_export %}
+
+volumes:
+  # Mounted by Docker when Jellyfin starts. The NAS does not answer: the container does not start.
+  nas-library:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr={{ media_nas_server }},ro,nfsvers={{ media_nas_nfs_version }},soft,timeo=150,retrans=3,noatime"
+      device: ":{{ media_nas_export }}"
+{% endif %}

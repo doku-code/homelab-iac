@@ -190,6 +190,22 @@ def homepage(browser, password):
     return ok, f"HTTP {anonymous} without a session; signed in: page HTTP {page}, widget data for {len(nodes)} nodes"
 
 
+def media(browser, password):
+    """Forward authentication in front of the media stack's tools: one session opens Radarr, Sonarr, Prowlarr and qBittorrent."""
+    base = "https://media.doku-lab.net"
+    outpost = f"{base}/outpost.goauthentik.io/"
+    anonymous, _, _ = browser.request("GET", f"{base}/radarr/ping")
+    if anonymous == 200:
+        return False, "Radarr answers without a session"
+    callback = browser.sign_in(f"{base}/radarr/", password, f"{outpost}callback")
+    browser.follow(callback, lambda u: not u.startswith(outpost))
+    answers = {name: browser.request("GET", f"{base}/{path}")[0]
+               for name, path in (("radarr", "radarr/ping"), ("sonarr", "sonarr/ping"), ("prowlarr", "prowlarr/ping"),
+                                  ("qbittorrent", "qbittorrent/api/v2/app/version"))}
+    ok = all(status == 200 for status in answers.values())
+    return ok, f"HTTP {anonymous} without a session; signed in: " + ", ".join(f"{name} HTTP {status}" for name, status in answers.items())
+
+
 def headlamp(browser, password):
     """Headlamp keeps the identity token in a cookie and hands it to the Kubernetes API, which is asked who it sees."""
     base = "https://headlamp.doku-lab.net"
@@ -252,7 +268,7 @@ def wiki(browser, password):
 
 
 CHECKS = {"argocd": argocd, "grafana": grafana, "netbox": netbox, "windmill": windmill, "homepage": homepage, "proxmox": proxmox, "wiki": wiki,
-          "headlamp": headlamp}
+          "headlamp": headlamp, "media": media}
 
 
 def main(argv):
