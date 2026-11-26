@@ -39,7 +39,7 @@ flowchart TB
     dns_01["dns-01<br/>DNS"]
   end
   subgraph pve_infra["pve-infra · 192.168.0.12"]
-    pve_infra_empty["no guest of the platform"]
+    media_01["media-01<br/>Media"]
   end
   subgraph pve_lab["pve-lab · 192.168.0.16"]
     k3s_server_03["k3s-server-03<br/>k3s server"]
@@ -73,7 +73,7 @@ flowchart TB
 | `pfsense` | Router | Lenovo ThinkCentre M75q Gen 2 | 192.168.0.1 |  | AMD Ryzen 3, 8 GB RAM. pfSense, LAN gateway and DHCP; never changed or signed in to by automation |
 | `pve-compute` | Hypervisor | Custom build Tower, ASUS mainboard, Ryzen 9 9950X3D | 192.168.0.14 | deploy-runner-01, ci-runner-01, k3s-server-01, storage-01, pg-03 | AMD Ryzen 9 9950X3D, 32 threads, 30 GB usable RAM, 1 TB and 2 TB NVMe. The old environment until 2026-11-24 (then named pve-lab) |
 | `pve-core` | Hypervisor | Lenovo ThinkStation P350 Tiny | 192.168.0.11 | ts-router-01, k3s-server-02, pg-01, dns-01 | Intel Core i7-11700, 32 GB RAM, 1 TB NVMe, a 25 Gb SFP28 card |
-| `pve-infra` | Hypervisor | Beelink Mini S | 192.168.0.12 |  | Intel Celeron N5095A, 8 GB RAM, 256 GB SATA SSD |
+| `pve-infra` | Hypervisor | Beelink Mini S | 192.168.0.12 | media-01 | Intel Celeron N5095A, 8 GB RAM, 256 GB SATA SSD |
 | `pve-lab` | Hypervisor | ORIGIMAGIC Nebula Series | 192.168.0.16 | k3s-server-03, pg-02 | AMD Ryzen 7 6800H, 28 GB usable RAM, 512 GB NVMe |
 | `pve-management` | Hypervisor | Lenovo ThinkCentre M90q | 192.168.0.10 | mgmt-control-01, ts-router-02 | Intel Core i5-10500T, 16 GB RAM, 256 GB NVMe; hosts the admin workstation (ADR-002) |
 | `switch` | Switch | QNAP QSW-M3216R-8S8T | 192.168.0.3 |  | Core switch; every Proxmox host of doku-lab is plugged into it |
@@ -102,6 +102,7 @@ other hosts are kept as stable as possible. `pve-management` hosts the operator 
 | `pg-02` | 362 | pve-lab | PostgreSQL | 192.168.0.62 | 2 | 4 GB | 56 GB | Active | [`terraform/stacks/postgresql`](../../terraform/stacks/postgresql) |
 | `pg-03` | 363 | pve-compute | PostgreSQL | 192.168.0.63 | 2 | 2 GB | 56 GB | Active | [`terraform/stacks/postgresql`](../../terraform/stacks/postgresql) |
 | `dns-01` | 370 | pve-core | DNS | 192.168.0.70 | 1 | 1 GB | 16 GB | Active | [`terraform/stacks/dns`](../../terraform/stacks/dns) |
+| `media-01` | 380 | pve-infra | Media | 192.168.0.80 | 4 | 5.5 GB | 156 GB | Active | [`terraform/stacks/media`](../../terraform/stacks/media) |
 | `pbs` |  | truenas | Backup server | 192.168.0.15 | 2 | 4 GB |  | Offline | Proxmox Backup Server, a VM on TrueNAS. Stopped: its backup disk failed in November 2026 |
 <!-- map:guests:end -->
 

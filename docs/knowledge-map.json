@@ -1414,6 +1414,10 @@
           "field": "related_decisions"
         },
         {
+          "from": "GUIDE-media-stack",
+          "field": "related"
+        },
+        {
           "from": "M007",
           "field": "related_decisions"
         },
@@ -1451,6 +1455,10 @@
         },
         {
           "from": "TASK-029",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-036",
           "field": "related_decisions"
         }
       ]
@@ -1618,6 +1626,10 @@
           "field": "related_decisions"
         },
         {
+          "from": "GUIDE-media-stack",
+          "field": "related"
+        },
+        {
           "from": "M014",
           "field": "related_decisions"
         },
@@ -1631,6 +1643,10 @@
         },
         {
           "from": "TASK-029",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-036",
           "field": "related_decisions"
         }
       ]
@@ -2989,6 +3005,84 @@
         ]
       },
       "backrefs": []
+    },
+    {
+      "id": "GUIDE-media-stack",
+      "title": "Media stack: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on media-01",
+      "summary": "What runs on media-01, where its data lives, how to operate, test, back up and restore it, and how to give it the NAS library.",
+      "importance": 3,
+      "lifecycle": "active",
+      "topics": [
+        "media",
+        "jellyfin",
+        "seerr",
+        "radarr",
+        "sonarr",
+        "prowlarr",
+        "qbittorrent",
+        "postgresql",
+        "gpu"
+      ],
+      "applies_to": [],
+      "source_paths": [
+        "terraform/stacks/media",
+        "ansible/roles/media_stack",
+        "ansible/vars/media.yml",
+        "ansible/playbooks/configure-media.yml",
+        "services/media/access.yaml",
+        "tests/media.py"
+      ],
+      "last_verified": "2026-11-26",
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/guides/media-stack.md",
+      "tags": [
+        "guide",
+        "media",
+        "jellyfin",
+        "docker-compose"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Media stack: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on media-01",
+        "What runs where",
+        "How a request travels",
+        "Storage and the protection of the Plex library",
+        "NAS: what the operator still has to do",
+        "Operation",
+        "Indexers, and a safe test of one movie and one series",
+        "Hardware transcoding",
+        "Database access, backup and recovery",
+        "Pulsarr (not deployed)",
+        "What was verified on 2026-11-26"
+      ],
+      "relations": {
+        "related": [
+          "TASK-036",
+          "ADR-015",
+          "ADR-017"
+        ],
+        "source_paths": [
+          "terraform/stacks/media",
+          "ansible/roles/media_stack",
+          "ansible/vars/media.yml",
+          "ansible/playbooks/configure-media.yml",
+          "services/media/access.yaml",
+          "tests/media.py"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "TASK-036",
+          "field": "related"
+        }
+      ]
     },
     {
       "id": "INV-legacy-inventory",
@@ -7209,7 +7303,11 @@
       "type": "task",
       "status": "in-progress",
       "path": "tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md",
-      "tags": [],
+      "tags": [
+        "media",
+        "jellyfin",
+        "docker-compose"
+      ],
       "component": null,
       "technology": null,
       "priority": "medium",
@@ -7227,6 +7325,13 @@
         "Completion summary"
       ],
       "relations": {
+        "related": [
+          "GUIDE-media-stack"
+        ],
+        "related_decisions": [
+          "ADR-015",
+          "ADR-017"
+        ],
         "related_tests": [
           "tests/media.py",
           "terraform/stacks/media/tests/media.tftest.hcl",
@@ -7236,7 +7341,12 @@
           "M010"
         ]
       },
-      "backrefs": []
+      "backrefs": [
+        {
+          "from": "GUIDE-media-stack",
+          "field": "related"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -7279,7 +7389,8 @@
       "GUIDE-map-infrastructure",
       "GUIDE-map-network",
       "GUIDE-map-operations",
-      "GUIDE-map-services"
+      "GUIDE-map-services",
+      "GUIDE-media-stack"
     ],
     "investigation": [
       "INV-legacy-inventory",
@@ -7491,6 +7602,10 @@
       "GUIDE-map-network",
       "TASK-022"
     ],
+    "docker-compose": [
+      "GUIDE-media-stack",
+      "TASK-036"
+    ],
     "documentation": [
       "TASK-029",
       "TASK-035"
@@ -7526,7 +7641,8 @@
       "TASK-026"
     ],
     "guide": [
-      "GUIDE-handoff"
+      "GUIDE-handoff",
+      "GUIDE-media-stack"
     ],
     "handoff": [
       "GUIDE-handoff"
@@ -7592,6 +7708,10 @@
     "issue": [
       "ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte"
     ],
+    "jellyfin": [
+      "GUIDE-media-stack",
+      "TASK-036"
+    ],
     "k3s": [
       "ADR-006",
       "ADR-011",
@@ -7642,6 +7762,10 @@
     ],
     "maps": [
       "TASK-035"
+    ],
+    "media": [
+      "GUIDE-media-stack",
+      "TASK-036"
     ],
     "migration": [
       "ADR-001",

@@ -89,6 +89,10 @@ def test_graphics_adapter():
     by_name = {task["name"]: task for task in tasks}
     assert by_name["Refuse to continue without the render device"]["when"] == "media_gpu | bool"
     assert "enable_guc=2" in by_name["Load the GuC and HuC firmware"]["ansible.builtin.copy"]["content"], "low-power encoding needs HuC"
+    # At boot Docker waits for the device the driver creates late; otherwise Jellyfin stays stopped after a reboot.
+    drop_in = by_name["Tie Docker to the data filesystem"]["ansible.builtin.copy"]["content"]
+    assert "{% if media_gpu %}" in drop_in and "Wants={{ media_gpu_render_device" in drop_in and "After={{ media_gpu_render_device" in drop_in
+    assert 'TAG+="systemd"' in by_name["Let systemd wait for the render device"]["ansible.builtin.copy"]["content"]
 
 
 def test_firewall_and_disk():

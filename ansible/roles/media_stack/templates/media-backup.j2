@@ -24,7 +24,8 @@ done
 # SQLite: the online backup API gives a consistent copy while the application runs.
 while IFS= read -r -d '' database; do
   name="$(printf '%s' "${database#"$root/config/"}" | tr '/' '_')"
-  sqlite3 "file:$database?mode=ro" ".backup '$stage/sqlite/$name'"
+  # ".copy": the archive leaves out every *.db below config/ (the live files), not these copies.
+  sqlite3 "file:$database?mode=ro" ".backup '$stage/sqlite/$name.copy'"
 done < <(find "$root/config" -type f \( -name '*.db' -o -name '*.sqlite3' \) -not -path '*/Backups/*' -print0)
 
 cp {{ media_project_dir }}/compose.yml "$stage/compose.yml"

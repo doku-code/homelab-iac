@@ -483,3 +483,8 @@ services:
     - {name: AdGuard Home web interface, protocol: tcp, ports: [80]}
   storage:
     - {name: NFS, protocol: tcp, ports: [2049]}
+  media:
+    - {name: Jellyfin, protocol: tcp, ports: [8096], description: "jellyfin.doku-lab.net through Traefik on k3s"}
+    - {name: Seerr, protocol: tcp, ports: [5055], description: "seerr.doku-lab.net through Traefik on k3s"}
+    - {name: Media tools, protocol: tcp, ports: [7878, 8989, 9696, 8080], description: "Radarr, Sonarr, Prowlarr, qBittorrent: media.doku-lab.net behind Authentik; the k3s nodes only"}
+    - {name: BitTorrent, protocol: tcp, ports: [6881]}

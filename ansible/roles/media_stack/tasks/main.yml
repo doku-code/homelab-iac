@@ -67,6 +67,13 @@
       [Unit]
       RequiresMountsFor={{ media_root }}
       ConditionPathIsMountPoint={{ media_root }}
+      {% if media_gpu %}
+      # The graphics driver creates its device several seconds after Docker would start: without this wait
+      # Jellyfin is refused its device at boot and stays stopped (seen on 2026-11-26). Wants, not Requires:
+      # without the device Docker starts after the wait, and only Jellyfin fails, visibly.
+      Wants={{ media_gpu_render_device | replace('/dev/', 'dev-') | replace('/', '-') }}.device
+      After={{ media_gpu_render_device | replace('/dev/', 'dev-') | replace('/', '-') }}.device
+      {% endif %}
     owner: root
     group: root
     mode: "0644"
@@ -145,6 +152,25 @@
     mode: "0644"
   when: media_gpu | bool
   notify: Rebuild the initramfs
+
+# systemd only knows devices that udev tags for it; the render device is not tagged by default.
+- name: Let systemd wait for the render device
+  ansible.builtin.copy:
+    dest: /etc/udev/rules.d/70-media-render-device.rules
+    content: |
+      # Managed by Ansible (role media_stack): docker.service waits for this device at boot.
+      SUBSYSTEM=="drm", KERNEL=="{{ media_gpu_render_device | basename }}", TAG+="systemd"
+    owner: root
+    group: root
+    mode: "0644"
+  when: media_gpu | bool
+  notify: Rebuild the initramfs
+
+- name: Forget the wait when the VM has no graphics adapter
+  ansible.builtin.file:
+    path: /etc/udev/rules.d/70-media-render-device.rules
+    state: absent
+  when: not (media_gpu | bool)
 
 - name: Apply a pending driver change before the containers start
   ansible.builtin.meta: flush_handlers
