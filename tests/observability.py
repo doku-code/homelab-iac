@@ -155,7 +155,7 @@ def main():
     assert {u for rule in role_rules for u in rule.get("nonResourceURLs", [])} <= {"/metrics"}
     assert all(set(rule["verbs"]) <= {"get", "list", "watch"} for rule in role_rules), "read-only"
     cluster = (OBS / "cluster.alloy").read_text()
-    assert "/proxy/" not in cluster and len(keep_regexes(cluster)) == 5
+    assert "/proxy/" not in cluster and len(keep_regexes(cluster)) == 6
     truenas(cluster, rules)
     pfsense(cluster)
     assert set(re.findall(r'scrape_interval\s*=\s*"(\w+)"', cluster)) == {"60s", "15s"}, "the switch is read more often: its byte counters are 32-bit"

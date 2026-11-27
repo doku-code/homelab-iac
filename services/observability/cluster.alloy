@@ -189,6 +189,204 @@ prometheus.relabel "pfsense" {
 	}
 }
 
+// Probes (2026-11-27). "net": how long a connection to the Internet, to pfSense and a lookup on each DNS server
+// take, every 15 s: the figure that shows a saturated line or a dead DNS at once. "web": does each service answer,
+// every minute. A sign-in page or a redirect counts as an answer; certificates are not judged here.
+prometheus.exporter.blackbox "net" {
+	config = "{ modules: { tcp: { prober: tcp, timeout: 5s }, dns: { prober: dns, timeout: 5s, dns: { query_name: adguard.doku-lab.net, query_type: A } } } }"
+
+	target {
+		name    = "internet-cloudflare"
+		address = "1.1.1.1:443"
+		module  = "tcp"
+	}
+
+	target {
+		name    = "internet-quad9"
+		address = "9.9.9.9:443"
+		module  = "tcp"
+	}
+
+	target {
+		name    = "gateway-pfsense"
+		address = "192.168.0.1:9100"
+		module  = "tcp"
+	}
+
+	target {
+		name    = "dns-shared-address"
+		address = "192.168.0.20:53"
+		module  = "dns"
+	}
+
+	target {
+		name    = "dns-01"
+		address = "192.168.0.70:53"
+		module  = "dns"
+	}
+
+	target {
+		name    = "dns-02"
+		address = "192.168.0.71:53"
+		module  = "dns"
+	}
+}
+
+prometheus.exporter.blackbox "web" {
+	config = "{ modules: { http: { prober: http, timeout: 10s, http: { valid_status_codes: [200, 301, 302, 303, 307, 401, 403], tls_config: { insecure_skip_verify: true } } } } }"
+
+	target {
+		name    = "grafana"
+		address = "https://grafana.doku-lab.net/api/health"
+		module  = "http"
+	}
+
+	target {
+		name    = "authentik"
+		address = "https://auth.doku-lab.net/-/health/ready/"
+		module  = "http"
+	}
+
+	target {
+		name    = "netbox"
+		address = "https://netbox.doku-lab.net/login/"
+		module  = "http"
+	}
+
+	target {
+		name    = "wiki"
+		address = "https://wiki.doku-lab.net/"
+		module  = "http"
+	}
+
+	target {
+		name    = "vaultwarden"
+		address = "https://vault.doku-lab.net/alive"
+		module  = "http"
+	}
+
+	target {
+		name    = "windmill"
+		address = "https://windmill.doku-lab.net/api/version"
+		module  = "http"
+	}
+
+	target {
+		name    = "phase"
+		address = "https://phase.doku-lab.net/"
+		module  = "http"
+	}
+
+	target {
+		name    = "homepage"
+		address = "https://home.doku-lab.net/"
+		module  = "http"
+	}
+
+	target {
+		name    = "argocd"
+		address = "https://argocd.doku-lab.net/"
+		module  = "http"
+	}
+
+	target {
+		name    = "headlamp"
+		address = "https://headlamp.doku-lab.net/"
+		module  = "http"
+	}
+
+	target {
+		name    = "forgejo"
+		address = "https://git.doku-lab.net/api/v1/version"
+		module  = "http"
+	}
+
+	target {
+		name    = "nextcloud"
+		address = "https://cloud.doku-lab.net/status.php"
+		module  = "http"
+	}
+
+	target {
+		name    = "jellyfin"
+		address = "https://jellyfin.doku-lab.net/health"
+		module  = "http"
+	}
+
+	target {
+		name    = "seerr"
+		address = "https://seerr.doku-lab.net/api/v1/status"
+		module  = "http"
+	}
+
+	target {
+		name    = "radarr"
+		address = "http://192.168.0.83:7878/radarr/ping"
+		module  = "http"
+	}
+
+	target {
+		name    = "sonarr"
+		address = "http://192.168.0.84:8989/sonarr/ping"
+		module  = "http"
+	}
+
+	target {
+		name    = "prowlarr"
+		address = "http://192.168.0.85:9696/prowlarr/ping"
+		module  = "http"
+	}
+
+	target {
+		name    = "plex"
+		address = "http://192.168.0.13:32400/identity"
+		module  = "http"
+	}
+
+	target {
+		name    = "qbittorrent"
+		address = "http://192.168.0.13:8080/"
+		module  = "http"
+	}
+
+	target {
+		name    = "truenas"
+		address = "https://192.168.0.13:444/ui/"
+		module  = "http"
+	}
+
+	target {
+		name    = "adguard"
+		address = "http://192.168.0.20/login.html"
+		module  = "http"
+	}
+}
+
+prometheus.scrape "probe_net" {
+	targets         = prometheus.exporter.blackbox.net.targets
+	job_name        = "probe"
+	scrape_interval = "15s"
+	forward_to      = [prometheus.relabel.probes.receiver]
+}
+
+prometheus.scrape "probe_web" {
+	targets         = prometheus.exporter.blackbox.web.targets
+	job_name        = "probe"
+	scrape_interval = "60s"
+	scrape_timeout  = "20s"
+	forward_to      = [prometheus.relabel.probes.receiver]
+}
+
+prometheus.relabel "probes" {
+	forward_to = [prometheus.remote_write.default.receiver]
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = "probe_(success|duration_seconds|http_status_code|dns_lookup_time_seconds)"
+		action        = "keep"
+	}
+}
+
 discovery.kubernetes "pods" {
 	role = "pod"
 }
