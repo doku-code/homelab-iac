@@ -987,7 +987,7 @@ storage-csi-deploy:
 POSTGRESQL_DIR := terraform/stacks/postgresql
 POSTGRESQL_PLAN := postgresql.tfplan
 
-.PHONY: postgresql-check postgresql-plan postgresql-apply postgresql-hostkeys postgresql-configure postgresql-status
+.PHONY: postgresql-check postgresql-plan postgresql-apply postgresql-hostkeys postgresql-configure postgresql-upgrade postgresql-status
 
 # Offline only: no credentials, no backend, mocked provider.
 postgresql-check:
@@ -997,6 +997,7 @@ postgresql-check:
 	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(POSTGRESQL_DIR) validate -no-color >/dev/null; \
 	TF_DATA_DIR="$$d" $(TOFU) -chdir=$(POSTGRESQL_DIR) test -no-color | tail -n 1
 	$(ANSIBLE) ansible/playbooks/configure-postgresql.yml --syntax-check -i ansible/inventories/homelab.yml
+	$(ANSIBLE) ansible/playbooks/upgrade-postgresql.yml --syntax-check -i ansible/inventories/homelab.yml
 	$(VENV)/bin/python tests/postgresql.py
 
 postgresql-plan:
@@ -1037,6 +1038,21 @@ postgresql-configure:
 	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/postgresql-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
 	$(TOFU) -chdir=$(POSTGRESQL_DIR) output -json ansible_inventory > "$$inventory"; \
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-postgresql.yml --diff
+
+# Moves the cluster to the major version of the role (patroni_postgresql_version) from the one it runs,
+# POSTGRESQL_UPGRADE_FROM. The applications have no database for some minutes. A full dump is taken first and
+# copied to POSTGRESQL_BACKUP_DIR; the old data directories stay on the members (the way back, see the guide).
+#   scripts/secrets.py run /postgresql -- make postgresql-upgrade POSTGRESQL_UPGRADE_FROM=17 POSTGRESQL_UPGRADE_APPROVED=yes
+POSTGRESQL_UPGRADE_FROM ?=
+POSTGRESQL_BACKUP_DIR ?= .local/postgresql-backups
+postgresql-upgrade:
+	@test "$(POSTGRESQL_UPGRADE_APPROVED)" = yes || (echo "A major upgrade stops the database of every application for some minutes: approve with POSTGRESQL_UPGRADE_APPROVED=yes" >&2; exit 1)
+	@case "$(POSTGRESQL_UPGRADE_FROM)" in ''|*[!0-9]*) echo "Give the major version the cluster runs now: POSTGRESQL_UPGRADE_FROM=17" >&2; exit 1;; esac
+	@test -n "$${PG_SUPERUSER_PASSWORD:-}" || { echo "Set PG_SUPERUSER_PASSWORD and the other PG_* credentials in the environment (secret store path /postgresql)" >&2; exit 1; }
+	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/postgresql-inventory.json"; mkdir -p "$(CURDIR)/.local" "$(CURDIR)/$(POSTGRESQL_BACKUP_DIR)"; \
+	$(TOFU) -chdir=$(POSTGRESQL_DIR) output -json ansible_inventory > "$$inventory"; \
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/upgrade-postgresql.yml \
+	  -e postgresql_upgrade_from=$(POSTGRESQL_UPGRADE_FROM) -e postgresql_upgrade_backup_dir="$(CURDIR)/$(POSTGRESQL_BACKUP_DIR)" $(POSTGRESQL_UPGRADE_ARGS)
 
 # ─────────────────────────────────────────────
 # Lean observability (TASK-020): Prometheus, Loki and Grafana on k3s, Alloy as the only collector (one in

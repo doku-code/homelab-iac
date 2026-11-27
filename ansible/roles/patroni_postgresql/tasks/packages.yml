@@ -1,0 +1,49 @@
+---
+# PostgreSQL itself comes from the PostgreSQL project's repository (apt.postgresql.org): it carries every
+# supported major version, Debian 13 only 17. The pin lets nothing else through: Patroni, etcd, vip-manager and
+# the common tooling stay Debian's. The repository's signing key is the copy Debian ships in postgresql-common.
+- name: Install Debian's PostgreSQL tooling (it carries the repository's signing key)
+  ansible.builtin.apt:
+    name: postgresql-common
+    state: present
+    install_recommends: false
+
+- name: Add the PostgreSQL project's repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/pgdg.sources
+    content: |
+      # Managed by Ansible (role patroni_postgresql)
+      Types: deb
+      URIs: https://apt.postgresql.org/pub/repos/apt
+      Suites: trixie-pgdg
+      Components: main
+      Architectures: amd64
+      Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+    owner: root
+    group: root
+    mode: "0644"
+  register: patroni_repository
+
+- name: Take only the server, its client and the client library from that repository
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/pgdg
+    content: |
+      # Managed by Ansible (role patroni_postgresql)
+      Package: *
+      Pin: release o=apt.postgresql.org
+      Pin-Priority: 100
+
+      Package: postgresql-{{ patroni_postgresql_version }} postgresql-client-{{ patroni_postgresql_version }} libpq5
+      Pin: release o=apt.postgresql.org
+      Pin-Priority: 500
+    owner: root
+    group: root
+    mode: "0644"
+  register: patroni_repository_pin
+
+- name: Install PostgreSQL {{ patroni_postgresql_version }}
+  ansible.builtin.apt:
+    name: "postgresql-{{ patroni_postgresql_version }}"
+    state: present
+    install_recommends: false
+    update_cache: "{{ patroni_repository is changed or patroni_repository_pin is changed }}"

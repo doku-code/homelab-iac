@@ -63,7 +63,7 @@ def test_templates():
     assert patroni["restapi"]["listen"] == "192.168.0.62:8008"
     assert patroni["restapi"]["authentication"]["password"] == SYNTHETIC["RESTAPI"]
     pg = patroni["postgresql"]
-    assert pg["data_dir"] == "/var/lib/postgresql/17/doku-pg" and pg["bin_dir"] == "/usr/lib/postgresql/17/bin"
+    assert pg["data_dir"] == "/var/lib/postgresql/18/doku-pg" and pg["bin_dir"] == "/usr/lib/postgresql/18/bin"
     assert pg["authentication"]["superuser"]["password"] == SYNTHETIC["SUPERUSER"]
     assert pg["authentication"]["rewind"]["username"] == "rewinder"
     assert pg["parameters"]["shared_buffers"] == "979MB", "a quarter of the member's memory"
@@ -107,7 +107,38 @@ def test_role():
     assert "Refuse to continue without the data disk" in tasks
     order = list(tasks)
     assert order.index("Keep the Debian package from creating its own database cluster") < order.index(
-        "Install PostgreSQL, Patroni, etcd and vip-manager from Debian") > order.index("Mount the data filesystem")
+        "Install PostgreSQL from the PostgreSQL project's repository") > order.index("Mount the data filesystem")
+    # PostgreSQL alone comes from the project's repository, verified with the key Debian ships; nothing is downloaded
+    # to trust it, and the pin keeps Patroni, etcd and vip-manager Debian's.
+    packages = {t["name"]: t for t in yaml.safe_load((ROLE / "tasks/packages.yml").read_text())}
+    source = packages["Add the PostgreSQL project's repository"]["ansible.builtin.copy"]["content"]
+    assert "URIs: https://apt.postgresql.org/pub/repos/apt" in source and "Suites: trixie-pgdg" in source
+    assert "Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc" in source and "get_url" not in (ROLE / "tasks/packages.yml").read_text()
+    pin = packages["Take only the server, its client and the client library from that repository"]["ansible.builtin.copy"]["content"]
+    assert "Package: *\nPin: release o=apt.postgresql.org\nPin-Priority: 100" in pin
+    assert "Package: postgresql-{{ patroni_postgresql_version }} postgresql-client-{{ patroni_postgresql_version }} libpq5\n" in pin
+    assert pin.count("Package:") == 2 and pin.count("Pin-Priority: 500") == 1, "nothing else is let through"
+    # The number alone never moves a cluster: a member with data of another version is refused unless the upgrade says so.
+    defaults = yaml.safe_load((ROLE / "defaults/main.yml").read_text())
+    assert defaults["patroni_postgresql_version"] == 18 and defaults["patroni_allow_new_data_dir"] is False
+    guard = tasks["Refuse to leave the data of another major version behind"]["ansible.builtin.assert"]
+    assert "patroni_allow_new_data_dir | bool" in guard["that"] and "make postgresql-upgrade" in guard["fail_msg"]
+    assert order.index("Refuse to leave the data of another major version behind") < order.index("Write the Patroni configuration (credentials)")
+
+    # The upgrade: checks and a dump before anything stops, standbys before the leader, copy mode (the old data
+    # stays), the cluster's settings kept in etcd, the leader back before any standby, standbys one at a time.
+    upgrade = yaml.safe_load((ROOT / "ansible/playbooks/upgrade-postgresql.yml").read_text())
+    plays = [play["name"] for play in upgrade]
+    assert plays == ["Check the cluster and prepare the new version", "Dump everything before the upgrade", "Stop the standbys", "Upgrade the leader",
+                     "Start the upgraded leader", "Copy the standbys from the upgraded leader, one at a time", "Finish on the leader"]
+    assert [play["hosts"] for play in upgrade] == ["postgresql", "pg_leader", "pg_standby", "pg_leader", "pg_leader", "pg_standby", "pg_leader"]
+    assert all(play.get("any_errors_fatal") for play in upgrade[:6]) and upgrade[5]["serial"] == 1
+    text = (ROOT / "ansible/playbooks/upgrade-postgresql.yml").read_text()
+    assert "--check" in text and "--copy" in text and "--link" not in text and "delete_old_cluster" not in text.split("tasks:", 1)[1].replace("select('search', 'Upgrade Complete|update_extensions|delete_old_cluster", "")
+    assert 'test "$key" = "${prefix}config" && continue' in text, "the cluster-wide settings stay in etcd"
+    assert "state: absent" not in text and "rm -" not in text, "the upgrade removes no data"
+    for play in (upgrade[4], upgrade[5]):
+        assert play["roles"] == [{"role": "patroni_postgresql", "vars": {"patroni_allow_new_data_dir": True}}]
     handlers = {h["name"]: h for h in yaml.safe_load((ROLE / "handlers/main.yml").read_text())}
     assert handlers["Restart etcd"]["throttle"] == 1, "never restart the whole consensus store at once"
     assert handlers["Reload Patroni"]["ansible.builtin.systemd_service"]["state"] == "reloaded", "no restart, no failover"
@@ -177,6 +208,10 @@ def test_make_guards():
         assert "apply" not in calls().split("plan")[-1]
 
         assert "POSTGRESQL_CONFIGURE_APPROVED" in make("postgresql-configure").stderr
+        assert "POSTGRESQL_UPGRADE_APPROVED" in make("postgresql-upgrade").stderr
+        assert "POSTGRESQL_UPGRADE_FROM=17" in make("postgresql-upgrade", "POSTGRESQL_UPGRADE_APPROVED=yes").stderr
+        assert "POSTGRESQL_UPGRADE_FROM=17" in make("postgresql-upgrade", "POSTGRESQL_UPGRADE_APPROVED=yes", "POSTGRESQL_UPGRADE_FROM=latest").stderr
+        assert "PG_SUPERUSER_PASSWORD" in make("postgresql-upgrade", "POSTGRESQL_UPGRADE_APPROVED=yes", "POSTGRESQL_UPGRADE_FROM=17").stderr
         result = make("postgresql-configure", "POSTGRESQL_CONFIGURE_APPROVED=yes")
         assert result.returncode != 0 and "PG_SUPERUSER_PASSWORD" in result.stderr and "ansible" not in calls()
         result = make("postgresql-configure", "POSTGRESQL_CONFIGURE_APPROVED=yes",

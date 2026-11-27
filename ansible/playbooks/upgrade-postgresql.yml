@@ -1,0 +1,345 @@
+---
+# Major-version upgrade of the shared PostgreSQL platform (ADR-015), e.g. 17 to 18. Run through
+# `make postgresql-upgrade` from the operator workstation. The cluster is down from play 3 until the leader
+# is back in play 5 (minutes); the standbys are copied again from the upgraded leader afterwards.
+#
+#   1. checks: healthy cluster, the new packages, `pg_upgrade --check` against the running leader
+#   2. a full dump of the leader, kept on the leader and on the workstation
+#   3. Patroni stops on the standbys, then on the leader
+#   4. `pg_upgrade` on the leader in copy mode: the old data directory is left untouched on every member
+#   5. Patroni's cluster keys leave etcd (the upgraded cluster has a new identifier); the leader starts
+#   6. each standby starts with an empty directory for the new version and copies the leader
+#   7. statistics, extension updates, final state
+#
+# Back to the old version, as long as its directories exist: stop Patroni on all members, remove the cluster
+# keys from etcd as in play 5, then configure with the old number, the old leader first
+# (docs/guides/postgresql-major-upgrade.md).
+- name: Check the cluster and prepare the new version
+  hosts: postgresql
+  become: true
+  gather_facts: true
+  any_errors_fatal: true
+  vars_files:
+    - ../roles/patroni_postgresql/defaults/main.yml
+    - ../vars/postgresql-apps.yml
+  vars:
+    pg_from: "{{ postgresql_upgrade_from | int }}"
+    pg_to: "{{ patroni_postgresql_version | int }}"
+    pg_old_dir: "{{ patroni_data_mount }}/{{ postgresql_upgrade_from }}/{{ patroni_scope }}"
+    pg_work: "{{ patroni_data_mount }}/upgrade-{{ postgresql_upgrade_from }}-to-{{ patroni_postgresql_version }}"
+  tasks:
+    - name: Require the version the cluster runs now
+      ansible.builtin.assert:
+        that:
+          - postgresql_upgrade_from is defined
+          - pg_from | int >= 17
+          - pg_to | int > pg_from | int
+        fail_msg: Give the running major version (POSTGRESQL_UPGRADE_FROM); the target is the role's patroni_postgresql_version and must be higher.
+
+    - name: Read the cluster's state
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}:8008/cluster"
+        return_content: true
+      register: pg_cluster
+
+    - name: Remember who leads
+      ansible.builtin.set_fact:
+        pg_leader: "{{ (pg_cluster.json.members | selectattr('role', 'equalto', 'leader') | map(attribute='name') | list | first) | default('') }}"
+        pg_healthy: "{{ pg_cluster.json.members | selectattr('state', 'in', ['running', 'streaming']) | list | length }}"
+
+    - name: Require a healthy cluster of three before touching it
+      ansible.builtin.assert:
+        that:
+          - pg_leader in groups['postgresql']
+          - pg_healthy | int == 3
+          - pg_cluster.json.members | selectattr('role', 'ne', 'leader') | map(attribute='lag', default=0) | map('int') | max < 16777216
+        fail_msg: "The cluster is not whole (leader '{{ pg_leader }}', {{ pg_healthy }} of 3 members up, or a standby lags by 16 MB or more): repair it first."
+
+    - name: Group the members by their role
+      ansible.builtin.group_by:
+        key: "pg_{{ 'leader' if inventory_hostname == pg_leader else 'standby' }}"
+      changed_when: false
+
+    - name: Read the running server's version
+      ansible.builtin.command:
+        argv: [psql, -XAtc, "show server_version_num"]
+      become_user: postgres
+      register: pg_running_version
+      changed_when: false
+
+    - name: Require that the cluster runs the version given and holds no data of the new one
+      ansible.builtin.assert:
+        that:
+          - (pg_running_version.stdout | int) // 10000 == pg_from | int
+        fail_msg: "The server runs {{ pg_running_version.stdout }}, not major version {{ pg_from }}."
+
+    - name: Look for a data directory of the new version
+      ansible.builtin.stat:
+        path: "{{ patroni_data_dir }}"
+      register: pg_new_dir
+
+    - name: Refuse to overwrite a data directory of the new version
+      ansible.builtin.assert:
+        that: not pg_new_dir.stat.exists
+        fail_msg: "{{ patroni_data_dir }} exists already: an earlier attempt left it. Look at it and remove it by hand before trying again."
+
+    - name: Install the new version beside the old one
+      ansible.builtin.include_role:
+        name: patroni_postgresql
+        tasks_from: packages.yml
+
+    - name: Require room for a second copy of the data
+      ansible.builtin.shell:
+        cmd: |
+          set -eu
+          used=$(du -sk "{{ pg_old_dir }}" | cut -f1)
+          free=$(df -k --output=avail "{{ patroni_data_mount }}" | tail -n 1)
+          test "$free" -gt $((used * 3)) || { echo "need three times $used KiB, have $free KiB"; exit 1; }
+        executable: /bin/sh
+      changed_when: false
+
+    - name: Create the working directory
+      ansible.builtin.file:
+        path: "{{ pg_work }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0700"
+
+    # The new cluster as Patroni would have created it (bootstrap.initdb of the role), on the leader only.
+    - name: Create the empty cluster of the new version on the leader
+      ansible.builtin.command:
+        argv:
+          - "/usr/lib/postgresql/{{ pg_to }}/bin/initdb"
+          - --pgdata={{ patroni_data_dir }}
+          - --encoding=UTF8
+          - --locale=C.UTF-8
+          - --data-checksums
+          - --username=postgres
+        creates: "{{ patroni_data_dir }}/PG_VERSION"
+      become_user: postgres
+      when: inventory_hostname == pg_leader
+
+    - name: Let pg_upgrade judge the running cluster (changes nothing)
+      ansible.builtin.command:
+        argv:
+          - "/usr/lib/postgresql/{{ pg_to }}/bin/pg_upgrade"
+          - --old-bindir=/usr/lib/postgresql/{{ pg_from }}/bin
+          - --new-bindir=/usr/lib/postgresql/{{ pg_to }}/bin
+          - --old-datadir={{ pg_old_dir }}
+          - --new-datadir={{ patroni_data_dir }}
+          - --check
+        chdir: "{{ pg_work }}"
+      become_user: postgres
+      register: pg_check
+      changed_when: false
+      when: inventory_hostname == pg_leader
+
+    - name: Show its verdict
+      ansible.builtin.debug:
+        msg: "{{ pg_check.stdout_lines | select('search', 'Clusters are compatible|fatal|FATAL|[Ww]arning') | list }}"
+      when: inventory_hostname == pg_leader
+
+- name: Dump everything before the upgrade
+  hosts: pg_leader
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - ../roles/patroni_postgresql/defaults/main.yml
+  vars:
+    pg_work: "{{ patroni_data_mount }}/upgrade-{{ postgresql_upgrade_from }}-to-{{ patroni_postgresql_version }}"
+    pg_dump_file: "before-upgrade-{{ postgresql_upgrade_from }}.sql.zst"
+  tasks:
+    - name: Install the compressor
+      ansible.builtin.apt:
+        name: zstd
+        state: present
+
+    # Roles (with their password hashes) and every database, as SQL. 0600: it never leaves .local on the workstation.
+    - name: Dump all roles and databases
+      ansible.builtin.shell:
+        cmd: |
+          set -eu -o pipefail
+          umask 077
+          pg_dumpall | zstd -q -T0 -o "{{ pg_work }}/{{ pg_dump_file }}.part"
+          mv "{{ pg_work }}/{{ pg_dump_file }}.part" "{{ pg_work }}/{{ pg_dump_file }}"
+          zstd -q -t "{{ pg_work }}/{{ pg_dump_file }}"
+        executable: /bin/bash
+        creates: "{{ pg_work }}/{{ pg_dump_file }}"
+      become_user: postgres
+
+    - name: Copy the dump to the workstation
+      ansible.builtin.fetch:
+        src: "{{ pg_work }}/{{ pg_dump_file }}"
+        dest: "{{ postgresql_upgrade_backup_dir }}/"
+        flat: true
+
+    - name: Keep the workstation's copy private
+      ansible.builtin.file:
+        path: "{{ postgresql_upgrade_backup_dir }}/{{ pg_dump_file }}"
+        mode: "0600"
+      delegate_to: localhost
+      become: false
+
+# From here the applications have no database until the leader is back.
+- name: Stop the standbys
+  hosts: pg_standby
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Stop Patroni and PostgreSQL
+      ansible.builtin.systemd_service:
+        name: patroni
+        state: stopped
+
+- name: Upgrade the leader
+  hosts: pg_leader
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - ../roles/patroni_postgresql/defaults/main.yml
+  vars:
+    pg_from: "{{ postgresql_upgrade_from | int }}"
+    pg_to: "{{ patroni_postgresql_version | int }}"
+    pg_old_dir: "{{ patroni_data_mount }}/{{ postgresql_upgrade_from }}/{{ patroni_scope }}"
+    pg_work: "{{ patroni_data_mount }}/upgrade-{{ postgresql_upgrade_from }}-to-{{ patroni_postgresql_version }}"
+  tasks:
+    - name: Stop Patroni and PostgreSQL
+      ansible.builtin.systemd_service:
+        name: patroni
+        state: stopped
+
+    - name: Read how the old cluster was shut down
+      ansible.builtin.command:
+        argv: ["/usr/lib/postgresql/{{ pg_from }}/bin/pg_controldata", "{{ pg_old_dir }}"]
+      become_user: postgres
+      environment:
+        LC_ALL: C
+      register: pg_control
+      changed_when: false
+
+    - name: Require a clean shutdown
+      ansible.builtin.assert:
+        that: pg_control.stdout is search('Database cluster state:\\s+shut down\\n')
+        fail_msg: The old cluster did not shut down cleanly; start Patroni again and look before upgrading.
+
+    # Copy mode: the old directory stays as it is, which is the way back. The marker makes a second run skip this.
+    - name: Run pg_upgrade
+      ansible.builtin.shell:
+        cmd: |
+          set -eu
+          /usr/lib/postgresql/{{ pg_to }}/bin/pg_upgrade \
+            --old-bindir=/usr/lib/postgresql/{{ pg_from }}/bin --new-bindir=/usr/lib/postgresql/{{ pg_to }}/bin \
+            --old-datadir={{ pg_old_dir }} --new-datadir={{ patroni_data_dir }} --copy
+          touch {{ pg_work }}/upgraded
+        chdir: "{{ pg_work }}"
+        executable: /bin/sh
+        creates: "{{ pg_work }}/upgraded"
+      become_user: postgres
+      register: pg_upgraded
+
+    - name: Show what pg_upgrade said
+      ansible.builtin.debug:
+        msg: "{{ pg_upgraded.stdout_lines | default([]) | select('search', 'Upgrade Complete|update_extensions|delete_old_cluster|statistics|fatal|FATAL') | list }}"
+
+    # The upgraded cluster has a new system identifier: Patroni would refuse it under the old cluster's keys.
+    # The cluster-wide settings (config) stay; leader, members, history and the identifier go.
+    - name: Remove the old cluster's keys from etcd, keeping its settings
+      ansible.builtin.shell:
+        cmd: |
+          set -eu
+          prefix="{{ patroni_namespace }}{{ patroni_scope }}/"
+          etcdctl --endpoints "{{ patroni_etcd_endpoints }}" get --prefix "$prefix" --keys-only | grep -v '^$' | while read -r key; do
+            test "$key" = "${prefix}config" && continue
+            etcdctl --endpoints "{{ patroni_etcd_endpoints }}" del "$key" >/dev/null
+            echo "removed $key"
+          done
+        executable: /bin/sh
+      register: pg_keys
+      changed_when: "'removed' in pg_keys.stdout"
+
+- name: Start the upgraded leader
+  hosts: pg_leader
+  become: true
+  gather_facts: true
+  any_errors_fatal: true
+  vars_files:
+    - ../vars/postgresql-apps.yml
+  roles:
+    - role: patroni_postgresql
+      vars:
+        patroni_allow_new_data_dir: true
+
+- name: Copy the standbys from the upgraded leader, one at a time
+  hosts: pg_standby
+  become: true
+  gather_facts: true
+  serial: 1
+  any_errors_fatal: true
+  vars_files:
+    - ../vars/postgresql-apps.yml
+  roles:
+    - role: patroni_postgresql
+      vars:
+        patroni_allow_new_data_dir: true
+  post_tasks:
+    - name: Wait until this standby streams from the leader
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}:8008/replica?lag=16MB"
+        status_code: 200
+      register: pg_replica
+      retries: 120
+      delay: 5
+      until: pg_replica.status == 200
+
+- name: Finish on the leader
+  hosts: pg_leader
+  become: true
+  gather_facts: false
+  vars_files:
+    - ../roles/patroni_postgresql/defaults/main.yml
+  vars:
+    pg_work: "{{ patroni_data_mount }}/upgrade-{{ postgresql_upgrade_from }}-to-{{ patroni_postgresql_version }}"
+  tasks:
+    - name: Look for extension updates pg_upgrade asked for
+      ansible.builtin.stat:
+        path: "{{ pg_work }}/update_extensions.sql"
+      register: pg_extensions
+
+    - name: Update the extensions
+      ansible.builtin.command:
+        argv: [psql, -X, -v, ON_ERROR_STOP=1, -f, "{{ pg_work }}/update_extensions.sql", postgres]
+      become_user: postgres
+      when: pg_extensions.stat.exists
+
+    # pg_upgrade carries the planner's statistics over since 18; this fills in what it could not.
+    - name: Gather the statistics that are missing
+      ansible.builtin.command:
+        argv: ["/usr/lib/postgresql/{{ patroni_postgresql_version }}/bin/vacuumdb", --all, --analyze-in-stages, --missing-stats-only]
+      become_user: postgres
+      changed_when: true
+
+    - name: Read the cluster
+      ansible.builtin.command:
+        argv: [patronictl, -c, /etc/patroni/config.yml, list]
+      become_user: postgres
+      register: pg_final
+      changed_when: false
+
+    - name: Show the cluster
+      ansible.builtin.debug:
+        msg: "{{ pg_final.stdout_lines }}"
+
+    - name: Read the version
+      ansible.builtin.command:
+        argv: [psql, -XAtc, "select version()"]
+      become_user: postgres
+      register: pg_version
+      changed_when: false
+
+    - name: Show the version
+      ansible.builtin.debug:
+        msg: "{{ pg_version.stdout }}. The old data directories are still on every member; remove them once the applications are confirmed."

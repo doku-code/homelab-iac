@@ -68,6 +68,26 @@
     opts: defaults,noatime,discard
     state: mounted
 
+# The data directory carries the major version. A member that holds data of another version and none of this
+# one is not configured by this role alone: its data would be left behind and Patroni would start empty.
+- name: Look for data of this and of other major versions
+  ansible.builtin.find:
+    paths: "{{ patroni_data_mount }}"
+    patterns: PG_VERSION
+    recurse: true
+    depth: 3
+  register: patroni_data_versions
+
+- name: Refuse to leave the data of another major version behind
+  ansible.builtin.assert:
+    that: >-
+      patroni_allow_new_data_dir | bool
+      or (patroni_data_dir ~ '/PG_VERSION') in (patroni_data_versions.files | map(attribute='path') | list)
+      or (patroni_data_versions.files | length == 0)
+    fail_msg: >-
+      {{ patroni_data_mount }} holds data of another PostgreSQL version and none for {{ patroni_postgresql_version }}.
+      A major version changes with `make postgresql-upgrade`, never by configuring alone.
+
 # Patroni creates the database cluster; the Debian package must not create its own "main".
 - name: Create the postgresql-common configuration directory
   ansible.builtin.file:
@@ -92,10 +112,12 @@
     path: "{{ patroni_etcd_data_dir }}"
   register: patroni_etcd_member
 
-- name: Install PostgreSQL, Patroni, etcd and vip-manager from Debian
+- name: Install PostgreSQL from the PostgreSQL project's repository
+  ansible.builtin.include_tasks: packages.yml
+
+- name: Install Patroni, etcd and vip-manager from Debian
   ansible.builtin.apt:
     name:
-      - "postgresql-{{ patroni_postgresql_version }}"
       - patroni
       - etcd-server
       - etcd-client
