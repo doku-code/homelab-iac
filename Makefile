@@ -1168,6 +1168,29 @@ dns-configure:
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-dns.yml --diff $(if $(DNS_SERVICE_ADDRESS),-e adguard_service_address=$(DNS_SERVICE_ADDRESS))
 
 # ─────────────────────────────────────────────
+# TrueNAS (TASK-037): the NAS's apps as files in services/truenas/apps, compared with and applied to TrueNAS
+# through its API by scripts/truenas-apps.py. The API key comes from the store path /truenas:
+#   scripts/secrets.py run /truenas -- make truenas-plan
+#   scripts/secrets.py run /truenas -- make truenas-apply TRUENAS_APPS_APPROVED=yes
+# TRUENAS_APPS="qbit-vpn" limits either to the named apps. An app that changes is redeployed by TrueNAS.
+# Metrics, dashboard and alerts of the NAS belong to the observability targets.
+# ─────────────────────────────────────────────
+
+TRUENAS_APPS ?=
+
+.PHONY: truenas-check truenas-plan truenas-apply
+
+truenas-check:
+	$(VENV)/bin/python tests/truenas.py
+
+truenas-plan:
+	@$(VENV)/bin/python scripts/truenas-apps.py plan $(TRUENAS_APPS); rc=$$?; test $$rc -eq 0 -o $$rc -eq 2
+
+truenas-apply:
+	@test "$(TRUENAS_APPS_APPROVED)" = yes || (echo "Read 'make truenas-plan' first, then approve with TRUENAS_APPS_APPROVED=yes" >&2; exit 1)
+	@TRUENAS_APPS_APPROVED=yes $(VENV)/bin/python scripts/truenas-apps.py apply $(TRUENAS_APPS)
+
+# ─────────────────────────────────────────────
 # Media stack (TASK-036): media-01 on pve-infra, Docker Compose, outside k3s (operator's choice). Jellyfin,
 # Seerr, Radarr, Sonarr, Prowlarr and qBittorrent; databases on the shared PostgreSQL where the application
 # supports it; the NAS library read-only for Jellyfin; a test area on the VM's own data disk.

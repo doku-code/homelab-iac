@@ -1,0 +1,57 @@
+name: plex
+kind: catalog
+train: stable
+version: 1.3.25
+values:
+  TZ: America/Montreal
+  labels: []
+  network:
+    dns_opts: []
+    host_network: true
+  plex:
+    additional_envs: []
+    allowed_networks:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    claim_token: ''
+    devices: []
+    image_selector: image
+  release_name: plex
+  resources:
+    gpus:
+      kfd_device_exists: false
+      nvidia_gpu_selection: {}
+      use_all_gpus: true
+    limits:
+      cpus: 4
+      memory: 4096
+  run_as:
+    group: 568
+    user: 568
+  storage:
+    additional_storage:
+    - host_path_config:
+        acl:
+          entries: []
+          options:
+            force: true
+          path: /mnt/tank/plex_media/tv_optimized
+        acl_enable: true
+      mount_path: /tv_optimized
+      read_only: false
+      type: host_path
+    config:
+      host_path_config:
+        acl_enable: false
+        path: /mnt/apps-pool/apps/plex
+      type: host_path
+    data:
+      host_path_config:
+        acl_enable: false
+        path: /mnt/tank/plex_media
+      type: host_path
+    logs:
+      type: temporary
+    transcode:
+      type: temporary

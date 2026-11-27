@@ -116,6 +116,7 @@ gantt
 - `make postgresql-check` — postgresql-check
 - `make ci-runner-check` — ci-runner-check
 - `make dns-check` — dns-check
+- `make truenas-check` — truenas-check
 - `make media-check` — media-check
 - `make phase-check` — phase-check
 - `make observability-check` — observability-check

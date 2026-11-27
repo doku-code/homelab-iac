@@ -13,9 +13,9 @@ depends_on: []
 related: []
 related_decisions: []
 related_implementations: []
-related_tests: [tests/observability.py]
+related_tests: [tests/observability.py, tests/truenas.py]
 tests_justification: ""
-verification_commands: [make observability-check]
+verification_commands: [make observability-check, make truenas-check]
 evidence: []
 ---
 
@@ -47,7 +47,8 @@ The key must never travel over plain HTTP: TrueNAS revokes it.
 ## Acceptance criteria
 
 - [x] Metrics of the NAS in VictoriaMetrics, a Grafana dashboard and alert rules (pools, disks, apps, silence).
-- [ ] Apps described in the repository (pinned versions) with a plan and an approval-gated apply.
+- [x] Apps described in the repository with a plan and an approval-gated apply (`qbit-vpn`, `plex`).
+- [ ] `qbit-vpn` runs the pinned digests (apply not done: the redeploy was refused by the session's permission check).
 - [ ] Homepage reads the NAS without the deprecated REST API.
 - [x] Timezone America/Toronto.
 - [ ] bond0 replaced by its SFP+ member (two attempts rolled back, see Evidence).
@@ -61,9 +62,13 @@ The key must never travel over plain HTTP: TrueNAS revokes it.
 | 2026-11-27 | Metrics exporter of the NAS repointed from 192.168.0.28 (gone) to 192.168.0.45:9109 | Graphite lines arrive; port closed for other sources |
 | 2026-11-27 | `truenas-exporter.py` run against the NAS | pools, datasets, 3 disk temperatures, 4 apps, alerts by level, over the WebSocket API |
 | 2026-11-27 | `make observability-check` | PASS |
+| 2026-11-27 | Dashboard and rules live | Grafana lists `TrueNAS` (19 panels); 7 rules loaded, all inactive; per-disk activity joined with device names |
+| 2026-11-27 | `truenas-apps.py export` of `qbit-vpn` and `plex`, then `make truenas-plan` | both "no change"; the VPN key went to the store, not the file |
+| 2026-11-27 | `qbit-vpn` images pinned to the running digests, `make truenas-plan` | 2 to change (image references only); apply not run |
+| 2026-11-27 | `make truenas-check` | PASS |
 | 2026-11-27 | bond0 removal, twice, with TrueNAS's rollback | NAS unreachable once the address is on enp1s0 alone; rolled back by itself both times (about 1.5 and 4 minutes of outage). Not the hardware address: the bond already uses enp1s0's. Not retried blind |
 
 ## Completion summary
 
-Remaining: apps as code (`qbit-vpn` and `plex` first; Forgejo is left alone), Homepage off the REST API, the bond
+Remaining: apply the pinned digests to `qbit-vpn` (operator's go), describe `nextcloud`, Homepage off the REST API, the bond
 (from the NAS console, or by removing only enp3s0 from it), then the media stack's use of the NAS (TASK-036).

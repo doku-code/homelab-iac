@@ -3085,6 +3085,39 @@
       ]
     },
     {
+      "id": "GUIDE-truenas-metrics-alerts-and-apps-as-files",
+      "title": "TrueNAS: metrics, alerts and apps as files",
+      "summary": "How the NAS is watched and how its apps are described, compared and applied from the repository",
+      "importance": 3,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/guides/truenas-metrics-alerts-and-apps-as-files.md",
+      "tags": [
+        "guide"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "TrueNAS: metrics, alerts and apps as files",
+        "Access",
+        "Metrics, dashboard and alerts",
+        "Apps as files",
+        "Verification"
+      ],
+      "relations": {},
+      "backrefs": []
+    },
+    {
       "id": "INV-legacy-inventory",
       "title": "Legacy homelab inventory (archived repository, operator corrections, state review)",
       "summary": "Legacy hosts, guests, services and local Terraform states, with retired hosts, stale state and endpoint hazards; starting point for the M000 live inventory.",
@@ -7385,7 +7418,8 @@
       ],
       "relations": {
         "related_tests": [
-          "tests/observability.py"
+          "tests/observability.py",
+          "tests/truenas.py"
         ],
         "milestone": [
           "M010"
@@ -7435,7 +7469,8 @@
       "GUIDE-map-network",
       "GUIDE-map-operations",
       "GUIDE-map-services",
-      "GUIDE-media-stack"
+      "GUIDE-media-stack",
+      "GUIDE-truenas-metrics-alerts-and-apps-as-files"
     ],
     "investigation": [
       "INV-legacy-inventory",
@@ -7688,7 +7723,8 @@
     ],
     "guide": [
       "GUIDE-handoff",
-      "GUIDE-media-stack"
+      "GUIDE-media-stack",
+      "GUIDE-truenas-metrics-alerts-and-apps-as-files"
     ],
     "handoff": [
       "GUIDE-handoff"
