@@ -1,6 +1,6 @@
 ---
 title: 'TASK-036 — Media stack on pve-infra: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on a Compose VM'
-description: 'VM media-01 on pve-infra with Docker Compose: Jellyfin, Seerr, the Arr tools and qBittorrent; shared PostgreSQL, NAS read-only, a test area.'
+description: One unprivileged container per media service on pve-infra, the NAS's qBittorrent as download client; shared PostgreSQL, NAS read-only, a test area.
 published: true
 tags:
 - task
@@ -9,13 +9,13 @@ tags:
 - jellyfin
 - docker-compose
 editor: markdown
-date: '2026-11-26T00:00:00.000Z'
+date: '2026-11-27T00:00:00.000Z'
 dateCreated: '2026-11-26T00:00:00.000Z'
 ---
 
 # TASK-036 — Media stack on pve-infra: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on a Compose VM
 
-> **ID:** TASK-036 · **Type:** task · **Status:** in-progress · **Updated:** 2026-11-26 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md)
+> **ID:** TASK-036 · **Type:** task · **Status:** in-progress · **Updated:** 2026-11-27 · [Source](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md)
 
 ## Goal
 
@@ -85,6 +85,26 @@ scripts/secrets.py run /authentik -- .venv/bin/python scripts/sso-check.py media
 | Archive | `media-<date>.tar.zst` with seven dumps, Jellyfin's SQLite copy and the configuration; copied to the workstation | `make media-backup` | 2026-11-26 |
 | Restore from an archive | not verified | | |
 | NAS library | not verified: no export on the NAS | `showmount -e 192.168.0.13` empty | 2026-11-26 |
+
+## Rebuild as containers (2026-11-27)
+
+The operator asked on 2026-11-26 for one Proxmox container per service instead of the Compose VM, and for their
+existing qBittorrent on the NAS instead of a second one. What changed:
+
+- `terraform/stacks/media`: five unprivileged containers (381 to 385, `.81` to `.85`); the VM stays in the root,
+  stopped and no longer started at boot, until its deletion is approved.
+- Role `media_service` replaces `media_stack`: native installs pinned by version and checksum.
+- `scripts/pve-media-mounts.sh`: the NAS shares (read-only), the test area and the graphics device.
+- `scripts/media-connect.py` replaces the script that ran on the VM; the download client is the NAS's qBittorrent,
+  from which nothing is removed.
+- PostgreSQL clients: `.82/31` and `.84/31` instead of `.80/32`. Routes: one address per service, no qBittorrent.
+
+| Date | What | Result |
+|---|---|---|
+| 2026-11-27 | NFS shares on the NAS for `192.168.0.12` (`plex_media`, `downloads`), read-only, all users mapped to `apps` | mounted from pve-infra; a write is refused ("Read-only file system") |
+| 2026-11-27 | `make media-plan` / `media-apply` | 6 to add, 1 to change, 0 to destroy; five containers running |
+| 2026-11-27 | `make media-mounts` | library 5 entries read-only in Jellyfin; downloads read-only and test area read-write in Radarr and Sonarr; `/dev/dri/renderD128` in Jellyfin |
+| 2026-11-27 | `make media-check` | PASS (7 tests, 6 mocked OpenTofu runs) |
 
 ## Completion summary
 
