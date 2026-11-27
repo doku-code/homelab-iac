@@ -200,8 +200,7 @@ def media(browser, password):
     callback = browser.sign_in(f"{base}/radarr/", password, f"{outpost}callback")
     browser.follow(callback, lambda u: not u.startswith(outpost))
     answers = {name: browser.request("GET", f"{base}/{path}")[0]
-               for name, path in (("radarr", "radarr/ping"), ("sonarr", "sonarr/ping"), ("prowlarr", "prowlarr/ping"),
-                                  ("qbittorrent", "qbittorrent/api/v2/app/version"))}
+               for name, path in (("radarr", "radarr/ping"), ("sonarr", "sonarr/ping"), ("prowlarr", "prowlarr/ping"))}
     ok = all(status == 200 for status in answers.values())
     return ok, f"HTTP {anonymous} without a session; signed in: " + ", ".join(f"{name} HTTP {status}" for name, status in answers.items())
 

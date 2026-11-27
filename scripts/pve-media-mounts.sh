@@ -48,6 +48,17 @@ if [ ! -e /dev/dri/renderD128 ]; then
   for _ in $(seq 1 20); do [ -e /dev/dri/renderD128 ] && break; sleep 1; done
 fi
 [ -e /dev/dri/renderD128 ] || { echo "no /dev/dri/renderD128 on the node: Jellyfin gets no graphics device" >&2; exit 1; }
+# Jasper Lake only encodes in low-power mode, which needs the HuC firmware: without it the encoder offers a fixed
+# quality only and Jellyfin's transcodes fail ("Driver does not support VBR RC mode"). The driver does not load it
+# by default on this chip, and it cannot be reloaded while the node's console and sound use it: the option is
+# written here and takes effect when the node restarts.
+if [ "$(cat /sys/module/i915/parameters/enable_guc)" != 2 ]; then
+  if ! grep -qsx "options i915 enable_guc=2" /etc/modprobe.d/i915-guc.conf; then
+    echo "options i915 enable_guc=2" >/etc/modprobe.d/i915-guc.conf
+    update-initramfs -u >/dev/null 2>&1 || true
+  fi
+  echo "changed: graphics driver set to load the HuC firmware; RESTART THE NODE for hardware transcoding to work"
+fi
 
 # 4. The containers. `pct set` rewrites the configuration; the container restarts only when it changed.
 configure() {
