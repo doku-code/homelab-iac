@@ -191,7 +191,8 @@ prometheus.relabel "pfsense" {
 
 // Probes (2026-11-27). "net": how long a connection to the Internet, to pfSense and a lookup on each DNS server
 // take, every 15 s: the figure that shows a saturated line or a dead DNS at once. "web": does each service answer,
-// every minute. A sign-in page or a redirect counts as an answer; certificates are not judged here.
+// every minute, asked where the service itself answers (inside the cluster, or its own address), not through a
+// route that would answer 403 for it. A sign-in page or a redirect counts as an answer.
 prometheus.exporter.blackbox "net" {
 	config = "{ modules: { tcp: { prober: tcp, timeout: 5s }, dns: { prober: dns, timeout: 5s, dns: { query_name: adguard.doku-lab.net, query_type: A } } } }"
 
@@ -233,11 +234,11 @@ prometheus.exporter.blackbox "net" {
 }
 
 prometheus.exporter.blackbox "web" {
-	config = "{ modules: { http: { prober: http, timeout: 10s, http: { valid_status_codes: [200, 301, 302, 303, 307, 401, 403], tls_config: { insecure_skip_verify: true } } } } }"
+	config = "{ modules: { http: { prober: http, timeout: 10s, http: { valid_status_codes: [200, 301, 302, 303, 307, 401], tls_config: { insecure_skip_verify: true } } } } }"
 
 	target {
 		name    = "grafana"
-		address = "https://grafana.doku-lab.net/api/health"
+		address = "http://grafana.monitoring.svc/api/health"
 		module  = "http"
 	}
 
@@ -267,31 +268,31 @@ prometheus.exporter.blackbox "web" {
 
 	target {
 		name    = "windmill"
-		address = "https://windmill.doku-lab.net/api/version"
+		address = "http://windmill-app.windmill.svc:8000/api/version"
 		module  = "http"
 	}
 
 	target {
 		name    = "phase"
-		address = "https://phase.doku-lab.net/"
+		address = "http://phase-console-frontend.phase.svc:3000/"
 		module  = "http"
 	}
 
 	target {
 		name    = "homepage"
-		address = "https://home.doku-lab.net/"
+		address = "http://homepage.homepage.svc:3000/"
 		module  = "http"
 	}
 
 	target {
 		name    = "argocd"
-		address = "https://argocd.doku-lab.net/"
+		address = "http://argocd-server.argocd.svc/api/version"
 		module  = "http"
 	}
 
 	target {
 		name    = "headlamp"
-		address = "https://headlamp.doku-lab.net/"
+		address = "http://headlamp.headlamp.svc/"
 		module  = "http"
 	}
 
@@ -309,13 +310,13 @@ prometheus.exporter.blackbox "web" {
 
 	target {
 		name    = "jellyfin"
-		address = "https://jellyfin.doku-lab.net/health"
+		address = "http://192.168.0.81:8096/health"
 		module  = "http"
 	}
 
 	target {
 		name    = "seerr"
-		address = "https://seerr.doku-lab.net/api/v1/status"
+		address = "http://192.168.0.82:5055/api/v1/status"
 		module  = "http"
 	}
 
