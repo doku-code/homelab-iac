@@ -23,3 +23,10 @@ adguard_rewrites: []
 
 # The LAN's DNS address (192.168.0.20), added to this VM at the cutover. Empty: the VM answers on its own address only.
 adguard_service_address: ""
+# With two DNS VMs the service address is shared: keepalived gives it to the member with the higher priority that
+# answers DNS, and moves it within seconds when that member or its host is away. With one VM a plain unit holds it.
+adguard_group: dns
+adguard_peers: "{{ groups[adguard_group] | default([inventory_hostname]) | difference([inventory_hostname]) | map('extract', hostvars, 'ansible_host') | list }}"
+adguard_shared_address: "{{ adguard_service_address != '' and adguard_peers | length > 0 }}"
+adguard_vrrp_priority: 100
+adguard_vrrp_router_id: 20

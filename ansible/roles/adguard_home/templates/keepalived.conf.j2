@@ -1,0 +1,35 @@
+# Managed by Ansible (role adguard_home). The LAN's DNS address {{ adguard_service_address }} lives on the member
+# with the highest priority that answers DNS. Unicast between the members: nothing depends on multicast.
+global_defs {
+  router_id {{ inventory_hostname }}
+  script_user root
+  enable_script_security
+}
+
+vrrp_script dns_answers {
+  script "/usr/local/sbin/dns-answers"
+  interval 2
+  timeout 2
+  fall 2
+  rise 2
+}
+
+vrrp_instance lan_dns {
+  state BACKUP
+  interface {{ ansible_facts.default_ipv4.interface }}
+  virtual_router_id {{ adguard_vrrp_router_id }}
+  priority {{ adguard_vrrp_priority }}
+  advert_int 1
+  unicast_src_ip {{ ansible_host }}
+  unicast_peer {
+{% for peer in adguard_peers %}
+    {{ peer }}
+{% endfor %}
+  }
+  virtual_ipaddress {
+    {{ adguard_service_address }}/24
+  }
+  track_script {
+    dns_answers
+  }
+}

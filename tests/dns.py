@@ -58,6 +58,19 @@ def main():
     address = render("dns-service-address.service.j2", adguard_service_address="192.168.0.20")
     assert "ip address replace 192.168.0.20/24 dev eth0" in address and "arping -U" in address
 
+    # Two VMs share the address: unicast VRRP between them, the address only on a member that answers DNS, and
+    # keepalived started after AdGuard so a new standby never takes an address it cannot serve.
+    shared = render("keepalived.conf.j2", adguard_service_address="192.168.0.20", inventory_hostname="dns-02", ansible_host="192.168.0.71",
+                    adguard_peers=["192.168.0.70"], adguard_vrrp_priority=100, adguard_vrrp_router_id=20)
+    assert "192.168.0.20/24" in shared and "unicast_src_ip 192.168.0.71" in shared and "    192.168.0.70\n" in shared
+    assert "state BACKUP" in shared and "priority 100" in shared and 'script "/usr/local/sbin/dns-answers"' in shared and "track_script" in shared
+    assert "auth_pass" not in shared and "password" not in shared
+    assert "adguard_peers | length > 0" in defaults["adguard_shared_address"], "one VM keeps the plain unit, two share through keepalived"
+    names = [t["name"] for t in yaml.safe_load((ROLE / "tasks/main.yml").read_text())]
+    assert "grep -Eq '^[0-9]+" in (ROLE / "tasks/main.yml").read_text(), "dig's error text must not count as an answer (failover test, 2026-11-27)"
+    assert names.index("Wait for DNS and the web interface") < names.index("Enable and start keepalived")
+    assert names.index("Hand the address from the plain unit to keepalived") < names.index("Enable and start keepalived")
+
     tasks = {t["name"]: t for t in yaml.safe_load((ROLE / "tasks/main.yml").read_text())}
     for name in ("Require Debian 13 and the admin password hash from the environment", "Render the configuration from Git"):
         assert tasks[name].get("no_log") is True, name

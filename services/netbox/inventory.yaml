@@ -323,7 +323,7 @@ addresses:
   - {address: 192.168.0.90/24, status: reserved, dns_name: "", iac: true, description: "Reserved for the Windows service VM 700 (moved from the old host, kept off); the Traefik route dropper.doku-lab.net forwards to it"}
   - {address: 192.168.0.45/24, role: vip, iac: true, description: "k3s shared address: API and ingress, held by one server at a time (kube-vip, ansible/roles/k3s); the published names answer it"}
   - {address: 192.168.0.60/24, role: vip, iac: true, description: "PostgreSQL primary (Patroni virtual IP, terraform/stacks/postgresql)"}
-  - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address (ansible/vars/dns.yml)"}
+  - {address: 192.168.0.20/24, role: secondary, iac: true, vm: dns-01, dns_name: adguard.doku-lab.net, description: "LAN DNS service address, shared by dns-01 and dns-02 through keepalived; recorded on the primary (ansible/vars/dns.yml)"}
 
 # Wi-Fi networks: name (`ssid`), `description`, optional `group`, `auth_type` (open, wep, wpa-personal,
 # wpa-enterprise), `auth_cipher` (auto, tkip, aes) and the `radios` that carry them as [device, port]. The real

@@ -32,6 +32,39 @@ variable "profile" {
   }
 }
 
+variable "standby" {
+  description = "Optional second DNS VM on another host; it shares the service address with the primary (keepalived)."
+  type = object({
+    node       = string
+    vm_id      = number
+    name       = string
+    ipv4       = string
+    cores      = number
+    memory     = number
+    os_disk_gb = number
+  })
+  default = null
+  validation {
+    condition     = var.standby == null || contains(["pve-core", "pve-infra", "pve-lab", "pve-compute"], try(var.standby.node, ""))
+    error_message = "The standby DNS VM runs on pve-core, pve-infra, pve-lab or pve-compute."
+  }
+  validation {
+    condition     = var.standby == null || (try(var.standby.vm_id, 0) >= 370 && try(var.standby.vm_id, 0) <= 379 && can(regex("^192\\.168\\.0\\.7[0-9]/24$", try(var.standby.ipv4, ""))))
+    error_message = "DNS VMs use VMIDs 370-379 and static 192.168.0.70-79/24."
+  }
+  validation {
+    condition     = var.standby == null || (try(var.standby.cores, 0) >= 1 && try(var.standby.memory, 0) >= 1024 && try(var.standby.os_disk_gb, 0) >= 10)
+    error_message = "Need >= 1 core, 1024 MiB and a 10 GiB disk."
+  }
+  validation {
+    condition = var.standby == null || (
+      try(var.standby.node, "") != var.profile.node && try(var.standby.name, "") != var.profile.name &&
+      try(var.standby.vm_id, 0) != var.profile.vm_id && try(var.standby.ipv4, "") != var.profile.ipv4
+    )
+    error_message = "The standby is another VM on another Proxmox host: that is its whole point."
+  }
+}
+
 variable "image_datastore" {
   type    = string
   default = "local"

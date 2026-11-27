@@ -6,8 +6,25 @@ provider "proxmox" {
   insecure = false
 }
 
+# One or two VMs: the primary, and a standby on another host that takes the LAN's DNS address over when the
+# primary or its host is away (keepalived, role adguard_home).
+locals {
+  instances = merge({ (var.profile.name) = var.profile }, var.standby == null ? {} : { (var.standby.name) = var.standby })
+}
+
+moved {
+  from = proxmox_download_file.debian
+  to   = proxmox_download_file.debian["pve-core"]
+}
+
+moved {
+  from = proxmox_virtual_environment_vm.dns
+  to   = proxmox_virtual_environment_vm.dns["dns-01"]
+}
+
 resource "proxmox_download_file" "debian" {
-  node_name    = var.profile.node
+  for_each     = toset([for instance in values(local.instances) : instance.node])
+  node_name    = each.value
   datastore_id = var.image_datastore
   content_type = "import"
   url          = var.image.url
@@ -19,9 +36,10 @@ resource "proxmox_download_file" "debian" {
 }
 
 resource "proxmox_virtual_environment_vm" "dns" {
-  node_name           = var.profile.node
-  vm_id               = var.profile.vm_id
-  name                = var.profile.name
+  for_each            = local.instances
+  node_name           = each.value.node
+  vm_id               = each.value.vm_id
+  name                = each.key
   description         = "AdGuard Home, LAN DNS (homelab-iac terraform/stacks/dns, TASK-022). Rebuildable from Git."
   tags                = ["terraform", "dns"]
   started             = true
@@ -35,18 +53,18 @@ resource "proxmox_virtual_environment_vm" "dns" {
     timeout = "2m"
   }
   cpu {
-    cores = var.profile.cores
+    cores = each.value.cores
     type  = "x86-64-v2-AES"
   }
   memory {
-    dedicated = var.profile.memory
+    dedicated = each.value.memory
   }
   # OS disk from the cloud image.
   disk {
     datastore_id = var.disk_datastore
     interface    = "scsi0"
-    import_from  = proxmox_download_file.debian.id
-    size         = var.profile.os_disk_gb
+    import_from  = proxmox_download_file.debian[each.value.node].id
+    size         = each.value.os_disk_gb
     discard      = "on"
     ssd          = true
     iothread     = true
@@ -60,7 +78,7 @@ resource "proxmox_virtual_environment_vm" "dns" {
     datastore_id = var.disk_datastore
     ip_config {
       ipv4 {
-        address = var.profile.ipv4
+        address = each.value.ipv4
         gateway = var.gateway
       }
     }

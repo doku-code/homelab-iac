@@ -287,7 +287,7 @@ def view_names(page):
     vip = yaml.safe_load(read("ansible/roles/k3s/defaults/main.yml")).get("k3s_vip")
     devices, guests, _ = inventory()
     owners = {d["Address"].split("/")[0]: d["Device"] for d in devices} | {g["Address"].split("/")[0]: g["Name"] for g in guests}
-    owners[dns.get("adguard_service_address")] = "dns-01 (AdGuard Home)"
+    owners[dns.get("adguard_service_address")] = "dns-01 or dns-02 (AdGuard Home, shared address)"
     routes, rows = route_files(), []
     for entry in sorted(dns["adguard_rewrites"], key=lambda e: e["domain"]):
         name, answer = entry["domain"], entry["answer"]

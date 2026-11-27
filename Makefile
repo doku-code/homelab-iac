@@ -1133,7 +1133,8 @@ postgresql-status:
 	done; }
 
 # ─────────────────────────────────────────────
-# LAN DNS (TASK-022): dns-01 on pve-infra runs AdGuard Home from the configuration in Git, outside k3s.
+# LAN DNS (TASK-022): dns-01 (pve-core) and its standby dns-02 (pve-lab) run AdGuard Home from the configuration in
+# Git, outside k3s, and share the address 192.168.0.20 (keepalived).
 # Same gates as the other workstation roots. The admin password hash comes from the store path /dns:
 #   scripts/secrets.py run /dns -- make dns-configure DNS_CONFIGURE_APPROVED=yes
 # DNS_SERVICE_ADDRESS=192.168.0.20 makes the VM answer on the LAN's DNS address as well (cutover: only
@@ -1166,7 +1167,7 @@ dns-plan:
 	$(call NETBOX_ALLOCATION,dns,$(DNS_PLAN))
 	@shasum -a 256 "$(DNS_DIR)/$(DNS_PLAN)"
 
-# Mutates the doku-lab cluster (dns-01): only with explicit approval of the exact saved plan.
+# Mutates the doku-lab cluster (dns-01, dns-02): only with explicit approval of the exact saved plan.
 dns-apply:
 	@test "$(DNS_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: DNS_APPLY_APPROVED=yes" >&2; exit 1)
 	@test -n "$(DNS_PLAN_SHA256)" || (echo "Supply DNS_PLAN_SHA256 as printed by make dns-plan" >&2; exit 1)
@@ -1184,7 +1185,7 @@ dns-hostkeys:
 	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
 
 dns-configure:
-	@test "$(DNS_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of dns-01 with DNS_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@test "$(DNS_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of the DNS VMs with DNS_CONFIGURE_APPROVED=yes" >&2; exit 1)
 	@test -n "$${ADGUARD_ADMIN_HASH:-}" || { echo "Set ADGUARD_ADMIN_HASH in the environment (store path /dns)" >&2; exit 1; }
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/dns-inventory.json"; mkdir -p "$(CURDIR)/.local"; \

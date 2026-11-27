@@ -10,7 +10,7 @@
 
 - name: Install prerequisites
   ansible.builtin.apt:
-    name: [nftables, iputils-arping, tar]
+    name: [nftables, iputils-arping, tar, keepalived, bind9-dnsutils]
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -139,7 +139,7 @@
     owner: root
     group: root
     mode: "0644"
-  when: adguard_service_address != ''
+  when: adguard_service_address != '' and not adguard_shared_address | bool
   notify: Apply the service address
 
 - name: Enable the service address
@@ -147,7 +147,7 @@
     name: dns-service-address
     enabled: true
     daemon_reload: true
-  when: adguard_service_address != ''
+  when: adguard_service_address != '' and not adguard_shared_address | bool
 
 - name: Apply configuration and firewall changes
   ansible.builtin.meta: flush_handlers
@@ -164,3 +164,62 @@
     port: "{{ item }}"
     timeout: 60
   loop: [53, 80]
+
+# The shared service address. keepalived starts only once this member answers DNS, so a new standby never
+# takes the address before it can serve it. The plain unit of a single VM is retired first.
+- name: Look for the single-VM service address unit
+  ansible.builtin.stat:
+    path: /etc/systemd/system/dns-service-address.service
+  register: adguard_plain_address
+  when: adguard_shared_address | bool
+
+- name: Write the health check of the shared address
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/dns-answers
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (role adguard_home). Succeeds when this member answers a name it holds itself.
+      # dig prints its errors on the same stream as its answers: only an address counts.
+      /usr/bin/dig +time=1 +tries=1 +short @127.0.0.1 adguard.doku-lab.net A | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
+    owner: root
+    group: root
+    mode: "0755"
+  when: adguard_shared_address | bool
+
+- name: Configure keepalived for the shared address
+  ansible.builtin.template:
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+    owner: root
+    group: root
+    mode: "0640"
+  when: adguard_shared_address | bool
+  notify: Reload keepalived
+
+- name: Hand the address from the plain unit to keepalived
+  ansible.builtin.systemd_service:
+    name: dns-service-address
+    enabled: false
+    state: stopped
+  when: adguard_shared_address | bool and adguard_plain_address.stat.exists
+
+- name: Remove the plain unit
+  ansible.builtin.file:
+    path: /etc/systemd/system/dns-service-address.service
+    state: absent
+  when: adguard_shared_address | bool and adguard_plain_address.stat.exists
+
+- name: Enable and start keepalived
+  ansible.builtin.systemd_service:
+    name: keepalived
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: adguard_shared_address | bool
+
+- name: Keep keepalived off a single VM
+  ansible.builtin.systemd_service:
+    name: keepalived
+    enabled: false
+    state: stopped
+  when: not adguard_shared_address | bool
