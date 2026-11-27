@@ -73,14 +73,14 @@ def truenas(cluster, rules):
     assert env["TRUENAS_URL"]["value"].startswith("wss://"), "TrueNAS revokes a key sent without TLS"
     source = (OBS / "truenas-exporter.py").read_text()
     called = set(re.findall(r'session\.call\("([a-z_.]+)"', source))
-    assert called == {"auth.login_with_api_key", "system.info", "pool.query", "pool.dataset.query", "disk.temperatures", "app.query", "alert.list"}, "read-only calls"
+    assert called == {"auth.login_with_api_key", "system.info", "pool.query", "pool.dataset.query", "disk.query", "disk.temperatures", "app.query", "alert.list"}, "read-only calls"
     mapping = yaml.safe_load((OBS / "truenas-mapping.yml").read_text())["mappings"]
     assert mapping[-1] == {"match": ".", "match_type": "regex", "action": "drop", "name": "dropped"}, "what is not named is dropped"
-    assert not any("serial" in m["match"] for m in mapping), "disks by device name only"
+    assert all(set(m.get("labels", {})) <= {"disk_id", "direction"} for m in mapping if "serial" in m["match"]), "of a serial line only the WWN is kept"
     samples = {"truenas.scale.truenas_disk_stats._devicename_sda.reads": "truenas_disk_io_kibibytes_per_second",
                "truenas.scale.truenas_disk_stats.ops._devicename_sda.write_ops": "truenas_disk_operations_per_second",
                "truenas.scale.truenas_disk_stats.busy._devicename_sda.busy": "truenas_disk_busy_percent",
-               "truenas.scale.truenas_disk_stats._serial_lunid_X_Y.reads": "dropped", "truenas.scale.net.bond0.sent": "truenas_net_kilobits_per_second",
+               "truenas.scale.truenas_disk_stats._serial_lunid_SERIAL_1_5000c5000000abcd.reads": "truenas_disk_io_kibibytes_per_second", "truenas.scale.net.bond0.sent": "truenas_net_kilobits_per_second",
                "truenas.scale.net.veth0a1b2c3.sent": "dropped", "truenas.scale.truenas_cpu_usage.cpu.cpu2": "truenas_cpu_usage_percent"}
     for line, expected in samples.items():  # what the NAS was seen to send on 2026-11-27
         first = next(m for m in mapping if (re.fullmatch(m["match"], line) if m.get("match_type") == "regex" and m["match"] != "." else m["match"] in (line, ".")))

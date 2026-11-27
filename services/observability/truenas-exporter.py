@@ -1,7 +1,7 @@
 """State of the NAS for the monitoring stack (TASK-037): what TrueNAS does not push in its Graphite stream.
 
 Asks TrueNAS's own API (JSON-RPC over a WebSocket, the one that replaces the deprecated REST API) for the pools,
-the datasets, the disk temperatures, the apps and the alerts, and serves them as metrics on :9110/metrics.
+the datasets, the disks and their temperatures, the apps and the alerts, and serves them as metrics on :9110/metrics.
 Read-only: it only calls query methods. Standard library only, so it runs from a ConfigMap on a stock image.
 
 Environment: TRUENAS_URL (wss://host:port/api/current), TRUENAS_API_KEY, TRUENAS_VERIFY=false for the
@@ -143,6 +143,9 @@ def collect():
                [({"dataset": d["id"]}, d["used"]["parsed"]) for d in datasets])
         metric("truenas_dataset_available_bytes", "Space the dataset can still take.",
                [({"dataset": d["id"]}, d["available"]["parsed"]) for d in datasets])
+        disks = session.call("disk.query", [], {"extra": {"pools": True}})
+        metric("truenas_disk_info", "Which device name and pool a disk identifier (WWN) of the Graphite metrics is.",
+               [({"disk": d["name"], "disk_id": d.get("lunid") or "", "pool": d.get("pool") or ""}, 1) for d in disks])
         temperatures = session.call("disk.temperatures", [], False)
         metric("truenas_disk_temperature_celsius", "Temperature the disk reports.",
                [({"disk": name}, value) for name, value in sorted(temperatures.items()) if value is not None])

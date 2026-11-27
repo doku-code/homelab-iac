@@ -1,7 +1,8 @@
 # What the Graphite exporter keeps of what TrueNAS pushes (services/observability/truenas.yaml), and under which
 # names. TrueNAS sends "truenas.scale.<chart>.<dimension>" every 15 seconds; everything not named here is
-# dropped. Disks are kept by device name only (sent as "_devicename_sda"): the same counters also arrive under each disk's serial number,
-# and serial numbers stay out of the metrics as they stay out of Git.
+# dropped. A disk arrives either by name ("_devicename_sde", label disk) or by serial number and WWN
+# ("_serial_lunid_<serial>_<wwn>"): of those only the WWN is kept (label disk_id), and truenas_disk_info of the
+# API exporter says which device name it is. Serial numbers stay out of the metrics as they stay out of Git.
 mappings:
   - match: 'truenas\.scale\.truenas_cpu_usage\.cpu\.cpu(\d*)'
     match_type: regex
@@ -37,6 +38,18 @@ mappings:
     match_type: regex
     name: truenas_disk_operations_per_second
     labels: {disk: "$1", direction: "$2s"}
+  - match: 'truenas\.scale\.truenas_disk_stats\._serial_lunid_.+_([0-9a-fA-F]+)\.(reads|writes)'
+    match_type: regex
+    name: truenas_disk_io_kibibytes_per_second
+    labels: {disk_id: "$1", direction: "$2"}
+  - match: 'truenas\.scale\.truenas_disk_stats\.ops\._serial_lunid_.+_([0-9a-fA-F]+)\.(read|write)_ops'
+    match_type: regex
+    name: truenas_disk_operations_per_second
+    labels: {disk_id: "$1", direction: "$2s"}
+  - match: 'truenas\.scale\.truenas_disk_stats\.busy\._serial_lunid_.+_([0-9a-fA-F]+)\.busy'
+    match_type: regex
+    name: truenas_disk_busy_percent
+    labels: {disk_id: "$1"}
   # Share of the time the disk was busy, in percent.
   - match: 'truenas\.scale\.truenas_disk_stats\.busy\._devicename_([^.]+)\.busy'
     match_type: regex

@@ -773,7 +773,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "truenas_disk_busy_percent{job=\"truenas\"}",
+          "expr": "truenas_disk_busy_percent{job=\"truenas\",disk!=\"\"} or truenas_disk_busy_percent{job=\"truenas\",disk_id!=\"\"} * on (disk_id) group_left (disk) truenas_disk_info{job=\"truenas\"}",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -826,7 +826,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "1024 * abs(truenas_disk_io_kibibytes_per_second{job=\"truenas\"})",
+          "expr": "1024 * abs(truenas_disk_io_kibibytes_per_second{job=\"truenas\",disk!=\"\"} or truenas_disk_io_kibibytes_per_second{job=\"truenas\",disk_id!=\"\"} * on (disk_id) group_left (disk) truenas_disk_info{job=\"truenas\"})",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
