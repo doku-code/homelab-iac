@@ -120,10 +120,10 @@ server:
               labels: {severity: critical}
               annotations: {summary: "The SFP28 adapter of {{ $labels.instance }} is at {{ $value }} °C, close to its limit of 105 °C"}
             - alert: ProxmoxHostSilent
-              expr: 'absent_over_time(node_load1{instance="pve-core"}[5m])'
+              expr: 'count_over_time(node_load1{instance=~"pve-.+"}[1h] offset 5m) unless count_over_time(node_load1{instance=~"pve-.+"}[5m])'
               for: 2m
               labels: {severity: critical}
-              annotations: {summary: "pve-core has sent no metrics for 5 minutes (frozen, off, or off the network)"}
+              annotations: {summary: "{{ $labels.instance }} has sent no metrics for 5 minutes (frozen, off, or off the network)"}
         # The probes of cluster.alloy: what a person at home notices first.
         - name: probes
           rules:

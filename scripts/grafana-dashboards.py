@@ -168,8 +168,8 @@ def kubernetes():
 
 
 def machines():
-    b = Board("virtual-machines", "Virtual machines", ["vm", "hosts"], [("host", "Machine", 'label_values(node_uname_info{job="integrations/unix"}, instance)')])
-    host = 'job="integrations/unix",instance=~"$host"'
+    b = Board("virtual-machines", "Virtual machines", ["vm", "hosts"], [("host", "Machine", 'label_values(node_uname_info{job="integrations/unix",instance!~"pve-.+"}, instance)')])
+    host = 'job="integrations/unix",instance=~"$host",instance!~"pve-.+"'  # the Proxmox hosts have their own dashboard
     b.row("Now")
     b.stat("Machines reporting", f"count(node_uname_info{{{host}}})")
     b.stat("Fullest disk", f'max(100 * (1 - node_filesystem_avail_bytes{{{host},fstype!=""}} / node_filesystem_size_bytes{{{host},fstype!=""}}))', "percent",

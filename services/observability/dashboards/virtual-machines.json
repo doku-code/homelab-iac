@@ -29,10 +29,10 @@
           "uid": "prometheus"
         },
         "query": {
-          "query": "label_values(node_uname_info{job=\"integrations/unix\"}, instance)",
+          "query": "label_values(node_uname_info{job=\"integrations/unix\",instance!~\"pve-.+\"}, instance)",
           "refId": "host"
         },
-        "definition": "label_values(node_uname_info{job=\"integrations/unix\"}, instance)",
+        "definition": "label_values(node_uname_info{job=\"integrations/unix\",instance!~\"pve-.+\"}, instance)",
         "refresh": 2,
         "includeAll": true,
         "multi": true,
@@ -78,7 +78,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "count(node_uname_info{job=\"integrations/unix\",instance=~\"$host\"})",
+          "expr": "count(node_uname_info{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"})",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -134,7 +134,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max(100 * (1 - node_filesystem_avail_bytes{job=\"integrations/unix\",instance=~\"$host\",fstype!=\"\"} / node_filesystem_size_bytes{job=\"integrations/unix\",instance=~\"$host\",fstype!=\"\"}))",
+          "expr": "max(100 * (1 - node_filesystem_avail_bytes{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\",fstype!=\"\"} / node_filesystem_size_bytes{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\",fstype!=\"\"}))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -198,7 +198,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max(100 * (1 - node_memory_MemAvailable_bytes{job=\"integrations/unix\",instance=~\"$host\"} / node_memory_MemTotal_bytes{job=\"integrations/unix\",instance=~\"$host\"}))",
+          "expr": "max(100 * (1 - node_memory_MemAvailable_bytes{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"} / node_memory_MemTotal_bytes{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"}))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -262,7 +262,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max(100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job=\"integrations/unix\",instance=~\"$host\",mode=\"idle\"}[5m]))))",
+          "expr": "max(100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\",mode=\"idle\"}[5m]))))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -326,7 +326,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max(node_load1{job=\"integrations/unix\",instance=~\"$host\"})",
+          "expr": "max(node_load1{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"})",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -390,7 +390,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(node_filesystem_readonly{job=\"integrations/unix\",instance=~\"$host\",fstype=~\"ext4|xfs|btrfs\"}) or vector(0)",
+          "expr": "sum(node_filesystem_readonly{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\",fstype=~\"ext4|xfs|btrfs\"}) or vector(0)",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -463,7 +463,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job=\"integrations/unix\",instance=~\"$host\",mode=\"idle\"}[5m])))",
+          "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\",mode=\"idle\"}[5m])))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -520,7 +520,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"integrations/unix\",instance=~\"$host\"} / node_memory_MemTotal_bytes{job=\"integrations/unix\",instance=~\"$host\"})",
+          "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"} / node_memory_MemTotal_bytes{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"})",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -577,7 +577,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "node_load1{job=\"integrations/unix\",instance=~\"$host\"}",
+          "expr": "node_load1{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"}",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -632,7 +632,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 * avg by (instance) (rate(node_cpu_seconds_total{job=\"integrations/unix\",instance=~\"$host\",mode=\"steal\"}[5m]))",
+          "expr": "100 * avg by (instance) (rate(node_cpu_seconds_total{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\",mode=\"steal\"}[5m]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -700,7 +700,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 * (1 - node_filesystem_avail_bytes{job=\"integrations/unix\",instance=~\"$host\",fstype!=\"\"} / node_filesystem_size_bytes{job=\"integrations/unix\",instance=~\"$host\",fstype!=\"\"})",
+          "expr": "100 * (1 - node_filesystem_avail_bytes{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\",fstype!=\"\"} / node_filesystem_size_bytes{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\",fstype!=\"\"})",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -757,7 +757,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 * rate(node_disk_io_time_seconds_total{job=\"integrations/unix\",instance=~\"$host\"}[5m])",
+          "expr": "100 * rate(node_disk_io_time_seconds_total{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"}[5m])",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -814,7 +814,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (instance) (rate(node_disk_read_bytes_total{job=\"integrations/unix\",instance=~\"$host\"}[5m]))",
+          "expr": "sum by (instance) (rate(node_disk_read_bytes_total{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"}[5m]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -823,7 +823,7 @@
         },
         {
           "refId": "B",
-          "expr": "sum by (instance) (rate(node_disk_written_bytes_total{job=\"integrations/unix\",instance=~\"$host\"}[5m]))",
+          "expr": "sum by (instance) (rate(node_disk_written_bytes_total{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"}[5m]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -878,7 +878,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "rate(node_pressure_io_waiting_seconds_total{job=\"integrations/unix\",instance=~\"$host\"}[5m])",
+          "expr": "rate(node_pressure_io_waiting_seconds_total{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"}[5m])",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -946,7 +946,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (instance) (rate(node_network_receive_bytes_total{job=\"integrations/unix\",instance=~\"$host\"}[5m])) * 8",
+          "expr": "sum by (instance) (rate(node_network_receive_bytes_total{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"}[5m])) * 8",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1001,7 +1001,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (instance) (rate(node_network_transmit_bytes_total{job=\"integrations/unix\",instance=~\"$host\"}[5m])) * 8",
+          "expr": "sum by (instance) (rate(node_network_transmit_bytes_total{job=\"integrations/unix\",instance=~\"$host\",instance!~\"pve-.+\"}[5m])) * 8",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
