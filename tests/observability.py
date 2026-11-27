@@ -77,6 +77,14 @@ def truenas(cluster, rules):
     mapping = yaml.safe_load((OBS / "truenas-mapping.yml").read_text())["mappings"]
     assert mapping[-1] == {"match": ".", "match_type": "regex", "action": "drop", "name": "dropped"}, "what is not named is dropped"
     assert not any("serial" in m["match"] for m in mapping), "disks by device name only"
+    samples = {"truenas.scale.truenas_disk_stats._devicename_sda.reads": "truenas_disk_io_kibibytes_per_second",
+               "truenas.scale.truenas_disk_stats.ops._devicename_sda.write_ops": "truenas_disk_operations_per_second",
+               "truenas.scale.truenas_disk_stats.busy._devicename_sda.busy": "truenas_disk_busy_percent",
+               "truenas.scale.truenas_disk_stats._serial_lunid_X_Y.reads": "dropped", "truenas.scale.net.bond0.sent": "truenas_net_kilobits_per_second",
+               "truenas.scale.net.veth0a1b2c3.sent": "dropped", "truenas.scale.truenas_cpu_usage.cpu.cpu2": "truenas_cpu_usage_percent"}
+    for line, expected in samples.items():  # what the NAS was seen to send on 2026-11-27
+        first = next(m for m in mapping if (re.fullmatch(m["match"], line) if m.get("match_type") == "regex" and m["match"] != "." else m["match"] in (line, ".")))
+        assert first["name"] == expected, (line, first["name"])
     known = {m["name"] for m in mapping[:-1]} | set(re.findall(r'metric\("(truenas_[a-z_]+)"', source)) | {"truenas_exporter_up"}
     dashboard = json.loads((OBS / "dashboards/truenas.json").read_text())
     queries = [t["expr"] for panel in dashboard["panels"] for t in panel.get("targets", [])]
@@ -85,7 +93,7 @@ def truenas(cluster, rules):
     used = {name for query in queries + [rule["expr"] for rule in own] for name in re.findall(r"\btruenas_[a-z0-9_]+", query)}
     assert used <= known, sorted(used - known)
     assert all('job="truenas"' in query for query in queries + [rule["expr"] for rule in own])
-    assert cluster.count('"instance" = "truenas"') == 2 and "truenas-graphite.monitoring.svc:9108" in cluster and "truenas-exporter.monitoring.svc:9110" in cluster
+    assert keep_regexes(cluster)[3] == "up|truenas_.+" and cluster.count('"instance" = "truenas"') == 2 and "truenas-graphite.monitoring.svc:9108" in cluster and "truenas-exporter.monitoring.svc:9110" in cluster
     generator = {g["name"]: g["files"] for g in yaml.safe_load((OBS / "kustomization.yaml").read_text())["configMapGenerator"]}
     assert generator["truenas-graphite-mapping"] == ["truenas-mapping.yml"] and generator["truenas-exporter"] == ["truenas-exporter.py"]
     assert "dashboards/truenas.json" in generator["grafana-dashboards"]
@@ -139,7 +147,7 @@ def main():
     assert {u for rule in role_rules for u in rule.get("nonResourceURLs", [])} <= {"/metrics"}
     assert all(set(rule["verbs"]) <= {"get", "list", "watch"} for rule in role_rules), "read-only"
     cluster = (OBS / "cluster.alloy").read_text()
-    assert "/proxy/" not in cluster and len(keep_regexes(cluster)) == 3
+    assert "/proxy/" not in cluster and len(keep_regexes(cluster)) == 4
     truenas(cluster, rules)
     assert set(re.findall(r'scrape_interval\s*=\s*"(\w+)"', cluster)) == {"60s", "15s"}, "the switch is read more often: its byte counters are 32-bit"
     # The switch: asked over SNMPv3 for the columns it has; the sign-in is a mounted Secret, never in Git.
