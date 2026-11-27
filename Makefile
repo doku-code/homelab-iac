@@ -979,7 +979,7 @@ storage-csi-deploy:
 	$(call ARGOCD_WAIT,storage)
 
 # ─────────────────────────────────────────────
-# Shared PostgreSQL platform (M007, ADR-015): pg-01..03, one per Proxmox host, outside k3s. PostgreSQL 17
+# Shared PostgreSQL platform (M007, ADR-015): pg-01..03, one per Proxmox host, outside k3s. PostgreSQL 18
 # under Patroni with etcd and a virtual IP (192.168.0.60). Same gates as the other workstation roots.
 # The VMs hold data: prevent_destroy, no replace target.
 # ─────────────────────────────────────────────
@@ -1031,13 +1031,14 @@ postgresql-hostkeys:
 # Configures etcd, Patroni, the virtual IP and the application databases. Credentials come from the
 # environment only, e.g.
 #   scripts/secrets.py run /postgresql -- make postgresql-configure POSTGRESQL_CONFIGURE_APPROVED=yes
+# POSTGRESQL_CONFIGURE_ARGS passes extra arguments to ansible-playbook (the way back of an upgrade uses --limit).
 postgresql-configure:
 	@test "$(POSTGRESQL_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of the PostgreSQL members with POSTGRESQL_CONFIGURE_APPROVED=yes" >&2; exit 1)
 	@test -n "$${PG_SUPERUSER_PASSWORD:-}" || { echo "Set PG_SUPERUSER_PASSWORD and the other PG_* credentials in the environment (secret store path /postgresql)" >&2; exit 1; }
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/postgresql-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
 	$(TOFU) -chdir=$(POSTGRESQL_DIR) output -json ansible_inventory > "$$inventory"; \
-	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-postgresql.yml --diff
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-postgresql.yml --diff $(POSTGRESQL_CONFIGURE_ARGS)
 
 # Moves the cluster to the major version of the role (patroni_postgresql_version) from the one it runs,
 # POSTGRESQL_UPGRADE_FROM. The applications have no database for some minutes. A full dump is taken first and

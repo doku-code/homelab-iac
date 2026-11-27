@@ -120,7 +120,7 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   `storageClassName: nvme-shared`** (Retain), app data may use the default `local-path`. One host, one disk,
   no backup yet. After a k3s rebuild: `make storage-csi-deploy` and `make headlamp-deploy`.
 - **M007 completed** 2026-11-17 ([TASK-018](../tasks/TASK-018-postgresql-platform-three-patroni-vms-outside-k3s-with-a-vir.md),
-  [ADR-015](decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md)): shared PostgreSQL 17 on
+  [ADR-015](decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md)): shared PostgreSQL 18 (17 until 2026-11-27, [upgrade guide](guides/postgresql-major-version-upgrade-how-the-shared-cluster-move.md)) on
   `pg-01` (VM 361, .61, pve-core), `pg-02` (VM 362, .62, pve-lab), `pg-03` (VM 363, .63, pve-compute since 2026-11-24;
   it was leader when its host rebooted that day and could not rejoin until the role allowed Patroni its own replication
   connection on localhost: it then rewound by itself, 2026-11-25) under

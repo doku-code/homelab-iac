@@ -42,7 +42,7 @@ on <https://argocd.doku-lab.net>.
 
 | Service | Where | Why not on k3s |
 |---|---|---|
-| PostgreSQL 17 with Patroni | `pg-01`, `pg-02`, `pg-03`; clients use 192.168.0.60 | The applications' data must not depend on the cluster that runs them ([ADR-015](../decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md)) |
+| PostgreSQL 18 with Patroni | `pg-01`, `pg-02`, `pg-03`; clients use 192.168.0.60 | The applications' data must not depend on the cluster that runs them ([ADR-015](../decisions/ADR-015-postgresql-runs-on-three-patroni-vms-outside-k3s.md)) |
 | NFS volumes | `storage-01` | Same reason ([ADR-012](../decisions/ADR-012-external-nvme-storage-truenas-backups.md)) |
 | DNS for the LAN, AdGuard Home | `dns-01`, 192.168.0.20 | The cluster needs names to start |
 | Forgejo runners | `ci-runner-01` (validation, no credentials), `deploy-runner-01` (gated deployments) | Separated by trust ([ADR-014](../decisions/ADR-014-dedicated-forgejo-deployment-runner.md)) |

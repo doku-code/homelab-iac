@@ -32,7 +32,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M004 | completed | high | [k3s bootstrap](../milestones/M004-k3s-bootstrap.md) | completed: 2 | The first k3s cluster (one or more VMs, embedded etcd) is provisioned with OpenTofu, configured with Ansible and reachable with kubectl. |
 | M005 | completed | high | [Headlamp](../milestones/M005-headlamp.md) | completed: 1 | Headlamp is deployed with its official Helm chart, RBAC-based authentication and network restriction, and shows nodes, workloads, storage objects, events and logs. |
 | M006 | completed | high | [External NVMe-backed storage](../milestones/M006-external-nvme-storage.md) | completed: 1 | Kubernetes provisions PVCs through CSI from an NVMe-backed storage service outside k3s; data survives pod and k3s VM replacement; the failure domain is documented. |
-| M007 | completed | high | [PostgreSQL platform](../milestones/M007-postgresql-platform.md) | completed: 1 | PostgreSQL 17 runs on three Patroni VMs outside k3s (one per Proxmox host) with automatic failover and a virtual IP; per-application databases and roles. |
+| M007 | completed | high | [PostgreSQL platform](../milestones/M007-postgresql-platform.md) | completed: 2 | PostgreSQL 17 runs on three Patroni VMs outside k3s (one per Proxmox host) with automatic failover and a virtual IP; per-application databases and roles. |
 | M008 | completed | high | [Phase](../milestones/M008-phase.md) | in-progress: 1 | Phase runs on k3s with its supported database and storage, issues service identities, and new deployments read their secrets from it. |
 
 ## Tasks
@@ -76,6 +76,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-032 | completed | medium | M010 | [Vaultwarden on k3s with its vault in the shared PostgreSQL](../tasks/TASK-032-vaultwarden-on-k3s-with-its-vault-in-the-shared-postgresql.md) | Vaultwarden moves from the container on the old host to k3s; its SQLite vault is copied into the shared PostgreSQL; same name, same account. |
 | TASK-033 | completed | medium | M010 | [Clean CI runner ci-runner-01 on the new cluster, replacing CT301](../tasks/TASK-033-clean-ci-runner-ci-runner-01-on-the-new-cluster-replacing-ct.md) | One validation runner VM built by OpenTofu and Ansible serves every repository; the hand-grown CT301 on the old host is retired |
 | TASK-034 | completed | medium | M010 | [VictoriaMetrics replaces Prometheus; vmalert evaluates the rules](../tasks/TASK-034-victoriametrics-replaces-prometheus-vmalert-evaluates-the-ru.md) | VictoriaMetrics single node stores the metrics Alloy pushes, vmalert evaluates the alert rules, kube-state-metrics is its own chart; Prometheus is retired |
+| TASK-038 | completed | high | M007 | [Shared PostgreSQL from 17 to 18: project repository, rehearsed upgrade playbook, cluster upgraded](../tasks/TASK-038-shared-postgresql-from-17-to-18-project-repository-rehearsed.md) | PostgreSQL 18.7 from apt.postgresql.org on the three Patroni members; make postgresql-upgrade rehearsed on a disposable cluster, then run; the 17 data kept as the way back. |
 
 ## Decisions
 
@@ -150,6 +151,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 - **GUIDE-map-operations** [Operations](hubs/operations.md) (current) `map, operations` — Day-to-day procedures: where the commands are, how to take a host down, what is known to be broken.
 - **GUIDE-map-services** [Service catalog](hubs/service-catalog.md) (current) `map, services, k3s` — Every service of the platform: its site, where it runs, what signs people in and where its data lives.
 - **GUIDE-media-stack** [Media services: Jellyfin, Seerr, Radarr, Sonarr and Prowlarr, one container each on pve-infra](guides/media-stack.md) (current) `guide, media, jellyfin, lxc` — What runs where, how a request travels, how the NAS is protected, and how to operate, test, back up and restore the media services.
+- **GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move** [PostgreSQL major-version upgrade: how the shared cluster moves to a new version and back](guides/postgresql-major-version-upgrade-how-the-shared-cluster-move.md) (current) `guide, postgresql, patroni, upgrade` — What make postgresql-upgrade does, what it leaves behind, how to go back, and what the move from 17 to 18 on 2026-11-27 showed.
 - **GUIDE-truenas-metrics-alerts-and-apps-as-files** [TrueNAS: metrics, alerts and apps as files](guides/truenas-metrics-alerts-and-apps-as-files.md) (current) `guide` — How the NAS is watched and how its apps are described, compared and applied from the repository
 
 ### Project reference
@@ -201,7 +203,7 @@ _No commit records. Generate with `harness history sync`._
 - **gitops**: ADR-005, TASK-024
 - **gpu**: TASK-028
 - **grafana**: TASK-020, TASK-026
-- **guide**: GUIDE-handoff, GUIDE-media-stack, GUIDE-truenas-metrics-alerts-and-apps-as-files
+- **guide**: GUIDE-handoff, GUIDE-media-stack, GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move, GUIDE-truenas-metrics-alerts-and-apps-as-files
 - **handoff**: GUIDE-handoff
 - **hardware**: ADR-018, DOC-infrastructure-inventory, INV-new-proxmox-cluster-inventory, TASK-030
 - **harness**: TASK-001
@@ -240,14 +242,14 @@ _No commit records. Generate with `harness history sync`._
 - **opentofu**: ADR-003, GUIDE-map-deployment, TASK-006, TASK-008, TASK-014, TASK-015, TASK-017, TASK-018
 - **operations**: GUIDE-map-operations
 - **overview**: DOC-project-overview
-- **patroni**: ADR-013, ADR-015, TASK-018
+- **patroni**: ADR-013, ADR-015, GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move, TASK-018, TASK-038
 - **pbs**: TASK-004
 - **performance**: TASK-028
 - **phase**: ADR-004, GUIDE-map-identity, TASK-019
 - **plan**: INV-pve-management-bootstrap
 - **planning**: M000, TASK-005
 - **platform**: ARCH-platform
-- **postgresql**: ADR-013, ADR-015, TASK-018
+- **postgresql**: ADR-013, ADR-015, GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move, TASK-018, TASK-038
 - **prometheus**: TASK-020
 - **proxmox**: ADR-002, ADR-010, GUIDE-map-infrastructure, INV-new-proxmox-cluster-inventory, ISSUE-bursts-of-full-size-frames-are-lost-on-the-way-into-the-inte, TASK-002, TASK-013, TASK-021, TASK-028
 - **pve-core**: ADR-010, TASK-013
@@ -272,6 +274,7 @@ _No commit records. Generate with `harness history sync`._
 - **terraform**: ADR-003
 - **traefik**: TASK-021, TASK-022
 - **truenas**: ADR-012, TASK-037
+- **upgrade**: GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move, TASK-038
 - **vaultwarden**: TASK-032
 - **victoriametrics**: TASK-034
 - **vision**: DOC-project-overview

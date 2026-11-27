@@ -1418,6 +1418,10 @@
           "field": "related"
         },
         {
+          "from": "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
+          "field": "related"
+        },
+        {
           "from": "M007",
           "field": "related_decisions"
         },
@@ -1459,6 +1463,10 @@
         },
         {
           "from": "TASK-036",
+          "field": "related_decisions"
+        },
+        {
+          "from": "TASK-038",
           "field": "related_decisions"
         }
       ]
@@ -3091,6 +3099,71 @@
       ]
     },
     {
+      "id": "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
+      "title": "PostgreSQL major-version upgrade: how the shared cluster moves to a new version and back",
+      "summary": "What make postgresql-upgrade does, what it leaves behind, how to go back, and what the move from 17 to 18 on 2026-11-27 showed.",
+      "importance": 4,
+      "lifecycle": "active",
+      "topics": [
+        "postgresql",
+        "patroni",
+        "etcd",
+        "pg_upgrade"
+      ],
+      "applies_to": [],
+      "source_paths": [
+        "ansible/playbooks/upgrade-postgresql.yml",
+        "ansible/roles/patroni_postgresql",
+        "tests/postgresql.py"
+      ],
+      "last_verified": "2026-11-27",
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/guides/postgresql-major-version-upgrade-how-the-shared-cluster-move.md",
+      "tags": [
+        "guide",
+        "postgresql",
+        "patroni",
+        "upgrade"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "PostgreSQL major-version upgrade",
+        "Where the version comes from",
+        "The upgrade",
+        "1. raise patroni_postgresql_version in the role, commit",
+        "2. from the workstation:",
+        "What it leaves behind",
+        "The way back",
+        "Rehearsing",
+        "What 17 to 18 showed (2026-11-27)"
+      ],
+      "relations": {
+        "related": [
+          "ADR-015",
+          "TASK-018",
+          "TASK-038"
+        ],
+        "source_paths": [
+          "ansible/playbooks/upgrade-postgresql.yml",
+          "ansible/roles/patroni_postgresql",
+          "tests/postgresql.py"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "TASK-038",
+          "field": "related"
+        }
+      ]
+    },
+    {
       "id": "GUIDE-truenas-metrics-alerts-and-apps-as-files",
       "title": "TrueNAS: metrics, alerts and apps as files",
       "summary": "How the NAS is watched and how its apps are described, compared and applied from the repository",
@@ -4134,6 +4207,10 @@
         },
         {
           "from": "TASK-018",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-038",
           "field": "milestone"
         }
       ]
@@ -6079,6 +6156,10 @@
           "field": "related_tasks"
         },
         {
+          "from": "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
+          "field": "related"
+        },
+        {
           "from": "M007",
           "field": "related_tasks"
         },
@@ -6097,6 +6178,10 @@
         {
           "from": "TASK-026",
           "field": "depends_on"
+        },
+        {
+          "from": "TASK-038",
+          "field": "related"
         }
       ]
     },
@@ -7438,6 +7523,68 @@
           "field": "related"
         }
       ]
+    },
+    {
+      "id": "TASK-038",
+      "title": "Shared PostgreSQL from 17 to 18: project repository, rehearsed upgrade playbook, cluster upgraded",
+      "summary": "PostgreSQL 18.7 from apt.postgresql.org on the three Patroni members; make postgresql-upgrade rehearsed on a disposable cluster, then run; the 17 data kept as the way back.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "completed",
+      "path": "tasks/TASK-038-shared-postgresql-from-17-to-18-project-repository-rehearsed.md",
+      "tags": [
+        "postgresql",
+        "patroni",
+        "upgrade"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "high",
+      "milestone": "M007",
+      "source": null,
+      "version": null,
+      "headings": [
+        "Shared PostgreSQL from 17 to 18: project repository, rehearsed upgrade playbook, cluster upgraded",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
+          "TASK-018"
+        ],
+        "related_decisions": [
+          "ADR-015"
+        ],
+        "related_implementations": [
+          "ansible/playbooks/upgrade-postgresql.yml",
+          "ansible/roles/patroni_postgresql/tasks/packages.yml",
+          "ansible/roles/patroni_postgresql/tasks/main.yml"
+        ],
+        "related_tests": [
+          "tests/postgresql.py"
+        ],
+        "milestone": [
+          "M007"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
+          "field": "related"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -7482,6 +7629,7 @@
       "GUIDE-map-operations",
       "GUIDE-map-services",
       "GUIDE-media-stack",
+      "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
       "GUIDE-truenas-metrics-alerts-and-apps-as-files"
     ],
     "investigation": [
@@ -7555,7 +7703,8 @@
       "TASK-034",
       "TASK-035",
       "TASK-036",
-      "TASK-037"
+      "TASK-037",
+      "TASK-038"
     ]
   },
   "by_tag": {
@@ -7735,6 +7884,7 @@
     "guide": [
       "GUIDE-handoff",
       "GUIDE-media-stack",
+      "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
       "GUIDE-truenas-metrics-alerts-and-apps-as-files"
     ],
     "handoff": [
@@ -7923,7 +8073,9 @@
     "patroni": [
       "ADR-013",
       "ADR-015",
-      "TASK-018"
+      "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
+      "TASK-018",
+      "TASK-038"
     ],
     "pbs": [
       "TASK-004"
@@ -7949,7 +8101,9 @@
     "postgresql": [
       "ADR-013",
       "ADR-015",
-      "TASK-018"
+      "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
+      "TASK-018",
+      "TASK-038"
     ],
     "prometheus": [
       "TASK-020"
@@ -8068,6 +8222,10 @@
     "truenas": [
       "ADR-012",
       "TASK-037"
+    ],
+    "upgrade": [
+      "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
+      "TASK-038"
     ],
     "vaultwarden": [
       "TASK-032"
