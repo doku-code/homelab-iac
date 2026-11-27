@@ -387,6 +387,14 @@ retired:
   # created by the reconciliation once these are gone (pve-compute - 16 heard through LLDP, truenas - 14 above).
   - {path: dcim/cables, between: [[pve-compute, enp1s0f1np1], [switch, "14"]], reason: "pve-compute announces port 16 (LLDP)"}
   - {path: dcim/cables, between: [[truenas, enp1s0], [switch, "16"]], reason: "Port 16 is pve-compute's; TrueNAS is on 14"}
+  # The operator replaced the patch panel on 2026-11-27: pve-infra and pve-lab swapped switch ports (heard through
+  # LLDP: pve-infra on 6, pve-lab on 7). The reconciliation creates the right cables once these are gone.
+  - {path: dcim/cables, between: [[pve-infra, nic0], [switch, "7"]], reason: "pve-infra announces port 6 since the new patch panel (LLDP, 2026-11-27)"}
+  - {path: dcim/cables, between: [[pve-lab, nic0], [switch, "6"]], reason: "pve-lab announces port 7 since the new patch panel (LLDP, 2026-11-27)"}
+  # Three disposable VMs of the PostgreSQL upgrade rehearsal (TASK-038), observed while they existed.
+  - {path: virtualization/virtual-machines, name: pgr-01, cluster: doku-lab, reason: "VM366, upgrade rehearsal, destroyed 2026-11-27"}
+  - {path: virtualization/virtual-machines, name: pgr-02, cluster: doku-lab, reason: "VM367, upgrade rehearsal, destroyed 2026-11-27"}
+  - {path: virtualization/virtual-machines, name: pgr-03, cluster: doku-lab, reason: "VM368, upgrade rehearsal, destroyed 2026-11-27"}
   - {path: dcim/interfaces, name: nic2, reason: "pve-compute has two ports on its mainboard, not three"}
   - {path: dcim/interface-templates, name: nic2, reason: "pve-compute has two ports on its mainboard, not three"}
 
