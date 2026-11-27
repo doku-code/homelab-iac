@@ -204,6 +204,10 @@ def widget_api():
     assert nas["disks"][0]["total_bytes"] == 0 and nas["apps"] == [{"id": "nextcloud", "running": False}, {"id": "plex", "running": True}]
     assert server.truenas_snapshot(0.0, {}, 0, 0, 0, 0, {}, {}, {}, {}, {}, {}) == {"configured": True, "online": False, "error": "no metrics from the NAS", "disks": []}
 
+    # qBittorrent's login: both answers of a success, none of a refusal.
+    assert server.qbit_login_accepted(200, b"Ok.", 1) and server.qbit_login_accepted(204, b"", 1)
+    assert not any(server.qbit_login_accepted(*case) for case in ((200, b"Fails.", 0), (204, b"", 0), (403, b"", 0), (401, b"", 1), (502, b"", 1)))
+
     for name in ("PVE_TOKEN", "PVE_LEGACY_TOKEN", "PLEX_TOKEN", "QBIT_USERNAME", "QBIT_PASSWORD"):
         server.os.environ.pop(name, None)
 

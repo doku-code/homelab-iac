@@ -417,6 +417,12 @@ def collect_plex(state, sources):
         state.put("plex", {"configured": True, "online": False, "error": error_name(error), "sessions": []})
 
 
+def qbit_login_accepted(status, body, cookies):
+    """200 "Ok." until qBittorrent 5.1, 204 without a body since; a refusal is 200 "Fails.", 401 or 403. The
+    session cookie is what proves the login either way."""
+    return status in (200, 204) and body.strip() != b"Fails." and cookies > 0
+
+
 class Qbit:
     """qBittorrent needs a session cookie; the transfer speeds are kept as a short series for the chart."""
 
@@ -429,7 +435,7 @@ class Qbit:
         opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
         data = urllib.parse.urlencode({"username": os.environ["QBIT_USERNAME"], "password": os.environ["QBIT_PASSWORD"]}).encode()
         status, body, _ = fetch(f"{spec['url']}/api/v2/auth/login", headers={"Referer": spec["url"]}, data=data, opener=opener)
-        if status != 200 or body.strip() != b"Ok.":
+        if not qbit_login_accepted(status, body, len(jar)):
             raise RuntimeError("login refused")
         self.opener = opener
 
