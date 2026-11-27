@@ -280,7 +280,7 @@ prometheus.exporter.blackbox "web" {
 
 	target {
 		name    = "homepage"
-		address = "http://homepage.homepage.svc:3000/"
+		address = "http://homepage.homepage.svc:9101/health"
 		module  = "http"
 	}
 

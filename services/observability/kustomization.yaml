@@ -20,6 +20,11 @@ configMapGenerator:
       - dashboards/switch.json
       - dashboards/truenas.json
       - dashboards/proxmox-hosts.json
+      - dashboards/pfsense.json
+      - dashboards/postgresql.json
+      - dashboards/kubernetes.json
+      - dashboards/virtual-machines.json
+      - dashboards/service-health.json
   - name: truenas-graphite-mapping
     namespace: monitoring
     files:

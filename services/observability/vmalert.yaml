@@ -124,6 +124,34 @@ server:
               for: 2m
               labels: {severity: critical}
               annotations: {summary: "pve-core has sent no metrics for 5 minutes (frozen, off, or off the network)"}
+        # The probes of cluster.alloy: what a person at home notices first.
+        - name: probes
+          rules:
+            - alert: InternetSlow
+              expr: 'min(probe_duration_seconds{job=~"integrations/blackbox/internet-.+"}) > 0.5'
+              for: 5m
+              labels: {severity: warning}
+              annotations: {summary: "Reaching the Internet takes {{ $value | humanizeDuration }} for 5 minutes (saturated line or provider trouble)"}
+            - alert: InternetUnreachable
+              expr: 'max(probe_success{job=~"integrations/blackbox/internet-.+"}) == 0'
+              for: 3m
+              labels: {severity: critical}
+              annotations: {summary: "Neither public server answers for 3 minutes: the Internet is down"}
+            - alert: LanDnsDown
+              expr: 'probe_success{job="integrations/blackbox/dns-shared-address"} == 0'
+              for: 2m
+              labels: {severity: critical}
+              annotations: {summary: "192.168.0.20 answers no lookup for 2 minutes: the LAN has no DNS"}
+            - alert: LanDnsNotRedundant
+              expr: 'probe_success{job=~"integrations/blackbox/dns-0."} == 0'
+              for: 10m
+              labels: {severity: warning}
+              annotations: {summary: "{{ $labels.job }} answers no lookup for 10 minutes: the LAN's DNS runs on one server"}
+            - alert: ServiceNotAnswering
+              expr: 'probe_success{instance="prometheus.exporter.blackbox.web"} == 0'
+              for: 5m
+              labels: {severity: warning}
+              annotations: {summary: "{{ $labels.job }} has not answered for 5 minutes"}
         - name: truenas
           rules:
             - alert: TrueNASSilent

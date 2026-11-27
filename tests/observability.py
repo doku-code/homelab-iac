@@ -252,6 +252,29 @@ def main():
     assert families <= {"hwmon", "cpu", "memory", "load1", "pressure", "network"}, sorted(families)
     assert len([r for r in rules if r["alert"].startswith("Proxmox")]) == 3 and "dashboards/proxmox-hosts.json" in (OBS / "kustomization.yaml").read_text()
     assert "observability-hosts" in (ROOT / "Makefile").read_text() and "OBSERVABILITY_HOSTS_APPROVED" in (ROOT / "Makefile").read_text()
+    # The per-platform dashboards are written by scripts/grafana-dashboards.py: the committed files are what it
+    # writes, each is handed to Grafana, and none asks for a PostgreSQL, Kubernetes or container metric we drop.
+    generated = ["pfsense", "postgresql", "kubernetes", "virtual-machines", "service-health"]
+    check = subprocess.run([sys.executable, str(ROOT / "scripts/grafana-dashboards.py"), "--check"], capture_output=True, text=True)
+    assert check.returncode == 0, check.stderr
+    probes = re.search(r'prometheus.relabel "probes".*?regex\s*=\s*"([^"]+)"', cluster, re.S).group(1)
+    for name in generated:
+        assert f"dashboards/{name}.json" in (OBS / "kustomization.yaml").read_text(), name
+        board = json.loads((OBS / f"dashboards/{name}.json").read_text())
+        assert board["uid"] == name and len(board["panels"]) >= 10
+        for query in [t["expr"] for panel in board["panels"] for t in panel.get("targets", [])]:
+            for metric in re.findall(r"\b(?:pg|kube|kubelet|container|probe)_[a-z0-9_]+", query):
+                if metric.startswith("pg_"):
+                    assert re.fullmatch(postgres_keep[0], metric), f"{name}: {metric} is dropped by the PostgreSQL allow-list"
+                elif metric.startswith("kube_"):
+                    assert metric in ksm_allowed, f"{name}: {metric} is not in the kube-state-metrics allow-list"
+                elif metric.startswith("probe_"):
+                    assert re.fullmatch(probes, metric), f"{name}: {metric} is dropped by the probes' allow-list"
+                else:
+                    assert any(re.fullmatch(regex, metric) for regex in kubelet_keep), f"{name}: {metric} is dropped by the kubelet allow-lists"
+    # A probe asks a service where it answers itself: a route's 403 must never count as the service being up.
+    assert "403" not in re.search(r'prometheus.exporter.blackbox "web" \{\n\s*config = "([^\n]+)"\n', cluster).group(1)
+
     # The switch dashboard and the network alerts only ask for what the SNMP module reads.
     switch = json.loads((OBS / "dashboards/switch.json").read_text())
     asked = [t["expr"] for panel in switch["panels"] for t in panel.get("targets", [])] + [r["expr"] for r in rules if "switch" in r["expr"]]
