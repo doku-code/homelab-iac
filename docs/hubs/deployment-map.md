@@ -64,7 +64,7 @@ changes: it writes the Secrets from the secret store, then hands the application
 | [headlamp](../../services/argocd/apps/headlamp.yaml) | [`services/headlamp`](../../services/headlamp) | `make headlamp-deploy` | `/authentik` |
 | [homepage](../../services/argocd/apps/homepage.yaml) | [`services/homepage`](../../services/homepage) | `make homepage-deploy` | `/`, `/homepage` |
 | [ingress](../../services/argocd/apps/ingress.yaml) | [`services/ingress`](../../services/ingress) | nothing: Argo CD needs no Secret for it |  |
-| [monitoring](../../services/argocd/apps/monitoring.yaml) | [`services/observability`](../../services/observability) | `make observability-deploy` | `/`, `/monitoring`, `/postgresql`, `/authentik`, `/switch` |
+| [monitoring](../../services/argocd/apps/monitoring.yaml) | [`services/observability`](../../services/observability) | `make observability-deploy` | `/`, `/monitoring`, `/postgresql`, `/authentik`, `/switch`, `/truenas` |
 | [netbox](../../services/argocd/apps/netbox.yaml) | [`services/netbox`](../../services/netbox) | `make netbox-deploy` | `/netbox`, `/postgresql`, `/authentik` |
 | [phase](../../services/argocd/apps/phase.yaml) | [`services/phase`](../../services/phase) | `make phase-deploy` |  |
 | [storage](../../services/argocd/apps/storage.yaml) | [`services/storage`](../../services/storage) | nothing: Argo CD needs no Secret for it |  |

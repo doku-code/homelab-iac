@@ -4351,6 +4351,10 @@
         {
           "from": "TASK-036",
           "field": "milestone"
+        },
+        {
+          "from": "TASK-037",
+          "field": "milestone"
         }
       ]
     },
@@ -7347,6 +7351,47 @@
           "field": "related"
         }
       ]
+    },
+    {
+      "id": "TASK-037",
+      "title": "TrueNAS under management: metrics in Grafana, apps as code, housekeeping",
+      "summary": "The NAS's metrics and alerts in the monitoring stack, its apps described in the repository with a plan-before-apply path, and the leftovers of the old environment cleaned up",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-037-truenas-under-management-metrics-in-grafana-apps-as-code-hou.md",
+      "tags": [
+        "truenas",
+        "monitoring"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "TrueNAS under management: metrics in Grafana, apps as code, housekeeping",
+        "Goal",
+        "Acceptance criteria",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related_tests": [
+          "tests/observability.py"
+        ],
+        "milestone": [
+          "M010"
+        ]
+      },
+      "backrefs": []
     }
   ],
   "by_type": {
@@ -7462,7 +7507,8 @@
       "TASK-033",
       "TASK-034",
       "TASK-035",
-      "TASK-036"
+      "TASK-036",
+      "TASK-037"
     ]
   },
   "by_tag": {
@@ -7777,6 +7823,9 @@
       "TASK-032",
       "TASK-033"
     ],
+    "monitoring": [
+      "TASK-037"
+    ],
     "netbox": [
       "ADR-016",
       "ADR-018",
@@ -7967,7 +8016,8 @@
       "TASK-022"
     ],
     "truenas": [
-      "ADR-012"
+      "ADR-012",
+      "TASK-037"
     ],
     "vaultwarden": [
       "TASK-032"

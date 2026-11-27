@@ -4,6 +4,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - access.yaml
+  - truenas.yaml
 generatorOptions:
   disableNameSuffixHash: true
 configMapGenerator:
@@ -17,3 +18,12 @@ configMapGenerator:
     files:
       - dashboards/homelab-overview.json
       - dashboards/switch.json
+      - dashboards/truenas.json
+  - name: truenas-graphite-mapping
+    namespace: monitoring
+    files:
+      - truenas-mapping.yml
+  - name: truenas-exporter
+    namespace: monitoring
+    files:
+      - truenas-exporter.py

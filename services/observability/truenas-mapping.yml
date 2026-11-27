@@ -1,0 +1,65 @@
+# What the Graphite exporter keeps of what TrueNAS pushes (services/observability/truenas.yaml), and under which
+# names. TrueNAS sends "truenas.scale.<chart>.<dimension>" every 15 seconds; everything not named here is
+# dropped. Disks are kept by device name only: the same counters also arrive under each disk's serial number,
+# and serial numbers stay out of the metrics as they stay out of Git.
+mappings:
+  - match: 'truenas\.scale\.truenas_cpu_usage\.cpu\.cpu(\d*)'
+    match_type: regex
+    name: truenas_cpu_usage_percent
+    labels: {cpu: "$1"}
+  - match: 'truenas\.scale\.cputemp\.temperatures\.cpu(\d*)'
+    match_type: regex
+    name: truenas_cpu_temperature_celsius
+    labels: {cpu: "$1"}
+  - match: 'truenas\.scale\.system\.load\.load(\d+)'
+    match_type: regex
+    name: truenas_load
+    labels: {minutes: "$1"}
+  - match: truenas.scale.system.uptime.uptime
+    name: truenas_uptime_seconds
+  - match: 'truenas\.scale\.system\.clock_sync_state\.state'
+    match_type: regex
+    name: truenas_clock_synchronized
+  - match: 'truenas\.scale\.truenas_meminfo\.(total|available)\.\w+'
+    match_type: regex
+    name: truenas_memory_bytes
+    labels: {kind: "$1"}
+  - match: 'truenas\.scale\.truenas_arcstats\.(size|free|avail)\.\w+'
+    match_type: regex
+    name: truenas_arc_bytes
+    labels: {kind: "$1"}
+  # Kibibytes per second read from and written to each disk.
+  - match: 'truenas\.scale\.truenas_disk_stats\.\{devicename\}([^.]+)\.(reads|writes)'
+    match_type: regex
+    name: truenas_disk_io_kibibytes_per_second
+    labels: {disk: "$1", direction: "$2"}
+  - match: 'truenas\.scale\.truenas_disk_stats_ops\.\{devicename\}([^.]+)\.(read|write)_ops'
+    match_type: regex
+    name: truenas_disk_operations_per_second
+    labels: {disk: "$1", direction: "$2s"}
+  # Share of the time the disk was busy, in percent.
+  - match: 'truenas\.scale\.truenas_disk_stats_busy\.\{devicename\}([^.]+)\.busy'
+    match_type: regex
+    name: truenas_disk_busy_percent
+    labels: {disk: "$1"}
+  # Physical ports and the bond only: the apps' bridges and virtual ports come and go with every container.
+  - match: 'truenas\.scale\.net\.(en[^.]+|bond\d+)\.(received|sent)'
+    match_type: regex
+    name: truenas_net_kilobits_per_second
+    labels: {interface: "$1", direction: "$2"}
+  - match: 'truenas\.scale\.net_operstate\.(en[^.]+|bond\d+)\.up'
+    match_type: regex
+    name: truenas_net_up
+    labels: {interface: "$1"}
+  - match: 'truenas\.scale\.net_speed\.(en[^.]+|bond\d+)\.speed'
+    match_type: regex
+    name: truenas_net_speed_kilobits_per_second
+    labels: {interface: "$1"}
+  - match: 'truenas\.scale\.net_drops\.(en[^.]+|bond\d+)\.(inbound|outbound)'
+    match_type: regex
+    name: truenas_net_drops_per_second
+    labels: {interface: "$1", direction: "$2"}
+  - match: '.'
+    match_type: regex
+    action: drop
+    name: dropped

@@ -54,6 +54,43 @@ def keep_regexes(text):
     return [m.group(1) for m in re.finditer(r'regex\s*=\s*"([^"]+)"\s*\n\s*action\s*=\s*"keep"', text)]
 
 
+def truenas(cluster, rules):
+    """The NAS: its Graphite stream reduced to named metrics without serial numbers, its state read through the
+    API with a key that is only a Secret, and every query of its dashboard and alerts answered by one of the two."""
+    docs = list(yaml.safe_load_all((OBS / "truenas.yaml").read_text()))
+    by = {(d["kind"], d["metadata"]["name"]): d for d in docs}
+    assert all(d["metadata"]["namespace"] == "monitoring" for d in docs)
+    assert all(d["spec"]["replicas"] == 1 for d in docs if d["kind"] == "Deployment"), "one replica per service"
+    door = by["Service", "truenas-graphite-ingest"]["spec"]
+    assert door["type"] == "LoadBalancer" and door["loadBalancerSourceRanges"] == ["192.168.0.13/32"], "only the NAS may push"
+    for deployment in ("truenas-graphite", "truenas-exporter"):
+        (container,) = by["Deployment", deployment]["spec"]["template"]["spec"]["containers"]
+        assert re.search(r":v?\d+\.\d+", container["image"]) and "latest" not in container["image"], "pinned image"
+        assert container["securityContext"]["readOnlyRootFilesystem"] and container["securityContext"]["capabilities"] == {"drop": ["ALL"]}
+    (exporter,) = by["Deployment", "truenas-exporter"]["spec"]["template"]["spec"]["containers"]
+    env = {e["name"]: e for e in exporter["env"]}
+    assert env["TRUENAS_API_KEY"]["valueFrom"]["secretKeyRef"] == {"name": "truenas-api", "key": "api-key"}, "the key is never in Git"
+    assert env["TRUENAS_URL"]["value"].startswith("wss://"), "TrueNAS revokes a key sent without TLS"
+    source = (OBS / "truenas-exporter.py").read_text()
+    called = set(re.findall(r'session\.call\("([a-z_.]+)"', source))
+    assert called == {"auth.login_with_api_key", "system.info", "pool.query", "pool.dataset.query", "disk.temperatures", "app.query", "alert.list"}, "read-only calls"
+    mapping = yaml.safe_load((OBS / "truenas-mapping.yml").read_text())["mappings"]
+    assert mapping[-1] == {"match": ".", "match_type": "regex", "action": "drop", "name": "dropped"}, "what is not named is dropped"
+    assert not any("serial" in m["match"] for m in mapping), "disks by device name only"
+    known = {m["name"] for m in mapping[:-1]} | set(re.findall(r'metric\("(truenas_[a-z_]+)"', source)) | {"truenas_exporter_up"}
+    dashboard = json.loads((OBS / "dashboards/truenas.json").read_text())
+    queries = [t["expr"] for panel in dashboard["panels"] for t in panel.get("targets", [])]
+    own = [rule for rule in rules if rule["alert"].startswith("TrueNAS")]
+    assert len(own) == 7 and len(queries) >= 15
+    used = {name for query in queries + [rule["expr"] for rule in own] for name in re.findall(r"\btruenas_[a-z0-9_]+", query)}
+    assert used <= known, sorted(used - known)
+    assert all('job="truenas"' in query for query in queries + [rule["expr"] for rule in own])
+    assert cluster.count('"instance" = "truenas"') == 2 and "truenas-graphite.monitoring.svc:9108" in cluster and "truenas-exporter.monitoring.svc:9110" in cluster
+    generator = {g["name"]: g["files"] for g in yaml.safe_load((OBS / "kustomization.yaml").read_text())["configMapGenerator"]}
+    assert generator["truenas-graphite-mapping"] == ["truenas-mapping.yml"] and generator["truenas-exporter"] == ["truenas-exporter.py"]
+    assert "dashboards/truenas.json" in generator["grafana-dashboards"]
+
+
 def main():
     # VictoriaMetrics: storage and queries only, one StatefulSet that scrapes nothing; 90 days.
     docs, text = render("victoria-metrics", "victoria-metrics-single", "OBS_VM_REPO", "OBS_VM_CHART", "victoriametrics.yaml")
@@ -103,6 +140,7 @@ def main():
     assert all(set(rule["verbs"]) <= {"get", "list", "watch"} for rule in role_rules), "read-only"
     cluster = (OBS / "cluster.alloy").read_text()
     assert "/proxy/" not in cluster and len(keep_regexes(cluster)) == 3
+    truenas(cluster, rules)
     assert set(re.findall(r'scrape_interval\s*=\s*"(\w+)"', cluster)) == {"60s", "15s"}, "the switch is read more often: its byte counters are 32-bit"
     # The switch: asked over SNMPv3 for the columns it has; the sign-in is a mounted Secret, never in Git.
     snmp = yaml.safe_load((OBS / "snmp.yml").read_text())

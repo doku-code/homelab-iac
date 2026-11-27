@@ -1,0 +1,116 @@
+# TrueNAS metrics (TASK-037). The NAS can only push its metrics, in Graphite's format (Reporting -> Exporters);
+# this exporter receives them on port 9109 of every k3s node and of 192.168.0.45, and Alloy reads the result on
+# port 9108. truenas-mapping.yml turns Graphite's dotted names into metrics with labels and drops the rest.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: truenas-graphite
+  namespace: monitoring
+  labels: {app.kubernetes.io/name: truenas-graphite}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: truenas-graphite}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: truenas-graphite}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 65534, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: graphite-exporter
+          image: quay.io/prometheus/graphite-exporter:v0.17.0
+          args:
+            - --graphite.mapping-config=/etc/graphite/truenas-mapping.yml
+            - --graphite.sample-expiry=3m
+          ports:
+            - {name: graphite, containerPort: 9109, protocol: TCP}
+            - {name: metrics, containerPort: 9108, protocol: TCP}
+          readinessProbe:
+            tcpSocket: {port: graphite}
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {memory: 256Mi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: mapping, mountPath: /etc/graphite, readOnly: true}
+      volumes:
+        - name: mapping
+          configMap: {name: truenas-graphite-mapping}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: truenas-graphite
+  namespace: monitoring
+spec:
+  selector: {app.kubernetes.io/name: truenas-graphite}
+  ports:
+    - {name: metrics, port: 9108, targetPort: metrics}
+---
+# The door the NAS pushes through: only its address may use it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: truenas-graphite-ingest
+  namespace: monitoring
+spec:
+  type: LoadBalancer
+  externalIPs: [192.168.0.45]
+  loadBalancerSourceRanges: [192.168.0.13/32]
+  selector: {app.kubernetes.io/name: truenas-graphite}
+  ports:
+    - {name: graphite, port: 9109, targetPort: graphite, protocol: TCP}
+---
+# What the Graphite stream does not carry: pools, datasets, disk temperatures, apps and alerts, asked through
+# TrueNAS's API by truenas-exporter.py (read-only calls). The key is the Secret truenas-api, written by
+# `make observability-deploy` from the store path /truenas.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: truenas-exporter
+  namespace: monitoring
+  labels: {app.kubernetes.io/name: truenas-exporter}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: truenas-exporter}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: truenas-exporter}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 65534, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: exporter
+          image: docker.io/library/python:3.13.18-alpine3.24
+          command: [python, -u, /exporter/truenas-exporter.py]
+          env:
+            - {name: TRUENAS_URL, value: "wss://192.168.0.13:444/api/current"}
+            # TrueNAS serves the self-signed certificate it was installed with.
+            - {name: TRUENAS_VERIFY, value: "false"}
+            - name: TRUENAS_API_KEY
+              valueFrom:
+                secretKeyRef: {name: truenas-api, key: api-key}
+          ports:
+            - {name: metrics, containerPort: 9110, protocol: TCP}
+          readinessProbe:
+            httpGet: {path: /healthz, port: metrics}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: exporter, mountPath: /exporter, readOnly: true}
+      volumes:
+        - name: exporter
+          configMap: {name: truenas-exporter}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: truenas-exporter
+  namespace: monitoring
+spec:
+  selector: {app.kubernetes.io/name: truenas-exporter}
+  ports:
+    - {name: metrics, port: 9110, targetPort: metrics}

@@ -100,6 +100,18 @@ prometheus.scrape "kube_state_metrics" {
 	forward_to      = [prometheus.remote_write.default.receiver]
 }
 
+// TrueNAS (192.168.0.13): it pushes its metrics to the Graphite exporter of truenas.yaml; the second exporter
+// asks its API for the pools, the disks' temperatures, the apps and the alerts.
+prometheus.scrape "truenas" {
+	targets         = [
+		{"__address__" = "truenas-graphite.monitoring.svc:9108", "instance" = "truenas"},
+		{"__address__" = "truenas-exporter.monitoring.svc:9110", "instance" = "truenas"},
+	]
+	job_name        = "truenas"
+	scrape_interval = "60s"
+	forward_to      = [prometheus.remote_write.default.receiver]
+}
+
 // The switch (QNAP QSW-M3216R-8S8T, 192.168.0.3) over SNMPv3: state, bytes, frames, errors and discards of each
 // port. snmp.yml says what is asked; the sign-in comes from the Secret switch-snmp. The switch only has 32-bit
 // byte counters, which wrap after 4 GiB: read every 15 seconds they stay correct up to about 2.3 Gbit/s.

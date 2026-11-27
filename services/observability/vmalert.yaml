@@ -105,6 +105,45 @@ server:
               for: 1m
               labels: {severity: warning}
               annotations: {summary: "The switch restarted less than 10 minutes ago"}
+        - name: truenas
+          rules:
+            - alert: TrueNASSilent
+              expr: 'absent(truenas_exporter_up{job="truenas"}) or truenas_exporter_up{job="truenas"} == 0'
+              for: 10m
+              labels: {severity: critical}
+              annotations: {summary: "TrueNAS has not answered its API for 10 minutes"}
+            - alert: TrueNASMetricsMissing
+              expr: 'absent(truenas_uptime_seconds{job="truenas"})'
+              for: 10m
+              labels: {severity: warning}
+              annotations: {summary: "TrueNAS has pushed no metrics for 10 minutes (Reporting, Exporters)"}
+            # pve-pool: its only disk died in November 2026 and the pool waits to be removed.
+            - alert: TrueNASPoolUnhealthy
+              expr: 'truenas_pool_healthy{job="truenas",pool!="pve-pool"} == 0'
+              for: 5m
+              labels: {severity: critical}
+              annotations: {summary: "Pool {{ $labels.pool }} on TrueNAS is not healthy"}
+            - alert: TrueNASPoolAlmostFull
+              expr: 'truenas_pool_allocated_bytes{job="truenas"} / truenas_pool_size_bytes{job="truenas"} > 0.85'
+              for: 30m
+              labels: {severity: warning}
+              annotations: {summary: "Pool {{ $labels.pool }} on TrueNAS is over 85% full"}
+            - alert: TrueNASDiskHot
+              expr: 'truenas_disk_temperature_celsius{job="truenas"} > 50'
+              for: 15m
+              labels: {severity: warning}
+              annotations: {summary: "Disk {{ $labels.disk }} on TrueNAS is at {{ $value | humanize }} degrees"}
+            - alert: TrueNASAppDown
+              expr: 'truenas_app_running{job="truenas"} == 0'
+              for: 10m
+              labels: {severity: warning}
+              annotations: {summary: "The app {{ $labels.app }} on TrueNAS is not running"}
+            # Fires when the count rises, so the alerts already known do not ring forever.
+            - alert: TrueNASNewCriticalAlert
+              expr: 'sum(truenas_alerts{job="truenas",level=~"CRITICAL|ALERT|EMERGENCY"}) > sum(truenas_alerts{job="truenas",level=~"CRITICAL|ALERT|EMERGENCY"} offset 1h)'
+              for: 1m
+              labels: {severity: warning}
+              annotations: {summary: "TrueNAS shows a new critical alert in its interface"}
         - name: kubernetes
           rules:
             - alert: PodRestarting

@@ -1063,18 +1063,19 @@ observability-check:
 	$(ANSIBLE) ansible/playbooks/configure-observability-agents.yml --syntax-check -i ansible/inventories/homelab.yml
 	$(VENV)/bin/python tests/observability.py
 
-# Writes Grafana's passwords, the switch's SNMPv3 sign-in and the Discord webhook of the alerts (environment only:
-# store paths /, /monitoring, /postgresql, /authentik and /switch), then hands the
+# Writes Grafana's passwords, the switch's SNMPv3 sign-in, the NAS's API key and the Discord webhook of the alerts
+# (environment only: store paths /, /monitoring, /postgresql, /authentik, /switch and /truenas), then hands the
 # four charts, the routes, the Alloy configuration and the dashboards to Argo CD
 # (services/argocd/apps/monitoring.yaml).
 observability-deploy:
 	@test "$(OBSERVABILITY_DEPLOY_APPROVED)" = yes || (echo "Approve the observability deployment with OBSERVABILITY_DEPLOY_APPROVED=yes" >&2; exit 1)
-	@for v in GRAFANA_ADMIN_PASSWORD PG_APP_GRAFANA_PASSWORD SSO_GRAFANA_CLIENT_SECRET SWITCH_SNMP_USERNAME SWITCH_SNMP_AUTH_PASSWORD SWITCH_SNMP_PRIVACY_PASSWORD DISCORD_ALERT_WEBHOOK; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /, /monitoring, /postgresql, /authentik and /switch)" >&2; exit 1; }; done
+	@for v in GRAFANA_ADMIN_PASSWORD PG_APP_GRAFANA_PASSWORD SSO_GRAFANA_CLIENT_SECRET SWITCH_SNMP_USERNAME SWITCH_SNMP_AUTH_PASSWORD SWITCH_SNMP_PRIVACY_PASSWORD DISCORD_ALERT_WEBHOOK TRUENAS_API_KEY; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /, /monitoring, /postgresql, /authentik, /switch and /truenas)" >&2; exit 1; }; done
 	@kubectl --context doku-lab create namespace monitoring --dry-run=client -o yaml | kubectl --context doku-lab apply -f - >/dev/null
 	@set -euo pipefail; k="kubectl --context doku-lab -n monitoring"; \
 	$$k create secret generic grafana-admin --dry-run=client -o yaml --from-env-file=<(printf 'admin-user=admin\nadmin-password=%s\n' "$$GRAFANA_ADMIN_PASSWORD") | $$k apply -f - >/dev/null; \
 	$$k create secret generic grafana-db --dry-run=client -o yaml --from-env-file=<(printf 'password=%s\n' "$$PG_APP_GRAFANA_PASSWORD") | $$k apply -f - >/dev/null; \
 	$$k create secret generic grafana-sso --dry-run=client -o yaml --from-env-file=<(printf 'clientSecret=%s\n' "$$SSO_GRAFANA_CLIENT_SECRET") | $$k apply -f - >/dev/null; \
+	$$k create secret generic truenas-api --dry-run=client -o yaml --from-file=api-key=<(printf '%s' "$$TRUENAS_API_KEY") | $$k apply -f - >/dev/null; \
 	$$k create secret generic alertmanager-discord --dry-run=client -o yaml --from-file=url=<(printf '%s' "$$DISCORD_ALERT_WEBHOOK") | $$k apply -f - >/dev/null; \
 	$$k create secret generic switch-snmp --dry-run=client -o yaml --from-file=auth.yml=<($(VENV)/bin/python scripts/switch-snmp-auth.py) | $$k apply -f - >/dev/null; \
 	echo "secrets applied"
