@@ -248,6 +248,24 @@ a:focus-visible {
   font-style: normal;
 }
 
+/* The application list's search field: Authentik draws it as large text over a single underline, which the
+   rounded box above turns into a bent line. It becomes a field like the others. */
+.pf-c-page__header .pf-c-form-control {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ct-border);
+  border-radius: var(--ct-radius-md);
+  background-color: var(--ct-surface);
+  font-size: 0.9375rem;
+}
+
+.pf-c-page__header .pf-c-form-control:hover {
+  border-color: var(--ct-border-strong);
+}
+
+.pf-c-page__header .pf-c-form-control:focus {
+  border-color: var(--ct-focus);
+}
+
 .pf-c-form__label-text {
   font-weight: 500;
   color: var(--ct-fg-secondary);

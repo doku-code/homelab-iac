@@ -1,22 +1,24 @@
 # Forgejo: the Charcoal Titanium theme
 
-Forgejo runs as a TrueNAS app and is not deployed from this repository (operator: "leave my forgejo alone"). This
-directory only holds a theme file made for the installed version (17.0.1) and how to install it by hand.
+Forgejo runs as a TrueNAS catalog app and is not deployed from this repository. The operator allowed its theme to be
+installed (2026-11-27); nothing else of the app is managed here.
 
-1. Copy `theme-charcoal-titanium.css` into Forgejo's custom directory: `<custom>/public/assets/css/` (on the NAS,
-   under the app's data dataset; `<custom>` is shown in Site administration > Configuration as "Custom file root path").
-2. In `app.ini`, section `[ui]`, add the theme to the list, and make it the default if wanted:
+`install-theme.py` does it and can be run again (after a change of the theme, or after an update of Forgejo):
 
-   ```ini
-   [ui]
-   THEMES = forgejo-auto,forgejo-light,forgejo-dark,gitea-auto,gitea-light,gitea-dark,forgejo-auto-deuteranopia-protanopia,forgejo-light-deuteranopia-protanopia,forgejo-dark-deuteranopia-protanopia,forgejo-auto-tritanopia,forgejo-light-tritanopia,forgejo-dark-tritanopia,charcoal-titanium
-   DEFAULT_THEME = charcoal-titanium
-   ```
+```
+scripts/secrets.py run /truenas -- services/forgejo/install-theme.py                              # reports only
+FORGEJO_THEME_APPROVED=yes scripts/secrets.py run /truenas -- services/forgejo/install-theme.py   # does it
+```
 
-3. Restart Forgejo. Each user picks the theme in Settings > Appearance; `DEFAULT_THEME` only applies to visitors and
-   new accounts.
+1. It writes `theme-charcoal-titanium.css` into Forgejo's custom directory (`custom/public/assets/css/` under the
+   app's data path), beside the operator's own files.
+2. It adds `FORGEJO__ui__THEMES` (Forgejo's themes plus this one) and `FORGEJO__ui__DEFAULT_THEME` to the app's extra
+   environment variables; TrueNAS redeploys the app and Forgejo writes them into `app.ini` when it starts.
 
-To undo: remove the name from `THEMES`, restore `DEFAULT_THEME`, restart, delete the file.
+`DEFAULT_THEME` applies to visitors and to accounts that never chose a theme; anyone else picks "charcoal-titanium"
+in Settings > Appearance.
+
+To undo: the same command with `undo` removes the two variables; the file stays and does nothing.
 
 The theme imports Forgejo's own dark theme and only replaces its grey ramp and its primary colour, so an update of
 Forgejo keeps working as long as `theme-forgejo-dark.css` keeps its `--steel-*` and `--color-primary*` variables
