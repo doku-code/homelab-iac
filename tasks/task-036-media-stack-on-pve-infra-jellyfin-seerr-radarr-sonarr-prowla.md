@@ -105,6 +105,13 @@ existing qBittorrent on the NAS instead of a second one. What changed:
 | 2026-11-27 | `make media-plan` / `media-apply` | 6 to add, 1 to change, 0 to destroy; five containers running |
 | 2026-11-27 | `make media-mounts` | library 5 entries read-only in Jellyfin; downloads read-only and test area read-write in Radarr and Sonarr; `/dev/dri/renderD128` in Jellyfin |
 | 2026-11-27 | `make media-check` | PASS (7 tests, 6 mocked OpenTofu runs) |
+| 2026-11-27 | `make media-configure` | five services active, health HTTP 200; Radarr, Sonarr, Prowlarr and Seerr on the shared PostgreSQL |
+| 2026-11-27 | `make media-connect`, twice | first run wires everything, the NAS's qBittorrent accepted by Radarr and Sonarr; second run writes nothing |
+| 2026-11-27 | Firewall and routes | 7878, 8989, 9696 closed for another LAN host, 8096 and 5055 open; `jellyfin` and `seerr` names HTTP 200; `sso-check.py media` ok |
+| 2026-11-27 | `make media-backup` | archive with 7 dumps, Seerr's settings and Jellyfin's databases; no empty file |
+| 2026-11-27 | Jellyfin on the Plex library | libraries Movies, Series, Animes created; scan running (67 items after a few minutes) |
+| 2026-11-27 | Forced transcode of a file of the Plex library | **FAILED**: ffmpeg "Driver does not support VBR RC mode (supported modes: CQP)": the node's driver runs without the HuC firmware. `enable_guc=2` is written on the node; it needs a restart of pve-infra, which the session's permission check refused. Hardware transcoding in the container: not verified |
+| 2026-11-27 | A request from Seerr to Jellyfin through the NAS's qBittorrent | not verified (it would add a torrent to the operator's qBittorrent) |
 
 ## Completion summary
 

@@ -117,7 +117,9 @@ Everything a test writes is under `/srv/media-test` on the node, which can be em
 
 Jellyfin uses the node's graphics device (`/dev/dri/renderD128`, Intel Jasper Lake) through VA-API with the
 low-power encoders: H.264, HEVC 8/10-bit and VP9 decode, H.264 encode, no AV1. The node keeps the adapter (it is
-not handed whole to a guest any more). To see it work: play something a device cannot play as it is, then
+not handed whole to a guest any more). The low-power encoders need the HuC firmware, which the node's driver loads only
+with `enable_guc=2` (written by `make media-mounts`, effective after a restart of the node; until then a transcode
+fails with "Driver does not support VBR RC mode"). **Not verified in the container yet.** To see it work: play something a device cannot play as it is, then
 Jellyfin → Dashboard → Activity shows the transcode and its hardware method.
 
 ## Backup and restore
