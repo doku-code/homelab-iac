@@ -35,7 +35,7 @@ spec:
       annotations:
         # Digest of config/ and metrics/: a new value restarts the pod with the new files. tests/homepage-k3s.py
         # fails with the value to put here when the files changed.
-        homelab.doku-lab.net/config-digest: "b715ce0c23e1fb7a"
+        homelab.doku-lab.net/config-digest: "91dbbafd44a4ca36"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false

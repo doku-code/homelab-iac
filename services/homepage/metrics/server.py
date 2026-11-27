@@ -10,7 +10,6 @@ sources.json (Git); credentials come from the environment and each one is option
 credential reports "configured": false and the page says so instead of failing. Everything is read-only.
 
   PVE_TOKEN, PVE_LEGACY_TOKEN      Proxmox API tokens with the PVEAuditor role ("user@realm!name=value")
-  TRUENAS_API_KEY                  TrueNAS API key
   PLEX_TOKEN                       Plex token
   QBIT_USERNAME, QBIT_PASSWORD     qBittorrent web login
 """
@@ -338,36 +337,42 @@ def collect_services(state, sources):
     state.put("services", results)
 
 
-# ── Sources that need a credential of their own ─────────────────────────────────────────────────────────────
+# ── The NAS, from the monitoring stack; then sources that need a credential of their own ─────────────────────────────────────────────────────────────
+
+def truenas_snapshot(up, info, load, uptime, threads, memory, status, healthy, size, allocated, free, apps):
+    """The NAS as the monitoring stack sees it (the two exporters of services/observability/truenas.yaml)."""
+    if not up:
+        return {"configured": True, "online": False, "error": "no metrics from the NAS", "disks": []}
+    disks = [{"label": pool, "status": status.get(pool), "healthy": bool(healthy.get(pool)),
+              "used_bytes": int(allocated.get(pool, 0)), "free_bytes": int(free.get(pool, 0)), "total_bytes": int(size.get(pool, 0)),
+              "percent": percent(allocated.get(pool, 0), size.get(pool, 0))} for pool in sorted(healthy)]
+    return {
+        "configured": True, "online": True, "disks": disks, "healthy": all(d["healthy"] for d in disks),
+        "apps": [{"id": name, "running": bool(value)} for name, value in sorted(apps.items())],
+        "system": {"load1": load, "uptime_seconds": int(uptime), "cores": int(threads) or None,
+                   "ram_total_bytes": int(memory) or None, "version": next(iter(info), None)},
+    }
+
 
 def collect_truenas(state, sources):
-    spec, key = sources.get("truenas"), os.environ.get("TRUENAS_API_KEY")
-    if not spec:
+    """No call to the NAS: its figures are already in VictoriaMetrics, so the page needs no key of its own."""
+    if not sources.get("truenas"):
         return
-    if not key:
-        state.put("truenas", {"configured": False})
-        return
-    context, headers = tls_context(verify=spec.get("verify", True)), {"Authorization": f"Bearer {key}"}
+    base = sources["prometheus"]
+
+    def by(label, expression):
+        return {r["metric"].get(label): float(r["value"][1]) for r in prom(base, expression)}
+
     try:
-        pools = fetch_json(f"{spec['url']}/api/v2.0/pool", headers=headers, context=context)
-        info = fetch_json(f"{spec['url']}/api/v2.0/system/info", headers=headers, context=context)
-        disks = [{"label": p["name"], "status": p.get("status"), "healthy": bool(p.get("healthy")),
-                  "used_bytes": p.get("allocated") or 0, "free_bytes": p.get("free") or 0, "total_bytes": p.get("size") or 0,
-                  "percent": percent(p.get("allocated") or 0, p.get("size") or 0)} for p in pools]
-        apps = []
-        try:
-            for app in fetch_json(f"{spec['url']}/api/v2.0/app", headers=headers, context=context):
-                apps.append({"id": app.get("name") or app.get("id"), "state": app.get("state"), "running": app.get("state") == "RUNNING",
-                             "version": app.get("human_version") or app.get("version")})
-        except Exception:  # noqa: BLE001, S110 - older releases have no /app; pools and system still stand
-            pass
-        state.put("truenas", {
-            "configured": True, "online": True, "disks": disks, "apps": apps, "healthy": all(d["healthy"] for d in disks),
-            "system": {"load1": float((info.get("loadavg") or [0])[0]), "uptime_seconds": int(info.get("uptime_seconds") or 0),
-                       "cores": info.get("cores"), "ram_total_bytes": info.get("physmem"), "version": info.get("version")},
-        })
+        truenas = truenas_snapshot(
+            prom_number(base, "max(truenas_exporter_up)"), by("version", "truenas_info"), prom_number(base, 'truenas_load{minutes="1"}'),
+            prom_number(base, "truenas_uptime_seconds"), prom_number(base, 'count(truenas_cpu_usage_percent{cpu!=""})'),
+            prom_number(base, 'truenas_memory_bytes{kind="total"}'), {r["metric"].get("pool"): r["metric"].get("status") for r in prom(base, "truenas_pool_status")},
+            by("pool", "truenas_pool_healthy"), by("pool", "truenas_pool_size_bytes"), by("pool", "truenas_pool_allocated_bytes"),
+            by("pool", "truenas_pool_free_bytes"), by("app", "truenas_app_running"))
     except Exception as error:  # noqa: BLE001
-        state.put("truenas", {"configured": True, "online": False, "error": error_name(error), "disks": []})
+        truenas = {"configured": True, "online": False, "error": f"Prometheus: {error_name(error)}", "disks": []}
+    state.put("truenas", truenas)
 
 
 def plex_sessions(container):

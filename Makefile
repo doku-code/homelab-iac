@@ -1738,7 +1738,7 @@ homepage-pve-token:
 # restarts it when a Secret changed. Every value is optional; a widget without its credential says so on the
 # page. Read from the environment:
 #   HOMEPAGE_PVE_TOKEN (make homepage-pve-token); PVE_EXPORTER_USER, _TOKEN_NAME, _TOKEN_VALUE (old host, path /);
-#   HOMEPAGE_TRUENAS_API_KEY, HOMEPAGE_PLEX_TOKEN, HOMEPAGE_QBIT_USERNAME, HOMEPAGE_QBIT_PASSWORD;
+#   HOMEPAGE_PLEX_TOKEN, HOMEPAGE_QBIT_USERNAME, HOMEPAGE_QBIT_PASSWORD;
 #   HOMEPAGE_PERSONAL_SERVICES_B64, HOMEPAGE_PERSONAL_WIDGETS_B64: base64 of the YAML added to services.yaml
 #   and widgets.yaml (links and location that do not belong in a public repository).
 #   scripts/secrets.py run / /homepage -- make homepage-deploy HOMEPAGE_DEPLOY_APPROVED=yes
@@ -1750,8 +1750,8 @@ homepage-deploy:
 	before="$$(version)"; legacy=""; \
 	if [ -n "$${PVE_EXPORTER_TOKEN_VALUE:-}" ]; then legacy="$${PVE_EXPORTER_USER}!$${PVE_EXPORTER_TOKEN_NAME}=$${PVE_EXPORTER_TOKEN_VALUE}"; fi; \
 	$$k create secret generic homepage-metrics --dry-run=client -o yaml \
-	  --from-env-file=<(printf 'PVE_TOKEN=%s\nPVE_LEGACY_TOKEN=%s\nTRUENAS_API_KEY=%s\nPLEX_TOKEN=%s\nQBIT_USERNAME=%s\nQBIT_PASSWORD=%s\n' \
-	    "$${HOMEPAGE_PVE_TOKEN:-}" "$$legacy" "$${HOMEPAGE_TRUENAS_API_KEY:-}" "$${HOMEPAGE_PLEX_TOKEN:-}" "$${HOMEPAGE_QBIT_USERNAME:-}" "$${HOMEPAGE_QBIT_PASSWORD:-}") \
+	  --from-env-file=<(printf 'PVE_TOKEN=%s\nPVE_LEGACY_TOKEN=%s\nPLEX_TOKEN=%s\nQBIT_USERNAME=%s\nQBIT_PASSWORD=%s\n' \
+	    "$${HOMEPAGE_PVE_TOKEN:-}" "$$legacy" "$${HOMEPAGE_PLEX_TOKEN:-}" "$${HOMEPAGE_QBIT_USERNAME:-}" "$${HOMEPAGE_QBIT_PASSWORD:-}") \
 	  | $$k apply -f - >/dev/null; echo "secret/homepage-metrics applied"; \
 	$$k create secret generic homepage-personal --dry-run=client -o yaml \
 	  --from-file=services.yaml=<(printf '%s' "$${HOMEPAGE_PERSONAL_SERVICES_B64:-}" | base64 -d) \

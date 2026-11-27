@@ -41,7 +41,7 @@
     "router": {"label": "Router", "url": "https://192.168.0.1/", "verify": false},
     "switch": {"label": "Switch", "url": "https://192.168.0.3/", "verify": false}
   },
-  "truenas": {"url": "https://192.168.0.13:444", "verify": false},
+  "truenas": {"from": "prometheus"},
   "plex": {"url": "http://192.168.0.13:32400"},
   "qbit": {"url": "https://qbit.doku-lab.net"}
 }

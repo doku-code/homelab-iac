@@ -382,9 +382,7 @@
     if (!card) return;
     if (!data || !data.configured || data.online === false) {
       dropSlot(card, "storage");
-      note(card, "storage-note", !data || !data.configured
-        ? "Pools and system figures appear once the TrueNAS API key is in the secret store"
-        : "TrueNAS API not answering" + (data.error ? " · " + data.error : ""));
+      note(card, "storage-note", "No figures from the NAS" + (data && data.error ? " · " + data.error : ""));
       return;
     }
     dropSlot(card, "storage-note");

@@ -193,7 +193,18 @@ def widget_api():
     assert server.rdp_file({"host": "192.168.0.51"}).startswith(b"full address:s:192.168.0.51\r\n")
 
     # Without credentials every source says so and nothing is contacted.
-    for name in ("PVE_TOKEN", "PVE_LEGACY_TOKEN", "TRUENAS_API_KEY", "PLEX_TOKEN", "QBIT_USERNAME", "QBIT_PASSWORD"):
+    # The NAS comes from the monitoring stack: the page holds no NAS key and never calls the NAS's API.
+    collector = (ROOT / "services/homepage/metrics/server.py").read_text()
+    assert "TRUENAS_API_KEY" not in collector and "/api/v2.0" not in collector and sources["truenas"] == {"from": "prometheus"}
+    nas = server.truenas_snapshot(1.0, {"25.10.7": 1.0}, 2.5, 3600.9, 4.0, 16e9, {"tank": "ONLINE", "old": "OFFLINE"}, {"tank": 1.0, "old": 0.0},
+                                  {"tank": 100.0}, {"tank": 81.0}, {"tank": 19.0}, {"plex": 1.0, "nextcloud": 0.0})
+    assert (nas["online"], nas["healthy"]) == (True, False)
+    assert nas["system"] == {"load1": 2.5, "uptime_seconds": 3600, "cores": 4, "ram_total_bytes": 16000000000, "version": "25.10.7"}
+    assert nas["disks"][1] == {"label": "tank", "status": "ONLINE", "healthy": True, "used_bytes": 81, "free_bytes": 19, "total_bytes": 100, "percent": 81.0}
+    assert nas["disks"][0]["total_bytes"] == 0 and nas["apps"] == [{"id": "nextcloud", "running": False}, {"id": "plex", "running": True}]
+    assert server.truenas_snapshot(0.0, {}, 0, 0, 0, 0, {}, {}, {}, {}, {}, {}) == {"configured": True, "online": False, "error": "no metrics from the NAS", "disks": []}
+
+    for name in ("PVE_TOKEN", "PVE_LEGACY_TOKEN", "PLEX_TOKEN", "QBIT_USERNAME", "QBIT_PASSWORD"):
         server.os.environ.pop(name, None)
 
     def no_network(*_args, **_kwargs):
@@ -202,12 +213,11 @@ def widget_api():
     server.fetch = no_network
     state = server.State()
     server.collect_proxmox(state, sources)
-    server.collect_truenas(state, sources)
     server.collect_plex(state, sources)
     server.Qbit().collect(state, sources)
     snapshot = state.snapshot()
     assert all(node["error"] == "not connected yet" for node in snapshot["nodes"].values()) and len(snapshot["nodes"]) == 5
-    assert snapshot["truenas"] == snapshot["plex"] == snapshot["qbit"] == {"configured": False}
+    assert snapshot["plex"] == snapshot["qbit"] == {"configured": False} and "truenas" not in snapshot
     assert snapshot["summary"]["compute"]["cores"] == 0
 
     # The server answers three kinds of address and nothing else, and never anything but GET.
