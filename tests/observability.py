@@ -54,6 +54,13 @@ def keep_regexes(text):
     return [m.group(1) for m in re.finditer(r'regex\s*=\s*"([^"]+)"\s*\n\s*action\s*=\s*"keep"', text)]
 
 
+def pfsense(cluster):
+    """The firewall is only read: one scrape of its own exporter, a short list of metric families."""
+    assert '{"__address__" = "192.168.0.1:9100", "instance" = "pfsense"}' in cluster and 'job_name        = "pfsense"' in cluster
+    block = cluster.split('prometheus.relabel "pfsense"')[1].split("}\n}")[0]
+    assert 'action        = "keep"' in block and "node_(network|cpu|memory|load|boot_time|uname|filesystem)_.+" in block
+
+
 def truenas(cluster, rules):
     """The NAS: its Graphite stream reduced to named metrics without serial numbers, its state read through the
     API with a key that is only a Secret, and every query of its dashboard and alerts answered by one of the two."""
@@ -150,6 +157,7 @@ def main():
     cluster = (OBS / "cluster.alloy").read_text()
     assert "/proxy/" not in cluster and len(keep_regexes(cluster)) == 4
     truenas(cluster, rules)
+    pfsense(cluster)
     assert set(re.findall(r'scrape_interval\s*=\s*"(\w+)"', cluster)) == {"60s", "15s"}, "the switch is read more often: its byte counters are 32-bit"
     # The switch: asked over SNMPv3 for the columns it has; the sign-in is a mounted Secret, never in Git.
     snmp = yaml.safe_load((OBS / "snmp.yml").read_text())

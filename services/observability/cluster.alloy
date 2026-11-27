@@ -170,6 +170,25 @@ prometheus.relabel "truenas" {
 	}
 }
 
+// pfSense (192.168.0.1): the node_exporter package the operator enabled on its LAN side (2026-11-27). Read only;
+// nothing on pfSense is configured from this repository. Interfaces, processor, memory and the exporter's state.
+prometheus.scrape "pfsense" {
+	targets         = [{"__address__" = "192.168.0.1:9100", "instance" = "pfsense"}]
+	job_name        = "pfsense"
+	scrape_interval = "30s"
+	forward_to      = [prometheus.relabel.pfsense.receiver]
+}
+
+prometheus.relabel "pfsense" {
+	forward_to = [prometheus.remote_write.default.receiver]
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = "up|node_(network|cpu|memory|load|boot_time|uname|filesystem)_.+|node_load\\d+"
+		action        = "keep"
+	}
+}
+
 discovery.kubernetes "pods" {
 	role = "pod"
 }
