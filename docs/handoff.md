@@ -254,6 +254,17 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 | Inventory: show, then write the difference | `scripts/secrets.py run /netbox -- make netbox-plan`, then `… make netbox-apply NETBOX_APPLY_APPROVED=yes` |
 | Ansible inventory from NetBox | `scripts/secrets.py run /netbox -- make netbox-inventory` |
 
+## pfSense (read, and one change by hand)
+
+Since 2026-11-27 the operator lets the workstation read pfSense: its `node_exporter` package is scraped (job
+`pfsense`), and the key `~/.ssh/pfsense_ed25519` opens SSH as `admin`. **Nothing on pfSense is changed without the
+operator's go for that change.** One change so far, on the operator's go: an upload limiter of 46 Mbit/s with
+FQ-CoDel (the line is 400/50) and a floating match rule on WAN out, so that a saturated upload (qBittorrent on
+the NAS) queues in pfSense, which lets small flows pass first, instead of in the modem. Record and way to put it
+back: `services/pfsense/upload-limiter.php`. Backup of the configuration before it: `/root/config-before-upload-limiter.xml`
+on pfSense. Verified: rule and FQ-CoDel scheduler loaded, traffic counted, download untouched. **Not verified:** the
+latency while qBittorrent really fills the upload (no torrent was uploading at the time).
+
 ## Known issues
 
 - DNS: two servers since 2026-11-27 (`dns-01` on `pve-core`, `dns-02` on `pve-lab`) share `192.168.0.20`; each keeps its own
