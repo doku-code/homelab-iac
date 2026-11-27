@@ -68,6 +68,7 @@ The table lists paths, never values.
 | `/postgresql` | `make authentik-deploy`, `make media-configure`, `make netbox-deploy`, `make observability-deploy`, `make postgresql-configure`, `make vaultwarden-deploy`, `make wiki-deploy`, `make windmill-deploy` |
 | `/pve-management` | `make netbox-autosync` |
 | `/switch` | `make observability-deploy` |
+| `/truenas` | `make observability-deploy` |
 | `/wiki` | `make wiki-configure`, `make wiki-deploy`, `make wiki-sync` |
 | `/windmill` | `make windmill-bootstrap`, `make windmill-push`, `make windmill-sso` |
 <!-- map:secret-paths:end -->

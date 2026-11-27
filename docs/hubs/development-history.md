@@ -38,6 +38,7 @@ Git is the history; milestones and tasks record why and with what evidence. Prog
 | TASK-030 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](/tasks/task-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues) | in-progress | M013 | 2026-11-22 |
 | TASK-035 | [Documentation maps: hub pages generated from the repository and a wiki with a curated sidebar](/tasks/task-035-documentation-maps-hub-pages-generated-from-the-repository-a) | in-progress | M010 | 2026-11-25 |
 | TASK-036 | [Media stack on pve-infra: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on a Compose VM](/tasks/task-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla) | in-progress | M010 | 2026-11-26 |
+| TASK-037 | [TrueNAS under management: metrics in Grafana, apps as code, housekeeping](/tasks/task-037-truenas-under-management-metrics-in-grafana-apps-as-code-hou) | in-progress | M010 | 2026-11-27 |
 <!-- map:tasks:end -->
 
 ## Milestones
