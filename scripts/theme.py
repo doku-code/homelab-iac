@@ -7,12 +7,14 @@
 Generated:
   services/_shared/theme/tokens.css    the tokens as CSS custom properties (the preview links it)
   the block between "tokens:start" and "tokens:end" at the top of each adapter stylesheet
+  the typeface (Geist, SIL Open Font License) between "font:start" and "font:end" where a stylesheet must carry it
   the stylesheet embedded in a deployment file where an application only takes CSS as a setting
 
 An adapter is the application's own stylesheet: it maps the application's native variables to the tokens. It lives
 beside the application's deployment files (Kustomize cannot read outside its directory), so the tokens are copied
 into it by this script instead of being imported at run time. Standard library only.
 """
+import base64
 import json
 import re
 import sys
@@ -29,6 +31,9 @@ ADAPTERS = [
     "services/argocd/theme.css",
     "services/forgejo/theme-charcoal-titanium.css",
 ]
+# Stylesheets that carry the typeface itself, where the application serves no file of ours: (stylesheet, font file, family).
+FONT_START, FONT_END = "/* font:start (written by scripts/theme.py from services/_shared/theme/fonts) */", "/* font:end */"
+FONTS = [("services/homepage/config/custom.css", "fonts/Geist-Variable.woff2", "Geist")]
 # Deployment files that carry a whole stylesheet as a setting: (file, stylesheet, start marker, end marker, indent).
 EMBEDDED = [
     ("services/authentik/blueprints/homelab-brand.yaml", "services/authentik/theme.css", "        /* theme:start (scripts/theme.py) */", "        /* theme:end */", 8),
@@ -77,12 +82,24 @@ def embedded(text, css, start, end, indent, path):
     return head + start + "\n" + body + "\n" + end + rest.split(end, 1)[1]
 
 
+def with_font(text, font, family, path):
+    if FONT_START not in text or FONT_END not in text:
+        sys.exit(f"{path}: no font block (a line '{FONT_START}' and a line '{FONT_END}')")
+    data = base64.b64encode((THEME / font).read_bytes()).decode()
+    face = (f"@font-face {{\n  font-family: \"{family}\";\n  font-weight: 100 900;\n  font-style: normal;\n  font-display: swap;\n"
+            f"  src: url(\"data:font/woff2;base64,{data}\") format(\"woff2\");\n}}")
+    head, rest = text.split(FONT_START, 1)
+    return head + FONT_START + "\n" + face + "\n" + FONT_END + rest.split(FONT_END, 1)[1]
+
+
 def outputs():
     data = tokens()
     result = {THEME / "tokens.css": tokens_css(data)}
     for name in ADAPTERS:
         path = ROOT / name
         result[path] = with_block(path.read_text(), data, name)
+    for name, font, family in FONTS:
+        result[ROOT / name] = with_font(result[ROOT / name], font, family, name)
     for name, source, start, end, indent in EMBEDDED:
         path = ROOT / name
         result[path] = embedded(path.read_text(), result[ROOT / source], start, end, indent, name)

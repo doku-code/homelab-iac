@@ -622,7 +622,17 @@
       .finally(function () { clearTimeout(timer); });
   }
 
+  /* The light that follows the cursor over a card (custom.css draws it from these two positions). */
+  function trackPointer(event) {
+    var card = event.target && event.target.closest ? event.target.closest(".service-card") : null;
+    if (!card) return;
+    var box = card.getBoundingClientRect();
+    card.style.setProperty("--mx", (event.clientX - box.left) + "px");
+    card.style.setProperty("--my", (event.clientY - box.top) + "px");
+  }
+
   function boot() {
+    document.addEventListener("pointermove", trackPointer, { passive: true });
     /* Homepage draws the cards after its own data arrives: mark and fill them a few times early on. */
     [0, 400, 1200, 2500].forEach(function (delay) {
       setTimeout(function () {

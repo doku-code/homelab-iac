@@ -54,6 +54,7 @@ def main():
     assert all(int(v[:-2]) % 4 == 0 for v in tokens["space"].values()), "spacing on a 4 px scale"
     assert 120 <= int(tokens["motion"]["duration"][:-2]) <= 180
     assert "http" not in json.dumps(tokens["font"]), "no font is fetched from anywhere"
+    assert (THEME / "fonts/Geist-Variable.woff2").read_bytes()[:4] == b"wOF2" and "SIL Open Font License" in (THEME / "fonts/Geist-OFL.txt").read_text()
 
     # One source: every generated copy is what scripts/theme.py writes from tokens.json today.
     check = subprocess.run([sys.executable, str(ROOT / "scripts/theme.py"), "--check"], capture_output=True, text=True)
@@ -70,7 +71,8 @@ def main():
     for name in generator.ADAPTERS:
         text = (ROOT / name).read_text()
         own = text.split("/* tokens:end */", 1)[1]
-        assert "gradient(" not in own and "backdrop-filter: blur" not in own and "text-shadow" not in own, name
+        # No gradients, blur or glow; Homepage alone has one: the light under the cursor (operator, 2026-11-27).
+        assert own.count("gradient(") == ("homepage" in name) and "backdrop-filter: blur" not in own and "text-shadow" not in own, name
         assert not re.search(r"https?://", re.sub(r"/\*.*?\*/", "", text, flags=re.S)), f"{name}: no request to another site"
         literals = re.findall(r"#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?\b", own)
         if "forgejo" in name:
@@ -92,6 +94,7 @@ def main():
     settings = yaml.safe_load((ROOT / "services/homepage/config/settings.yaml").read_text())
     assert "background" not in settings and settings["theme"] == "dark" and settings["color"] == "neutral"
     assert "ackground" not in script and "#background" not in homepage and "prefers-reduced-motion" in homepage, "no background image, no switcher"
+    assert 'font-family: "Geist";' in homepage and "data:font/woff2;base64," in homepage and "--mx" in script, "the typeface ships with the page"
 
     # Authentik: appearance of the default brand only. The stylesheet sets variables on the document and on
     # components' own roots; it never reaches into a component, and the blueprint names no flow, policy or provider.

@@ -95,5 +95,5 @@ make dns-check
 ## Completion summary
 
 Remaining: the operator's look at the second pass of Homepage and at Authentik's search field; `make argocd-deploy`
-and `make dns-configure` for the two others; the cluster's unused `homepage-images` volume. Fonts are not
-self-hosted yet (Geist and Inter are used only where a device has them).
+and `make dns-configure` for the two others; the cluster's unused `homepage-images` volume. Third pass of Homepage (operator's
+requests): no icon wells, the search engine's button centred, Geist shipped with the page, a light under the cursor.
