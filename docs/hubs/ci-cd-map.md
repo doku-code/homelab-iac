@@ -52,7 +52,8 @@ The verification commands of [`harness.yaml`](https://git.doku-lab.net/Homelab/h
 | `postgresql-check` | OpenTofu root postgresql (fmt, validate, mocked tofu test), playbook syntax, Patroni role/access/Make guard tests; offline |
 | `ci-runner-check` | OpenTofu root ci-runner (fmt, validate, mocked tofu test), playbook syntax, runner configuration and Make guard tests; offline |
 | `dns-check` | OpenTofu root dns (fmt, validate, mocked tofu test), playbook syntax, AdGuard Home role/configuration/Make guard tests; offline |
-| `truenas-check` | The NAS's apps as files, placeholders for secrets, gated apply; offline |
+| `truenas-check` |  |
+| `theme-check` | The NAS's apps as files, placeholders for secrets, gated apply; offline |
 | `media-check` | OpenTofu root media (fmt, validate, mocked tofu test), playbook syntax, Compose project, NAS protection, firewall, routes and Make guard tests; offline |
 | `phase-check` | Renders the pinned Phase chart and tests scripts/secrets.py with fake stores (workstation only; needs helm, the chart download and age) |
 | `observability-check` | Renders the four pinned observability charts, checks allow-lists against dashboard and alert queries, routes and agent templates (workstation only; needs helm and the chart downloads) |

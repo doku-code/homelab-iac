@@ -254,6 +254,14 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 | Inventory: show, then write the difference | `scripts/secrets.py run /netbox -- make netbox-plan`, then `… make netbox-apply NETBOX_APPLY_APPROVED=yes` |
 | Ansible inventory from NetBox | `scripts/secrets.py run /netbox -- make netbox-inventory` |
 
+## Appearance (Charcoal Titanium, prepared 2026-11-27)
+
+[TASK-039](/tasks/task-039-charcoal-titanium-one-design-system-for-the-services-interfa),
+[guide](/docs/guides/charcoal-titanium-the-shared-design-system-and-each-service): shared design tokens
+(`services/_shared/theme/tokens.json`, `make theme`, `make theme-check`), a static preview, and adapters for Homepage,
+Authentik, Argo CD, Forgejo (file only) and AdGuard Home. **Committed, not pushed and not deployed**: the push itself
+deploys Homepage and Authentik.
+
 ## pfSense (read, and one change by hand)
 
 Since 2026-11-27 the operator lets the workstation read pfSense: its `node_exporter` package is scraped (job
