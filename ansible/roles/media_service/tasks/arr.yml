@@ -1,0 +1,68 @@
+---
+# Radarr, Sonarr or Prowlarr from the project's own release archive, as a systemd service. The settings come from
+# the environment (the applications read <NAME>__SECTION__KEY), so nothing is edited in their configuration file.
+- name: Install what the application needs
+  ansible.builtin.apt:
+    name: [libicu76, sqlite3, postgresql-client]
+    state: present
+
+- name: Create the directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "/opt/{{ media_service }}-{{ media_versions[media_service] }}", owner: root, mode: "0755"}
+    - {path: "/var/lib/{{ media_service }}", owner: "{{ media_user }}", mode: "0750"}
+    - {path: /etc/media, owner: root, mode: "0755"}
+
+- name: Download the pinned release
+  ansible.builtin.get_url:
+    url: "{{ media_arr[media_service].url }}"
+    dest: "/opt/{{ media_service }}-{{ media_versions[media_service] }}.tar.gz"
+    checksum: "sha256:{{ media_checksums[media_service] }}"
+    mode: "0644"
+
+- name: Unpack it
+  ansible.builtin.unarchive:
+    src: "/opt/{{ media_service }}-{{ media_versions[media_service] }}.tar.gz"
+    dest: "/opt/{{ media_service }}-{{ media_versions[media_service] }}"
+    remote_src: true
+    owner: root
+    group: root
+    creates: "/opt/{{ media_service }}-{{ media_versions[media_service] }}/{{ media_arr[media_service].directory }}"
+
+- name: Point the service at this version
+  ansible.builtin.file:
+    src: "/opt/{{ media_service }}-{{ media_versions[media_service] }}/{{ media_arr[media_service].directory }}"
+    dest: "/opt/{{ media_service }}"
+    state: link
+  notify: Restart the service
+
+- name: Write the settings
+  ansible.builtin.template:
+    src: arr.env.j2
+    dest: "/etc/media/{{ media_service }}.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Restart the service
+
+- name: Write the unit
+  ansible.builtin.template:
+    src: arr.service.j2
+    dest: "/etc/systemd/system/{{ media_service }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart the service
+
+- name: Start the service
+  ansible.builtin.systemd_service:
+    name: "{{ media_service }}"
+    enabled: true
+    state: started
+    daemon_reload: true

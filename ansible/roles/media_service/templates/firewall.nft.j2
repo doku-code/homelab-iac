@@ -1,0 +1,22 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (role media_service): {{ media_service }}. Everything out, in only what is listed.
+flush ruleset
+
+table inet filter {
+  chain input {
+    type filter hook input priority filter; policy drop;
+    iif lo accept
+    ct state established,related accept
+    ct state invalid drop
+    meta l4proto { icmp, ipv6-icmp } accept
+    ip saddr {{ media_lan }} tcp dport 22 accept
+{% if media_service in media_open_services %}
+    ip saddr {{ media_lan }} tcp dport {{ media_ports[media_service] }} accept
+{% else %}
+    ip saddr { {{ (media_ingress_sources + [media_workstation] + (groups['media'] | map('extract', hostvars, 'ansible_host') | map('regex_replace', '$', '/32') | list)) | join(', ') }} } tcp dport {{ media_ports[media_service] }} accept
+{% endif %}
+  }
+  chain forward {
+    type filter hook forward priority filter; policy drop;
+  }
+}

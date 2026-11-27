@@ -1,0 +1,21 @@
+# Managed by Ansible (role media_service)
+[Unit]
+Description=Seerr {{ media_versions.seerr }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{ media_user }}
+Group={{ media_user }}
+WorkingDirectory=/opt/seerr
+EnvironmentFile=/etc/media/seerr.env
+ExecStart=/opt/node-{{ media_versions.node }}/bin/node dist/index.js
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

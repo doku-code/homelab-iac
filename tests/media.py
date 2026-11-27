@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Offline tests for the media stack (TASK-036): Compose project, firewall, protection of the NAS library,
-databases, routes, Make guards. No VM, no network."""
+"""Offline tests for the media services (TASK-036): one container per service, pinned native installs, firewall,
+protection of the NAS, connections, routes, Make guards. No container, no network."""
 import json
 import os
 import re
@@ -11,175 +11,159 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-ROLE = ROOT / "ansible/roles/media_stack"
+ROLE = ROOT / "ansible/roles/media_service"
 SECRETS = {name: f"synthetic-{name.lower()}-" + "x" * 32 for name in (
     "MEDIA_ADMIN_PASSWORD", "RADARR_API_KEY", "SONARR_API_KEY", "PROWLARR_API_KEY", "SEERR_API_KEY",
     "PG_APP_SEERR_PASSWORD", "PG_APP_RADARR_PASSWORD", "PG_APP_SONARR_PASSWORD", "PG_APP_PROWLARR_PASSWORD")}
-APPLICATIONS = {"jellyfin", "seerr", "radarr", "sonarr", "prowlarr", "qbittorrent"}
+SERVICES = {"jellyfin": "192.168.0.81", "seerr": "192.168.0.82", "radarr": "192.168.0.83", "sonarr": "192.168.0.84", "prowlarr": "192.168.0.85"}
+VARS = yaml.safe_load((ROOT / "ansible/vars/media.yml").read_text())
+DEFAULTS = (ROLE / "defaults/main.yml").read_text()
 
 
-def render(template, **extra):
+def render(template, service):
+    """Renders one template of the role for one container, with the inventory the OpenTofu root gives."""
     with tempfile.TemporaryDirectory() as directory:
         out = Path(directory) / "out"
+        inventory = Path(directory) / "inventory.json"
+        inventory.write_text(json.dumps({"all": {"children": {"media": {"hosts": {
+            name: {"ansible_host": address, "ansible_connection": "local", "media_service": name} for name, address in SERVICES.items()}}}}}))
         play = Path(directory) / "render.yml"
         play.write_text(yaml.safe_dump([{
-            "hosts": "localhost", "gather_facts": False,
+            "hosts": service, "gather_facts": False,
             "vars_files": [str(ROLE / "defaults/main.yml"), str(ROOT / "ansible/vars/media.yml")],
             "tasks": [{"ansible.builtin.template": {"src": str(ROLE / "templates" / template), "dest": str(out)}}]}]))
-        result = subprocess.run(
-            [str(ROOT / ".venv/bin/ansible-playbook"), "-i", "localhost,", "-c", "local", "-e", json.dumps(extra), str(play)],
-            capture_output=True, text=True, env={**os.environ, "ANSIBLE_NOCOLOR": "1", **SECRETS})
+        result = subprocess.run([str(ROOT / ".venv/bin/ansible-playbook"), "-i", str(inventory), str(play)],
+                                capture_output=True, text=True, env={**os.environ, "ANSIBLE_NOCOLOR": "1", **SECRETS})
         assert result.returncode == 0, result.stdout + result.stderr
         return out.read_text()
 
 
-def test_compose():
-    text = render("compose.yml.j2")
-    assert not [value for value in SECRETS.values() if value in text], "secrets are read from .env, never written into the project"
-    compose = yaml.safe_load(text)
-    services = compose["services"]
-    assert set(services) == APPLICATIONS and "volumes" not in compose, "no NAS share until its export is set"
-    images = yaml.safe_load((ROOT / "ansible/vars/media.yml").read_text())["media_images"]
-    for name, service in services.items():
-        assert service["image"] == images[name] and re.search(r":v?\d+\.\d+", service["image"]), f"{name}: pinned image"
-        assert service["restart"] == "unless-stopped" and service["security_opt"] == ["no-new-privileges:true"]
-        assert "privileged" not in service and "network_mode" not in service
-    # One tree under one path: imports are hard links. The torrent client sees downloads only.
-    assert "/srv/media/data:/data" in services["radarr"]["volumes"] and "/srv/media/data:/data" in services["sonarr"]["volumes"]
-    assert services["qbittorrent"]["volumes"][1] == "/srv/media/data/torrents:/data/torrents"
-    assert not [v for v in services["prowlarr"]["volumes"] if "/data" in v.split(":")[1]], "Prowlarr needs no media"
-    # Jellyfin only plays: the test area is read-only for it, and it has no device without the graphics adapter.
-    assert "/srv/media/data/media:/data/media:ro" in services["jellyfin"]["volumes"] and "devices" not in services["jellyfin"]
-    assert services["jellyfin"]["user"] == "2000:2000" == services["seerr"]["user"] and services["seerr"]["init"] is True
-    # Shared PostgreSQL for the four applications that support it, over TLS; Jellyfin keeps SQLite on the VM.
-    seerr = services["seerr"]["environment"]
-    assert seerr["DB_TYPE"] == "postgres" and seerr["DB_HOST"] == "192.168.0.60" and seerr["DB_USE_SSL"] == "true"
-    assert seerr["DB_PASS"] == "${PG_APP_SEERR_PASSWORD}" and seerr["API_KEY"] == "${SEERR_API_KEY}"
+def test_pinned_native_installs():
+    assert set(VARS["media_versions"]) == set(SERVICES) | {"node"}
+    assert set(VARS["media_checksums"]) == {"seerr", "node", "radarr", "sonarr", "prowlarr"}, "every download has its checksum"
+    assert all(re.fullmatch(r"[0-9a-f]{64}", value) for value in VARS["media_checksums"].values())
+    assert not any("latest" in str(value) for value in VARS["media_versions"].values())
+    tasks = {name: (ROLE / f"tasks/{name}.yml").read_text() for name in ("arr", "jellyfin", "seerr")}
+    assert tasks["arr"].count("checksum:") == 1 and tasks["seerr"].count("checksum:") == 2
+    assert 'name: "jellyfin={{ media_versions.jellyfin }}"' in tasks["jellyfin"] and "selection: hold" in tasks["jellyfin"]
+    assert "docker" not in "".join(tasks.values()).lower(), "no container runtime inside the containers"
+    assert "qbittorrent" not in DEFAULTS.split("\n", 3)[3] and "qbittorrent" not in "".join(tasks.values()), "qBittorrent is the NAS's own"
     for name in ("radarr", "sonarr", "prowlarr"):
-        environment, prefix = services[name]["environment"], name.upper()
-        assert environment[f"{prefix}__POSTGRES__HOST"] == "192.168.0.60" and environment[f"{prefix}__POSTGRES__USER"] == name
-        assert environment[f"{prefix}__POSTGRES__MAINDB"] == name and environment[f"{prefix}__POSTGRES__LOGDB"] == f"{name}_log"
-        assert environment[f"{prefix}__POSTGRES__PASSWORD"] == f"${{PG_APP_{prefix}_PASSWORD}}"
-        assert environment[f"{prefix}__AUTH__APIKEY"] == f"${{{prefix}_API_KEY}}" and environment[f"{prefix}__AUTH__METHOD"] == "Forms"
-        assert environment[f"{prefix}__SERVER__URLBASE"] == f"/{name}" and environment["PUID"] == "2000" and environment["UMASK"] == "002"
-    assert not [k for k in services["jellyfin"]["environment"] if "POSTGRES" in k or k.startswith("DB_")]
+        unit = render("arr.service.j2", name)
+        assert "User=media" in unit and "NoNewPrivileges=true" in unit and f"-data=/var/lib/{name}" in unit
+    assert "runuser -u {{ media_user }}" in tasks["seerr"] and "become" not in tasks["seerr"], "the containers have no sudo"
 
 
-def test_nas_library_is_read_only_and_for_jellyfin_alone():
-    compose = yaml.safe_load(render("compose.yml.j2", media_nas_export="/mnt/tank/media"))
-    volume = compose["volumes"]["nas-library"]
-    options = volume["driver_opts"]["o"].split(",")
-    assert volume["driver"] == "local" and volume["driver_opts"]["type"] == "nfs" and volume["driver_opts"]["device"] == ":/mnt/tank/media"
-    assert "addr=192.168.0.13" in options and "ro" in options and "rw" not in options, "the share is mounted read-only"
-    users = {name for name, service in compose["services"].items() if any(str(v).startswith("nas-library:") for v in service["volumes"])}
-    assert users == {"jellyfin"} and "nas-library:/data/nas:ro" in compose["services"]["jellyfin"]["volumes"]
-    # A Docker volume, not a directory of the VM: an absent NAS stops Jellyfin instead of showing an empty folder.
-    assert not [v for service in compose["services"].values() for v in service["volumes"] if str(v).startswith("/mnt")]
-    for name in ("radarr", "sonarr", "qbittorrent", "prowlarr", "seerr"):
-        assert not [v for v in compose["services"][name]["volumes"] if "nas" in str(v)], f"{name} has no path to the NAS"
+def test_settings_and_secrets():
+    for name in ("radarr", "sonarr", "prowlarr"):
+        text = render("arr.env.j2", name)
+        prefix = name.upper()
+        settings = dict(line.split("=", 1) for line in text.splitlines() if "=" in line and not line.startswith("#"))
+        assert settings[f"{prefix}__POSTGRES__HOST"] == "192.168.0.60" and settings[f"{prefix}__POSTGRES__MAINDB"] == name
+        assert settings[f"{prefix}__POSTGRES__LOGDB"] == f"{name}_log" and settings[f"{prefix}__POSTGRES__USER"] == name
+        assert settings[f"{prefix}__POSTGRES__PASSWORD"] == SECRETS[f"PG_APP_{prefix}_PASSWORD"]
+        assert settings[f"{prefix}__AUTH__APIKEY"] == SECRETS[f"{prefix}_API_KEY"][:32], "exactly 32 characters"
+        assert settings[f"{prefix}__AUTH__METHOD"] == "Forms" and settings[f"{prefix}__SERVER__URLBASE"] == f"/{name}"
+        assert settings[f"{prefix}__UPDATE__AUTOMATICALLY"] == "False", "versions change in Git"
+    seerr = dict(line.split("=", 1) for line in render("seerr.env.j2", "seerr").splitlines() if "=" in line and not line.startswith("#"))
+    assert seerr["DB_TYPE"] == "postgres" and seerr["DB_HOST"] == "192.168.0.60" and seerr["DB_USE_SSL"] == "true"
+    assert seerr["DB_PASS"] == SECRETS["PG_APP_SEERR_PASSWORD"] and seerr["CONFIG_DIRECTORY"] == "/var/lib/seerr"
+    # No secret has a value in Git: the role reads them from the environment and writes them root-only.
+    assert DEFAULTS.count("lookup('ansible.builtin.env'") == 9
+    for tasks in ("arr", "seerr"):
+        text = (ROLE / f"tasks/{tasks}.yml").read_text()
+        block = text[text.index("- name: Write the settings"):text.index("- name: Write the unit")]
+        assert 'mode: "0600"' in block and "no_log: true" in block
 
 
-def test_graphics_adapter():
-    compose = yaml.safe_load(render("compose.yml.j2", media_gpu=True, media_render_gid=993))
-    jellyfin = compose["services"]["jellyfin"]
-    assert jellyfin["devices"] == ["/dev/dri/renderD128:/dev/dri/renderD128"] and jellyfin["group_add"] == ["993"]
-    assert "privileged" not in jellyfin
-    assert not [name for name, service in compose["services"].items() if name != "jellyfin" and "devices" in service]
-    tasks = yaml.safe_load((ROLE / "tasks/main.yml").read_text())
-    by_name = {task["name"]: task for task in tasks}
-    assert by_name["Refuse to continue without the render device"]["when"] == "media_gpu | bool"
-    assert "enable_guc=2" in by_name["Load the GuC and HuC firmware"]["ansible.builtin.copy"]["content"], "low-power encoding needs HuC"
-    # At boot Docker waits for the device the driver creates late; otherwise Jellyfin stays stopped after a reboot.
-    drop_in = by_name["Tie Docker to the data filesystem"]["ansible.builtin.copy"]["content"]
-    assert "{% if media_gpu %}" in drop_in and "Wants={{ media_gpu_render_device" in drop_in and "After={{ media_gpu_render_device" in drop_in
-    assert 'TAG+="systemd"' in by_name["Let systemd wait for the render device"]["ansible.builtin.copy"]["content"]
+def test_firewall():
+    lan, tools = "192.168.0.0/24", {"radarr": 7878, "sonarr": 8989, "prowlarr": 9696}
+    for name, port in {"jellyfin": 8096, "seerr": 5055}.items():
+        text = render("firewall.nft.j2", name)
+        assert "policy drop" in text and f"ip saddr {lan} tcp dport {port} accept" in text, "their own sign-in, for the LAN"
+    for name, port in tools.items():
+        text = render("firewall.nft.j2", name)
+        (rule,) = [line for line in text.splitlines() if f"tcp dport {port} accept" in line]
+        sources = set(re.search(r"\{ (.+) \}", rule).group(1).split(", "))
+        assert sources == {"192.168.0.40/29", "192.168.0.48/31", "192.168.0.39/32"} | {f"{a}/32" for a in SERVICES.values()}, sources
+        assert lan not in rule, "the tools answer Traefik (after Authentik), each other and the workstation only"
+        assert f"ip saddr {lan} tcp dport 22 accept" in text and "8080" not in text
 
 
-def test_firewall_and_disk():
-    firewall = render("firewall.nft.j2", media_lan_interface="eth0")
-    rules = "\n".join(line for line in firewall.splitlines() if not line.startswith("#"))
-    assert "flush ruleset" not in rules, "Docker's rules are left alone"
-    assert 'iifname "eth0" ip saddr != { 192.168.0.40/29, 192.168.0.48/31 } tcp dport { 7878, 8989, 9696, 8080 } drop' in firewall
-    assert "8096" not in firewall.split("table inet media_stack {")[1] and "5055" not in firewall.split("table inet media_stack {")[1]
-    handlers = {h["name"]: h for h in yaml.safe_load((ROLE / "handlers/main.yml").read_text())}
-    assert handlers["Reload media firewall"]["ansible.builtin.command"]["argv"] == ["/usr/sbin/nft", "-f", "/etc/nftables.conf"]
-    tasks = yaml.safe_load((ROLE / "tasks/main.yml").read_text())
-    names = [task["name"] for task in tasks]
-    by_name = {task["name"]: task for task in tasks}
-    filesystem = by_name["Create or grow the data filesystem"]["community.general.filesystem"]
-    assert filesystem["force"] is False and filesystem["resizefs"] is True, "never re-format existing data"
-    defaults = yaml.safe_load((ROLE / "defaults/main.yml").read_text())
-    assert "scsi1" in defaults["media_data_device"], "the data disk, never the system disk"
-    # No data disk, no Docker; and nothing is written below the mount point before it is mounted.
-    assert "ConditionPathIsMountPoint={{ media_root }}" in by_name["Tie Docker to the data filesystem"]["ansible.builtin.copy"]["content"]
-    assert names.index("Mount the data filesystem") < names.index("Create the configuration and cache directories") < names.index("Start the applications")
-    assert names.index("Refuse to continue without the data disk") < names.index("Create or grow the data filesystem")
-    for name in ("Write the secrets of the project", "Derive qBittorrent's password line", "Give qBittorrent its first configuration"):
-        assert by_name[name].get("no_log") is True, name
-    assert by_name["Give qBittorrent its first configuration"]["ansible.builtin.template"]["force"] is False
+def test_the_nas_is_never_writable():
+    script = (ROOT / "scripts/pve-media-mounts.sh").read_text()
+    lines = [line for line in script.splitlines() if not line.lstrip().startswith("#")]
+    fstab = next(line for line in lines if " nfs " in line)
+    assert " nfs ro," in fstab and "nofail" in fstab, "mounted read-only on the node, which boots without the NAS"
+    assert 'grep -qx ro || { echo "$point is not read-only"' in script, "refuses a share that came up writable"
+    assert "chattr +i" in script, "nothing is written under an absent share"
+    nas_mounts = re.findall(r'-mp\d "\$(library|downloads),mp=[^"]+"', script)
+    assert sorted(nas_mounts) == ["downloads", "library"]
+    assert all(",ro=1" in m for m in re.findall(r'-mp\d "\$(?:library|downloads)[^"]+"', script)), "bound read-only into the containers"
+    jellyfin = next(line for line in lines if line.startswith('configure "$jellyfin"'))
+    assert '"$area,mp=/data/media,ro=1"' in jellyfin and "-dev0" in jellyfin and "$downloads" not in jellyfin, "Jellyfin only reads"
+    tools = next(line for line in lines if '-mp1 "$area,mp=/data/media"' in line)
+    assert "$library" not in tools, "Radarr and Sonarr never see the Plex library"
+    assert not re.search(r"\b(pct destroy|qm destroy|rm -rf|pveum)\b", script)
+    # Jellyfin refuses to start on an empty library instead of dropping it from its database.
+    jellyfin_tasks = (ROLE / "tasks/jellyfin.yml").read_text()
+    assert "ExecStartPre=" in jellyfin_tasks and "is empty: the NAS share is not mounted" in jellyfin_tasks
+    assert [library["path"] for library in VARS["media_nas_libraries"]] == ["Movies", "Series", "Animes"]
 
 
-def test_connections_script():
-    text = (ROLE / "files/media-configure.py").read_text()
-    compile(text, "media-configure.py", "exec")
-    assert '"DELETE"' not in text, "the script creates and connects, it never removes"
-    assert "print(PASSWORD" not in text and "print(KEYS" not in text and "redact(text)" in text
-    assert 'TEST_MOVIES = os.environ["MEDIA_TEST_MOVIES"]' in text and "/data/nas/" in text
-    defaults = yaml.safe_load((ROLE / "defaults/main.yml").read_text())
-    assert defaults["media_test_movies"] == "/data/media/test-movies" and defaults["media_test_series"] == "/data/media/test-series"
-    assert not [d for d in defaults["media_test_dirs"] if "nas" in d]
-    backup = render("media-backup.j2")
-    assert "pg_dump" in backup and ".backup" in backup and "umask 077" in backup
-    for database in ("seerr", "radarr", "radarr_log", "sonarr", "sonarr_log", "prowlarr", "prowlarr_log"):
-        assert f":{database} " in backup + " " or f":{database}" in backup, database
+def test_connections():
+    script = (ROOT / "scripts/media-connect.py").read_text()
+    assert '"removeCompletedDownloads": False, "removeFailedDownloads": False' in script, "nothing is removed from the operator's qBittorrent"
+    assert "SECRETS = [PASSWORD, QBIT_PASSWORD, *KEYS.values()]" in script and "redact(text)" in script
+    assert 'os.environ["MEDIA_QBIT_URL"]' in script and "127.0.0.1:8080" not in script
+    assert '"inside": "http://radarr:7878/radarr"' in script, "the applications reach each other by container name"
+    hosts = (ROLE / "tasks/main.yml").read_text()
+    assert "path: /etc/hosts" in hosts and "/etc/.pve-ignore.hosts" in hosts
+    compiled = subprocess.run([str(ROOT / ".venv/bin/python"), "-m", "py_compile", str(ROOT / "scripts/media-connect.py")], capture_output=True)
+    assert compiled.returncode == 0
 
 
 def test_databases_routes_and_names():
-    apps = {a["name"]: a for a in yaml.safe_load((ROOT / "ansible/vars/postgresql-apps.yml").read_text())["postgresql_apps"]}
-    assert {"seerr", "radarr", "sonarr", "prowlarr"} <= set(apps) and "jellyfin" not in apps, "Jellyfin supports SQLite only"
-    for name in ("radarr", "sonarr", "prowlarr"):
-        assert apps[name]["extra_databases"] == [f"{name}_log"]
     patroni = yaml.safe_load((ROOT / "ansible/roles/patroni_postgresql/defaults/main.yml").read_text())
-    assert "192.168.0.80/32" in patroni["patroni_clients"], "media-01 alone, not its range"
-    documents = [d for d in yaml.safe_load_all((ROOT / "services/media/access.yaml").read_text()) if d]
-    assert all(d["metadata"].get("namespace", "media-edge") == "media-edge" for d in documents if d["kind"] != "Namespace")
-    slices = [d for d in documents if d["kind"] == "EndpointSlice"]
-    assert {d["metadata"]["name"] for d in slices} == APPLICATIONS and all(d["endpoints"] == [{"addresses": ["192.168.0.80"]}] for d in slices)
-    routes = [r for d in documents if d["kind"] == "IngressRoute" for r in d["spec"]["routes"]]
-    assert all({"name": "admin-lan"} in r["middlewares"] for r in routes), "LAN only"
-    tools = [r for r in routes if "media.doku-lab.net" in r["match"]]
-    assert len(tools) == 5 and all({"name": "authentik"} in r["middlewares"] for r in tools), "the tools ask Authentik"
+    assert {"192.168.0.82/31", "192.168.0.84/31"} <= set(patroni["patroni_clients"]), "the four containers with a database, not the range"
+    assert "192.168.0.80/32" not in patroni["patroni_clients"], "the retired VM is no client any more"
+    apps = yaml.safe_load((ROOT / "ansible/vars/postgresql-apps.yml").read_text())
+    names = json.dumps(apps)
+    assert all(name in names for name in ("seerr", "radarr_log", "sonarr_log", "prowlarr_log")) and "jellyfin" not in names
+    documents = list(yaml.safe_load_all((ROOT / "services/media/access.yaml").read_text()))
+    slices = {d["metadata"]["name"]: d["endpoints"][0]["addresses"] for d in documents if d["kind"] == "EndpointSlice"}
+    assert slices == {name: [address] for name, address in SERVICES.items()}, slices
+    assert not any("qbittorrent" in json.dumps(d) for d in documents), "qBittorrent has no route here"
+    routes = [route for d in documents if d["kind"] == "IngressRoute" for route in d["spec"]["routes"]]
+    assert all({"name": "admin-lan"} in route["middlewares"] for route in routes), "LAN only"
+    tools = [route for route in routes if "media.doku-lab.net" in route["match"]]
+    assert len(tools) == 4 and all({"name": "authentik"} in route["middlewares"] for route in tools), "the tools ask Authentik"
     open_names = {re.search(r"Host\(`([^`]+)`\)", r["match"]).group(1) for r in routes if {"name": "authentik"} not in r["middlewares"]}
-    assert open_names == {"jellyfin.doku-lab.net", "seerr.doku-lab.net"}, "only the two applications with their own sign-in"
-    rewrites = {r["domain"]: r["answer"] for r in yaml.safe_load((ROOT / "ansible/vars/dns.yml").read_text())["adguard_rewrites"]}
-    for name in ("jellyfin", "seerr", "media"):
-        assert rewrites[f"{name}.doku-lab.net"] == "192.168.0.45"
-    ingress = yaml.safe_load((ROOT / "services/argocd/apps/ingress.yaml").read_text())
-    assert {"path": "services/media", "directory": {"include": "access.yaml"}}.items() <= [s for s in ingress["spec"]["sources"] if s.get("path") == "services/media"][0].items()
+    assert open_names == {"jellyfin.doku-lab.net", "seerr.doku-lab.net"}
+    dns = (ROOT / "ansible/vars/dns.yml").read_text()
+    assert all(f"domain: {name}.doku-lab.net, answer: 192.168.0.45" in dns for name in ("jellyfin", "seerr", "media"))
 
 
 def test_make_guards():
     makefile = (ROOT / "Makefile").read_text()
-    for target, guard in (("media-plan", "MEDIA_ALLOCATION_REVIEWED"), ("media-apply", "MEDIA_APPLY_APPROVED"),
-                          ("media-configure", "MEDIA_CONFIGURE_APPROVED"), ("media-gpu-mapping", "MEDIA_GPU_MAPPING_APPROVED"),
-                          ("media-secrets", "MEDIA_SECRETS_APPROVED")):
-        recipe = re.search(rf"^{target}:\n((?:\t.*\n)+)", makefile, re.M).group(1)
-        assert f'test "$({guard})" = yes' in recipe.splitlines()[0], target
-    for target in ("media-plan", "media-apply", "media-configure", "media-gpu-mapping", "media-secrets"):
-        result = subprocess.run(["make", "-C", str(ROOT), target], capture_output=True, text=True)
-        assert result.returncode != 0 and ("pprov" in result.stderr or "Confirm" in result.stderr), target
-    mapping = (ROOT / "scripts/pve-gpu-mapping-add.sh").read_text()
-    assert "pveum" not in mapping and "shares its IOMMU group" in mapping, "no permission is created; a shared group is refused"
-    example = (ROOT / "terraform/stacks/media/terraform.tfvars.example").read_text()
-    assert 'node         = "pve-infra"' in example and "192.168.0.80/24" in example and "generic-amd64" in example
+    for gate in ("MEDIA_APPLY_APPROVED", "MEDIA_CONFIGURE_APPROVED", "MEDIA_MOUNTS_APPROVED", "MEDIA_CONNECT_APPROVED", "MEDIA_SECRETS_APPROVED"):
+        assert f'test "$({gate})" = yes' in makefile, gate
+    env = {key: value for key, value in os.environ.items() if not key.startswith("MEDIA_")}
+    for target in ("media-apply", "media-configure", "media-mounts", "media-connect"):
+        result = subprocess.run(["make", "-C", str(ROOT), target], capture_output=True, text=True, env=env)
+        assert result.returncode != 0 and "APPROVED=yes" in result.stderr, target
+    backup = (ROOT / "scripts/media-backup.sh").read_text()
+    assert backup.count("pg_dump") == 2 and "sqlite3" in backup and "PGSSLMODE=require" in backup
+    assert not (ROOT / "ansible/roles/media_stack").exists(), "the Compose role is gone with the VM's stack"
 
 
 def main():
-    for test in (test_compose, test_nas_library_is_read_only_and_for_jellyfin_alone, test_graphics_adapter, test_firewall_and_disk,
-                 test_connections_script, test_databases_routes_and_names, test_make_guards):
+    tests = [test_pinned_native_installs, test_settings_and_secrets, test_firewall, test_the_nas_is_never_writable,
+             test_connections, test_databases_routes_and_names, test_make_guards]
+    for test in tests:
         test()
-    print("PASS: six pinned applications, one data tree for hard links, NAS read-only and for Jellyfin alone through a Docker volume, "
-          "shared PostgreSQL over TLS for four applications, tools behind Authentik and the firewall, no data disk no Docker, Make guards")
+    print(f"PASS: {len(tests)} tests: pinned native installs, settings without secrets in Git, firewall per container, "
+          "NAS read-only at every layer, connections, databases and routes, Make guards")
 
 
 if __name__ == "__main__":

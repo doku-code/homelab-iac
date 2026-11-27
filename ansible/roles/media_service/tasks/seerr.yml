@@ -1,0 +1,114 @@
+---
+# Seerr built from its tagged source with the Node.js release it asks for (Debian's is older), as a systemd
+# service. Users and requests are in PostgreSQL; its settings file is on the container's disk.
+- name: Install what the build needs
+  ansible.builtin.apt:
+    name: [build-essential, git, python3, postgresql-client]
+    state: present
+
+- name: Create the directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "/opt/node-{{ media_versions.node }}", owner: root, mode: "0755"}
+    - {path: "/opt/seerr-{{ media_versions.seerr }}", owner: "{{ media_user }}", mode: "0755"}
+    - {path: /var/lib/seerr, owner: "{{ media_user }}", mode: "0750"}
+    - {path: /etc/media, owner: root, mode: "0755"}
+
+- name: Download the pinned Node.js
+  ansible.builtin.get_url:
+    url: "https://nodejs.org/dist/v{{ media_versions.node }}/node-v{{ media_versions.node }}-linux-x64.tar.xz"
+    dest: "/opt/node-{{ media_versions.node }}.tar.xz"
+    checksum: "sha256:{{ media_checksums.node }}"
+    mode: "0644"
+
+- name: Unpack Node.js
+  ansible.builtin.unarchive:
+    src: "/opt/node-{{ media_versions.node }}.tar.xz"
+    dest: "/opt/node-{{ media_versions.node }}"
+    remote_src: true
+    extra_opts: [--strip-components=1]
+    creates: "/opt/node-{{ media_versions.node }}/bin/node"
+
+- name: Download the pinned Seerr source
+  ansible.builtin.get_url:
+    url: "https://github.com/seerr-team/seerr/archive/refs/tags/{{ media_versions.seerr }}.tar.gz"
+    dest: "/opt/seerr-{{ media_versions.seerr }}.tar.gz"
+    checksum: "sha256:{{ media_checksums.seerr }}"
+    mode: "0644"
+
+- name: Unpack the source
+  ansible.builtin.unarchive:
+    src: "/opt/seerr-{{ media_versions.seerr }}.tar.gz"
+    dest: "/opt/seerr-{{ media_versions.seerr }}"
+    remote_src: true
+    owner: "{{ media_user }}"
+    group: "{{ media_user }}"
+    extra_opts: [--strip-components=1]
+    creates: "/opt/seerr-{{ media_versions.seerr }}/package.json"
+
+- name: Write the build script
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/seerr-build
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (role media_service). Builds the Seerr source of the current directory.
+      set -eu
+      export PATH="/opt/node-{{ media_versions.node }}/bin:$PATH" HOME=/var/lib/seerr CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+      export COMMIT_TAG="{{ media_versions.seerr }}" NODE_OPTIONS=--max-old-space-size=2048
+      # The project's own scripts call pnpm by name: corepack puts the version the project pins on the path.
+      mkdir -p "$HOME/bin"
+      corepack enable --install-directory "$HOME/bin"
+      export PATH="$HOME/bin:$PATH"
+      pnpm install --frozen-lockfile
+      pnpm build
+      pnpm prune --prod --ignore-scripts
+      touch .built
+    mode: "0755"
+
+# About ten minutes on this processor, as the service's user (the container has no sudo: runuser). The marker
+# is written last, so an interrupted build runs again.
+- name: Build Seerr
+  ansible.builtin.command:
+    cmd: runuser -u {{ media_user }} -- /usr/local/sbin/seerr-build
+    chdir: "/opt/seerr-{{ media_versions.seerr }}"
+    creates: "/opt/seerr-{{ media_versions.seerr }}/.built"
+  async: 3000
+  poll: 20
+
+- name: Point the service at this version
+  ansible.builtin.file:
+    src: "/opt/seerr-{{ media_versions.seerr }}"
+    dest: /opt/seerr
+    state: link
+  notify: Restart the service
+
+- name: Write the settings
+  ansible.builtin.template:
+    src: seerr.env.j2
+    dest: /etc/media/seerr.env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Restart the service
+
+- name: Write the unit
+  ansible.builtin.template:
+    src: seerr.service.j2
+    dest: /etc/systemd/system/seerr.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart the service
+
+- name: Start the service
+  ansible.builtin.systemd_service:
+    name: seerr
+    enabled: true
+    state: started
+    daemon_reload: true

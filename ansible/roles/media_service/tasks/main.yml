@@ -1,0 +1,78 @@
+---
+- name: Check what this container is and that its secrets are in the environment
+  ansible.builtin.assert:
+    that:
+      - media_service in media_ports
+      - media_versions[media_service] is defined
+      - media_service == 'jellyfin' or (media_api_keys[media_service] | length >= 32 and media_database_passwords[media_service] | length >= 20)
+    fail_msg: "Unknown service, no pinned version, or secrets missing (store paths /media and /postgresql)"
+    quiet: true
+  no_log: true
+
+- name: Install the base packages
+  ansible.builtin.apt:
+    name: [ca-certificates, curl, gnupg, nftables, xz-utils]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Set the timezone
+  community.general.timezone:
+    name: "{{ media_timezone }}"
+
+- name: Name the other media containers
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\s{{ item }}$'
+    line: "{{ hostvars[item].ansible_host }} {{ item }}"
+  loop: "{{ groups['media'] | difference([inventory_hostname]) }}"
+
+# Proxmox rewrites /etc/hosts at every start unless told the file is ours.
+- name: Keep /etc/hosts across restarts
+  ansible.builtin.copy:
+    dest: /etc/.pve-ignore.hosts
+    content: ""
+    mode: "0644"
+
+- name: Create the group the mounted directories belong to
+  ansible.builtin.group:
+    name: "{{ media_user }}"
+    gid: "{{ media_gid }}"
+
+- name: Create the user the service runs as
+  ansible.builtin.user:
+    name: "{{ media_user }}"
+    uid: "{{ media_uid }}"
+    group: "{{ media_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: /var/lib/{{ media_service }}
+    create_home: false
+  when: media_service != 'jellyfin'
+
+- name: Write the firewall
+  ansible.builtin.template:
+    src: firewall.nft.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/sbin/nft -c -f %s
+  notify: Reload the firewall
+
+- name: Start the firewall at boot
+  ansible.builtin.systemd_service:
+    name: nftables
+    enabled: true
+    state: started
+
+- name: Install the service
+  ansible.builtin.include_tasks: "{{ 'arr' if media_service in media_arr else media_service }}.yml"
+
+- name: Apply a changed firewall or unit before waiting for the service
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for the service to answer
+  ansible.builtin.wait_for:
+    port: "{{ media_ports[media_service] }}"
+    timeout: 180

@@ -67,7 +67,7 @@ gantt
 | TASK-022 | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) |
 | TASK-030 | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](../tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md) |
 | TASK-035 | medium | M010 | [Documentation maps: hub pages generated from the repository and a wiki with a curated sidebar](../tasks/TASK-035-documentation-maps-hub-pages-generated-from-the-repository-a.md) |
-| TASK-036 | medium | M010 | [Media stack on pve-infra: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on a Compose VM](../tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md) |
+| TASK-036 | medium | M010 | [Media services on pve-infra: Jellyfin, Seerr, Radarr, Sonarr and Prowlarr, one container each](../tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md) |
 | TASK-037 | medium | M010 | [TrueNAS under management: metrics in Grafana, apps as code, housekeeping](../tasks/TASK-037-truenas-under-management-metrics-in-grafana-apps-as-code-hou.md) |
 
 ### planned

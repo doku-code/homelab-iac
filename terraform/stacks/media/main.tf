@@ -25,10 +25,10 @@ resource "proxmox_virtual_environment_vm" "media" {
   node_name           = var.profile.node
   vm_id               = var.profile.vm_id
   name                = var.profile.name
-  description         = "Media stack under Docker Compose: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr, qBittorrent (homelab-iac terraform/stacks/media, TASK-036)."
+  description         = "RETIRED on 2026-11-27: replaced by one container per service (containers.tf). Stopped, kept until the operator approves its deletion (homelab-iac terraform/stacks/media, TASK-036)."
   tags                = ["terraform", "media"]
   started             = true
-  on_boot             = true
+  on_boot             = false
   reboot_after_update = false
   machine             = "q35"
   bios                = "seabios"

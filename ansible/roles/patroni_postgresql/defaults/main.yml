@@ -17,7 +17,7 @@ patroni_failover_priority: 1
 patroni_group: postgresql
 patroni_members: "{{ groups[patroni_group] | sort }}"
 patroni_member_addresses: "{{ patroni_members | map('extract', hostvars, 'ansible_host') | list }}"
-patroni_clients: [192.168.0.40/29, 192.168.0.48/31, 192.168.0.80/32]
+patroni_clients: [192.168.0.40/29, 192.168.0.48/31, 192.168.0.82/31, 192.168.0.84/31]
 patroni_etcd_endpoints: "{{ patroni_member_addresses | map('regex_replace', '^(.*)$', 'http://\\1:2379') | join(',') }}"
 patroni_etcd_initial_cluster: "{% for member in patroni_members %}{{ member }}=http://{{ hostvars[member].ansible_host }}:2380{{ ',' if not loop.last }}{% endfor %}"
 

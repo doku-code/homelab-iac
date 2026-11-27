@@ -1,21 +1,22 @@
-output "address" {
-  value = split("/", var.profile.ipv4)[0]
+output "addresses" {
+  value = { for name, c in var.containers : name => split("/", c.ipv4)[0] }
 }
 
-# Consumed by `make media-configure` and `make media-hostkeys` (written to .local/, never committed).
+# Consumed by `make media-configure`, `make media-hostkeys` and `make media-mounts` (written to .local/, never
+# committed). One host per container, named after its service; the retired VM is not in it.
 output "ansible_inventory" {
   value = {
     all = {
       children = {
         media = {
           hosts = {
-            (var.profile.name) = {
-              ansible_host               = split("/", var.profile.ipv4)[0]
-              ansible_user               = var.admin_username
+            for name, c in var.containers : name => {
+              ansible_host               = split("/", c.ipv4)[0]
+              ansible_user               = "root"
               ansible_python_interpreter = "/usr/bin/python3"
-              proxmox_node               = var.profile.node
-              vm_id                      = var.profile.vm_id
-              media_gpu                  = var.profile.gpu_mapping != null
+              proxmox_node               = var.node
+              vm_id                      = c.vm_id
+              media_service              = name
             }
           }
         }

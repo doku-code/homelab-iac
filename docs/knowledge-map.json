@@ -3008,8 +3008,8 @@
     },
     {
       "id": "GUIDE-media-stack",
-      "title": "Media stack: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on media-01",
-      "summary": "What runs on media-01, where its data lives, how to operate, test, back up and restore it, and how to give it the NAS library.",
+      "title": "Media services: Jellyfin, Seerr, Radarr, Sonarr and Prowlarr, one container each on pve-infra",
+      "summary": "What runs where, how a request travels, how the NAS is protected, and how to operate, test, back up and restore the media services.",
       "importance": 3,
       "lifecycle": "active",
       "topics": [
@@ -3021,18 +3021,21 @@
         "prowlarr",
         "qbittorrent",
         "postgresql",
-        "gpu"
+        "gpu",
+        "truenas"
       ],
       "applies_to": [],
       "source_paths": [
         "terraform/stacks/media",
-        "ansible/roles/media_stack",
+        "ansible/roles/media_service",
         "ansible/vars/media.yml",
         "ansible/playbooks/configure-media.yml",
+        "scripts/pve-media-mounts.sh",
+        "scripts/media-connect.py",
         "services/media/access.yaml",
         "tests/media.py"
       ],
-      "last_verified": "2026-11-26",
+      "last_verified": "2026-11-27",
       "review_after": null,
       "type": "guide",
       "status": "current",
@@ -3041,7 +3044,7 @@
         "guide",
         "media",
         "jellyfin",
-        "docker-compose"
+        "lxc"
       ],
       "component": null,
       "technology": null,
@@ -3050,29 +3053,32 @@
       "source": null,
       "version": null,
       "headings": [
-        "Media stack: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on media-01",
+        "Media services on pve-infra",
         "What runs where",
+        "Names and sign-in",
         "How a request travels",
-        "Storage and the protection of the Plex library",
-        "NAS: what the operator still has to do",
+        "Storage and the protection of the NAS",
         "Operation",
-        "Indexers, and a safe test of one movie and one series",
+        "Indexers, and one safe test",
         "Hardware transcoding",
-        "Database access, backup and recovery",
-        "Pulsarr (not deployed)",
-        "What was verified on 2026-11-26"
+        "Backup and restore",
+        "Pulsarr",
+        "Verification"
       ],
       "relations": {
         "related": [
           "TASK-036",
+          "TASK-037",
           "ADR-015",
           "ADR-017"
         ],
         "source_paths": [
           "terraform/stacks/media",
-          "ansible/roles/media_stack",
+          "ansible/roles/media_service",
           "ansible/vars/media.yml",
           "ansible/playbooks/configure-media.yml",
+          "scripts/pve-media-mounts.sh",
+          "scripts/media-connect.py",
           "services/media/access.yaml",
           "tests/media.py"
         ]
@@ -7328,8 +7334,8 @@
     },
     {
       "id": "TASK-036",
-      "title": "Media stack on pve-infra: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on a Compose VM",
-      "summary": "VM media-01 on pve-infra with Docker Compose: Jellyfin, Seerr, the Arr tools and qBittorrent; shared PostgreSQL, NAS read-only, a test area.",
+      "title": "Media services on pve-infra: Jellyfin, Seerr, Radarr, Sonarr and Prowlarr, one container each",
+      "summary": "One unprivileged container per media service on pve-infra, the NAS's qBittorrent as download client; shared PostgreSQL, NAS read-only, a test area.",
       "importance": null,
       "lifecycle": "active",
       "topics": [],
@@ -7359,6 +7365,7 @@
         "Verification",
         "Tests",
         "Evidence",
+        "Rebuild as containers (2026-11-27)",
         "Completion summary"
       ],
       "relations": {
@@ -7425,7 +7432,12 @@
           "M010"
         ]
       },
-      "backrefs": []
+      "backrefs": [
+        {
+          "from": "GUIDE-media-stack",
+          "field": "related"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -7684,7 +7696,6 @@
       "TASK-022"
     ],
     "docker-compose": [
-      "GUIDE-media-stack",
       "TASK-036"
     ],
     "documentation": [
@@ -7817,6 +7828,9 @@
     ],
     "loki": [
       "TASK-020"
+    ],
+    "lxc": [
+      "GUIDE-media-stack"
     ],
     "m002": [
       "TASK-013"

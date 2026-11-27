@@ -1,0 +1,81 @@
+---
+# Jellyfin from its own Debian repository. Its database is SQLite, on the container's disk (it supports nothing
+# else). The graphics device and the libraries arrive through `make media-mounts`.
+- name: Install the tool the archive copies the databases with
+  ansible.builtin.apt:
+    name: sqlite3
+    state: present
+
+- name: Add the Jellyfin repository key
+  ansible.builtin.get_url:
+    url: https://repo.jellyfin.org/jellyfin_team.gpg.key
+    dest: /etc/apt/keyrings/jellyfin.asc
+    mode: "0644"
+
+- name: Add the Jellyfin repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/jellyfin.sources
+    content: |
+      # Managed by Ansible (role media_service)
+      Types: deb
+      URIs: https://repo.jellyfin.org/debian
+      Suites: trixie
+      Components: main
+      Architectures: amd64
+      Signed-By: /etc/apt/keyrings/jellyfin.asc
+    mode: "0644"
+  register: media_jellyfin_repository
+
+# The group the node's graphics device is handed to; udev, which creates it on a machine, is not in a container.
+- name: Create the group of the graphics device
+  ansible.builtin.group:
+    name: render
+    system: true
+
+- name: Install the pinned Jellyfin
+  ansible.builtin.apt:
+    name: "jellyfin={{ media_versions.jellyfin }}"
+    state: present
+    update_cache: "{{ media_jellyfin_repository is changed }}"
+    allow_downgrade: true
+
+- name: Keep that version until the repository says otherwise
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: [jellyfin, jellyfin-server, jellyfin-web]
+
+- name: Let Jellyfin read the libraries and use the graphics device
+  ansible.builtin.user:
+    name: jellyfin
+    groups: ["{{ media_user }}", render]
+    append: true
+  notify: Restart the service
+
+- name: Create the unit's drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/jellyfin.service.d
+    state: directory
+    mode: "0755"
+
+# An absent NAS leaves an empty directory: Jellyfin must not scan it and drop the library from its database.
+- name: Refuse to start without the Plex library when it is configured
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/jellyfin.service.d/10-library.conf
+    content: |
+      # Managed by Ansible (role media_service)
+      [Service]
+      {% if media_nas_libraries | length > 0 %}
+      ExecStartPre=/bin/sh -c 'test -n "$(ls -A {{ media_nas_library }} 2>/dev/null)" || { echo "{{ media_nas_library }} is empty: the NAS share is not mounted on the node" >&2; exit 1; }'
+      {% endif %}
+      Restart=on-failure
+      RestartSec=60
+    mode: "0644"
+  notify: Restart the service
+
+- name: Start the service
+  ansible.builtin.systemd_service:
+    name: jellyfin
+    enabled: true
+    state: started
+    daemon_reload: true

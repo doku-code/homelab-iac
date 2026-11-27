@@ -54,7 +54,7 @@ def test_templates():
     firewall = render("firewall.nft.j2")
     members = ", ".join(MEMBERS.values())
     assert f"ip saddr {{ {members} }} tcp dport {{ 2379, 2380, 5432, 8008 }} accept" in firewall
-    assert "ip saddr { 192.168.0.40/29, 192.168.0.48/31, 192.168.0.80/32 } tcp dport 5432 accept" in firewall, "k3s nodes and the media VM"
+    assert "ip saddr { 192.168.0.40/29, 192.168.0.48/31, 192.168.0.82/31, 192.168.0.84/31 } tcp dport 5432 accept" in firewall, "k3s nodes and the media VM"
     assert "tcp dport { 2379, 2380, 5432, 8008 } drop" in firewall and "flush ruleset" not in firewall
 
     patroni = yaml.safe_load(render("patroni.yml.j2"))
@@ -76,9 +76,9 @@ def test_templates():
     # A member that was leader when its host stopped rewinds by itself: Patroni asks it for its own timeline first.
     assert network[:2] == ["hostssl replication replicator 127.0.0.1/32 scram-sha-256", "hostssl replication replicator ::1/128 scram-sha-256"]
     # Applications reach only the database named like their role; the superuser has no network rule at all.
-    clients = [rule for rule in network if "192.168.0.4" in rule or "192.168.0.80" in rule]
+    clients = [rule for rule in network if "192.168.0.4" in rule or "192.168.0.8" in rule and "sameuser" in rule]
     assert clients == ["hostssl sameuser +app 192.168.0.40/29 scram-sha-256", "hostssl sameuser +app 192.168.0.48/31 scram-sha-256",
-                       "hostssl sameuser +app 192.168.0.80/32 scram-sha-256"]
+                       "hostssl sameuser +app 192.168.0.82/31 scram-sha-256", "hostssl sameuser +app 192.168.0.84/31 scram-sha-256"]
     assert {tuple(rule.split()[1:3]) for rule in network} == {
         ("replication", "replicator"), ("postgres", "rewinder"), ("sameuser", "+app")}
     # A further database of an application (the Arr tools' logs) is opened to its own role only, by name.
@@ -87,7 +87,7 @@ def test_templates():
                if rule.split()[1] not in ("replication", "postgres", "sameuser")]
     expected = {(database, app["name"]) for app in listed for database in app.get("extra_databases", [])}
     assert {tuple(pair) for pair in further} == expected == {("radarr_log", "radarr"), ("sonarr_log", "sonarr"), ("prowlarr_log", "prowlarr")}
-    assert len(further) == 3 * len(expected), "one rule per client range"
+    assert len(further) == 4 * len(expected), "one rule per client range"
     dcs = patroni["bootstrap"]["dcs"]
     assert dcs == yaml.safe_load(render("dcs.yml.j2")), "bootstrap settings and the applied settings are one source"
     assert dcs["synchronous_mode"] == "quorum" and dcs["failsafe_mode"] is True

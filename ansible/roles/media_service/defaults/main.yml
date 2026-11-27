@@ -1,0 +1,55 @@
+---
+# One media service per container (TASK-036): the host variable media_service (from the OpenTofu inventory) says
+# which of jellyfin, seerr, radarr, sonarr or prowlarr this container is. qBittorrent is the NAS's own.
+
+media_user: media
+media_uid: 2000
+media_gid: 2000
+media_timezone: America/Toronto
+
+# Pinned releases and their checksums (ansible/vars/media.yml).
+media_versions: {}
+media_checksums: {}
+
+media_ports: {jellyfin: 8096, seerr: 5055, radarr: 7878, sonarr: 8989, prowlarr: 9696}
+# Who may reach the service's port. Jellyfin and Seerr have their own sign-in and serve the LAN (TV and phone
+# apps); the three tools only answer Traefik (which puts Authentik in front), each other and the workstation.
+media_lan: 192.168.0.0/24
+media_ingress_sources: [192.168.0.40/29, 192.168.0.48/31]
+media_workstation: 192.168.0.39/32
+media_open_services: [jellyfin, seerr]
+
+media_test_movies: /data/media/test-movies
+media_test_series: /data/media/test-series
+# Where the mounts of `make media-mounts` arrive in the containers.
+media_nas_library: /media/plex
+media_downloads: /downloads
+
+media_postgresql_host: 192.168.0.60
+media_postgresql_port: 5432
+
+media_admin_password: "{{ lookup('ansible.builtin.env', 'MEDIA_ADMIN_PASSWORD') }}"
+# Radarr, Sonarr and Prowlarr want exactly 32 characters.
+media_api_keys:
+  seerr: "{{ lookup('ansible.builtin.env', 'SEERR_API_KEY') }}"
+  radarr: "{{ lookup('ansible.builtin.env', 'RADARR_API_KEY')[:32] }}"
+  sonarr: "{{ lookup('ansible.builtin.env', 'SONARR_API_KEY')[:32] }}"
+  prowlarr: "{{ lookup('ansible.builtin.env', 'PROWLARR_API_KEY')[:32] }}"
+media_database_passwords:
+  seerr: "{{ lookup('ansible.builtin.env', 'PG_APP_SEERR_PASSWORD') }}"
+  radarr: "{{ lookup('ansible.builtin.env', 'PG_APP_RADARR_PASSWORD') }}"
+  sonarr: "{{ lookup('ansible.builtin.env', 'PG_APP_SONARR_PASSWORD') }}"
+  prowlarr: "{{ lookup('ansible.builtin.env', 'PG_APP_PROWLARR_PASSWORD') }}"
+
+# The three Servarr applications: archive, directory in it, and their URL base behind media.doku-lab.net.
+media_arr:
+  radarr:
+    url: "https://github.com/Radarr/Radarr/releases/download/v{{ media_versions.radarr }}/Radarr.master.{{ media_versions.radarr }}.linux-core-x64.tar.gz"
+    directory: Radarr
+  sonarr:
+    url: "https://github.com/Sonarr/Sonarr/releases/download/v{{ media_versions.sonarr }}/Sonarr.main.{{ media_versions.sonarr }}.linux-x64.tar.gz"
+    directory: Sonarr
+  prowlarr:
+    url: "https://github.com/Prowlarr/Prowlarr/releases/download/v{{ media_versions.prowlarr }}/Prowlarr.master.{{ media_versions.prowlarr }}.linux-core-x64.tar.gz"
+    directory: Prowlarr
+media_published_host: media.doku-lab.net

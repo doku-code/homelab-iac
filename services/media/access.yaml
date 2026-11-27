@@ -1,10 +1,9 @@
-# Routes to the media stack (TASK-036), which runs outside k3s on media-01 (192.168.0.80, Docker Compose,
-# ansible/roles/media_stack). Applied by Argo CD with the other routes (services/argocd/apps/ingress.yaml).
-#   jellyfin.doku-lab.net   Jellyfin, its own sign-in (television and phone applications cannot pass Authentik)
-#   seerr.doku-lab.net      Seerr, signs in with Jellyfin's accounts
-#   media.doku-lab.net      the administration tools under one name and one Authentik session (ADR-017, forward
-#                           authentication): /radarr, /sonarr, /prowlarr, /qbittorrent
-# Everything from the LAN only. The VM's firewall lets nobody but the k3s nodes reach the four tools.
+# Routes to the media services (TASK-036), which run outside k3s, one container each on pve-infra
+# (192.168.0.81 to .85). Two kinds of access:
+#   jellyfin.doku-lab.net, seerr.doku-lab.net   their own sign-in (TV and phone apps cannot pass Authentik), LAN only
+#   media.doku-lab.net                          the tools, behind Authentik (forward authentication):
+#                                               /radarr, /sonarr, /prowlarr
+# qBittorrent is the NAS's own app (qbit.doku-lab.net) and has no route here.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -35,17 +34,6 @@ spec:
     authResponseHeaders:
       - X-authentik-username
       - X-authentik-groups
----
-# qBittorrent has no setting for a path of its own: the prefix is removed before the request reaches it.
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: strip-qbittorrent
-  namespace: media-edge
-spec:
-  stripPrefix:
-    prefixes:
-      - /qbittorrent
 ---
 # The bare name opens Radarr.
 apiVersion: traefik.io/v1alpha1
@@ -85,7 +73,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - 192.168.0.80
+      - 192.168.0.81
 ---
 apiVersion: v1
 kind: Service
@@ -113,7 +101,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - 192.168.0.80
+      - 192.168.0.82
 ---
 apiVersion: v1
 kind: Service
@@ -141,7 +129,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - 192.168.0.80
+      - 192.168.0.83
 ---
 apiVersion: v1
 kind: Service
@@ -169,7 +157,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - 192.168.0.80
+      - 192.168.0.84
 ---
 apiVersion: v1
 kind: Service
@@ -197,35 +185,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - 192.168.0.80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: qbittorrent
-  namespace: media-edge
-spec:
-  ports:
-    - name: backend
-      port: 8080
-      targetPort: 8080
-      protocol: TCP
----
-apiVersion: discovery.k8s.io/v1
-kind: EndpointSlice
-metadata:
-  name: qbittorrent
-  namespace: media-edge
-  labels:
-    kubernetes.io/service-name: qbittorrent
-addressType: IPv4
-ports:
-  - name: backend
-    port: 8080
-    protocol: TCP
-endpoints:
-  - addresses:
-      - 192.168.0.80
+      - 192.168.0.85
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -296,15 +256,6 @@ spec:
       services:
         - name: prowlarr
           port: 9696
-    - match: Host(`media.doku-lab.net`) && PathPrefix(`/qbittorrent`)
-      kind: Rule
-      middlewares:
-        - name: admin-lan
-        - name: authentik
-        - name: strip-qbittorrent
-      services:
-        - name: qbittorrent
-          port: 8080
     - match: Host(`media.doku-lab.net`)
       kind: Rule
       middlewares:

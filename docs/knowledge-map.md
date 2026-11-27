@@ -45,7 +45,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-022 | in-progress | high | M010 | [Edge migration: certificates, Caddy sites on Traefik, AdGuard as code](../tasks/TASK-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a.md) | Let's Encrypt wildcard on Traefik, the active Caddy sites as Traefik routes, then AdGuard rebuilt from code and the names moved from Caddy to the cluster. |
 | TASK-030 | in-progress | medium | M013 | [NetBox as the full inventory: real hardware, ports, cables, guests and diagram plugins](../tasks/TASK-030-netbox-as-the-full-inventory-real-hardware-ports-cables-gues.md) | NetBox holds named hardware models, ports, hardware facts, the cables the switch announces and what every guest is, draws diagrams through plugins, and the roots check their plans against it. |
 | TASK-035 | in-progress | medium | M010 | [Documentation maps: hub pages generated from the repository and a wiki with a curated sidebar](../tasks/TASK-035-documentation-maps-hub-pages-generated-from-the-repository-a.md) | docs/hubs holds one map per question, with tables and diagrams generated from the repository's own files; the Forgejo wiki opens on docs/home.md and lists the maps in its sidebar. |
-| TASK-036 | in-progress | medium | M010 | [Media stack on pve-infra: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on a Compose VM](../tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md) | VM media-01 on pve-infra with Docker Compose: Jellyfin, Seerr, the Arr tools and qBittorrent; shared PostgreSQL, NAS read-only, a test area. |
+| TASK-036 | in-progress | medium | M010 | [Media services on pve-infra: Jellyfin, Seerr, Radarr, Sonarr and Prowlarr, one container each](../tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md) | One unprivileged container per media service on pve-infra, the NAS's qBittorrent as download client; shared PostgreSQL, NAS read-only, a test area. |
 | TASK-037 | in-progress | medium | M010 | [TrueNAS under management: metrics in Grafana, apps as code, housekeeping](../tasks/TASK-037-truenas-under-management-metrics-in-grafana-apps-as-code-hou.md) | The NAS's metrics and alerts in the monitoring stack, its apps described in the repository with a plan-before-apply path, and the leftovers of the old environment cleaned up |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
@@ -149,7 +149,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 - **GUIDE-map-network** [Network and names](hubs/network-map.md) (current) `map, network, dns, ingress` — Which name answers where: the LAN's DNS answers, the shared addresses and the route behind each name.
 - **GUIDE-map-operations** [Operations](hubs/operations.md) (current) `map, operations` — Day-to-day procedures: where the commands are, how to take a host down, what is known to be broken.
 - **GUIDE-map-services** [Service catalog](hubs/service-catalog.md) (current) `map, services, k3s` — Every service of the platform: its site, where it runs, what signs people in and where its data lives.
-- **GUIDE-media-stack** [Media stack: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on media-01](guides/media-stack.md) (current) `guide, media, jellyfin, docker-compose` — What runs on media-01, where its data lives, how to operate, test, back up and restore it, and how to give it the NAS library.
+- **GUIDE-media-stack** [Media services: Jellyfin, Seerr, Radarr, Sonarr and Prowlarr, one container each on pve-infra](guides/media-stack.md) (current) `guide, media, jellyfin, lxc` — What runs where, how a request travels, how the NAS is protected, and how to operate, test, back up and restore the media services.
 - **GUIDE-truenas-metrics-alerts-and-apps-as-files** [TrueNAS: metrics, alerts and apps as files](guides/truenas-metrics-alerts-and-apps-as-files.md) (current) `guide` — How the NAS is watched and how its apps are described, compared and applied from the repository
 
 ### Project reference
@@ -191,7 +191,7 @@ _No commit records. Generate with `harness history sync`._
 - **deployment**: ADR-014, GUIDE-map-deployment
 - **desktop**: ADR-009
 - **dns**: GUIDE-map-network, TASK-022
-- **docker-compose**: GUIDE-media-stack, TASK-036
+- **docker-compose**: TASK-036
 - **documentation**: TASK-029, TASK-035
 - **etcd**: TASK-018, TASK-021
 - **external**: REF-netbox-4-7-rest-api-chart-8-3-107-and-the-netbox-netbox-coll, REF-wiki-js-3-4-requirements-container-settings-and-migration-fr
@@ -223,6 +223,7 @@ _No commit records. Generate with `harness history sync`._
 - **layout**: TASK-006
 - **legacy**: ADR-007, INV-legacy-inventory
 - **loki**: TASK-020
+- **lxc**: GUIDE-media-stack
 - **m002**: TASK-013
 - **make**: TASK-006
 - **management**: ADR-002, ADR-009

@@ -2,7 +2,7 @@
 # Pin a new guest's SSH host key only after two independent channels agree:
 #   1. the key the guest presents on the network (ssh-keyscan), and
 #   2. the key read out-of-band from the guest's own disk on its Proxmox node (read-only loop device +
-#      debugfs -c, over the workstation's root SSH to the node).
+#      debugfs -c for a VM, `pct exec` for a container, over the workstation's root SSH to the node).
 # Then the known_hosts entry for the guest IP is replaced (a rebuilt VM legitimately gets a new key).
 # Usage: scripts/pin-guest-hostkey.sh <proxmox-node-ip> <vmid> <guest-ip>
 set -euo pipefail
@@ -29,6 +29,11 @@ sleep 10 # let the guest flush the key cloud-init just generated
 disk_key="$(ssh -o BatchMode=yes "root@$node" bash -s -- "$vmid" <<'REMOTE'
 set -euo pipefail
 vmid="$1"
+# A container: its file is read through the node, without the network.
+if [ -e "/etc/pve/lxc/$vmid.conf" ]; then
+  pct exec "$vmid" -- cat /etc/ssh/ssh_host_ed25519_key.pub | awk '$1 == "ssh-ed25519" {print $1" "$2; exit}'
+  exit 0
+fi
 volume="$(qm config "$vmid" | sed -n 's/^scsi0: \([^,]*\).*/\1/p')"
 dev="$(pvesm path "$volume")"
 loop="$(losetup -r -P -f --show "$dev")"

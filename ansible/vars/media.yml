@@ -1,22 +1,23 @@
 ---
-# Media stack (TASK-036): what an operator changes. Edit here, then
-#   scripts/secrets.py run /media /postgresql -- make media-configure MEDIA_CONFIGURE_APPROVED=yes
+# Media services (TASK-036): the pinned releases the containers run, with the checksum of what is downloaded.
+# An update is a new version (and checksum) here, then `make media-configure`.
+media_versions:
+  jellyfin: "12.4+deb13"
+  seerr: v3.5.2
+  node: "22.23.5"
+  radarr: "7.0.3.10918"
+  sonarr: "4.0.20.3014"
+  prowlarr: "3.1.0.5799"
+media_checksums:
+  seerr: d4340a2eb2c11e30dc7fbb600eb576e5694226580a3405e2879b768a3b53bb12
+  node: cdeb8670a0c81f51b4dc4ac61919f9b1ad917b304bf8221eb939570663d240f8
+  radarr: 1737e72150ea991c8f224fcf529c419b7e6c567ba672cbf27a61f11c9a51fe8e
+  sonarr: 1fc48544b5a3401b2fc3df8d0642c1e6a73a28e41a351169edd9cd8f54770db5
+  prowlarr: e9c66fd3d2c5e94ca51e2495eb9e99ee16004dc396cac4e74905d1408fe31767
 
-# Images, pinned to the stable releases read on 2026-11-26. Jellyfin and qBittorrent publish their own images;
-# Seerr too (GHCR). Radarr, Sonarr and Prowlarr publish none: the Servarr wiki names linuxserver.io and hotio.
-media_images:
-  jellyfin: docker.io/jellyfin/jellyfin:12.4
-  seerr: ghcr.io/seerr-team/seerr:v3.5.2
-  radarr: lscr.io/linuxserver/radarr:7.0.3.10918-ls328
-  sonarr: lscr.io/linuxserver/sonarr:4.0.20.3014-ls6
-  prowlarr: lscr.io/linuxserver/prowlarr:3.1.0.5799-ls170
-  qbittorrent: docker.io/qbittorrentofficial/qbittorrent-nox:5.3.1-1
-
-# The existing library on the NAS (TrueNAS, 192.168.0.13), mounted read-only for Jellyfin alone.
-# Empty until the NAS exports it: on 2026-11-26 the NAS offered no NFS share (`showmount -e` empty) and its SMB
-# shares need an account. Set the export path of the read-only NFS share (docs/guides/media-stack.md, "NAS").
-media_nas_export: ""
-# Jellyfin libraries inside that share; `path` is below the export. Example:
-#   - {name: "Movies (NAS)", type: movies, path: Movies}
-#   - {name: "Series (NAS)", type: tvshows, path: TV}
-media_nas_libraries: []
+# The Plex library on the NAS, read-only (NFS share of the NAS, mounted on the node, passed to Jellyfin by
+# `make media-mounts`). Each entry becomes a Jellyfin library; path is under /mnt/tank/plex_media.
+media_nas_libraries:
+  - {name: Movies, type: movies, path: Movies}
+  - {name: Series, type: tvshows, path: Series}
+  - {name: Animes, type: tvshows, path: Animes}

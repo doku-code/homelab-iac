@@ -19,3 +19,17 @@ image = {
   url    = "https://cloud.debian.org/images/cloud/trixie/20261123-2671/debian-13-generic-amd64-20261123-2671.qcow2"
   sha512 = "562a4614952657a6ab8a89cda56eaf1bc85c8dfea51155184267bb6b6361eff215baf6afa2f8c2c8c2bad328ac6c30eead80664286ef4c8538368aeb7f87104f"
 }
+
+# One container per service. Memory is a ceiling, not a reservation: pve-infra has 7.6 GiB in all.
+containers = {
+  jellyfin = { vm_id = 381, ipv4 = "192.168.0.81/24", cores = 4, memory = 3072, swap = 1024, disk_gb = 32 } # metadata and transcoding cache
+  seerr    = { vm_id = 382, ipv4 = "192.168.0.82/24", cores = 2, memory = 2048, swap = 3072, disk_gb = 12 } # built from source: the swap is for the build
+  radarr   = { vm_id = 383, ipv4 = "192.168.0.83/24", cores = 2, memory = 1024, swap = 512, disk_gb = 8 }
+  sonarr   = { vm_id = 384, ipv4 = "192.168.0.84/24", cores = 2, memory = 1024, swap = 512, disk_gb = 8 }
+  prowlarr = { vm_id = 385, ipv4 = "192.168.0.85/24", cores = 1, memory = 768, swap = 512, disk_gb = 6 }
+}
+
+template = {
+  url    = "http://download.proxmox.com/images/system/debian-13-standard_13.6-1_amd64.tar.zst"
+  sha512 = "4c0c27ca6ceab5ef0b84db57825a00f26157ef1854bafe97297813e1cbe8ecb8cc9c453cab6b3b0efe1ba193a50c47ece1e41d950e411b8730b835b71e9e754b"
+}

@@ -1199,16 +1199,16 @@ truenas-apply:
 
 MEDIA_DIR := terraform/stacks/media
 MEDIA_PLAN := media.tfplan
-MEDIA_GPU_HOST := 192.168.0.12
-MEDIA_GPU_DEVICE := 0000:00:02.0
-MEDIA_GPU_MAPPING := igpu
+MEDIA_NODE_ADDRESS := 192.168.0.12
+MEDIA_NAS := 192.168.0.13
+MEDIA_QBIT_URL := http://192.168.0.13:8080
 # Generated once, never printed: the applications' own administrator, their API keys, their database passwords.
 MEDIA_SECRET_INPUTS := MEDIA_ADMIN_PASSWORD RADARR_API_KEY SONARR_API_KEY PROWLARR_API_KEY SEERR_API_KEY
 MEDIA_DATABASES := SEERR RADARR SONARR PROWLARR
 MEDIA_BACKUP_DIR ?= .local/media-backups
-MEDIA_TARGET = $$($(TOFU) -chdir=$(MEDIA_DIR) output -json ansible_inventory | jq -r '.all.children.media.hosts | to_entries[0].value | "\(.ansible_user)@\(.ansible_host)"')
+MEDIA_HOSTS = $(TOFU) -chdir=$(MEDIA_DIR) output -json ansible_inventory | jq -r '.all.children.media.hosts | to_entries[] | "\(.key) \(.value.vm_id) \(.value.ansible_host)"'
 
-.PHONY: media-check media-plan media-apply media-hostkeys media-gpu-mapping media-secrets media-configure media-status media-backup
+.PHONY: media-check media-plan media-apply media-hostkeys media-mounts media-secrets media-configure media-connect media-status media-backup
 
 # Offline only: no credentials, no backend, mocked provider.
 media-check:
@@ -1248,12 +1248,13 @@ media-hostkeys:
 	jq -r '{"pve-infra":"192.168.0.12","pve-lab":"192.168.0.16"} as $$pve | .all.children.media.hosts | to_entries[] | "\($$pve[.value.proxmox_node]) \(.value.vm_id) \(.value.ansible_host)"' | \
 	while read -r node vmid ip; do scripts/pin-guest-hostkey.sh "$$node" "$$vmid" "$$ip"; done
 
-# Adds pve-infra's graphics adapter to the Proxmox resource mapping the OpenTofu token may already use
-# (`make mgmt-gpu-mapping` created it and its permission for the workstation VM): one more node in the same
-# mapping, no new permission. Refuses a device that shares its IOMMU group. Run once, before media-plan.
-media-gpu-mapping:
-	@test "$(MEDIA_GPU_MAPPING_APPROVED)" = yes || (echo "Approve the change of the resource mapping $(MEDIA_GPU_MAPPING) with MEDIA_GPU_MAPPING_APPROVED=yes" >&2; exit 1)
-	@ssh -o BatchMode=yes root@$(MEDIA_GPU_HOST) bash -s -- $(MEDIA_GPU_MAPPING) $(MEDIA_GPU_DEVICE) '"Graphics adapters handed to a VM: pve-management (workstation), pve-infra (media-01)"' < scripts/pve-gpu-mapping-add.sh
+# What only root on the node may give the containers: the NAS's Plex library and downloads (NFS, read-only on
+# the node and in the containers), the test area, and the node's graphics device for Jellyfin. Idempotent; a
+# container restarts only when its mounts change. Run after the first media-configure (it needs Jellyfin's groups).
+media-mounts:
+	@test "$(MEDIA_MOUNTS_APPROVED)" = yes || (echo "Approve the mounts and the graphics device of the media containers with MEDIA_MOUNTS_APPROVED=yes" >&2; exit 1)
+	@set -euo pipefail; id() { $(TOFU) -chdir=$(MEDIA_DIR) output -json ansible_inventory | jq -r ".all.children.media.hosts.$$1.vm_id"; }; \
+	ssh -o BatchMode=yes root@$(MEDIA_NODE_ADDRESS) bash -s -- $(MEDIA_NAS) "$$(id jellyfin)" "$$(id radarr)" "$$(id sonarr)" < scripts/pve-media-mounts.sh
 
 # Generates the values the store does not hold yet (never replaces one, never prints one).
 media-secrets:
@@ -1261,30 +1262,43 @@ media-secrets:
 	scripts/ensure-secrets.py /postgresql $(foreach d,$(MEDIA_DATABASES),PG_APP_$(d)_PASSWORD)
 	scripts/ensure-secrets.py /media $(MEDIA_SECRET_INPUTS)
 
-# Installs Docker, prepares the data disk and the test area, writes the Compose project and starts it, then
-# connects the applications to each other through their APIs. Credentials come from the environment only:
+# Installs each service in its container (Jellyfin from its repository, Radarr, Sonarr and Prowlarr from their
+# release archives, Seerr built from its tagged source) with its firewall. Credentials come from the environment:
 #   scripts/secrets.py run /media /postgresql -- make media-configure MEDIA_CONFIGURE_APPROVED=yes
-# MEDIA_ANSIBLE_ARGS passes extra arguments to ansible-playbook, e.g. --check or --tags compose.
+# MEDIA_ANSIBLE_ARGS passes extra arguments to ansible-playbook, e.g. --check or --limit radarr.
 media-configure:
-	@test "$(MEDIA_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of media-01 with MEDIA_CONFIGURE_APPROVED=yes" >&2; exit 1)
+	@test "$(MEDIA_CONFIGURE_APPROVED)" = yes || (echo "Approve configuration of the media containers with MEDIA_CONFIGURE_APPROVED=yes" >&2; exit 1)
 	@for v in $(MEDIA_SECRET_INPUTS) $(foreach d,$(MEDIA_DATABASES),PG_APP_$(d)_PASSWORD); do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /media and /postgresql; make media-secrets creates what is missing)" >&2; exit 1; }; done
 	@if [ ! -x "$(ANSIBLE)" ]; then $(MAKE) setup-controller; fi
 	@set -euo pipefail; umask 077; inventory="$(CURDIR)/.local/media-inventory.json"; mkdir -p "$(CURDIR)/.local"; \
 	$(TOFU) -chdir=$(MEDIA_DIR) output -json ansible_inventory > "$$inventory"; \
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i "$$inventory" ansible/playbooks/configure-media.yml --diff $(MEDIA_ANSIBLE_ARGS)
 
-# Read-only: containers, mounts, the graphics adapter and each application's own health answer.
-media-status:
-	@set -euo pipefail; ssh -o BatchMode=yes -o ConnectTimeout=5 "$(MEDIA_TARGET)" sudo /usr/local/sbin/media-status
+# Connects the applications to each other through their own APIs (scripts/media-connect.py): administrators,
+# the test folders, the NAS's qBittorrent as download client, Jellyfin's libraries and hardware transcoding,
+# Seerr with Jellyfin, Radarr and Sonarr. Writes only what is missing. The NAS's qBittorrent sign-in is read
+# from the store path /homepage:
+#   scripts/secrets.py run /media /homepage -- make media-connect MEDIA_CONNECT_APPROVED=yes
+media-connect:
+	@test "$(MEDIA_CONNECT_APPROVED)" = yes || (echo "Approve the connection of the media applications with MEDIA_CONNECT_APPROVED=yes" >&2; exit 1)
+	@for v in $(MEDIA_SECRET_INPUTS) HOMEPAGE_QBIT_USERNAME HOMEPAGE_QBIT_PASSWORD; do test -n "$${!v:-}" || { echo "Set $$v in the environment (store paths /media and /homepage)" >&2; exit 1; }; done
+	@set -euo pipefail; \
+	MEDIA_ADDRESSES="$$($(TOFU) -chdir=$(MEDIA_DIR) output -json addresses)" MEDIA_ADMIN_USER=admin \
+	RADARR_API_KEY="$${RADARR_API_KEY:0:32}" SONARR_API_KEY="$${SONARR_API_KEY:0:32}" PROWLARR_API_KEY="$${PROWLARR_API_KEY:0:32}" \
+	MEDIA_TEST_MOVIES=/data/media/test-movies MEDIA_TEST_SERIES=/data/media/test-series MEDIA_NAS_LIBRARY=/media/plex MEDIA_GPU=yes \
+	MEDIA_NAS_LIBRARIES="$$($(VENV)/bin/python -c 'import json, yaml; print(json.dumps(yaml.safe_load(open("ansible/vars/media.yml"))["media_nas_libraries"]))')" \
+	MEDIA_QBIT_URL=$(MEDIA_QBIT_URL) MEDIA_QBIT_USERNAME="$$HOMEPAGE_QBIT_USERNAME" MEDIA_QBIT_PASSWORD="$$HOMEPAGE_QBIT_PASSWORD" \
+	MEDIA_URL=https://media.doku-lab.net MEDIA_JELLYFIN_URL=https://jellyfin.doku-lab.net \
+	$(VENV)/bin/python scripts/media-connect.py
 
-# Runs the nightly archive now (configuration of every application and a dump of their databases, kept on the
-# data disk) and copies the newest one to MEDIA_BACKUP_DIR on this workstation (default .local/media-backups).
+# Read-only: each container's service and health answer, its mounts, and the NAS shares on the node.
+media-status:
+	@$(MEDIA_HOSTS) | scripts/media-status.sh $(MEDIA_NODE_ADDRESS)
+
+# One archive on this workstation (MEDIA_BACKUP_DIR, default .local/media-backups): Jellyfin's databases and
+# configuration, Seerr's settings, and a dump of every PostgreSQL database of the applications.
 media-backup:
-	@set -euo pipefail; umask 077; mkdir -p "$(MEDIA_BACKUP_DIR)"; target="$(MEDIA_TARGET)"; \
-	ssh -o BatchMode=yes "$$target" sudo systemctl start media-backup.service; \
-	newest="$$(ssh -o BatchMode=yes "$$target" 'sudo ls -1t /srv/media/backups/ | head -n 1')"; test -n "$$newest"; \
-	ssh -o BatchMode=yes "$$target" "sudo cat /srv/media/backups/$$newest" > "$(MEDIA_BACKUP_DIR)/$$newest"; \
-	ls -l "$(MEDIA_BACKUP_DIR)/$$newest"
+	@$(MEDIA_HOSTS) | scripts/media-backup.sh "$(MEDIA_BACKUP_DIR)"
 
 # ─────────────────────────────────────────────
 # Argo CD (M009, ADR-011): keeps the applications of services/argocd/apps in sync with the main branch on

@@ -1,35 +1,31 @@
 ---
-# Media VM media-01 (TASK-036). Run through `make media-configure` from the operator workstation; the
-# inventory comes from the OpenTofu outputs of terraform/stacks/media and the credentials from the
-# environment (store paths /media and /postgresql).
-- name: Configure the media VM
+# One media service per container (TASK-036). The containers are reached as root with the workstation's key,
+# as Proxmox creates them; there is no other account on them.
+- name: Configure the media containers
   hosts: media
-  become: true
   gather_facts: true
   force_handlers: true
-  vars:
-    stage_a_hostname: "{{ inventory_hostname }}"
   vars_files:
     - ../vars/media.yml
   roles:
-    - headless_baseline
-    - media_stack
-  tasks:
-    - name: Keep SSH key-only and without root login
+    - media_service
+  post_tasks:
+    - name: Keep SSH key-only
       ansible.builtin.copy:
         dest: /etc/ssh/sshd_config.d/10-homelab.conf
         content: |
           # Managed by Ansible (configure-media.yml)
           PasswordAuthentication no
           KbdInteractiveAuthentication no
-          PermitRootLogin no
+          PermitRootLogin prohibit-password
         owner: root
         group: root
         mode: "0644"
         validate: /usr/sbin/sshd -t -f %s
       notify: Reload SSH
   handlers:
+    # In a container SSH is started by its socket, and such a server cannot reload: it is stopped (open sessions
+    # stay) and the socket starts it again, with the new settings, at the next connection.
     - name: Reload SSH
-      ansible.builtin.systemd_service:
-        name: ssh
-        state: reloaded
+      ansible.builtin.shell: systemctl is-active --quiet ssh.socket && systemctl stop ssh.service || systemctl reload ssh.service
+      changed_when: true

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Connects the applications of the media stack to each other through their own APIs (TASK-036).
 
-Run on media-01 by the role media_stack (`make media-configure`), with the credentials in the environment.
-Every step looks first and writes only what is missing, so a second run changes nothing. A line that starts
-with "changed: " tells Ansible something was written. No credential is ever printed.
+Run from the workstation by `make media-connect`, with the credentials in the environment and the containers'
+addresses in MEDIA_ADDRESSES. Every step looks first and writes only what is missing, so a second run changes
+nothing ("changed: " lines say what was written). No credential is ever printed.
 
   Jellyfin   first administrator (the setup wizard's own endpoints), the libraries of the test area and of
-             the NAS share, hardware transcoding when the VM has the graphics adapter
-  Radarr     its administrator, the test root folder, qBittorrent as download client
+             the NAS share, hardware transcoding when the container has the graphics device
+  Radarr     its administrator, the test root folder, the NAS's qBittorrent as download client
   Sonarr     the same
   Prowlarr   its administrator, Radarr and Sonarr as applications (indexers are then pushed to both)
   Seerr      first administrator (the Jellyfin one), Jellyfin's libraries, Radarr and Sonarr with the test folders
@@ -28,21 +28,25 @@ TEST_SERIES = os.environ["MEDIA_TEST_SERIES"]
 NAS_LIBRARIES = json.loads(os.environ.get("MEDIA_NAS_LIBRARIES") or "[]")
 GPU = os.environ.get("MEDIA_GPU") == "yes"
 GPU_DEVICE = os.environ.get("MEDIA_GPU_DEVICE", "/dev/dri/renderD128")
+NAS_LIBRARY = os.environ.get("MEDIA_NAS_LIBRARY", "/media/plex")
+ADDRESSES = json.loads(os.environ["MEDIA_ADDRESSES"])
+QBITTORRENT = urllib.parse.urlsplit(os.environ["MEDIA_QBIT_URL"])
+QBIT_USER, QBIT_PASSWORD = os.environ["MEDIA_QBIT_USERNAME"], os.environ["MEDIA_QBIT_PASSWORD"]
 MEDIA_URL = os.environ.get("MEDIA_URL", "")
 JELLYFIN_URL = os.environ.get("MEDIA_JELLYFIN_URL", "")
-SECRETS = [PASSWORD, *KEYS.values()]
-# Inside the Compose network the applications reach each other by service name.
+SECRETS = [PASSWORD, QBIT_PASSWORD, *KEYS.values()]
+# "local" is how this script reaches an application; "inside" is how the applications reach each other: by the
+# container's name, which every container has in its /etc/hosts (role media_service).
 ARR = {
-    "radarr": {"local": "http://127.0.0.1:7878/radarr", "inside": "http://radarr:7878/radarr", "api": "api/v3", "port": 7878,
+    "radarr": {"local": f"http://{ADDRESSES['radarr']}:7878/radarr", "inside": "http://radarr:7878/radarr", "api": "api/v3", "port": 7878,
                "root": TEST_MOVIES, "category_field": "movieCategory"},
-    "sonarr": {"local": "http://127.0.0.1:8989/sonarr", "inside": "http://sonarr:8989/sonarr", "api": "api/v3", "port": 8989,
+    "sonarr": {"local": f"http://{ADDRESSES['sonarr']}:8989/sonarr", "inside": "http://sonarr:8989/sonarr", "api": "api/v3", "port": 8989,
                "root": TEST_SERIES, "category_field": "tvCategory"},
-    "prowlarr": {"local": "http://127.0.0.1:9696/prowlarr", "inside": "http://prowlarr:9696/prowlarr", "api": "api/v1", "port": 9696},
+    "prowlarr": {"local": f"http://{ADDRESSES['prowlarr']}:9696/prowlarr", "inside": "http://prowlarr:9696/prowlarr", "api": "api/v1", "port": 9696},
 }
-JELLYFIN = "http://127.0.0.1:8096"
-SEERR = "http://127.0.0.1:5055/api/v1"
-QBITTORRENT = "http://127.0.0.1:8080"
-CLIENT = 'MediaBrowser Client="homelab-iac", Device="media-01", DeviceId="homelab-iac-media-configure", Version="1"'
+JELLYFIN = f"http://{ADDRESSES['jellyfin']}:8096"
+SEERR = f"http://{ADDRESSES['seerr']}:5055/api/v1"
+CLIENT = 'MediaBrowser Client="homelab-iac", Device="workstation", DeviceId="homelab-iac-media-connect", Version="1"'
 
 
 class Failed(Exception):
@@ -94,9 +98,9 @@ def arr_administrator(name):
     host.update({"username": ADMIN, "password": PASSWORD, "passwordConfirmation": PASSWORD})
     if "allowedHosts" in host:
         # Newer releases want the names the application is called by when its sign-in is not asked everywhere:
-        # the published name (Traefik), the service name (the other containers) and the VM itself.
+        # the published name (Traefik), the container's name (the other containers) and its address.
         published = urllib.parse.urlsplit(MEDIA_URL).hostname
-        host["allowedHosts"] = ",".join(filter(None, [published, name, "localhost", "127.0.0.1"]))
+        host["allowedHosts"] = ",".join(filter(None, [published, name, ADDRESSES[name], "localhost", "127.0.0.1"]))
     arr(name, "PUT", f"config/host/{host['id']}", host)
     changed(f"{name}: administrator {ADMIN} created (password: store path /media)")
 
@@ -114,16 +118,17 @@ def arr_download_client(name):
     if any(client["implementation"] == "QBittorrent" for client in arr(name, "GET", "downloadclient")):
         return
     (schema,) = [s for s in arr(name, "GET", "downloadclient/schema") if s["implementation"] == "QBittorrent"]
-    values = {"host": "qbittorrent", "port": 8080, "useSsl": False, "username": ADMIN, "password": PASSWORD,
-              ARR[name]["category_field"]: name}
+    values = {"host": QBITTORRENT.hostname, "port": QBITTORRENT.port, "useSsl": QBITTORRENT.scheme == "https",
+              "username": QBIT_USER, "password": QBIT_PASSWORD, ARR[name]["category_field"]: name}
     for field in schema["fields"]:
         if field["name"] in values:
             field["value"] = values[field["name"]]
-    schema.update({"name": "qBittorrent", "enable": True, "priority": 1,
-                   "removeCompletedDownloads": True, "removeFailedDownloads": True})
+    # The client is the operator's own, with their torrents: nothing is ever removed from it.
+    schema.update({"name": "qBittorrent (NAS)", "enable": True, "priority": 1,
+                   "removeCompletedDownloads": False, "removeFailedDownloads": False})
     # The application tests the connection before it saves: a wrong password or an absent client fails here.
     arr(name, "POST", "downloadclient", schema)
-    changed(f"{name}: download client qBittorrent, category {name}")
+    changed(f"{name}: download client qBittorrent on the NAS, category {name}")
 
 
 def prowlarr_application(name):
@@ -160,7 +165,7 @@ def jellyfin_administrator():
 
 def jellyfin_libraries(token):
     wanted = [("Test movies", "movies", TEST_MOVIES), ("Test series", "tvshows", TEST_SERIES)]
-    wanted += [(library["name"], library["type"], "/data/nas/" + library["path"].strip("/")) for library in NAS_LIBRARIES]
+    wanted += [(library["name"], library["type"], NAS_LIBRARY + "/" + library["path"].strip("/")) for library in NAS_LIBRARIES]
     existing = {folder["Name"]: folder.get("Locations", []) for folder in jellyfin("GET", "/Library/VirtualFolders", token=token)}
     for name, kind, path in wanted:
         if name in existing:
@@ -168,14 +173,14 @@ def jellyfin_libraries(token):
                 print(f"review: jellyfin library {name} exists with {existing[name]}, not {path}; left as it is")
             continue
         query = urllib.parse.urlencode({"name": name, "collectionType": kind, "refreshLibrary": "true"})
-        # Real-time monitoring works on the VM's own disk; a network share is found by the scheduled scan.
-        options = {"PathInfos": [{"Path": path}], "EnableRealtimeMonitor": not path.startswith("/data/nas/")}
+        # Real-time monitoring works on the node's own disk; a network share is found by the scheduled scan.
+        options = {"PathInfos": [{"Path": path}], "EnableRealtimeMonitor": not path.startswith(NAS_LIBRARY + "/")}
         jellyfin("POST", f"/Library/VirtualFolders?{query}", {"LibraryOptions": options}, token=token)
         changed(f"jellyfin: library {name} ({kind}) on {path}")
 
 
 def jellyfin_transcoding(token):
-    """VA-API on the passed graphics adapter. Jasper Lake encodes in low-power mode only; no AV1 on this chip."""
+    """VA-API on the node's graphics device. Jasper Lake encodes in low-power mode only; no AV1 on this chip."""
     if not GPU:
         return
     encoding = jellyfin("GET", "/System/Configuration/encoding", token=token)
@@ -255,15 +260,16 @@ def seerr_arr(name):
 
 
 def qbittorrent_sign_in():
-    """Only checks that the administrator's password is the one in the store."""
+    """Only checks that the NAS's qBittorrent accepts the sign-in of the store; nothing is changed in it."""
+    base = QBITTORRENT.geturl().rstrip("/")
     try:
         # 204 since qBittorrent 5.2, "Ok." with 200 before; a wrong password answers 401 (or "Fails." with 200).
-        answer = call("POST", f"{QBITTORRENT}/api/v2/auth/login", {"username": ADMIN, "password": PASSWORD}, form=True,
-                      headers={"Referer": QBITTORRENT}, expect=(200, 204))
+        answer = call("POST", f"{base}/api/v2/auth/login", {"username": QBIT_USER, "password": QBIT_PASSWORD}, form=True,
+                      headers={"Referer": base}, expect=(200, 204))
     except Failed:
         answer = "Fails."
     if isinstance(answer, str) and not answer.startswith("Ok"):
-        raise Failed("qbittorrent: the administrator of the store cannot sign in (its password was changed in the interface?)")
+        raise Failed("qbittorrent: the NAS's qBittorrent refuses the sign-in of the store (path /homepage)")
 
 
 def main():
@@ -286,12 +292,12 @@ def main():
     seerr_external_address()
     for name in ("radarr", "sonarr"):
         seerr_arr(name)
-    print("connected: qBittorrent <- Radarr, Sonarr <- Prowlarr; Jellyfin <- Seerr -> Radarr, Sonarr")
+    print("connected: qBittorrent (NAS) <- Radarr, Sonarr <- Prowlarr; Jellyfin <- Seerr -> Radarr, Sonarr")
 
 
 if __name__ == "__main__":
     try:
         main()
     except Failed as failure:
-        print(f"media-configure: {failure}", file=sys.stderr)
+        print(f"media-connect: {failure}", file=sys.stderr)
         sys.exit(1)

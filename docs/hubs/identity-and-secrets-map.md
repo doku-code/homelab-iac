@@ -56,10 +56,10 @@ The table lists paths, never values.
 | `/dns` | `make dns-configure` |
 | `/forgejo-runner/connections` | `make ci-runner-configure` |
 | `/forgejo-runner/registry` | `make ci-runner-configure` |
-| `/homepage` | `make homepage-deploy` |
+| `/homepage` | `make homepage-deploy`, `make media-connect` |
 | `/ingress` | `make ingress-certs-deploy`, `make ingress-tls-deploy` |
 | `/k3s` | `make k3s-cluster-configure` |
-| `/media` | `make media-configure` |
+| `/media` | `make media-configure`, `make media-connect` |
 | `/monitoring` | `make observability-deploy` |
 | `/netbox` | `make netbox-apply`, `make netbox-autosync`, `make netbox-deploy`, `make netbox-docs`, `make netbox-export`, `make netbox-identities`, `make netbox-inventory`, `make netbox-plan`, `make netbox-prune`, `make windmill-bootstrap` |
 | `/postgresql` | `make authentik-deploy`, `make media-configure`, `make netbox-deploy`, `make observability-deploy`, `make postgresql-configure`, `make vaultwarden-deploy`, `make wiki-deploy`, `make windmill-deploy` |

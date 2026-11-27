@@ -1,0 +1,21 @@
+# Managed by Ansible (role media_service)
+[Unit]
+Description={{ media_arr[media_service].directory }} {{ media_versions[media_service] }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{ media_user }}
+Group={{ media_user }}
+UMask=0002
+EnvironmentFile=/etc/media/{{ media_service }}.env
+ExecStart=/opt/{{ media_service }}/{{ media_arr[media_service].directory }} -nobrowser -data=/var/lib/{{ media_service }}
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
