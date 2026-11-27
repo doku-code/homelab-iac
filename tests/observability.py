@@ -77,6 +77,7 @@ def truenas(cluster, rules):
     mapping = yaml.safe_load((OBS / "truenas-mapping.yml").read_text())["mappings"]
     assert mapping[-1] == {"match": ".", "match_type": "regex", "action": "drop", "name": "dropped"}, "what is not named is dropped"
     assert all(set(m.get("labels", {})) <= {"disk_id", "direction"} for m in mapping if "serial" in m["match"]), "of a serial line only the WWN is kept"
+    assert not any(re.search(r"\$\d\w", value) for m in mapping for value in m.get("labels", {}).values()), "write ${2}s: $2s is another variable"
     samples = {"truenas.scale.truenas_disk_stats._devicename_sda.reads": "truenas_disk_io_kibibytes_per_second",
                "truenas.scale.truenas_disk_stats.ops._devicename_sda.write_ops": "truenas_disk_operations_per_second",
                "truenas.scale.truenas_disk_stats.busy._devicename_sda.busy": "truenas_disk_busy_percent",

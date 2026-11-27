@@ -37,7 +37,7 @@ mappings:
   - match: 'truenas\.scale\.truenas_disk_stats\.ops\._devicename_([^.]+)\.(read|write)_ops'
     match_type: regex
     name: truenas_disk_operations_per_second
-    labels: {disk: "$1", direction: "$2s"}
+    labels: {disk: "$1", direction: "${2}s"}
   - match: 'truenas\.scale\.truenas_disk_stats\._serial_lunid_.+_([0-9a-fA-F]+)\.(reads|writes)'
     match_type: regex
     name: truenas_disk_io_kibibytes_per_second
@@ -45,7 +45,7 @@ mappings:
   - match: 'truenas\.scale\.truenas_disk_stats\.ops\._serial_lunid_.+_([0-9a-fA-F]+)\.(read|write)_ops'
     match_type: regex
     name: truenas_disk_operations_per_second
-    labels: {disk_id: "$1", direction: "$2s"}
+    labels: {disk_id: "$1", direction: "${2}s"}
   - match: 'truenas\.scale\.truenas_disk_stats\.busy\._serial_lunid_.+_([0-9a-fA-F]+)\.busy'
     match_type: regex
     name: truenas_disk_busy_percent
