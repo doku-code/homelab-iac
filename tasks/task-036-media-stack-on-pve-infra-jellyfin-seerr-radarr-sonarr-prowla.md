@@ -112,10 +112,11 @@ existing qBittorrent on the NAS instead of a second one. What changed:
 | 2026-11-27 | Jellyfin on the Plex library | libraries Movies, Series, Animes created; scan running (67 items after a few minutes) |
 | 2026-11-27 | Forced transcode of a file of the Plex library | **FAILED**: ffmpeg "Driver does not support VBR RC mode (supported modes: CQP)": the node's driver runs without the HuC firmware. `enable_guc=2` is written on the node; it needs a restart of pve-infra, which the session's permission check refused. Hardware transcoding in the container: not verified |
 | 2026-11-27 | A request from Seerr to Jellyfin through the NAS's qBittorrent | not verified (it would add a torrent to the operator's qBittorrent) |
+| 2026-11-27 | The same forced transcode after the operator restarted pve-infra (`enable_guc` 2, "HuC: authenticated for all workloads") | 8 HLS segments, about 24 s of 720p H.264, in 4.1 s; adapter busy time +4.8 s; session report `vaapi`. Direct play still serves the file untouched |
+| 2026-11-27 | VM `media-01` (380) deleted on the operator's word: `make media-plan` / `media-apply` | 0 to add, 0 to change, 2 to destroy; the VM and its two disks are gone. Its cloud image could not be deleted by the automation's token (no `Datastore.Allocate`, on purpose): forgotten by the root (`removed` block) and freed by root on the node. The `igpu` mapping keeps only the workstation's node |
 
 ## Completion summary
 
-Deployed and working on the test area. Remaining: the operator adds a read-only NFS share on the NAS for
-`192.168.0.80`, then `media_nas_export` and `media_nas_libraries` in `ansible/vars/media.yml` and
-`make media-configure`; indexers in Prowlarr; playback on a real device. Not done on purpose: Pulsarr, a VPN in
+Deployed as five containers and working, with hardware transcoding. Remaining: indexers in Prowlarr (the
+operator's accounts), a first real request from Seerr to Jellyfin, playback on a real device. Not done on purpose: Pulsarr, a VPN in
 front of qBittorrent, Alloy on the VM (memory is tight on this host), a restore drill.

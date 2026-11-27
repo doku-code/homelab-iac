@@ -231,9 +231,8 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   checksum). qBittorrent is the NAS's own app (`qbit-vpn`). Seerr and the three Arr tools use the shared PostgreSQL.
   The NAS's Plex library and downloads are NFS shares for `192.168.0.12`, read-only on the node and in the
   containers (`make media-mounts`); Jellyfin uses the node's graphics device. Names: `jellyfin`, `seerr` (their
-  own sign-in) and `media.doku-lab.net` (the tools, behind Authentik). **Open:** the retired VM `media-01` (380) is
-  stopped and still in the root until the operator approves its deletion; no indexer in Prowlarr (operator's
-  accounts). State: `make media-status`.
+  own sign-in) and `media.doku-lab.net` (the tools, behind Authentik). The first version, the VM `media-01` (380, `.80`), was deleted on 2026-11-27 on the
+  operator's word. **Open:** no indexer in Prowlarr (operator's accounts). State: `make media-status`.
 - **TrueNAS** 2026-11-27 ([TASK-037](/tasks/task-037-truenas-under-management-metrics-in-grafana-apps-as-code-hou),
   [guide](/docs/guides/truenas-metrics-alerts-and-apps-as-files)): metrics, a Grafana dashboard and alerts; the apps
   `qbit-vpn` and `plex` as files with `make truenas-plan` / `truenas-apply`. API key in the store path `/truenas`.

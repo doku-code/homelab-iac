@@ -19,7 +19,7 @@ dateCreated: '2026-11-26T00:00:00.000Z'
 
 A test of a self-hosted media chain beside Plex, which keeps running on the NAS untouched. Since 2026-11-27 each
 service has its own unprivileged container on `pve-infra` (the operator's choice: separate guests in the Proxmox
-tree). The first version, one Compose VM (`media-01`), is retired.
+tree). The first version, one Compose VM (`media-01`, VM 380), was deleted the same day.
 
 ## What runs where
 
@@ -119,7 +119,9 @@ Jellyfin uses the node's graphics device (`/dev/dri/renderD128`, Intel Jasper La
 low-power encoders: H.264, HEVC 8/10-bit and VP9 decode, H.264 encode, no AV1. The node keeps the adapter (it is
 not handed whole to a guest any more). The low-power encoders need the HuC firmware, which the node's driver loads only
 with `enable_guc=2` (written by `make media-mounts`, effective after a restart of the node; until then a transcode
-fails with "Driver does not support VBR RC mode"). **Not verified in the container yet.** To see it work: play something a device cannot play as it is, then
+fails with "Driver does not support VBR RC mode"). Verified in the container on 2026-11-27 after the node's
+restart: a 1080p file sent to a limited client came out as 720p H.264 about six times faster than it plays, and
+the session reported `vaapi`. To see it work: play something a device cannot play as it is, then
 Jellyfin → Dashboard → Activity shows the transcode and its hardware method.
 
 ## Backup and restore
