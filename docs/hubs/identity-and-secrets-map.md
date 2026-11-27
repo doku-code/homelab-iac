@@ -65,7 +65,7 @@ The table lists paths, never values.
 | `/media` | `make media-configure`, `make media-connect` |
 | `/monitoring` | `make observability-deploy` |
 | `/netbox` | `make netbox-apply`, `make netbox-autosync`, `make netbox-deploy`, `make netbox-docs`, `make netbox-export`, `make netbox-identities`, `make netbox-inventory`, `make netbox-plan`, `make netbox-prune`, `make windmill-bootstrap` |
-| `/postgresql` | `make authentik-deploy`, `make media-configure`, `make netbox-deploy`, `make observability-deploy`, `make postgresql-configure`, `make vaultwarden-deploy`, `make wiki-deploy`, `make windmill-deploy` |
+| `/postgresql` | `make authentik-deploy`, `make media-configure`, `make netbox-deploy`, `make observability-deploy`, `make postgresql-configure`, `make postgresql-upgrade`, `make vaultwarden-deploy`, `make wiki-deploy`, `make windmill-deploy` |
 | `/pve-management` | `make netbox-autosync` |
 | `/switch` | `make observability-deploy` |
 | `/truenas` | `make observability-deploy`, `make truenas-apply`, `make truenas-plan` |

@@ -56,7 +56,7 @@ One owner per concern; two tools never write the same object ([AGENTS.md](/agent
 | Operating system, packages, users, k3s, runners | Ansible | [ADR-011](/docs/decisions/adr-011-k3s-first-argocd-headlamp) |
 | Application topology | k3s reconciled by Argo CD | [ADR-011](/docs/decisions/adr-011-k3s-first-argocd-headlamp) |
 | Persistent data | Storage outside k3s; TrueNAS only receives backups | [ADR-012](/docs/decisions/adr-012-external-nvme-storage-truenas-backups) |
-| Databases | PostgreSQL 17 with Patroni on three VMs | [ADR-015](/docs/decisions/adr-015-postgresql-runs-on-three-patroni-vms-outside-k3s) |
+| Databases | PostgreSQL 18 with Patroni on three VMs | [ADR-015](/docs/decisions/adr-015-postgresql-runs-on-three-patroni-vms-outside-k3s) |
 | Source and CI | Forgejo, a validation runner and a deployment runner | [ADR-014](/docs/decisions/adr-014-dedicated-forgejo-deployment-runner), [ADR-008](/docs/decisions/adr-008-workstation-bootstrap-ct301-validation-only) |
 | Secrets | Phase at run time, an encrypted bundle for recovery | [ADR-004](/docs/decisions/adr-004-secrets-phase-runtime-sops-bootstrap) |
 | Inventory and addresses | NetBox, filled from Git and from what the machines report | [ADR-016](/docs/decisions/adr-016-netbox-is-the-inventory-and-ipam-source-of-truth-populated-f), [ADR-018](/docs/decisions/adr-018-netbox-holds-the-physical-inventory-git-says-what-a-device-i) |

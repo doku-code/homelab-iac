@@ -29,6 +29,7 @@ server today and is rebuilt from IaC; a database inside it would disappear with 
 
 - Three Debian 13 VMs, one per Proxmox host (`pve-core`, `pve-lab`, `pve-infra`), each with its own data
   disk: `terraform/stacks/postgresql`, role `patroni_postgresql`.
+- *(Update 2026-11-27: PostgreSQL itself is 18 from the PostgreSQL project's repository since [TASK-038](/tasks/task-038-shared-postgresql-from-17-to-18-project-repository-rehearsed); the rest stays Debian's.)*
 - **PostgreSQL 17, Patroni 4, etcd 3.5 and vip-manager from Debian's own packages** (security updates
   through the distribution, no extra repository). etcd runs on the same three VMs.
 - **Quorum-synchronous replication**: a commit waits for one of the two standbys, so a failover loses no
