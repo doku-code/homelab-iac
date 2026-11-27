@@ -340,6 +340,11 @@ body {
   padding: 0 0.5rem 0 0.75rem;
 }
 
+/* Phase's own mark is black: shown in white on the dark card. */
+#phase-service .service-icon img {
+  filter: invert(1);
+}
+
 .service .service-name {
   font-size: 0.95rem !important;
   font-weight: 600 !important;
