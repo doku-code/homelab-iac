@@ -76,33 +76,11 @@
   --transition: var(--ct-motion-duration) var(--ct-motion-easing);
 }
 
-/* A plain charcoal page. An image chosen with the footer's button (custom.js) is drawn over it, dimmed. */
+/* A plain charcoal page. */
 html,
 body,
 #page_wrapper {
   background-color: var(--ct-canvas) !important;
-}
-
-#background {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background-size: cover;
-  background-position: center;
-  pointer-events: none;
-}
-
-#background[data-nith-image="none"] {
-  display: none;
-}
-
-#background:not([data-nith-image="none"]) ~ #page_wrapper {
-  background-color: transparent !important;
-}
-
-#inner_wrapper {
-  position: relative;
-  z-index: 1;
 }
 
 body {
@@ -700,47 +678,6 @@ body {
 
 .service-card[data-remote-state="missing"] .nith-remote-dot {
   background: var(--ct-error);
-}
-
-/* ── Footer controls ───────────────────────────────────────────────────────────────────────────────────── */
-
-#footer #style {
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.nith-bg-switcher {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: var(--ct-radius-sm);
-  background: transparent;
-  color: var(--ct-fg-muted);
-  cursor: pointer;
-  transition: color var(--transition);
-}
-
-.nith-bg-switcher svg {
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.nith-bg-switcher:hover {
-  color: var(--ct-fg);
-}
-
-.nith-bg-switcher:focus-visible {
-  outline: 2px solid var(--ct-focus);
-  outline-offset: 2px;
 }
 
 /* ── Small polish ──────────────────────────────────────────────────────────────────────────────────────── */

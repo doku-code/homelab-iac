@@ -2,7 +2,7 @@
    Homepage keeps ownership of cards, links, groups and layout (services.yaml, settings.yaml). This file adds
    what Homepage does not show natively, from one request to /api/snapshot (services/homepage/metrics):
    the header summary, the Proxmox node cards, the k3s and PostgreSQL cards, a status line per service, the
-   TrueNAS, Plex and qBittorrent widgets, the state of the remote desktop machines and the background
+   TrueNAS, Plex and qBittorrent widgets, and the state of the remote desktop machines
    switcher. A card is found by its "id" in services.yaml; the tables below are the only place that names them. */
 (function () {
   "use strict";
@@ -12,9 +12,6 @@
 
   var SVGNS = "http://www.w3.org/2000/svg";
   var REFRESH_MS = 10000;
-  var BACKGROUNDS = ["/images/bg-1.jpg", "/images/bg-2.jpg", "/images/bg-3.webp"];
-  var BACKGROUND_KEY = "nithBackgroundIndex";
-  var BACKGROUND_DIM = 0.55; /* how much of the charcoal page stays over a chosen image */
 
   /* card id -> key of snapshot.nodes */
   var NODE_CARDS = {
@@ -572,69 +569,6 @@
     });
   }
 
-  /* ── background switcher ────────────────────────────────────────────────────────────────────────────── */
-
-  function getBackgroundIndex() {
-    var raw = window.localStorage.getItem(BACKGROUND_KEY);
-    if (raw === null) return null;
-    var saved = Number(raw);
-    return isNaN(saved) ? null : Math.max(0, Math.min(BACKGROUNDS.length - 1, saved));
-  }
-
-  /* The page is plain by default. A chosen image is drawn on a layer of our own, behind the content. */
-  function setBackgroundImage(url) {
-    var target = document.getElementById("background");
-    if (!target) {
-      var wrapper = document.getElementById("page_wrapper");
-      if (!wrapper || !wrapper.parentNode) return;
-      target = el("div", "");
-      target.id = "background";
-      target.setAttribute("aria-hidden", "true");
-      wrapper.parentNode.insertBefore(target, wrapper);
-    }
-    if (!url) {
-      target.setAttribute("data-nith-image", "none");
-      target.style.removeProperty("background-image");
-      return;
-    }
-    target.setAttribute("data-nith-image", "set");
-    target.style.setProperty(
-      "background-image",
-      "linear-gradient(rgb(16 16 15 / " + BACKGROUND_DIM + "), rgb(16 16 15 / " + BACKGROUND_DIM + ')), url("' + url + '")'
-    );
-  }
-
-  function clearBackground() {
-    window.localStorage.removeItem(BACKGROUND_KEY);
-    setBackgroundImage(null);
-  }
-
-  function loadBackground(index) {
-    var image = new Image();
-    image.onload = function () {
-      setBackgroundImage(BACKGROUNDS[index]);
-      window.localStorage.setItem(BACKGROUND_KEY, String(index));
-    };
-    image.onerror = clearBackground;
-    image.src = BACKGROUNDS[index];
-  }
-
-  function ensureBackgroundSwitcher() {
-    var bar = document.getElementById("style");
-    if (!bar || bar.querySelector(".nith-bg-switcher")) return;
-    var button = el("button", "nith-bg-switcher");
-    button.type = "button";
-    button.title = "Change background";
-    button.setAttribute("aria-label", "Change background");
-    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="8.5" cy="10" r="1.5"></circle><path d="m5 17 4.5-4.5 3 3 2-2L19 18"></path></svg>';
-    button.addEventListener("click", function () {
-      var current = getBackgroundIndex();
-      if (current !== null && current + 1 >= BACKGROUNDS.length) clearBackground();
-      else loadBackground(current === null ? 0 : current + 1);
-    });
-    bar.insertBefore(button, bar.firstChild);
-  }
-
   /* ── layout marks: CSS places cards by these attributes, never by position ──────────────────────────── */
 
   function markLayout() {
@@ -661,7 +595,6 @@
   function renderSnapshot(data) {
     data = data || {};
     markLayout();
-    ensureBackgroundSwitcher();
     renderSummary(data.summary || {});
     var nodes = data.nodes || {};
     Object.keys(NODE_CARDS).forEach(function (id) {
@@ -690,14 +623,10 @@
   }
 
   function boot() {
-    var saved = getBackgroundIndex();
-    if (saved !== null) loadBackground(saved);
-    else setBackgroundImage(null);
     /* Homepage draws the cards after its own data arrives: mark and fill them a few times early on. */
     [0, 400, 1200, 2500].forEach(function (delay) {
       setTimeout(function () {
         markLayout();
-        ensureBackgroundSwitcher();
         refresh();
       }, delay);
     });

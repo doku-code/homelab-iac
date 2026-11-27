@@ -56,7 +56,7 @@ def manifests():
     objects = render()
     kinds = sorted(o["kind"] for o in objects)
     assert kinds == ["ConfigMap", "ConfigMap", "Deployment", "IngressRoute", "Middleware", "Middleware", "Middleware",
-                     "Namespace", "PersistentVolumeClaim", "Service"], kinds
+                     "Namespace", "Service"], kinds
     assert all(o["metadata"].get("namespace", "homepage") == "homepage" for o in objects)
     assert "Secret" not in kinds, "credentials and personal additions are written by make homepage-deploy, never from Git"
     (deployment,) = [o for o in objects if o["kind"] == "Deployment"]
@@ -80,8 +80,8 @@ def manifests():
     expected = config_digest()
     found = spec["template"]["metadata"]["annotations"]["homelab.doku-lab.net/config-digest"]
     assert found == expected, f"config/ or metrics/ changed: set config-digest in deployment.yaml to \"{expected}\" so the pod restarts"
-    (claim,) = [o for o in objects if o["kind"] == "PersistentVolumeClaim"]
-    assert claim["spec"]["storageClassName"] == "nvme-shared", "data lives on the NVMe-backed storage (ADR-012)"
+    # No volume: the page has no background image any more (operator, 2026-11-27), so nothing of it is kept outside Git.
+    assert not [v for v in spec["template"]["spec"]["volumes"] if "persistentVolumeClaim" in v]
     maps = {o["metadata"]["name"]: o for o in objects if o["kind"] == "ConfigMap"}
     assert set(maps["homepage-config"]["data"]) | set(maps["homepage-metrics"]["data"]) == {p.name for p in files()}
     ignored = subprocess.run(["git", "-C", str(ROOT), "check-ignore", *map(str, files())], capture_output=True, text=True).stdout.split()
@@ -256,9 +256,8 @@ def make_targets():
     token = recipe("homepage-pve-token")
     assert 'test "$(HOMEPAGE_PVE_TOKEN_APPROVED)" = yes' in token and "--roles PVEAuditor" in token, "read-only, and only when approved"
     assert "scripts/secrets.py set /homepage" in token and "echo $$" not in token
-    assert 'test "$(HOMEPAGE_DEPLOY_APPROVED)" = yes' in recipe("homepage-images")
-    ignored = subprocess.run(["git", "-C", str(ROOT), "check-ignore", "-q", ".local/homepage/images/x.png"]).returncode
-    assert ignored == 0, "background images and personal additions stay outside Git"
+    ignored = subprocess.run(["git", "-C", str(ROOT), "check-ignore", "-q", ".local/homepage/personal.yaml"]).returncode
+    assert ignored == 0, "personal additions stay outside Git"
 
 
 def main():

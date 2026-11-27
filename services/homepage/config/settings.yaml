@@ -9,8 +9,7 @@ hideVersion: true
 useEqualHeights: false
 headerStyle: clean
 disableCollapse: true
-# A plain charcoal page by default (custom.css). The footer's button (custom.js) offers the images of /images, kept
-# outside Git on the homepage-images volume; the choice is the visitor's and stays in their browser.
+# A plain charcoal page (custom.css): no background image.
 layout:
   Platform: {style: row, columns: 2, header: true}
   Infrastructure: {style: row, columns: 2, header: true}

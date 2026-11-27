@@ -1,19 +1,6 @@
 # The dashboard (TASK-027): Homepage and, beside it, the widget data API that custom.js reads. One replica.
 # Nothing here is a secret; credentials come from the Secret homepage-metrics and personal additions from the
 # Secret homepage-personal, both written by make homepage-deploy and both optional.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: homepage-images
-  namespace: homepage
-spec:
-  # Background images, kept outside Git (make homepage-images copies them here).
-  accessModes: [ReadWriteOnce]
-  storageClassName: nvme-shared
-  resources:
-    requests:
-      storage: 1Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -35,7 +22,7 @@ spec:
       annotations:
         # Digest of config/ and metrics/: a new value restarts the pod with the new files. tests/homepage-k3s.py
         # fails with the value to put here when the files changed.
-        homelab.doku-lab.net/config-digest: "eff1199fa623030b"
+        homelab.doku-lab.net/config-digest: "c577442fb699b24f"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -99,7 +86,6 @@ spec:
               drop: [ALL]
           volumeMounts:
             - {name: config, mountPath: /app/config}
-            - {name: images, mountPath: /app/public/images}
         - name: metrics
           image: docker.io/library/python:3.13.18-alpine3.24
           command: [python, /metrics/server.py]
@@ -142,9 +128,6 @@ spec:
         - name: metrics
           configMap:
             name: homepage-metrics
-        - name: images
-          persistentVolumeClaim:
-            claimName: homepage-images
 ---
 apiVersion: v1
 kind: Service

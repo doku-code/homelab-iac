@@ -91,7 +91,7 @@ def main():
         assert attribute in homepage and attribute.replace("data-", "") in script.replace("-", "").lower() or attribute in script, attribute
     settings = yaml.safe_load((ROOT / "services/homepage/config/settings.yaml").read_text())
     assert "background" not in settings and settings["theme"] == "dark" and settings["color"] == "neutral"
-    assert "BACKGROUNDS" in script and "clearBackground" in script and "prefers-reduced-motion" in homepage
+    assert "ackground" not in script and "#background" not in homepage and "prefers-reduced-motion" in homepage, "no background image, no switcher"
 
     # Authentik: appearance of the default brand only. The stylesheet sets variables on the document and on
     # components' own roots; it never reaches into a component, and the blueprint names no flow, policy or provider.
@@ -100,9 +100,14 @@ def main():
     assert entry["model"] == "authentik_brands.brand" and entry["identifiers"] == {"domain": "authentik-default"} and entry["state"] == "present"
     assert set(entry["attrs"]) == {"attributes", "branding_custom_css"} and entry["attrs"]["attributes"] == {"settings": {"theme": {"base": "dark"}}}
     authentik = re.sub(r"/\*.*?\*/", "", (ROOT / "services/authentik/theme.css").read_text(), flags=re.S)
-    selectors = {s.strip() for block in re.findall(r"([^{}]+)\{", authentik) for s in block.split(",")}
-    assert selectors <= {":root", ":host", 'html[data-theme="dark"]', ':host([theme="dark"])'}, selectors
-    assert "!important" not in authentik and "display" not in authentik and "content:" not in authentik
+    selectors = {s.strip() for block in re.findall(r"([^{}]+)\{", authentik) for s in block.split(",")} - {"@media (prefers-reduced-motion: reduce)"}
+    # Variables on the document and on components' roots, then rules on PatternFly's own classes only: nothing is
+    # hidden, moved or given content, so no step of a sign-in can disappear behind the theme.
+    allowed = re.compile(r"^(:root|:host|html|body|html\[data-theme=\"dark\"\]|:host\(\[theme=\"dark\"\]\)|a:focus-visible|(\.pf-c-[a-z_-]+)(\.pf-m-[a-z]+)?( \.pf-c-[a-z_-]+)?(:hover|:focus|:focus-visible|::after|::placeholder)?)$")
+    assert all(allowed.match(s) for s in selectors), sorted(s for s in selectors if not allowed.match(s))
+    for forbidden in ("display:", "visibility", "content:", "position:", "pointer-events", "opacity", "url(", "@import"):
+        assert forbidden not in authentik, f"Authentik's theme must not use {forbidden}"
+    assert authentik.count("!important") <= 6, "important only where Authentik sets the same thing later"
     assert entry["attrs"]["branding_custom_css"].count("--pf-c-button--m-primary--BackgroundColor: var(--ct-action);") == 1
 
     # Argo CD: the chart's own setting for a custom stylesheet; health and sync colours are not mentioned.

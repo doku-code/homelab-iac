@@ -51,7 +51,7 @@ service. Operator's brief of 2026-11-27.
 
 - [x] One source of tokens; every other form is generated and checked (`make theme`, `make theme-check`, CI).
 - [x] A static preview with navigation, table, actions, form controls, dialog, menu, states, metric cards, a graph, code and a sign-in page.
-- [x] Homepage restyled with every widget kept; plain charcoal by default, the visitor's images still offered.
+- [x] Homepage restyled with every widget kept; a plain charcoal page, no background image.
 - [x] Adapters through each application's own mechanism: Authentik (brand CSS), Argo CD (`configs.styles`), Forgejo (theme file), AdGuard Home (dark).
 - [x] Compatibility matrix, deployment and undo instructions.
 - [ ] Deployed and looked at live (needs the operator's go: a push deploys Homepage and Authentik).
@@ -86,7 +86,9 @@ make dns-check
 | Preview, seen | renders as intended at 1440 px | headless browser screenshot, `.local/theme-shots/preview.png` | 2026-11-27 |
 | Homepage, seen locally | a local Homepage v2.8.0 with our configuration and a copy of the live widget data: header summary, 30 cards, node, k3s, PostgreSQL, TrueNAS, qBittorrent and Plex widgets all drawn | `.local/theme-shots/homepage-widgets.png` | 2026-11-27 |
 | Forgejo, seen locally | **not verified**: the local image could not be pulled in time | | 2026-11-27 |
-| Authentik, Argo CD, AdGuard Home rendered | **not verified**: nothing was deployed | | 2026-11-27 |
+| Authentik's sign-in page, seen locally | the live page served through a local preview with the stylesheet where the brand's CSS goes: with variables alone the page and card shared one tone, the button label was unreadable and the field was an underline; with the rules, a bordered card on the canvas, an off-white button with dark text, a boxed field | `.local/theme-shots/ak-login.png` | 2026-11-27 |
+| Authentik's application list and admin interface, Argo CD, AdGuard Home rendered | **not verified**: they need a signed-in session or a deployment | | 2026-11-27 |
+| Background images removed from Homepage (operator, 2026-11-27) | switcher, layer, volume, mount and `make homepage-images` gone from the files; `make homepage-k3s-check` PASS. The volume `homepage-images` (7.4 MiB of images) is still in the cluster | | 2026-11-27 |
 | Keyboard focus, reduced motion, responsive layout | rules are in the stylesheets and the preview; **not tested in a browser by hand** | | 2026-11-27 |
 
 ## Completion summary

@@ -1,7 +1,8 @@
 /* Charcoal Titanium for Authentik 2026.8 (TASK-039): the sign-in flows, the user's application list and the admin
    interface. Given to Authentik as the default brand's custom CSS (blueprints/homelab-brand.yaml, written from this
-   file by scripts/theme.py). Only Authentik's own variables are set, for its dark mode; no selector reaches into a
-   component, so a new Authentik version can at worst ignore a variable and fall back to its own colour. */
+   file by scripts/theme.py). First Authentik's own variables, which carry most of the look; then a short set of
+   rules on its PatternFly class names for what no variable reaches (the sign-in card, buttons, fields). Authentik
+   gives this stylesheet to every component. A class that disappears in a new version only loses its rule. */
 /* tokens:start (written by scripts/theme.py from services/_shared/theme/tokens.json) */
 :root, :host {
   --ct-canvas: #10100F;
@@ -118,7 +119,9 @@ html[data-theme="dark"],
   --ak-generic-sans-serif: var(--ct-font-sans);
   --ak-generic-heading: var(--ct-font-sans);
 
-  /* A plain page behind the sign-in card instead of the stock photograph. */
+  /* A plain page behind the sign-in card instead of the stock photograph. The flow names its picture in a
+     variable set after this stylesheet, hence the one "important". */
+  --ak-global--background-image: none !important;
   --pf-c-background-image--BackgroundColor: var(--ct-canvas);
   --pf-c-background-image--BackgroundImage: none;
   --pf-c-background-image--BackgroundImage-2x: none;
@@ -127,4 +130,150 @@ html[data-theme="dark"],
   --pf-c-background-image--BackgroundImage--lg: none;
   --ak-scrollbar-background-color: var(--ct-canvas);
   --ak-scrollbar-thumb-background-color: var(--ct-border-strong);
+}
+
+/* ── Rules. Authentik puts this stylesheet into every component, so its PatternFly class names can be styled
+      directly. They are kept to the sign-in card, buttons and form controls: the parts a variable cannot reach. */
+
+/* The page is the canvas; the card stands on it by a fine border, not by a shadow. */
+html,
+body,
+.pf-c-login,
+.pf-c-page,
+.pf-c-page__main,
+.pf-c-page__main-section {
+  background-color: var(--ct-canvas) !important;
+}
+
+:root,
+:host {
+  --ak-c-login--MaxWidth: 25rem;
+  --ak-c-login__main--BackgroundColor: var(--ct-surface);
+  --ak-c-login__main--Color: var(--ct-fg);
+  --ak-c-login__main--BoxShadow: none;
+  --ak-c-login__footer--Color: var(--ct-fg-muted);
+  --ak-c-login__main--brand-PaddingIdeal: 2rem;
+  --ak-c-login__main--footer-PaddingIdeal: 1.5rem;
+}
+
+.pf-c-login__main {
+  background-color: var(--ct-surface) !important;
+  border: 1px solid var(--ct-border);
+  border-radius: var(--ct-radius-dialog);
+  box-shadow: none !important;
+  padding-block-start: var(--ct-space-4);
+}
+
+.pf-c-login__main .pf-c-title,
+.pf-c-login__main-header .pf-c-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ct-fg);
+}
+
+/* Buttons: off-white primary with dark text, neutral secondary, quiet links. */
+.pf-c-button {
+  border-radius: var(--ct-radius-md);
+  font-weight: 500;
+  transition: background-color var(--ct-motion-duration) var(--ct-motion-easing), border-color var(--ct-motion-duration) var(--ct-motion-easing);
+}
+
+.pf-c-button.pf-m-primary {
+  background-color: var(--ct-action);
+  color: var(--ct-action-fg);
+}
+
+.pf-c-button.pf-m-primary:hover,
+.pf-c-button.pf-m-primary:focus {
+  background-color: var(--ct-action-hover);
+  color: var(--ct-action-fg);
+}
+
+.pf-c-button.pf-m-secondary,
+.pf-c-button.pf-m-tertiary,
+.pf-c-button.pf-m-control {
+  background-color: var(--ct-action-secondary);
+  color: var(--ct-fg);
+}
+
+.pf-c-button.pf-m-secondary::after,
+.pf-c-button.pf-m-tertiary::after,
+.pf-c-button.pf-m-control::after {
+  border-color: var(--ct-border-strong);
+}
+
+.pf-c-button.pf-m-secondary:hover,
+.pf-c-button.pf-m-tertiary:hover,
+.pf-c-button.pf-m-control:hover {
+  background-color: var(--ct-surface-hover);
+}
+
+.pf-c-button.pf-m-link,
+.pf-c-button.pf-m-plain {
+  color: var(--ct-fg-secondary);
+}
+
+.pf-c-button.pf-m-link:hover,
+.pf-c-button.pf-m-plain:hover {
+  color: var(--ct-fg);
+}
+
+.pf-c-button:focus-visible,
+.pf-c-form-control:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--ct-focus);
+  outline-offset: 2px;
+}
+
+/* Fields: a box on the canvas tone, not an underline. */
+.pf-c-form-control {
+  background-color: var(--ct-canvas);
+  border: 1px solid var(--ct-border);
+  border-radius: var(--ct-radius-md);
+  color: var(--ct-fg);
+  transition: border-color var(--ct-motion-duration) var(--ct-motion-easing);
+}
+
+.pf-c-form-control:hover {
+  border-color: var(--ct-border-strong);
+}
+
+.pf-c-form-control:focus {
+  border-color: var(--ct-focus);
+}
+
+.pf-c-form-control::placeholder {
+  color: var(--ct-fg-disabled);
+  font-style: normal;
+}
+
+.pf-c-form__label-text {
+  font-weight: 500;
+  color: var(--ct-fg-secondary);
+}
+
+/* Surfaces of the interfaces behind the sign-in: cards, tables, menus and dialogs share the fine border. */
+.pf-c-card {
+  border: 1px solid var(--ct-border);
+  border-radius: var(--ct-radius-lg);
+  box-shadow: none;
+}
+
+.pf-c-modal-box {
+  border: 1px solid var(--ct-border-strong);
+  border-radius: var(--ct-radius-dialog);
+}
+
+.pf-c-dropdown__menu,
+.pf-c-select__menu {
+  border: 1px solid var(--ct-border-strong);
+  border-radius: var(--ct-radius-lg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-c-button,
+  .pf-c-form-control {
+    transition: none;
+  }
 }

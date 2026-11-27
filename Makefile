@@ -1750,9 +1750,8 @@ proxmox-sso:
 # credentials (store path /homepage, each one optional), personal links and the background images.
 # ─────────────────────────────────────────────
 HOMEPAGE_PVE_HOST ?= 192.168.0.10
-HOMEPAGE_IMAGES ?= .local/homepage/images
 
-.PHONY: homepage-k3s-check homepage-pve-token homepage-deploy homepage-images
+.PHONY: homepage-k3s-check homepage-pve-token homepage-deploy
 
 # Offline: renders the manifests and checks cards, widgets, route, sign-in and the widget API on canned data.
 homepage-k3s-check:
@@ -1796,12 +1795,3 @@ homepage-deploy:
 	if [ -n "$$before" ] && [ "$$before" != "$$(version)" ] && $$k get deployment homepage >/dev/null 2>&1; then $$k rollout restart deployment/homepage; fi
 	$(call ARGOCD_WAIT,homepage)
 	kubectl --context doku-lab -n homepage rollout status deployment/homepage --timeout=300s
-
-# Copies the background images (kept outside Git, in $(HOMEPAGE_IMAGES)) to the dashboard's volume.
-homepage-images:
-	@test "$(HOMEPAGE_DEPLOY_APPROVED)" = yes || (echo "Approve the copy of the background images with HOMEPAGE_DEPLOY_APPROVED=yes" >&2; exit 1)
-	@test -d "$(HOMEPAGE_IMAGES)" || (echo "No directory $(HOMEPAGE_IMAGES): put the background images there" >&2; exit 1)
-	@set -euo pipefail; k="kubectl --context doku-lab -n homepage"; \
-	pod="$$($$k get pod -l app.kubernetes.io/name=homepage --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}')"; \
-	tar -C "$(HOMEPAGE_IMAGES)" -cf - . | $$k exec -i "$$pod" -c homepage -- tar -C /app/public/images -xf - ; \
-	$$k exec "$$pod" -c homepage -- ls -la /app/public/images
