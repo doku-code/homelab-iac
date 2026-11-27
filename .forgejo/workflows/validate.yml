@@ -184,6 +184,10 @@ jobs:
       - name: Validate the NAS's apps as files and their gated apply offline
         run: make truenas-check
 
+      # Offline only: the design tokens, their generated copies and the theme adapters.
+      - name: Validate the shared design tokens and the theme adapters
+        run: make theme-check
+
       # Offline only: mocked provider, rendered templates; synthetic credentials.
       - name: Validate OpenTofu root terraform/stacks/media, the media stack role, routes and Make guards offline
         run: make media-check

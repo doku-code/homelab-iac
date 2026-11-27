@@ -23,7 +23,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | M009 | active | medium | [Argo CD and Windmill](../milestones/M009-argocd-windmill.md) | completed: 2 | Argo CD reconciles Kubernetes applications from Forgejo and Windmill runs operational workflows integrated with the repository and the runner. |
 | M013 | active | medium | [NetBox inventory and IPAM](../milestones/M013-netbox-inventory-and-ipam.md) | completed: 1, in-progress: 1 | NetBox runs on k3s as the inventory and IPAM source of truth, is populated from OpenTofu outputs and read-only Proxmox discovery, and Ansible can read its inventory from it. |
 | M014 | active | medium | [Single sign-on with Authentik](../milestones/M014-single-sign-on-with-authentik.md) | completed: 1 | Authentik runs on k3s and signs the operator in to the web interfaces of the platform; each new service is added to it in the same change, and every service keeps a local administrator. |
-| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 7, in-progress: 4, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
+| M010 | planned | high | [Rolling application migration](../milestones/M010-rolling-application-migration.md) | completed: 7, in-progress: 5, planned: 2 | Applications move one at a time to k3s with their data, secrets and databases, are validated, cut over, and the old workloads retired; freed hosts join the cluster. |
 | M011 | planned | medium | [Ceph and infrastructure expansion](../milestones/M011-ceph-and-expansion.md) | none | With enough hosts and NVMe devices, Ceph (RBD, CephFS) provides distributed storage through CSI, selected PVCs migrate to it and PostgreSQL replicas spread across hosts. |
 | M012 | planned | medium | [Backups and finalization](../milestones/M012-backups-and-finalization.md) | planned: 3 | Persistent data is inventoried and backed up to TrueNAS with tested, database-aware restores, and the obsolete infrastructure is retired. |
 | M001 | completed | critical | [Management workstation](../milestones/M001-bootstrap-pve-management.md) | completed: 5, in-progress: 1 | Existing infrastructure provisions and configures the management workstation VM on pve-management from IaC, and operations move to it. |
@@ -47,6 +47,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 | TASK-035 | in-progress | medium | M010 | [Documentation maps: hub pages generated from the repository and a wiki with a curated sidebar](../tasks/TASK-035-documentation-maps-hub-pages-generated-from-the-repository-a.md) | docs/hubs holds one map per question, with tables and diagrams generated from the repository's own files; the Forgejo wiki opens on docs/home.md and lists the maps in its sidebar. |
 | TASK-036 | in-progress | medium | M010 | [Media services on pve-infra: Jellyfin, Seerr, Radarr, Sonarr and Prowlarr, one container each](../tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md) | One unprivileged container per media service on pve-infra, the NAS's qBittorrent as download client; shared PostgreSQL, NAS read-only, a test area. |
 | TASK-037 | in-progress | medium | M010 | [TrueNAS under management: metrics in Grafana, apps as code, housekeeping](../tasks/TASK-037-truenas-under-management-metrics-in-grafana-apps-as-code-hou.md) | The NAS's metrics and alerts in the monitoring stack, its apps described in the repository with a plan-before-apply path, and the leftovers of the old environment cleaned up |
+| TASK-039 | in-progress | medium | M010 | [Charcoal Titanium: one design system for the services' interfaces](../tasks/TASK-039-charcoal-titanium-one-design-system-for-the-services-interfa.md) | Shared design tokens, a static preview, and theme adapters for the services that support safe appearance customization; Homepage first. |
 | TASK-002 | planned | critical | M000 | [Live read-only inventory of Proxmox hosts, guests and storage](../tasks/TASK-002-live-proxmox-inventory.md) | Verify hosts, cluster membership, VMs/LXCs, storage and capacity on every node; correct the legacy inventory. |
 | TASK-003 | planned | high | M010 | [Service dependency, network/DNS and data/backup map](../tasks/TASK-003-service-dependency-and-data-map.md) | Map every service's dependencies (DNS, proxy, auth, secrets, storage), its persistent data and its backup coverage. |
 | TASK-004 | planned | high | M012 | [Representative PBS restore test](../tasks/TASK-004-pbs-representative-restore.md) | Restore one representative guest backup from PBS to an isolated, disposable target and verify it boots and holds its data. |
@@ -137,6 +138,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 
 ### Guide
 
+- **GUIDE-charcoal-titanium-the-shared-design-system-and-each-service** [Charcoal Titanium: the shared design system and each service's theme adapter](guides/charcoal-titanium-the-shared-design-system-and-each-service.md) (current) `guide, theme, design-system` — The design tokens, the preview, what each service takes from them and how, how to change, deploy and undo a theme.
 - **GUIDE-handoff** [Current handoff and next steps](handoff.md) (current) `guide, handoff, workstation, pve-management` — Read first in a new session: what exists, where the state lives, how to work from mgmt-control-01, the current and next task.
 - **GUIDE-home** [homelab-iac](home.md) (current) `map, home` — Entry page of the documentation: what the platform is, the cluster at a glance and the maps that answer one question each.
 - **GUIDE-map-architecture** [Architecture map](hubs/architecture-map.md) (current) `map, architecture` — How the pieces fit: the layers from the hardware to the applications, and which tool owns which concern.
@@ -191,6 +193,7 @@ _No commit records. Generate with `harness history sync`._
 - **decisions**: GUIDE-map-decisions
 - **dependencies**: GUIDE-map-dependencies, TASK-003
 - **deployment**: ADR-014, GUIDE-map-deployment
+- **design-system**: GUIDE-charcoal-titanium-the-shared-design-system-and-each-service, TASK-039
 - **desktop**: ADR-009
 - **dns**: GUIDE-map-network, TASK-022
 - **docker-compose**: TASK-036
@@ -203,14 +206,14 @@ _No commit records. Generate with `harness history sync`._
 - **gitops**: ADR-005, TASK-024
 - **gpu**: TASK-028
 - **grafana**: TASK-020, TASK-026
-- **guide**: GUIDE-handoff, GUIDE-media-stack, GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move, GUIDE-truenas-metrics-alerts-and-apps-as-files
+- **guide**: GUIDE-charcoal-titanium-the-shared-design-system-and-each-service, GUIDE-handoff, GUIDE-media-stack, GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move, GUIDE-truenas-metrics-alerts-and-apps-as-files
 - **handoff**: GUIDE-handoff
 - **hardware**: ADR-018, DOC-infrastructure-inventory, INV-new-proxmox-cluster-inventory, TASK-030
 - **harness**: TASK-001
 - **headlamp**: ADR-011, TASK-016
 - **history**: GUIDE-map-history
 - **home**: GUIDE-home
-- **homepage**: TASK-027
+- **homepage**: TASK-027, TASK-039
 - **identity**: GUIDE-map-identity
 - **infisical**: ADR-004, TASK-019
 - **infrastructure**: GUIDE-map-infrastructure
@@ -272,6 +275,7 @@ _No commit records. Generate with `harness history sync`._
 - **storage**: ADR-012, TASK-017
 - **strategy**: ADR-001
 - **terraform**: ADR-003
+- **theme**: GUIDE-charcoal-titanium-the-shared-design-system-and-each-service, TASK-039
 - **traefik**: TASK-021, TASK-022
 - **truenas**: ADR-012, TASK-037
 - **upgrade**: GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move, TASK-038

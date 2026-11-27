@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Charcoal Titanium: preview</title>
+<!-- The visual contract of the design system. Open this file in a browser; nothing is deployed and nothing is
+     fetched from the network. Colours, radii, spacing and type come from ../tokens.css only. -->
+<link rel="stylesheet" href="../tokens.css">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--ct-canvas);color:var(--ct-fg);font:400 var(--ct-font-size-md)/1.45 var(--ct-font-sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.mono{font-family:var(--ct-font-mono)}.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--ct-fg-muted)}.secondary{color:var(--ct-fg-secondary)}
+:focus-visible{outline:2px solid var(--ct-focus);outline-offset:2px}
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.side{background:var(--ct-sidebar);border-right:1px solid var(--ct-border);padding:var(--ct-space-3) var(--ct-space-2);display:flex;flex-direction:column;gap:2px}
+.side h6{margin:var(--ct-space-4) var(--ct-space-2) var(--ct-space-1);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ct-fg-muted)}
+.org{display:flex;align-items:center;gap:var(--ct-space-2);padding:6px var(--ct-space-2);font-weight:600}
+.org i{width:18px;height:18px;border-radius:var(--ct-radius-sm);background:var(--ct-surface-active);border:1px solid var(--ct-border-strong)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:5px var(--ct-space-2);border-radius:var(--ct-radius-md);color:var(--ct-fg-secondary);text-decoration:none;transition:background var(--ct-motion-duration) var(--ct-motion-easing)}
+.nav:hover{background:var(--ct-surface-hover);color:var(--ct-fg)}
+.nav.on{background:var(--ct-surface-active);color:var(--ct-fg)}
+.nav kbd,.kbd{font:500 11px var(--ct-font-mono);color:var(--ct-fg-muted);border:1px solid var(--ct-border);border-radius:var(--ct-radius-sm);padding:0 4px}
+main{min-width:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:var(--ct-space-4);height:48px;padding:0 var(--ct-space-6);border-bottom:1px solid var(--ct-border)}
+.crumbs{display:flex;gap:var(--ct-space-2);color:var(--ct-fg-muted)}.crumbs b{color:var(--ct-fg);font-weight:500}
+.page{padding:var(--ct-space-6);display:grid;gap:var(--ct-space-6);max-width:1280px}
+h1{margin:0;font-size:var(--ct-font-size-heading);font-weight:600;letter-spacing:-.01em}
+h2{margin:0 0 var(--ct-space-3);font-size:var(--ct-font-size-lg);font-weight:600}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ct-space-2)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 var(--ct-space-3);border:1px solid transparent;border-radius:var(--ct-radius-md);font:500 var(--ct-font-size-md) var(--ct-font-sans);cursor:pointer;transition:background var(--ct-motion-duration) var(--ct-motion-easing),border-color var(--ct-motion-duration) var(--ct-motion-easing)}
+.btn.primary{background:var(--ct-action);color:var(--ct-action-fg)}.btn.primary:hover{background:var(--ct-action-hover)}
+.btn.second{background:var(--ct-action-secondary);border-color:var(--ct-border-strong);color:var(--ct-fg)}.btn.second:hover{background:var(--ct-surface-hover)}
+.btn.ghost{background:transparent;color:var(--ct-fg-secondary)}.btn.ghost:hover{background:var(--ct-surface-hover);color:var(--ct-fg)}
+.btn.danger{background:transparent;border-color:color-mix(in srgb,var(--ct-error) 55%,transparent);color:var(--ct-error)}.btn.danger:hover{background:color-mix(in srgb,var(--ct-error) 12%,transparent)}
+.btn:disabled{color:var(--ct-fg-disabled);background:var(--ct-surface);border-color:var(--ct-border);cursor:not-allowed}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--ct-space-3)}
+.card{background:var(--ct-surface);border:1px solid var(--ct-border);border-radius:var(--ct-radius-lg);padding:var(--ct-space-3) var(--ct-space-4)}
+.card .k{font-size:var(--ct-font-size-sm);color:var(--ct-fg-muted)}
+.card .v{margin-top:2px;font-size:22px;font-weight:600;letter-spacing:-.01em}
+.card .d{margin-top:2px;font-size:var(--ct-font-size-sm);color:var(--ct-fg-secondary)}
+.bar{height:4px;margin-top:var(--ct-space-2);border-radius:999px;background:var(--ct-surface-active);overflow:hidden}.bar i{display:block;height:100%;background:var(--ct-series-1)}
+.panel{background:var(--ct-surface);border:1px solid var(--ct-border);border-radius:var(--ct-radius-lg);overflow:hidden}
+.panel>header{display:flex;align-items:center;justify-content:space-between;padding:var(--ct-space-2) var(--ct-space-4);border-bottom:1px solid var(--ct-border)}
+.panel>header h2{margin:0}
+table{width:100%;border-collapse:collapse;font-size:var(--ct-font-size-md)}
+th{text-align:left;font-size:var(--ct-font-size-sm);font-weight:500;color:var(--ct-fg-muted);padding:7px var(--ct-space-4);border-bottom:1px solid var(--ct-border);background:var(--ct-sidebar)}
+td{padding:7px var(--ct-space-4);border-bottom:1px solid var(--ct-border)}
+tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--ct-surface-hover)}
+td.r,th.r{text-align:right}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;background:var(--ct-fg-disabled)}
+.ok .dot{background:var(--ct-success)}.warn .dot{background:var(--ct-warning)}.err .dot{background:var(--ct-error)}
+.tag{display:inline-block;padding:0 6px;border:1px solid var(--ct-border-strong);border-radius:var(--ct-radius-sm);font-size:var(--ct-font-size-sm);color:var(--ct-fg-secondary)}
+.two{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:var(--ct-space-3)}
+.form{display:grid;gap:var(--ct-space-3);padding:var(--ct-space-4)}
+label{display:grid;gap:4px;font-size:var(--ct-font-size-sm);color:var(--ct-fg-secondary)}
+input[type=text],input[type=password],select{height:30px;padding:0 var(--ct-space-2);background:var(--ct-canvas);border:1px solid var(--ct-border);border-radius:var(--ct-radius-md);color:var(--ct-fg);font:400 var(--ct-font-size-md) var(--ct-font-sans)}
+input:hover,select:hover{border-color:var(--ct-border-strong)}input:focus,select:focus{outline:none;border-color:var(--ct-focus)}
+::placeholder{color:var(--ct-fg-disabled)}
+.check{display:flex;align-items:center;gap:var(--ct-space-2);color:var(--ct-fg)}
+.check input{appearance:none;width:15px;height:15px;margin:0;border:1px solid var(--ct-border-strong);border-radius:var(--ct-radius-sm);background:var(--ct-canvas)}
+.check input:checked{background:var(--ct-action) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.6 2.6L12 5.6' fill='none' stroke='%2310100F' stroke-width='2'/%3E%3C/svg%3E") center/100% no-repeat;border-color:var(--ct-action)}
+.toggle{position:relative;width:30px;height:17px;border-radius:999px;background:var(--ct-surface-active);border:1px solid var(--ct-border-strong)}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--ct-fg-muted);transition:transform var(--ct-motion-duration) var(--ct-motion-easing)}
+.toggle.on{background:var(--ct-action);border-color:var(--ct-action)}.toggle.on::after{transform:translateX(13px);background:var(--ct-action-fg)}
+.menu{width:220px;padding:4px;background:var(--ct-surface-elevated);border:1px solid var(--ct-border-strong);border-radius:var(--ct-radius-lg);box-shadow:0 8px 24px rgb(0 0 0/.35)}
+.menu div{display:flex;justify-content:space-between;padding:5px var(--ct-space-2);border-radius:var(--ct-radius-sm)}.menu div:hover,.menu div.on{background:var(--ct-surface-active)}
+.menu hr{border:0;border-top:1px solid var(--ct-border);margin:4px 0}.menu .del{color:var(--ct-error)}
+.dialog{background:var(--ct-surface-elevated);border:1px solid var(--ct-border-strong);border-radius:var(--ct-radius-dialog);box-shadow:0 16px 48px rgb(0 0 0/.45);overflow:hidden}
+.dialog .body{padding:var(--ct-space-4)}.dialog footer{display:flex;justify-content:flex-end;gap:var(--ct-space-2);padding:var(--ct-space-3) var(--ct-space-4);border-top:1px solid var(--ct-border);background:var(--ct-surface)}
+.note{display:flex;gap:var(--ct-space-2);padding:var(--ct-space-2) var(--ct-space-3);border:1px solid var(--ct-border);border-left:2px solid var(--ct-fg-muted);border-radius:var(--ct-radius-md);background:var(--ct-surface)}
+.note.ok{border-left-color:var(--ct-success)}.note.warn{border-left-color:var(--ct-warning)}.note.err{border-left-color:var(--ct-error)}
+pre{margin:0;padding:var(--ct-space-3) var(--ct-space-4);background:var(--ct-canvas);font:400 12.5px/1.6 var(--ct-font-mono);overflow:auto}
+pre .c{color:var(--ct-fg-muted)}pre .s{color:var(--ct-series-3)}pre .k{color:var(--ct-series-2)}pre .n{color:var(--ct-series-1)}
+.legend{display:flex;gap:var(--ct-space-4);font-size:var(--ct-font-size-sm);color:var(--ct-fg-secondary)}.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+.auth{display:grid;place-items:center;padding:var(--ct-space-8) var(--ct-space-4);background:var(--ct-canvas);border:1px solid var(--ct-border);border-radius:var(--ct-radius-lg)}
+.auth .box{width:340px;background:var(--ct-surface);border:1px solid var(--ct-border);border-radius:var(--ct-radius-dialog);padding:var(--ct-space-6)}
+.auth h3{margin:0 0 4px;font-size:17px;font-weight:600}.auth .btn{width:100%;justify-content:center;height:34px}
+.or{display:flex;align-items:center;gap:var(--ct-space-2);color:var(--ct-fg-muted);font-size:var(--ct-font-size-sm)}.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--ct-border)}
+@media (max-width:900px){.shell{grid-template-columns:1fr}.side{display:none}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="side" aria-label="Sections">
+    <div class="org"><i></i>Platform</div>
+    <h6>Operate</h6>
+    <a class="nav on" href="#">Overview <kbd>G O</kbd></a>
+    <a class="nav" href="#">Applications <span class="muted num">14</span></a>
+    <a class="nav" href="#">Nodes <span class="muted num">5</span></a>
+    <a class="nav" href="#">Databases</a>
+    <a class="nav" href="#">Storage</a>
+    <h6>Observe</h6>
+    <a class="nav" href="#">Metrics</a>
+    <a class="nav" href="#">Logs</a>
+    <a class="nav" href="#">Alerts <span class="tag">2</span></a>
+    <h6>Access</h6>
+    <a class="nav" href="#">Secrets</a>
+    <a class="nav" href="#">Sign-in</a>
+  </nav>
+  <main>
+    <div class="top">
+      <div class="crumbs"><span>Platform</span><span>/</span><b>Overview</b></div>
+      <div class="row"><input type="text" placeholder="Search…  /" aria-label="Search" style="width:220px"><button class="btn ghost">Docs</button><button class="btn second">Sync</button><button class="btn primary">New application</button></div>
+    </div>
+    <div class="page">
+      <div class="row" style="justify-content:space-between"><h1>Overview</h1><div class="row"><button class="btn primary">Primary</button><button class="btn second">Secondary</button><button class="btn ghost">Ghost</button><button class="btn danger">Delete</button><button class="btn second" disabled>Disabled</button></div></div>
+
+      <section class="cards" aria-label="Metrics">
+        <div class="card"><div class="k">Processor</div><div class="v num">18.4 %</div><div class="d num">64 threads · load 3.12</div><div class="bar"><i style="width:18%"></i></div></div>
+        <div class="card"><div class="k">Memory</div><div class="v num">71.9 GiB</div><div class="d num">of 136 GiB · 52.8 %</div><div class="bar"><i style="width:53%;background:var(--ct-series-2)"></i></div></div>
+        <div class="card"><div class="k">Storage</div><div class="v num">6.44 TiB</div><div class="d num">of 7.98 TiB · 80.7 %</div><div class="bar"><i style="width:81%;background:var(--ct-warning)"></i></div></div>
+        <div class="card"><div class="k">Services answering</div><div class="v num">21 / 21</div><div class="d ok"><span class="dot"></span>99.94 % over 7 days</div></div>
+      </section>
+
+      <section class="two">
+        <div class="panel">
+          <header><h2>Upload and download</h2><div class="legend"><span><i style="background:var(--ct-series-1)"></i>download</span><span><i style="background:var(--ct-series-2)"></i>upload</span></div></header>
+          <svg viewBox="0 0 640 180" role="img" aria-label="Throughput over six hours" style="display:block;width:100%;height:180px;background:var(--ct-surface)">
+            <g stroke="var(--ct-border)" stroke-width="1"><path d="M0 45H640M0 90H640M0 135H640"/></g>
+            <path d="M0 140 L40 132 L80 128 L120 96 L160 104 L200 70 L240 82 L280 60 L320 74 L360 48 L400 66 L440 58 L480 92 L520 84 L560 110 L600 100 L640 118" fill="none" stroke="var(--ct-series-1)" stroke-width="1.6"/>
+            <path d="M0 160 L40 158 L80 150 L120 152 L160 138 L200 146 L240 120 L280 126 L320 112 L360 130 L400 124 L440 140 L480 134 L520 150 L560 146 L600 156 L640 152" fill="none" stroke="var(--ct-series-2)" stroke-width="1.6"/>
+            <g fill="var(--ct-fg-muted)" font-size="10" font-family="ui-monospace,monospace"><text x="6" y="41">300 Mbit/s</text><text x="6" y="86">200</text><text x="6" y="131">100</text></g>
+          </svg>
+        </div>
+        <div class="panel">
+          <header><h2>Deploy</h2><span class="tag mono">main · 8d589a6</span></header>
+<pre><span class="c"># plan first, apply the saved plan only</span>
+<span class="k">make</span> dns-plan <span class="n">DNS_ALLOCATION_REVIEWED</span>=<span class="s">yes</span>
+<span class="k">make</span> dns-apply <span class="n">DNS_PLAN_SHA256</span>=<span class="s">a5c1cfda…</span>
+
+Plan: <span class="s">2 to add</span>, 0 to change, 0 to destroy.</pre>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>Applications</h2><div class="row"><span class="muted num">6 of 14</span><button class="btn ghost">Filter</button></div></header>
+        <table>
+          <thead><tr><th>Name</th><th>State</th><th>Version</th><th>Node</th><th class="r">CPU</th><th class="r">Memory</th><th class="r">Restarts</th><th>Last sync</th></tr></thead>
+          <tbody>
+            <tr><td>authentik</td><td class="ok"><span class="dot"></span>Healthy</td><td class="mono">2026.8.5</td><td>k3s-server-01</td><td class="r num">0.21</td><td class="r num">1.42 GiB</td><td class="r num">0</td><td class="muted num">4 min ago</td></tr>
+            <tr><td>grafana</td><td class="ok"><span class="dot"></span>Healthy</td><td class="mono">14.5.0</td><td>k3s-server-03</td><td class="r num">0.04</td><td class="r num">312 MiB</td><td class="r num">1</td><td class="muted num">4 min ago</td></tr>
+            <tr><td>netbox</td><td class="warn"><span class="dot"></span>Progressing</td><td class="mono">v4.7.5</td><td>k3s-server-02</td><td class="r num">0.37</td><td class="r num">1.08 GiB</td><td class="r num">0</td><td class="muted num">12 s ago</td></tr>
+            <tr><td>windmill</td><td class="ok"><span class="dot"></span>Healthy</td><td class="mono">1.876.1</td><td>k3s-server-01</td><td class="r num">0.09</td><td class="r num">764 MiB</td><td class="r num">0</td><td class="muted num">4 min ago</td></tr>
+            <tr><td>wiki</td><td class="err"><span class="dot"></span>Degraded</td><td class="mono">3.5.0</td><td>k3s-server-02</td><td class="r num">0.00</td><td class="r num">0 MiB</td><td class="r num">7</td><td class="muted num">1 h ago</td></tr>
+            <tr><td>vaultwarden</td><td><span class="dot"></span>Suspended</td><td class="mono">1.37.2</td><td class="muted">none</td><td class="r num muted">0.00</td><td class="r num muted">0 MiB</td><td class="r num">0</td><td class="muted num">2 d ago</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="two">
+        <div class="panel">
+          <header><h2>Settings</h2></header>
+          <div class="form">
+            <label>Name<input type="text" value="dns-02"></label>
+            <label>Node<select><option>pve-lab</option><option>pve-core</option></select></label>
+            <label>Address<input type="text" class="mono" placeholder="192.168.0.71/24"></label>
+            <label class="check"><input type="checkbox" checked>Start at boot</label>
+            <label class="check"><input type="checkbox">Protect from deletion</label>
+            <div class="row" style="justify-content:space-between"><span>Share the service address</span><span class="toggle on" role="switch" aria-checked="true" tabindex="0"></span></div>
+            <div class="row" style="justify-content:space-between"><span class="secondary">Query log</span><span class="toggle" role="switch" aria-checked="false" tabindex="0"></span></div>
+            <div class="row" style="justify-content:flex-end"><button class="btn ghost">Cancel</button><button class="btn primary">Save</button></div>
+          </div>
+        </div>
+        <div style="display:grid;gap:var(--ct-space-3);align-content:start">
+          <div class="note ok"><span class="ok"><span class="dot"></span></span><div><b>Upgrade complete.</b> <span class="secondary">Three members on 18.7, standbys streaming.</span></div></div>
+          <div class="note warn"><span class="warn"><span class="dot"></span></span><div><b>Adapter at 85 °C.</b> <span class="secondary">Alert at 90 °C, limit 105 °C.</span></div></div>
+          <div class="note err"><span class="err"><span class="dot"></span></span><div><b>pve-core sent no metrics for 5 minutes.</b> <span class="secondary">Frozen, off, or off the network.</span></div></div>
+          <div class="row" style="align-items:flex-start;gap:var(--ct-space-3)">
+            <div class="menu" role="menu"><div class="on">Open <span class="kbd">↵</span></div><div>Sync now <span class="kbd">S</span></div><div>View logs <span class="kbd">L</span></div><hr><div class="del">Delete…</div></div>
+            <div class="dialog" role="dialog" aria-label="Delete application" style="flex:1;min-width:240px"><div class="body"><h2>Delete wiki?</h2><div class="secondary">Its database and its volume are kept. This cannot be undone from here.</div></div><footer><button class="btn second">Cancel</button><button class="btn danger">Delete</button></footer></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth" aria-label="Sign-in">
+        <div class="box" style="display:grid;gap:var(--ct-space-3)">
+          <div><h3>Sign in</h3><div class="secondary">Use your platform account.</div></div>
+          <label>Username or e-mail<input type="text" autocomplete="username"></label>
+          <label>Password<input type="password" value="••••••••••"></label>
+          <button class="btn primary">Continue</button>
+          <div class="or">or</div>
+          <button class="btn second">Use a security key</button>
+          <div class="muted" style="font-size:var(--ct-font-size-sm);text-align:center">Forgot your password? <a href="#">Recover access</a></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</body>
+</html>

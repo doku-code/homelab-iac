@@ -1622,6 +1622,10 @@
       },
       "backrefs": [
         {
+          "from": "GUIDE-charcoal-titanium-the-shared-design-system-and-each-service",
+          "field": "related"
+        },
+        {
           "from": "GUIDE-map-dependencies",
           "field": "related_decisions"
         },
@@ -2330,6 +2334,77 @@
       ]
     },
     {
+      "id": "GUIDE-charcoal-titanium-the-shared-design-system-and-each-service",
+      "title": "Charcoal Titanium: the shared design system and each service's theme adapter",
+      "summary": "The design tokens, the preview, what each service takes from them and how, how to change, deploy and undo a theme.",
+      "importance": 3,
+      "lifecycle": "active",
+      "topics": [
+        "theme",
+        "homepage",
+        "authentik",
+        "argocd",
+        "forgejo",
+        "grafana"
+      ],
+      "applies_to": [],
+      "source_paths": [
+        "services/_shared/theme",
+        "scripts/theme.py",
+        "tests/theme.py",
+        "services/homepage/config/custom.css",
+        "services/authentik/theme.css",
+        "services/argocd/theme.css",
+        "services/forgejo"
+      ],
+      "last_verified": "2026-11-27",
+      "review_after": null,
+      "type": "guide",
+      "status": "current",
+      "path": "docs/guides/charcoal-titanium-the-shared-design-system-and-each-service.md",
+      "tags": [
+        "guide",
+        "theme",
+        "design-system"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": null,
+      "milestone": null,
+      "source": null,
+      "version": null,
+      "headings": [
+        "Charcoal Titanium",
+        "The pieces",
+        "Compatibility matrix",
+        "Deploy and undo",
+        "When an application is updated",
+        "What was looked at, and how"
+      ],
+      "relations": {
+        "related": [
+          "TASK-039",
+          "TASK-027",
+          "ADR-017"
+        ],
+        "source_paths": [
+          "services/_shared/theme",
+          "scripts/theme.py",
+          "tests/theme.py",
+          "services/homepage/config/custom.css",
+          "services/authentik/theme.css",
+          "services/argocd/theme.css",
+          "services/forgejo"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "TASK-039",
+          "field": "related"
+        }
+      ]
+    },
+    {
       "id": "GUIDE-handoff",
       "title": "Current handoff and next steps",
       "summary": "Read first in a new session: what exists, where the state lives, how to work from mgmt-control-01, the current and next task.",
@@ -2369,6 +2444,7 @@
         "First steps in the first Ubuntu session",
         "Current and next work",
         "Commands",
+        "Appearance (Charcoal Titanium, prepared 2026-11-27)",
         "pfSense (read, and one change by hand)",
         "Known issues"
       ],
@@ -4471,6 +4547,10 @@
         },
         {
           "from": "TASK-037",
+          "field": "milestone"
+        },
+        {
+          "from": "TASK-039",
           "field": "milestone"
         }
       ]
@@ -6908,8 +6988,16 @@
       },
       "backrefs": [
         {
+          "from": "GUIDE-charcoal-titanium-the-shared-design-system-and-each-service",
+          "field": "related"
+        },
+        {
           "from": "REF-wiki-js-3-4-requirements-container-settings-and-migration-fr",
           "field": "related_tasks"
+        },
+        {
+          "from": "TASK-039",
+          "field": "related"
         }
       ]
     },
@@ -7586,6 +7674,72 @@
           "field": "related"
         }
       ]
+    },
+    {
+      "id": "TASK-039",
+      "title": "Charcoal Titanium: one design system for the services' interfaces",
+      "summary": "Shared design tokens, a static preview, and theme adapters for the services that support safe appearance customization; Homepage first.",
+      "importance": null,
+      "lifecycle": "active",
+      "topics": [],
+      "applies_to": [],
+      "source_paths": [],
+      "last_verified": null,
+      "review_after": null,
+      "type": "task",
+      "status": "in-progress",
+      "path": "tasks/TASK-039-charcoal-titanium-one-design-system-for-the-services-interfa.md",
+      "tags": [
+        "theme",
+        "design-system",
+        "homepage"
+      ],
+      "component": null,
+      "technology": null,
+      "priority": "medium",
+      "milestone": "M010",
+      "source": null,
+      "version": null,
+      "headings": [
+        "Charcoal Titanium: one design system for the services' interfaces",
+        "Goal",
+        "Context",
+        "Acceptance criteria",
+        "Verification",
+        "Tests",
+        "Evidence",
+        "Completion summary"
+      ],
+      "relations": {
+        "related": [
+          "GUIDE-charcoal-titanium-the-shared-design-system-and-each-service",
+          "TASK-027"
+        ],
+        "related_implementations": [
+          "scripts/theme.py",
+          "services/_shared/theme/tokens.json",
+          "services/homepage/config/custom.css",
+          "services/authentik/theme.css",
+          "services/argocd/theme.css",
+          "services/forgejo/theme-charcoal-titanium.css"
+        ],
+        "related_tests": [
+          "tests/theme.py",
+          "tests/homepage-k3s.py",
+          "tests/authentik.py",
+          "tests/argocd.py",
+          "tests/dns.py"
+        ],
+        "milestone": [
+          "M010"
+        ]
+      },
+      "backrefs": [
+        {
+          "from": "GUIDE-charcoal-titanium-the-shared-design-system-and-each-service",
+          "field": "related"
+        }
+      ]
     }
   ],
   "by_type": {
@@ -7616,6 +7770,7 @@
       "ADR-018"
     ],
     "guide": [
+      "GUIDE-charcoal-titanium-the-shared-design-system-and-each-service",
       "GUIDE-handoff",
       "GUIDE-home",
       "GUIDE-map-architecture",
@@ -7705,7 +7860,8 @@
       "TASK-035",
       "TASK-036",
       "TASK-037",
-      "TASK-038"
+      "TASK-038",
+      "TASK-039"
     ]
   },
   "by_tag": {
@@ -7838,6 +7994,10 @@
       "ADR-014",
       "GUIDE-map-deployment"
     ],
+    "design-system": [
+      "GUIDE-charcoal-titanium-the-shared-design-system-and-each-service",
+      "TASK-039"
+    ],
     "desktop": [
       "ADR-009"
     ],
@@ -7883,6 +8043,7 @@
       "TASK-026"
     ],
     "guide": [
+      "GUIDE-charcoal-titanium-the-shared-design-system-and-each-service",
       "GUIDE-handoff",
       "GUIDE-media-stack",
       "GUIDE-postgresql-major-version-upgrade-how-the-shared-cluster-move",
@@ -7911,7 +8072,8 @@
       "GUIDE-home"
     ],
     "homepage": [
-      "TASK-027"
+      "TASK-027",
+      "TASK-039"
     ],
     "identity": [
       "GUIDE-map-identity"
@@ -8215,6 +8377,10 @@
     ],
     "terraform": [
       "ADR-003"
+    ],
+    "theme": [
+      "GUIDE-charcoal-titanium-the-shared-design-system-and-each-service",
+      "TASK-039"
     ],
     "traefik": [
       "TASK-021",

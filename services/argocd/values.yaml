@@ -8,6 +8,116 @@ configs:
   params:
     # TLS ends at Traefik (wildcard certificate); the route is in services/argocd/access.yaml.
     server.insecure: true
+  # Appearance (TASK-039, Charcoal Titanium): Argo CD's supported custom stylesheet. The chart mounts it and sets
+  # ui.cssurl itself. Written from services/argocd/theme.css by scripts/theme.py; edit that file, never this copy.
+  styles: |
+    /* theme:start (scripts/theme.py) */
+    /* Charcoal Titanium for Argo CD (TASK-039), through its supported custom stylesheet (configs.styles of the chart,
+       written into values.yaml by scripts/theme.py). Argo CD's dark theme is already neutral; this only replaces the
+       blue-green sidebar and the coloured buttons and links. Health, sync and graph colours are Argo CD's own. The
+       class names below are the long-standing ones of argo-ui; a rule whose class disappears simply stops applying. */
+    /* tokens:start (written by scripts/theme.py from services/_shared/theme/tokens.json) */
+    :root {
+      --ct-canvas: #10100F;
+      --ct-sidebar: #151514;
+      --ct-surface: #1B1B19;
+      --ct-surface-elevated: #242423;
+      --ct-surface-hover: #292927;
+      --ct-surface-active: #30302E;
+      --ct-border: #30302E;
+      --ct-border-strong: #41413E;
+      --ct-fg: #EDECE9;
+      --ct-fg-secondary: #B5B4AF;
+      --ct-fg-muted: #999894;
+      --ct-fg-disabled: #666561;
+      --ct-action: #E6E5E1;
+      --ct-action-hover: #F5F4F0;
+      --ct-action-fg: #10100F;
+      --ct-action-secondary: #242423;
+      --ct-focus: #B5B4AF;
+      --ct-success: #79A88C;
+      --ct-warning: #C9A66B;
+      --ct-error: #D47D7D;
+      --ct-series-1: #8FA8BF;
+      --ct-series-2: #B9A283;
+      --ct-series-3: #8FB39F;
+      --ct-series-4: #B596AD;
+      --ct-series-5: #A9A7A0;
+      --ct-series-6: #C98F8F;
+      --ct-radius-sm: 4px;
+      --ct-radius-md: 6px;
+      --ct-radius-lg: 8px;
+      --ct-radius-dialog: 12px;
+      --ct-space-1: 4px;
+      --ct-space-2: 8px;
+      --ct-space-3: 12px;
+      --ct-space-4: 16px;
+      --ct-space-6: 24px;
+      --ct-space-8: 32px;
+      --ct-font-sans: "Geist", "Geist Sans", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --ct-font-mono: "Geist Mono", ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --ct-font-size-sm: 12px;
+      --ct-font-size-md: 13px;
+      --ct-font-size-lg: 14px;
+      --ct-font-size-heading: 20px;
+      --ct-motion-duration: 140ms;
+      --ct-motion-easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+    /* tokens:end */
+
+    body,
+    .theme-dark {
+      font-family: var(--ct-font-sans);
+    }
+
+    .sidebar {
+      background: var(--ct-sidebar) !important;
+      border-right: 1px solid var(--ct-border);
+    }
+
+    .sidebar__nav-item:hover,
+    .sidebar__nav-item--active {
+      background: var(--ct-surface-active) !important;
+    }
+
+    .argo-button--base {
+      background-color: var(--ct-action) !important;
+      border-color: var(--ct-action) !important;
+      color: var(--ct-action-fg) !important;
+      border-radius: var(--ct-radius-md) !important;
+    }
+
+    .argo-button--base:hover {
+      background-color: var(--ct-action-hover) !important;
+      border-color: var(--ct-action-hover) !important;
+    }
+
+    .argo-button--base-o {
+      background-color: var(--ct-action-secondary) !important;
+      border-color: var(--ct-border-strong) !important;
+      color: var(--ct-fg) !important;
+      border-radius: var(--ct-radius-md) !important;
+    }
+
+    .argo-button--base-o:hover {
+      background-color: var(--ct-surface-hover) !important;
+    }
+
+    .theme-dark a,
+    .theme-dark .top-bar__breadcrumbs a {
+      color: var(--ct-fg);
+    }
+
+    .theme-dark a:hover {
+      color: var(--ct-action-hover);
+    }
+
+    .argo-button:focus-visible,
+    .theme-dark a:focus-visible {
+      outline: 2px solid var(--ct-focus);
+      outline-offset: 2px;
+    }
+    /* theme:end */
   cm:
     # No shell into pods from the web interface.
     exec.enabled: false

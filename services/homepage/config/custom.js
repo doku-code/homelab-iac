@@ -14,7 +14,7 @@
   var REFRESH_MS = 10000;
   var BACKGROUNDS = ["/images/bg-1.jpg", "/images/bg-2.jpg", "/images/bg-3.webp"];
   var BACKGROUND_KEY = "nithBackgroundIndex";
-  var DEFAULT_BACKGROUND = "/images/coffee-bg.jpg";
+  var BACKGROUND_DIM = 0.55; /* how much of the charcoal page stays over a chosen image */
 
   /* card id -> key of snapshot.nodes */
   var NODE_CARDS = {
@@ -466,7 +466,7 @@
       line.setAttribute("x2", "520");
       line.setAttribute("y1", String(y));
       line.setAttribute("y2", String(y));
-      line.setAttribute("stroke", "rgba(255,255,255,.06)");
+      line.setAttribute("stroke", "rgba(237,236,233,.07)");
       svg.appendChild(line);
     });
     [["download_bps", "dl"], ["upload_bps", "ul"]].forEach(function (spec) {
@@ -581,13 +581,32 @@
     return isNaN(saved) ? null : Math.max(0, Math.min(BACKGROUNDS.length - 1, saved));
   }
 
+  /* The page is plain by default. A chosen image is drawn on a layer of our own, behind the content. */
   function setBackgroundImage(url) {
     var target = document.getElementById("background");
-    if (!target) return;
+    if (!target) {
+      var wrapper = document.getElementById("page_wrapper");
+      if (!wrapper || !wrapper.parentNode) return;
+      target = el("div", "");
+      target.id = "background";
+      target.setAttribute("aria-hidden", "true");
+      wrapper.parentNode.insertBefore(target, wrapper);
+    }
+    if (!url) {
+      target.setAttribute("data-nith-image", "none");
+      target.style.removeProperty("background-image");
+      return;
+    }
+    target.setAttribute("data-nith-image", "set");
     target.style.setProperty(
       "background-image",
-      'linear-gradient(rgb(var(--bg-color) / 0.18), rgb(var(--bg-color) / 0.18)), url("' + url + '")'
+      "linear-gradient(rgb(16 16 15 / " + BACKGROUND_DIM + "), rgb(16 16 15 / " + BACKGROUND_DIM + ')), url("' + url + '")'
     );
+  }
+
+  function clearBackground() {
+    window.localStorage.removeItem(BACKGROUND_KEY);
+    setBackgroundImage(null);
   }
 
   function loadBackground(index) {
@@ -596,10 +615,7 @@
       setBackgroundImage(BACKGROUNDS[index]);
       window.localStorage.setItem(BACKGROUND_KEY, String(index));
     };
-    image.onerror = function () {
-      window.localStorage.removeItem(BACKGROUND_KEY);
-      setBackgroundImage(DEFAULT_BACKGROUND);
-    };
+    image.onerror = clearBackground;
     image.src = BACKGROUNDS[index];
   }
 
@@ -613,7 +629,8 @@
     button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="8.5" cy="10" r="1.5"></circle><path d="m5 17 4.5-4.5 3 3 2-2L19 18"></path></svg>';
     button.addEventListener("click", function () {
       var current = getBackgroundIndex();
-      loadBackground((current === null ? 0 : current + 1) % BACKGROUNDS.length);
+      if (current !== null && current + 1 >= BACKGROUNDS.length) clearBackground();
+      else loadBackground(current === null ? 0 : current + 1);
     });
     bar.insertBefore(button, bar.firstChild);
   }
@@ -675,6 +692,7 @@
   function boot() {
     var saved = getBackgroundIndex();
     if (saved !== null) loadBackground(saved);
+    else setBackgroundImage(null);
     /* Homepage draws the cards after its own data arrives: mark and fill them a few times early on. */
     [0, 400, 1200, 2500].forEach(function (delay) {
       setTimeout(function () {

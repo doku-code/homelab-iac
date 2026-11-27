@@ -38,6 +38,7 @@ Git is the history; milestones and tasks record why and with what evidence. Prog
 | TASK-035 | [Documentation maps: hub pages generated from the repository and a wiki with a curated sidebar](../../tasks/TASK-035-documentation-maps-hub-pages-generated-from-the-repository-a.md) | in-progress | M010 | 2026-11-25 |
 | TASK-036 | [Media services on pve-infra: Jellyfin, Seerr, Radarr, Sonarr and Prowlarr, one container each](../../tasks/TASK-036-media-stack-on-pve-infra-jellyfin-seerr-radarr-sonarr-prowla.md) | in-progress | M010 | 2026-11-27 |
 | TASK-037 | [TrueNAS under management: metrics in Grafana, apps as code, housekeeping](../../tasks/TASK-037-truenas-under-management-metrics-in-grafana-apps-as-code-hou.md) | in-progress | M010 | 2026-11-27 |
+| TASK-039 | [Charcoal Titanium: one design system for the services' interfaces](../../tasks/TASK-039-charcoal-titanium-one-design-system-for-the-services-interfa.md) | in-progress | M010 | 2026-11-27 |
 <!-- map:tasks:end -->
 
 ## Milestones

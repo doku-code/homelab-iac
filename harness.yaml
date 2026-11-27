@@ -84,6 +84,8 @@ verification:
     description: OpenTofu root dns (fmt, validate, mocked tofu test), playbook syntax, AdGuard Home role/configuration/Make guard tests; offline
   - name: truenas-check
     run: make truenas-check
+  - name: theme-check
+    run: make theme-check
     detected: false
     verified: true
     description: The NAS's apps as files, placeholders for secrets, gated apply; offline

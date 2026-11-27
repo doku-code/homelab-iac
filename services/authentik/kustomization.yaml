@@ -12,6 +12,7 @@ configMapGenerator:
     files:
       - blueprints/homelab-access.yaml
       - blueprints/homelab-argocd.yaml
+      - blueprints/homelab-brand.yaml
       - blueprints/homelab-grafana.yaml
       - blueprints/homelab-headlamp.yaml
       - blueprints/homelab-homepage.yaml

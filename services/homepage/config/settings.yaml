@@ -2,17 +2,15 @@ title: Doku Lab
 description: Dashboard of the doku-lab platform
 language: en
 theme: dark
-color: slate
+color: neutral
 target: _blank
 statusStyle: dot
 hideVersion: true
 useEqualHeights: false
 headerStyle: clean
 disableCollapse: true
-# custom.js lets the visitor switch between the images of /images (kept outside Git, on the homepage-images volume).
-background:
-  image: /images/coffee-bg.jpg
-  opacity: 82
+# A plain charcoal page by default (custom.css). The footer's button (custom.js) offers the images of /images, kept
+# outside Git on the homepage-images volume; the choice is the visitor's and stays in their browser.
 layout:
   Platform: {style: row, columns: 2, header: true}
   Infrastructure: {style: row, columns: 2, header: true}

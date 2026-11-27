@@ -1203,6 +1203,16 @@ dns-configure:
 
 TRUENAS_APPS ?=
 
+# Charcoal Titanium (TASK-039): the shared design tokens and the applications' theme adapters. `make theme` rewrites
+# every generated copy from services/_shared/theme/tokens.json; the preview is the file
+# services/_shared/theme/preview/index.html, opened in a browser. Deploying an adapter is its application's own target.
+.PHONY: theme theme-check
+theme:
+	$(VENV)/bin/python scripts/theme.py
+
+theme-check:
+	$(VENV)/bin/python tests/theme.py
+
 .PHONY: truenas-check truenas-plan truenas-apply
 
 truenas-check:

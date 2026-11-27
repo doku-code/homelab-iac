@@ -27,6 +27,7 @@ with a web interface gets its blueprint in the change that deploys it; every ser
 |---|---|---|
 | [`homelab-access.yaml`](../../services/authentik/blueprints/homelab-access.yaml) |  | shared: groups, outpost |
 | [`homelab-argocd.yaml`](../../services/authentik/blueprints/homelab-argocd.yaml) | <https://argocd.doku-lab.net> | OpenID Connect client |
+| [`homelab-brand.yaml`](../../services/authentik/blueprints/homelab-brand.yaml) |  | shared: groups, outpost |
 | [`homelab-grafana.yaml`](../../services/authentik/blueprints/homelab-grafana.yaml) | <https://grafana.doku-lab.net> | OpenID Connect client |
 | [`homelab-headlamp.yaml`](../../services/authentik/blueprints/homelab-headlamp.yaml) | <https://headlamp.doku-lab.net> | OpenID Connect client |
 | [`homelab-homepage.yaml`](../../services/authentik/blueprints/homelab-homepage.yaml) | <https://home.doku-lab.net> | Authentik in front of the service (forward auth) |
