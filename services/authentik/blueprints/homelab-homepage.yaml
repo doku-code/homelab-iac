@@ -45,6 +45,7 @@ entries:
       group: Platform
       provider: !KeyOf provider
       meta_launch_url: https://home.doku-lab.net/
+      meta_icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/homepage.png
       policy_engine_mode: any
 
   # Open to homelab-admins only.

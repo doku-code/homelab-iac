@@ -61,6 +61,7 @@ entries:
       group: Platform
       provider: !KeyOf provider
       meta_launch_url: https://headlamp.doku-lab.net/
+      meta_icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/headlamp.svg
       policy_engine_mode: any
 
   # Only members of homelab-admins may open the application.

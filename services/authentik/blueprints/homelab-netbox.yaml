@@ -53,6 +53,7 @@ entries:
       group: Platform
       provider: !KeyOf provider
       meta_launch_url: https://netbox.doku-lab.net/
+      meta_icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/netbox.svg
       policy_engine_mode: any
 
   # Only members of homelab-admins may open the application.

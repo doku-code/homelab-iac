@@ -56,6 +56,7 @@ entries:
       group: Platform
       provider: !KeyOf provider
       meta_launch_url: https://wiki.doku-lab.net/
+      meta_icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wikijs.svg
       policy_engine_mode: any
 
   # Only members of homelab-admins may open the application.

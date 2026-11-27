@@ -62,6 +62,7 @@ entries:
       group: Infrastructure
       provider: !KeyOf provider
       meta_launch_url: https://pve-management.doku-lab.net/
+      meta_icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/proxmox.svg
       policy_engine_mode: any
 
   # Only members of homelab-admins may open the application.

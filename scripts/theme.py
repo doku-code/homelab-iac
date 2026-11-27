@@ -48,10 +48,10 @@ def tokens():
 def properties(data):
     """(name, value) of every custom property, in the file's order."""
     rows = []
-    for group in ("color", "series", "radius", "space", "font", "motion"):
+    for group in ("color", "series", "radius", "space", "font", "pattern", "motion"):
         for key, value in data[group].items():
             name = {"color": f"--ct-{key}", "series": f"--ct-series-{key}", "radius": f"--ct-radius-{key}", "space": f"--ct-space-{key}",
-                    "font": f"--ct-font-{key}", "motion": f"--ct-motion-{key}"}[group]
+                    "font": f"--ct-font-{key}", "pattern": f"--ct-{key}", "motion": f"--ct-motion-{key}"}[group]
             rows.append((name, value))
     return rows
 
