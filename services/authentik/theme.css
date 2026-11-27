@@ -220,7 +220,6 @@ body,
 }
 
 .pf-c-button:focus-visible,
-.pf-c-form-control:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--ct-focus);
   outline-offset: 2px;
@@ -239,8 +238,13 @@ a:focus-visible {
   border-color: var(--ct-border-strong);
 }
 
-.pf-c-form-control:focus {
+/* A focused field is marked by its border alone: a ring around it as well made two outlines (operator, 2026-11-27).
+   PatternFly thickens the bottom edge on focus; it stays one pixel like the three others. */
+.pf-c-form-control:focus,
+.pf-c-form-control:focus-visible {
   border-color: var(--ct-focus);
+  border-bottom-width: 1px;
+  outline: none;
 }
 
 .pf-c-form-control::placeholder {
@@ -263,7 +267,7 @@ a:focus-visible {
 }
 
 .pf-c-page__header .pf-c-form-control:focus {
-  border-color: var(--ct-focus);
+  border: 1px solid var(--ct-focus);
 }
 
 .pf-c-form__label-text {

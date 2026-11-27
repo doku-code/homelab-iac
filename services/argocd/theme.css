@@ -51,9 +51,21 @@
 }
 /* tokens:end */
 
+/* Argo CD has no theme variables: its dark mode is a set of rules under .theme-dark with a blue-grey for every
+   panel and a teal for every accent. This file answers those rules one for one (class names read from the
+   bundles of v3.6.1). States keep Argo CD's own colours: the status icons, the bar of an application list, the
+   left edge of a tile, the pods of the resource tree are not named here. */
+
 body,
 .theme-dark {
   font-family: var(--ct-font-sans);
+}
+
+/* ── Page, sidebar, top bar ─────────────────────────────────────────────────────────────────────────────── */
+
+.theme-dark .cd-layout,
+.theme-dark .layout {
+  background-color: var(--ct-canvas);
 }
 
 .sidebar {
@@ -64,42 +76,269 @@ body,
 .sidebar__nav-item:hover,
 .sidebar__nav-item--active {
   background: var(--ct-surface-active) !important;
+  border-radius: var(--ct-radius-md);
 }
 
-.argo-button--base {
-  background-color: var(--ct-action) !important;
-  border-color: var(--ct-action) !important;
-  color: var(--ct-action-fg) !important;
-  border-radius: var(--ct-radius-md) !important;
-}
-
-.argo-button--base:hover {
-  background-color: var(--ct-action-hover) !important;
-  border-color: var(--ct-action-hover) !important;
-}
-
-.argo-button--base-o {
-  background-color: var(--ct-action-secondary) !important;
-  border-color: var(--ct-border-strong) !important;
+.sidebar__nav-item--active i {
   color: var(--ct-fg) !important;
-  border-radius: var(--ct-radius-md) !important;
 }
 
-.argo-button--base-o:hover {
-  background-color: var(--ct-surface-hover) !important;
+.theme-dark .top-bar {
+  background: var(--ct-sidebar);
+  border-color: var(--ct-border);
 }
 
-.theme-dark a,
+.theme-dark .top-bar__title {
+  color: var(--ct-fg-muted);
+  letter-spacing: 0.06em;
+}
+
+.theme-dark .top-bar__breadcrumbs,
 .theme-dark .top-bar__breadcrumbs a {
   color: var(--ct-fg);
 }
 
-.theme-dark a:hover {
+.theme-dark .login-logout-button,
+.theme-dark .login-logout-button:focus {
+  color: var(--ct-fg-secondary);
+  box-shadow: none;
+}
+
+.theme-dark .login-logout-button:hover {
+  color: var(--ct-fg);
+}
+
+/* ── Panels: tiles, rows, boxes, tabs, side panels, dialogs ─────────────────────────────────────────────── */
+
+.theme-dark .white-box,
+.theme-dark .argo-table-list__row,
+.theme-dark .application-status-panel,
+.theme-dark .application-deployment-history__item,
+.theme-dark .application-details .graph-options-panel,
+.theme-dark .application-resource-tree__node,
+.theme-dark .application-resource-tree__node--expansion,
+.theme-dark .application-resource-tree__node--podgroup--expansion,
+.theme-dark .editable-panel__sticky-title,
+.theme-dark .tabs__nav,
+.theme-dark .application-node-info__manifest .tabs__content,
+.theme-dark .sliding-panel__wrapper,
+.theme-dark .popup-overlay .popup-container__body,
+.theme-dark .popup-overlay .popup-container__footer {
+  background-color: var(--ct-surface);
+  color: var(--ct-fg);
+}
+
+.theme-dark .white-box,
+.theme-dark .argo-table-list__row,
+.theme-dark .application-status-panel,
+.theme-dark .application-resource-tree__node,
+.theme-dark .application-resource-tree__node--expansion,
+.theme-dark .application-resource-tree__node--podgroup--expansion {
+  box-shadow: 0 0 0 1px var(--ct-border);
+  border-radius: var(--ct-radius-md);
+}
+
+.theme-dark .argo-table-list__row:hover {
+  box-shadow: 0 0 0 1px var(--ct-border-strong);
+}
+
+.theme-dark .editable-panel__sticky-title {
+  border-bottom-color: var(--ct-border);
+  box-shadow: 0 -30px 0 0 var(--ct-surface);
+}
+
+.theme-dark .sliding-panel__header,
+.theme-dark .sliding-panel__body,
+.theme-dark .sliding-panel--off-canvas .sliding-panel__header,
+.theme-dark .popup-overlay .popup-container__header__normal,
+.theme-dark .application-resource-tree__node--orphaned {
+  background-color: var(--ct-surface-elevated) !important;
+}
+
+.theme-dark .sliding-panel__header,
+.theme-dark .white-box__details-row .columns,
+.theme-dark .tabs__nav.transparent,
+.theme-dark .application-status-panel__item:not(:first-child),
+.theme-dark .application-details .graph-options-panel .separator {
+  border-color: var(--ct-border);
+}
+
+.theme-dark .application-resource-tree__node-kind-icon--big {
+  border-color: var(--ct-surface);
+}
+
+.theme-dark .application-status-panel__item,
+.theme-dark .application-status-panel__item label,
+.theme-dark .application-status-panel__item-value,
+.theme-dark .application-summary .white-box__details p,
+.theme-dark .application-parameters .white-box__details p,
+.theme-dark .argo-form-row label {
+  color: var(--ct-fg-secondary);
+}
+
+/* ── The accent: Argo CD's teal becomes the off-white of the system ─────────────────────────────────────── */
+
+.theme-dark a,
+.theme-dark .argo-button--link,
+.theme-dark .application-node-info__application-link,
+.theme-dark .application-status-panel__item-value--highlight,
+.theme-dark .editable-panel__subsection-title,
+.theme-dark .editable-panel__collapsible-button__override,
+.theme-dark .application-details__container span {
+  color: var(--ct-fg);
+}
+
+.theme-dark a:hover,
+.theme-dark .application-node-info__application-link:hover {
   color: var(--ct-action-hover);
 }
 
+.theme-dark .tabs__nav a,
+.theme-dark .tabs__nav.transparent a {
+  color: var(--ct-fg-secondary);
+}
+
+.theme-dark .tabs__nav a.active,
+.theme-dark .tabs__nav.transparent a.active {
+  color: var(--ct-fg);
+}
+
+.theme-dark .tabs__indicator {
+  background: var(--ct-action);
+}
+
+.theme-dark .nav-bar__item.active {
+  border-color: var(--ct-action);
+}
+
+.theme-dark .application-resource-list__row--selected,
+.theme-dark .application-resource-tree__node.active {
+  border-left-color: var(--ct-action);
+}
+
+.theme-dark .application-resource-list__row--selected::after,
+.theme-dark .application-resource-tree__node.active::after {
+  background-color: color-mix(in srgb, var(--ct-fg) 8%, transparent);
+}
+
+/* ── Buttons. Nearly every button of Argo CD is its "base" one, three to a tile: they are the neutral button
+      here, and the off-white is kept for the ones that confirm something. ──────────────────────────────── */
+
+.theme-dark .argo-button {
+  border-radius: var(--ct-radius-md) !important;
+  color: var(--ct-fg);
+}
+
+.theme-dark .argo-button--base,
+.theme-dark .argo-button--base-o,
+.theme-dark .argo-button--rectangle,
+.theme-dark .yaml-editor__buttons .argo-button--base-o {
+  background-color: var(--ct-action-secondary) !important;
+  border-color: var(--ct-border-strong) !important;
+  box-shadow: inset 0 0 0 1px var(--ct-border-strong);
+  color: var(--ct-fg) !important;
+}
+
+.theme-dark .argo-button--base:not(.disabled):not([disabled]):hover,
+.theme-dark .argo-button--base:not(.disabled):not([disabled]):focus,
+.theme-dark .argo-button--base-o:not(.disabled):not([disabled]):hover,
+.theme-dark .argo-button--base-o:not(.disabled):not([disabled]):focus {
+  background-color: var(--ct-surface-active) !important;
+  border-color: var(--ct-border-strong) !important;
+  color: var(--ct-fg) !important;
+}
+
+.theme-dark .argo-button--special,
+.theme-dark .argo-button--radius,
+.theme-dark .popup-container__footer .argo-button--base,
+.theme-dark .sliding-panel__header .argo-button--base:first-child {
+  background: var(--ct-action) !important;
+  box-shadow: none;
+  color: var(--ct-action-fg) !important;
+}
+
+.theme-dark .argo-button--special:not(.disabled):hover,
+.theme-dark .argo-button--special:not(.disabled):focus,
+.theme-dark .popup-container__footer .argo-button--base:not(.disabled):not([disabled]):hover,
+.theme-dark .sliding-panel__header .argo-button--base:first-child:not(.disabled):not([disabled]):hover {
+  background: var(--ct-action-hover) !important;
+  color: var(--ct-action-fg) !important;
+}
+
+/* ── Fields, search, filters, checkboxes ────────────────────────────────────────────────────────────────── */
+
+.theme-dark .search-bar__input {
+  background-color: var(--ct-surface);
+  border: 1px solid var(--ct-border);
+  border-radius: var(--ct-radius-md);
+}
+
+.theme-dark .search-bar__input:focus-within,
+.theme-dark .search-bar__input--regex {
+  border-color: var(--ct-focus) !important;
+}
+
+.theme-dark .search-bar__input .keyboard-hint {
+  border-color: var(--ct-border-strong);
+  color: var(--ct-fg-muted);
+}
+
+.theme-dark .argo-field,
+.theme-dark .argo-textarea,
+.theme-dark .select__value {
+  border-bottom-color: var(--ct-border-strong);
+  color: var(--ct-fg);
+}
+
+.theme-dark .argo-field:focus,
+.theme-dark .argo-textarea:focus,
+.theme-dark .tags-input--focused {
+  border-color: var(--ct-focus);
+}
+
+.theme-dark .argo-field-container > .argo-field:focus + label.argo-label-placeholder,
+.theme-dark .argo-field-container > .argo-textarea:focus + label.argo-label-placeholder {
+  color: var(--ct-fg-secondary);
+}
+
+.theme-dark .filter__header {
+  color: var(--ct-fg-muted);
+}
+
+.theme-dark .filter__item--selected,
+.theme-dark .filter__header .argo-button {
+  background-color: var(--ct-surface-active) !important;
+  color: var(--ct-fg);
+}
+
+.theme-dark .argo-checkbox input + span {
+  border-color: var(--ct-border-strong);
+}
+
+.theme-dark .argo-checkbox input:checked + span,
+.theme-dark .checkbox--selected {
+  background-color: var(--ct-action);
+  border-color: var(--ct-action);
+  color: var(--ct-action-fg);
+}
+
+.theme-dark .argo-radio input:checked + span {
+  background-color: var(--ct-action);
+  border-color: var(--ct-action);
+  box-shadow: inset 0 0 0 3px var(--ct-surface);
+}
+
+.theme-dark .argo-checkbox-slide input:checked + span::before {
+  background-color: var(--ct-action);
+}
+
+.theme-dark .argo-checkbox-slide input:checked + span {
+  background-color: var(--ct-border-strong);
+}
+
 .argo-button:focus-visible,
-.theme-dark a:focus-visible {
-  outline: 2px solid var(--ct-focus);
+.theme-dark a:focus-visible,
+.theme-dark .argo-checkbox input:focus {
+  outline: 2px solid var(--ct-focus) !important;
   outline-offset: 2px;
 }
