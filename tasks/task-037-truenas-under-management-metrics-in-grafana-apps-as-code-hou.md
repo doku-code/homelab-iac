@@ -30,8 +30,8 @@ The key must never travel over plain HTTP: TrueNAS revokes it.
 
 - [x] Metrics of the NAS in VictoriaMetrics, a Grafana dashboard and alert rules (pools, disks, apps, silence).
 - [x] Apps described in the repository with a plan and an approval-gated apply (`qbit-vpn`, `plex`).
-- [ ] `qbit-vpn` runs the pinned digests (apply not done: the redeploy was refused by the session's permission check).
-- [ ] Homepage reads the NAS without the deprecated REST API.
+- [x] `qbit-vpn` runs the pinned digests.
+- [x] Homepage reads the NAS without the deprecated REST API.
 - [x] Timezone America/Toronto.
 - [ ] bond0 replaced by its SFP+ member (two attempts rolled back, see Evidence).
 
@@ -49,8 +49,12 @@ The key must never travel over plain HTTP: TrueNAS revokes it.
 | 2026-11-27 | `qbit-vpn` images pinned to the running digests, `make truenas-plan` | 2 to change (image references only); apply not run |
 | 2026-11-27 | `make truenas-check` | PASS |
 | 2026-11-27 | bond0 removal, twice, with TrueNAS's rollback | NAS unreachable once the address is on enp1s0 alone; rolled back by itself both times (about 1.5 and 4 minutes of outage). Not the hardware address: the bond already uses enp1s0's. Not retried blind |
+| 2026-11-27 | `make truenas-apply TRUENAS_APPS=qbit-vpn` (operator's go, on condition that the download list stays) | refused twice by TrueNAS at validation ("Invalid compose configuration: Timed out waiting for response", the NAS was busy), accepted the third time (about 3 minutes); plan "no change"; 8 torrents in qBittorrent's state directory before and after, 8 through its API |
+| 2026-11-27 | Homepage's NAS card from VictoriaMetrics (`truenas_*`), no NAS key in its Secret | snapshot shows 4 pools, 4 apps, load, uptime, version; the NAS's audit log has no session of the key `homepage-metrics` in the 5 minutes after the old pod ended (30 per 5 minutes before) |
+| 2026-11-27 | Homepage's qBittorrent card | qBittorrent 5.3 answers a login with 204 and no body; the card accepted only `Ok.` and showed an error. Fixed; card online (1 downloading, 6 seeding) |
+| 2026-11-27 | `make homepage-k3s-check` | PASS |
 
 ## Completion summary
 
-Remaining: apply the pinned digests to `qbit-vpn` (operator's go), describe `nextcloud`, Homepage off the REST API, the bond
+Remaining: describe `nextcloud`, the bond, the unused API key `homepage-metrics` on the NAS (the operator's to delete or to approve)
 (from the NAS console, or by removing only enp3s0 from it), then the media stack's use of the NAS (TASK-036).

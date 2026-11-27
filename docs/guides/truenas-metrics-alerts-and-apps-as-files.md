@@ -24,6 +24,9 @@ The apps stay on the NAS. Pools, datasets, permissions and shares are not manage
 - The interface and the API are on HTTPS port 444 (`wss://192.168.0.13:444/api/current`). Never send the key
   over plain HTTP (port 81): TrueNAS revokes a key it saw without TLS.
 - Everything here uses the JSON-RPC API over a WebSocket. The REST API (`/api/v2.0`) is deprecated.
+- Homepage's NAS card reads the same metrics from VictoriaMetrics: it holds no NAS key and never calls the NAS.
+- An apply that TrueNAS refuses with "Invalid compose configuration: Timed out waiting for response" changed nothing:
+  the NAS validates the file with a short time limit and was too busy. Run it again when the NAS is quieter.
 
 ## Metrics, dashboard and alerts
 
