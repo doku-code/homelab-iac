@@ -1073,7 +1073,7 @@ OBS_GRAFANA_LABS_REPO := https://grafana.github.io/helm-charts
 OBS_GRAFANA_REPO := https://grafana-community.github.io/helm-charts
 OBS_AGENT_ROOTS := k3s postgresql storage deploy-runner
 
-.PHONY: observability-check observability-deploy observability-agents
+.PHONY: observability-check observability-deploy observability-agents observability-hosts
 
 # Offline: renders the pinned charts with our values, checks the allow-lists and routes (needs the chart downloads).
 observability-check:
@@ -1114,6 +1114,13 @@ observability-agents:
 	else for root in $(OBS_AGENT_ROOTS); do inventory="$(CURDIR)/.local/$$root-inventory.json"; \
 	  $(TOFU) -chdir=terraform/stacks/$$root output -json ansible_inventory > "$$inventory"; args+=(-i "$$inventory"); done; fi; \
 	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) "$${args[@]}" ansible/playbooks/configure-observability-agents.yml --diff $(OBS_ANSIBLE_ARGS)
+
+# The same agent on the five Proxmox hosts, with their hardware sensors (temperatures). Installs the pinned Alloy
+# package and its configuration; restarts nothing else. OBS_HOSTS_LIMIT="pve-core" limits it to one host.
+OBS_HOSTS_LIMIT ?= proxmox_hosts
+observability-hosts:
+	@test "$(OBSERVABILITY_HOSTS_APPROVED)" = yes || (echo "Approve the agent on the Proxmox hosts with OBSERVABILITY_HOSTS_APPROVED=yes" >&2; exit 1)
+	ANSIBLE_HOST_KEY_CHECKING=True $(ANSIBLE) -i ansible/inventories/proxmox-hosts.yml ansible/playbooks/configure-observability-agents.yml --limit "$(OBS_HOSTS_LIMIT)" --diff $(OBS_ANSIBLE_ARGS)
 
 # Read-only: members, roles, replication lag, and which member holds the virtual IP.
 postgresql-status:

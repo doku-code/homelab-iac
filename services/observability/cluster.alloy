@@ -175,7 +175,7 @@ prometheus.relabel "truenas" {
 prometheus.scrape "pfsense" {
 	targets         = [{"__address__" = "192.168.0.1:9100", "instance" = "pfsense"}]
 	job_name        = "pfsense"
-	scrape_interval = "30s"
+	scrape_interval = "60s"
 	forward_to      = [prometheus.relabel.pfsense.receiver]
 }
 

@@ -15,6 +15,10 @@ alloy_agent_tls_verify: false
 alloy_agent_scrape_interval: 60s
 # node_exporter collectors that answer "is this host healthy": nothing per-process, no hardware sensors.
 alloy_agent_collectors: [cpu, meminfo, filesystem, diskstats, netdev, loadavg, pressure, uname, time]
+# A Proxmox host adds its hardware sensors (ansible/inventories/proxmox-hosts.yml): temperatures of the processor,
+# the NVMe disks and the network adapters that report one.
+alloy_agent_hardware_collectors: [hwmon]
+alloy_agent_hardware: false
 
 alloy_agent_postgresql: "{{ 'postgresql' in group_names }}"
 alloy_agent_postgresql_role: alloy

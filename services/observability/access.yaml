@@ -17,7 +17,7 @@ spec:
       - 192.168.0.0/24
 ---
 # Ingestion: only the VMs this repository manages (runner .32, k3s .40-.49, storage .50-.59,
-# PostgreSQL .60-.69) may push, and only to the two write paths below.
+# PostgreSQL .60-.69) and the five Proxmox hosts (.10, .11, .12, .14, .16) may push, and only to the two write paths below.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -26,6 +26,10 @@ metadata:
 spec:
   ipAllowList:
     sourceRange:
+      - 192.168.0.10/31
+      - 192.168.0.12/32
+      - 192.168.0.14/32
+      - 192.168.0.16/32
       - 192.168.0.32/32
       - 192.168.0.40/29
       - 192.168.0.48/28

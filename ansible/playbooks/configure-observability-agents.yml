@@ -8,3 +8,11 @@
   gather_facts: true
   roles:
     - alloy_agent
+
+# The same agent on the Proxmox hosts, with their hardware sensors (make observability-hosts). It installs one
+# package and restarts nothing but itself.
+- name: Install and configure the Alloy agent on the Proxmox hosts
+  hosts: proxmox_hosts
+  gather_facts: true
+  roles:
+    - alloy_agent

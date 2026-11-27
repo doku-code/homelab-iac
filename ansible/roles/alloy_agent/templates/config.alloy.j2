@@ -35,7 +35,7 @@ prometheus.relabel "host" {
 }
 
 prometheus.exporter.unix "host" {
-  set_collectors = {{ alloy_agent_collectors | to_json }}
+  set_collectors = {{ (alloy_agent_collectors + (alloy_agent_hardware_collectors if alloy_agent_hardware | bool else [])) | to_json }}
 
   filesystem {
     fs_types_exclude     = "^(tmpfs|devtmpfs|overlay|squashfs|proc|sysfs|cgroup2?|nsfs|nfs4?|efivarfs|vfat|ramfs|autofs|tracefs|debugfs|securityfs|pstore|bpf|configfs|fusectl|mqueue|hugetlbfs|devpts|binfmt_misc)$"
@@ -43,7 +43,7 @@ prometheus.exporter.unix "host" {
   }
 
   netdev {
-    device_exclude = "^(lo|veth.*|cni.*|flannel.*|kube-ipvs.*)$"
+    device_exclude = "^(lo|veth.*|cni.*|flannel.*|kube-ipvs.*|tap.*|fwbr.*|fwpr.*|fwln.*)$"
   }
 }
 

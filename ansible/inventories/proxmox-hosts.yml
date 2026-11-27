@@ -1,0 +1,16 @@
+---
+# The five Proxmox hosts of the doku-lab cluster, for the monitoring agent only (make observability-hosts):
+# host metrics with hardware sensors, and the journal. Nothing else is configured on a host from this file.
+all:
+  children:
+    proxmox_hosts:
+      vars:
+        ansible_user: root
+        ansible_python_interpreter: /usr/bin/python3
+        alloy_agent_hardware: true
+      hosts:
+        pve-management: {ansible_host: 192.168.0.10}
+        pve-core: {ansible_host: 192.168.0.11}
+        pve-infra: {ansible_host: 192.168.0.12}
+        pve-compute: {ansible_host: 192.168.0.14}
+        pve-lab: {ansible_host: 192.168.0.16}
