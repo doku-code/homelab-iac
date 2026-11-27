@@ -52,7 +52,7 @@ ranges:
   - {start: 192.168.0.50, end: 192.168.0.59, role: storage, description: "Storage VMs (VMIDs 350-359)"}
   - {start: 192.168.0.60, end: 192.168.0.69, role: postgresql, description: "PostgreSQL: .60 virtual IP, .61-.69 members (VMIDs 360-369)"}
   - {start: 192.168.0.70, end: 192.168.0.79, role: dns, description: "DNS VMs (VMIDs 370-379)"}
-  - {start: 192.168.0.80, end: 192.168.0.89, role: media, description: "Media services, one container each (VMIDs 381-389); .80 is the retired VM media-01"}
+  - {start: 192.168.0.80, end: 192.168.0.89, role: media, description: "Media services, one container each (VMIDs 381-389); .80 was the first version's VM, deleted 2026-11-27"}
   - {start: 192.168.0.100, end: 192.168.0.200, description: "DHCP pool (pfSense), as stated in the k3s root; leases seen between .101 and .130 on 2026-11-20, the limits are not read from pfSense", review: true}
 
 platforms:
@@ -363,6 +363,7 @@ retired:
   - {path: dcim/manufacturers, slug: unidentified, reason: "No device type uses it"}
   # Guests of the old environment that were replaced and then deleted from the old host on 2026-11-21 (operator's
   # decision). Their ports and addresses go with them.
+  - {path: virtualization/virtual-machines, name: media-01, cluster: doku-lab, reason: "VM380, replaced by one container per media service, deleted 2026-11-27"}
   - {path: virtualization/virtual-machines, name: adguard, reason: "CT200, replaced by dns-01, deleted 2026-11-21"}
   - {path: virtualization/virtual-machines, name: homepage, reason: "CT201, replaced by the dashboard on k3s, deleted 2026-11-21"}
   - {path: virtualization/virtual-machines, name: wiki-js, reason: "CT202, replaced by the wiki on k3s, deleted 2026-11-21"}

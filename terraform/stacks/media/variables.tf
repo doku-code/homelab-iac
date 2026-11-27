@@ -7,37 +7,6 @@ variable "proxmox_endpoint" {
   }
 }
 
-variable "profile" {
-  description = "Media VM allocation. gpu_mapping: the Proxmox PCI resource mapping handed to the VM (null: none)."
-  type = object({
-    node         = string
-    vm_id        = number
-    name         = string
-    ipv4         = string
-    cores        = number
-    memory       = number
-    os_disk_gb   = number
-    data_disk_gb = number
-    gpu_mapping  = optional(string)
-  })
-  validation {
-    condition     = contains(["pve-infra", "pve-lab"], var.profile.node)
-    error_message = "The media VM runs on pve-infra (operator's choice) or on pve-lab, the holding node."
-  }
-  validation {
-    condition     = var.profile.vm_id >= 380 && var.profile.vm_id <= 389 && can(regex("^192\\.168\\.0\\.8[0-9]/24$", var.profile.ipv4))
-    error_message = "Media VMs use VMIDs 380-389 and static 192.168.0.80-89/24."
-  }
-  validation {
-    condition     = var.profile.cores >= 2 && var.profile.memory >= 4096 && var.profile.os_disk_gb >= 12 && var.profile.data_disk_gb >= 40
-    error_message = "Need >= 2 cores, 4096 MiB, a 12 GiB system disk and a 40 GiB data disk."
-  }
-  validation {
-    condition     = var.profile.gpu_mapping == null || can(regex("^[a-z][a-z0-9-]*$", coalesce(var.profile.gpu_mapping, "x")))
-    error_message = "gpu_mapping is the name of a Proxmox PCI resource mapping, never a device address."
-  }
-}
-
 variable "image_datastore" {
   type    = string
   default = "local"
@@ -59,29 +28,9 @@ variable "gateway" {
 }
 
 variable "dns_servers" {
-  description = "Resolvers of the VM: the LAN DNS (the *.doku-lab.net names) with a public one behind it."
+  description = "Resolvers of the containers: the LAN DNS (the *.doku-lab.net names) with a public one behind it."
   type        = list(string)
   default     = ["192.168.0.20", "9.9.9.9"]
-}
-
-variable "image" {
-  description = "Dated Debian 13 generic cloud image and its SHA512 from the release SHA512SUMS. The generic image, not genericcloud: its kernel has the graphics driver (i915) the hardware transcoding needs."
-  type = object({
-    url    = string
-    sha512 = string
-  })
-  validation {
-    condition = (
-      can(regex("^https://cloud\\.debian\\.org/images/cloud/trixie/[0-9]{8}-[0-9]+/debian-13-generic-amd64-[0-9]{8}-[0-9]+\\.qcow2$", var.image.url)) &&
-      can(regex("^[0-9a-f]{128}$", var.image.sha512))
-    )
-    error_message = "Use a dated cloud.debian.org trixie generic-amd64 qcow2 and its 128-hex SHA512."
-  }
-}
-
-variable "admin_username" {
-  type    = string
-  default = "debian"
 }
 
 variable "ssh_public_key" {

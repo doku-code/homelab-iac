@@ -1191,9 +1191,9 @@ truenas-apply:
 	@TRUENAS_APPS_APPROVED=yes $(VENV)/bin/python scripts/truenas-apps.py apply $(TRUENAS_APPS)
 
 # ─────────────────────────────────────────────
-# Media stack (TASK-036): media-01 on pve-infra, Docker Compose, outside k3s (operator's choice). Jellyfin,
-# Seerr, Radarr, Sonarr, Prowlarr and qBittorrent; databases on the shared PostgreSQL where the application
-# supports it; the NAS library read-only for Jellyfin; a test area on the VM's own data disk.
+# Media services (TASK-036): one container per service on pve-infra, outside k3s (operator's choice): Jellyfin,
+# Seerr, Radarr, Sonarr and Prowlarr; qBittorrent is the NAS's own. Databases on the shared PostgreSQL where the
+# application supports it; the NAS read-only; a test area on the node's own disk.
 # Same gates as the other workstation roots. Guide: docs/guides/media-stack.md.
 # ─────────────────────────────────────────────
 
@@ -1231,7 +1231,7 @@ media-plan:
 	$(call NETBOX_ALLOCATION,media,$(MEDIA_PLAN))
 	@shasum -a 256 "$(MEDIA_DIR)/$(MEDIA_PLAN)"
 
-# Mutates the doku-lab cluster (media-01 on pve-infra): only with explicit approval of the exact saved plan.
+# Mutates the doku-lab cluster (the media containers on pve-infra): only with explicit approval of the exact saved plan.
 media-apply:
 	@test "$(MEDIA_APPLY_APPROVED)" = yes || (echo "Explicit approval of the exact saved plan required: MEDIA_APPLY_APPROVED=yes" >&2; exit 1)
 	@test -n "$(MEDIA_PLAN_SHA256)" || (echo "Supply MEDIA_PLAN_SHA256 as printed by make media-plan" >&2; exit 1)
