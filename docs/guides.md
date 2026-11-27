@@ -16,3 +16,4 @@ editor: markdown
 | Document | Status | Summary |
 |----------|--------|---------|
 | [Media stack: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on media-01](/docs/guides/media-stack) | current | What runs on media-01, where its data lives, how to operate, test, back up and restore it, and how to give it the NAS library. |
+| [TrueNAS: metrics, alerts and apps as files](/docs/guides/truenas-metrics-alerts-and-apps-as-files) | current | How the NAS is watched and how its apps are described, compared and applied from the repository |

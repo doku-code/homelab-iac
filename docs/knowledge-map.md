@@ -152,6 +152,7 @@ How to use: find the row that matches your task (by type, tag, component or ID),
 - **GUIDE-map-operations** [Operations](/docs/hubs/operations) (current) `map, operations` — Day-to-day procedures: where the commands are, how to take a host down, what is known to be broken.
 - **GUIDE-map-services** [Service catalog](/docs/hubs/service-catalog) (current) `map, services, k3s` — Every service of the platform: its site, where it runs, what signs people in and where its data lives.
 - **GUIDE-media-stack** [Media stack: Jellyfin, Seerr, Radarr, Sonarr, Prowlarr and qBittorrent on media-01](/docs/guides/media-stack) (current) `guide, media, jellyfin, docker-compose` — What runs on media-01, where its data lives, how to operate, test, back up and restore it, and how to give it the NAS library.
+- **GUIDE-truenas-metrics-alerts-and-apps-as-files** [TrueNAS: metrics, alerts and apps as files](/docs/guides/truenas-metrics-alerts-and-apps-as-files) (current) `guide` — How the NAS is watched and how its apps are described, compared and applied from the repository
 
 ### Project reference
 
@@ -202,7 +203,7 @@ _No commit records. Generate with `harness history sync`._
 - **gitops**: ADR-005, TASK-024
 - **gpu**: TASK-028
 - **grafana**: TASK-020, TASK-026
-- **guide**: GUIDE-handoff, GUIDE-media-stack
+- **guide**: GUIDE-handoff, GUIDE-media-stack, GUIDE-truenas-metrics-alerts-and-apps-as-files
 - **handoff**: GUIDE-handoff
 - **hardware**: ADR-018, DOC-infrastructure-inventory, INV-new-proxmox-cluster-inventory, TASK-030
 - **harness**: TASK-001
