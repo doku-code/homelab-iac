@@ -238,6 +238,20 @@ def main():
         else:
             assert any(re.fullmatch(regex, name) for regex in kubelet_keep), f"{name} is dropped by the kubelet allow-lists"
     assert all(panel["datasource"]["uid"] in ("prometheus", "loki") for panel in dashboard["panels"] if panel["type"] != "row")
+    # The Proxmox hosts: the agent adds the hardware sensors there and nowhere else; the dashboard and the three
+    # rules only ask for what those collectors give, and the ingest route lets the five hosts in.
+    assert defaults["alloy_agent_hardware"] is False and defaults["alloy_agent_hardware_collectors"] == ["hwmon"]
+    hosts = yaml.safe_load((ROOT / "ansible/inventories/proxmox-hosts.yml").read_text())["all"]["children"]["proxmox_hosts"]
+    assert hosts["vars"]["alloy_agent_hardware"] is True and {h["ansible_host"] for h in hosts["hosts"].values()} == {
+        "192.168.0.10", "192.168.0.11", "192.168.0.12", "192.168.0.14", "192.168.0.16"}
+    assert {"192.168.0.10/31", "192.168.0.12/32", "192.168.0.14/32", "192.168.0.16/32"} <= set(managed)
+    assert '"hwmon"' not in plain, "a VM has no hardware sensors to read"
+    hardware = json.loads((OBS / "dashboards/proxmox-hosts.json").read_text())
+    asked = [t["expr"] for panel in hardware["panels"] for t in panel.get("targets", [])] + [r["expr"] for r in rules if r["alert"].startswith("Proxmox")]
+    families = {name.split("_")[1] for query in asked for name in re.findall(r"\bnode_[a-z0-9_]+", query)}
+    assert families <= {"hwmon", "cpu", "memory", "load1", "pressure", "network"}, sorted(families)
+    assert len([r for r in rules if r["alert"].startswith("Proxmox")]) == 3 and "dashboards/proxmox-hosts.json" in (OBS / "kustomization.yaml").read_text()
+    assert "observability-hosts" in (ROOT / "Makefile").read_text() and "OBSERVABILITY_HOSTS_APPROVED" in (ROOT / "Makefile").read_text()
     # The switch dashboard and the network alerts only ask for what the SNMP module reads.
     switch = json.loads((OBS / "dashboards/switch.json").read_text())
     asked = [t["expr"] for panel in switch["panels"] for t in panel.get("targets", [])] + [r["expr"] for r in rules if "switch" in r["expr"]]

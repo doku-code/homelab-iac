@@ -105,6 +105,25 @@ server:
               for: 1m
               labels: {severity: warning}
               annotations: {summary: "The switch restarted less than 10 minutes ago"}
+        # The Proxmox hosts' own sensors (the agent of ansible/inventories/proxmox-hosts.yml). The SFP28 adapters report a
+        # critical limit of 105 °C; a host that froze on 2026-11-27 had shown nothing in its log before it stopped.
+        - name: proxmox-hosts
+          rules:
+            - alert: ProxmoxNetworkAdapterHot
+              expr: 'node_hwmon_temp_celsius * on(chip, instance) group_left(chip_name) node_hwmon_chip_names{chip_name="mlx5"} > 90'
+              for: 10m
+              labels: {severity: warning}
+              annotations: {summary: "The SFP28 adapter of {{ $labels.instance }} is at {{ $value }} °C (limit 105 °C)"}
+            - alert: ProxmoxNetworkAdapterNearLimit
+              expr: 'node_hwmon_temp_celsius * on(chip, instance) group_left(chip_name) node_hwmon_chip_names{chip_name="mlx5"} > 100'
+              for: 2m
+              labels: {severity: critical}
+              annotations: {summary: "The SFP28 adapter of {{ $labels.instance }} is at {{ $value }} °C, close to its limit of 105 °C"}
+            - alert: ProxmoxHostSilent
+              expr: 'absent_over_time(node_load1{instance="pve-core"}[5m])'
+              for: 2m
+              labels: {severity: critical}
+              annotations: {summary: "pve-core has sent no metrics for 5 minutes (frozen, off, or off the network)"}
         - name: truenas
           rules:
             - alert: TrueNASSilent
