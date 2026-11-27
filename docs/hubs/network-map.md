@@ -40,7 +40,7 @@ is the file that names the host for Traefik.
 <!-- map:names:start -->
 | Name | LAN answer | Answered by | Route |
 |---|---|---|---|
-| `adguard.doku-lab.net` | 192.168.0.20 | dns-01 (AdGuard Home) |  |
+| `adguard.doku-lab.net` | 192.168.0.20 | dns-01 or dns-02 (AdGuard Home, shared address) |  |
 | `argocd.doku-lab.net` | 192.168.0.45 | Traefik on k3s (shared address) | [`services/argocd/access.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/argocd/access.yaml) |
 | `auth.doku-lab.net` | 192.168.0.45 | Traefik on k3s (shared address) | [`services/authentik/access.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/authentik/access.yaml) |
 | `cloud.doku-lab.net` | 192.168.0.45 | Traefik on k3s (shared address) | [`services/ingress/legacy-routes.yaml`](https://git.doku-lab.net/Homelab/homelab-iac/src/branch/main/services/ingress/legacy-routes.yaml) |

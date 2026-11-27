@@ -118,6 +118,10 @@ scripts/secrets.py run /ingress -- make ingress-certs-deploy INGRESS_CERTS_DEPLO
 | Internet link | Not caused by the lab: every guest under 1 Mbit/s during the dropouts, no duplicate addresses, DNS volume normal. The tunnel and Tailscale logs show connection losses on most days since at least early October. Cause not identified (router, modem or ISP; pfSense is out of scope). A probe on the workstation (`systemctl --user status netprobe`, `.local/netprobe.log`) records the next dropout per hop | Proxmox RRD data, legacy guest journals | 2026-11-18 |
 | Infisical name | `secrets.doku-lab.net` removed from DNS and Traefik after the Infisical shutdown (TASK-019) | `kubectl -n legacy-edge get ingressroute` | 2026-11-18 |
 | `penpot` | One public CNAME to the tunnel found and deleted; none left | Cloudflare API | 2026-11-18 |
+| Standby DNS (operator's request after `pve-core` froze and the LAN lost its DNS) | `make dns-plan` / `dns-apply`: 2 to add, 0 to change, the existing VM only moved in the state; `dns-02` (VM 371, `.71`) on `pve-lab`; `make dns-configure` on both | `terraform/stacks/dns`, role `adguard_home` (keepalived) | 2026-11-27 |
+| Failover, first try | **FAILED**: AdGuard stopped on `dns-01` and the address stayed there. The health check accepted dig's error text as an answer | fixed: only an address counts; test in `tests/dns.py` | 2026-11-27 |
+| Failover, second try | AdGuard stopped on `dns-01` for 15 s: `dns-02` took `192.168.0.20`, one gap of 5.3 s in 90 lookups; none when `dns-01` took it back | lookups every 0.4 s through `192.168.0.20` | 2026-11-27 |
+| Not verified | the loss of the whole host (`pve-core` off), as opposed to AdGuard stopping | | 2026-11-27 |
 
 ## Completion summary
 

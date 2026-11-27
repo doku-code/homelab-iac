@@ -146,8 +146,10 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
   new VM: `make observability-agents`. Alerts are posted to the operator's Discord channel by Alertmanager (webhook from the store, `DISCORD_ALERT_WEBHOOK`).
 - **Edge migration in progress** 2026-11-18 ([TASK-022](/tasks/task-022-edge-migration-certificates-caddy-sites-on-traefik-adguard-a)):
   Traefik serves a Let's Encrypt wildcard for `*.doku-lab.net` (cert-manager, Cloudflare DNS-01:
-  `make ingress-certs-deploy`). **LAN DNS is `dns-01`** (VM 370, `192.168.0.70`, pve-infra; AdGuard Home from
-  `ansible/vars/dns.yml`, holding `192.168.0.20`): change a name there, then
+  `make ingress-certs-deploy`). **LAN DNS is `dns-01`** (VM 370, `192.168.0.70`, pve-core) **with the standby `dns-02`** (VM 371, `192.168.0.71`, pve-lab,
+  since 2026-11-27 after `pve-core` froze and took the LAN's only DNS with it): AdGuard Home from
+  `ansible/vars/dns.yml` on both; keepalived gives `192.168.0.20` to the one that answers DNS (the primary when both do)
+  and moves it in about five seconds: change a name there, then
   `scripts/secrets.py run /dns -- make dns-configure DNS_CONFIGURE_APPROVED=yes`. Eleven names go through
   Traefik (`services/ingress/legacy-routes.yaml` for the legacy backends); `git`, `cloud` and the public
   tunnel are still on the legacy Caddy (CT204). The legacy AdGuard (CT200) and the legacy monitoring VM
@@ -254,8 +256,8 @@ These need the operator at the keyboard (logins, tokens); do them once, in this 
 
 ## Known issues
 
-- DNS has a single server (AdGuard 192.168.0.20 on `dns-01`); when it is down, internal names and package
-  downloads fail.
+- DNS: two servers since 2026-11-27 (`dns-01` on `pve-core`, `dns-02` on `pve-lab`) share `192.168.0.20`; each keeps its own
+  statistics and query log. With both down, internal names and package downloads fail.
 - `pve-core` and `pve-management` lose 3 to 5 % of the full-size frames they receive in bursts (Intel I219 ports; the
   switch's counters show it sends them all):
   transfers into them from faster hosts run at 20 to 60 Mbit/s. Measurements, workaround and what is left to try:
