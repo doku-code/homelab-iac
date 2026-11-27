@@ -614,9 +614,9 @@ def reconcile(seed, machines, snapshots, api, apply, facts=None, overlay=None):
                 fields["wireless_lans"] = sorted(ref(network) for network in carried)
             elif carried:
                 r.operations.append(f"update  {port_label}: wireless_lans -> {len(carried)} network(s)")
+            # A port that left its bridge or aggregate loses the tie: the file owns these relations.
             for relation in ("bridge", "lag", "parent"):
-                if port.get(relation):
-                    fields[relation] = ref(ports[(entry["name"], port[relation])])
+                fields[relation] = ref(ports[(entry["name"], port[relation])]) if port.get(relation) else None
             port_facts = heard.get(port["name"])
             if port_facts and port_facts.get("carrier") and port_facts.get("speed_mbps") and port_facts["kind"] == "physical":
                 fields["speed"] = port_facts["speed_mbps"] * 1000

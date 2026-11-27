@@ -411,7 +411,7 @@ def reconciliation():
     core, nas, switch = device["pve-core"]["id"], device["truenas"]["id"], device["switch"]["id"]
     assert port[(core, "enp1s0np0")]["bridge"] == port[(core, "vmbr0")]["id"] and port[(core, "vmbr0")]["type"] == "bridge"
     assert port[(core, "amt")]["parent"] == port[(core, "nic0")]["id"] and port[(core, "amt")]["mgmt_only"] is True
-    assert port[(nas, "enp1s0")]["lag"] == port[(nas, "bond0")]["id"] == port[(nas, "enp3s0")]["lag"]
+    assert port[(nas, "enp1s0")]["lag"] == port[(nas, "bond0")]["id"] and port[(nas, "enp3s0")].get("lag") is None
     assert port[(core, "wlo1")]["enabled"] is False and len([p for p in port if p[0] == switch]) == 18
     assert device["pve-core"]["primary_ip4"] == api.get(ips, address="192.168.0.11/24")["id"]
     assert api.get(ips, address="192.168.0.11/24")["assigned_object_id"] == port[(core, "vmbr0")]["id"]

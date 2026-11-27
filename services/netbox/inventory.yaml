@@ -274,8 +274,8 @@ devices:
     cluster: truenas
     description: "TrueNAS: Forgejo, Nextcloud, Plex, qBittorrent; pools tank (2 x 8 TB mirror), fastpool (1 TB), apps-pool (180 GB). Not built from this repository"
     ports:
-      - {name: bond0, type: lag, members: [enp1s0, enp3s0], address: 192.168.0.13/24, primary: true,
-         description: "Failover pair; the 10 Gb port carries the traffic"}
+      - {name: bond0, type: lag, members: [enp1s0], address: 192.168.0.13/24, primary: true,
+         description: "Aggregate of the 10 Gb port alone since 2026-11-27 (the mainboard port left it); holds the address"}
 
 # Cables nobody can read from a machine. Those between the Proxmox hosts and the switch are not listed here:
 # the hosts hear the switch name its port (LLDP) and the reconciliation records them (tag "observed").
