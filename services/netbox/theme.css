@@ -120,6 +120,45 @@ html[data-bs-theme=dark] body .card {
   box-shadow: none;
 }
 
+/* The page itself, its header and the active tab are navy in NetBox's own rules (operator, 2026-11-28): the page and
+   its header are clear so the grid of the body shows, the top bar is the canvas. */
+html[data-bs-theme=dark] {
+  background-color: var(--ct-canvas);
+}
+
+html[data-bs-theme=dark] body .page,
+html[data-bs-theme=dark] body .page-header {
+  background-color: transparent !important;
+}
+
+html[data-bs-theme=dark] body .navbar {
+  background-color: var(--ct-canvas);
+}
+
+html[data-bs-theme=dark] body .page-tabs .nav-tabs .nav-link.active {
+  background-color: var(--ct-surface) !important;
+}
+
+html[data-bs-theme=dark] body .table thead th,
+html[data-bs-theme=dark] body .markdown > table thead th {
+  background: var(--ct-surface-elevated) !important;
+}
+
+html[data-bs-theme=dark] body .btn-primary,
+html[data-bs-theme=dark] body .page-link.active,
+html[data-bs-theme=dark] body .active > .page-link {
+  color: var(--ct-action-fg) !important;
+}
+
+/* The side menu: the mark of the open section and the section captions are teal in NetBox. */
+html[data-bs-theme=dark] body .navbar-vertical.navbar-expand-lg .nav-item.dropdown.active::after {
+  border-color: var(--ct-fg) !important;
+}
+
+html[data-bs-theme=dark] body .navbar-vertical.navbar-expand-lg .text-secondary {
+  color: var(--ct-fg-muted) !important;
+}
+
 html[data-bs-theme=dark] body .navbar-vertical.navbar-expand-lg {
   background: var(--ct-sidebar) !important;
   border-right: 1px solid var(--ct-border);
