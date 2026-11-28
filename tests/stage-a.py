@@ -1,6 +1,7 @@
 """Offline Stage A baseline, inventory shape and fail-closed command guards."""
 from pathlib import Path
 import json
+import re
 import os
 import subprocess
 import tempfile
@@ -41,7 +42,7 @@ def main():
     for forbidden in ("hostpci", "usb", "hook_script", "workstation", "local-exec", "remote-exec"):
         assert forbidden not in module, forbidden
     assert "prevent_destroy = true" in module
-    assert "ignore_changes  = [started]" in module
+    assert re.search(r"ignore_changes\s*=\s*\[started\b", module), "a VM the operator stopped is not started again by an apply"
     make = (ROOT / "Makefile").read_text()
     plan = make.split("stage-a-plan:\n", 1)[1].split("\nstage-a-apply:", 1)[0]
     assert plan.index("rm -f") < plan.index("$(STAGE_A_INPUTS) check") < plan.index(" init ") < plan.index("$(STAGE_A_INPUTS) plan")
