@@ -47,12 +47,8 @@
   --ct-font-size-md: 13px;
   --ct-font-size-lg: 14px;
   --ct-font-size-heading: 20px;
-  --ct-grid-image: radial-gradient(ellipse 85% 55% at 50% 0%, rgba(237, 236, 233, 0.10), transparent 72%), radial-gradient(circle at 1.5px 1.5px, rgba(237, 236, 233, 0.17) 1.5px, transparent 0);
-  --ct-grid-size: 100% 100%, 28px 28px;
-  --ct-metal: linear-gradient(180deg, #FAF9F6 0%, #E4E3DF 46%, #C9C8C3 100%);
-  --ct-metal-edge: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.45);
-  --ct-panel-sheen: linear-gradient(180deg, rgba(237, 236, 233, 0.055) 0%, rgba(237, 236, 233, 0) 48%);
-  --ct-panel-edge: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ct-grid-image: radial-gradient(circle at 1.5px 1.5px, rgba(237, 236, 233, 0.14) 1.5px, transparent 0);
+  --ct-grid-size: 28px 28px;
   --ct-motion-duration: 140ms;
   --ct-motion-easing: cubic-bezier(0.2, 0, 0, 1);
 }
@@ -130,13 +126,6 @@ body {
   background-image: var(--ct-grid-image);
   background-size: var(--ct-grid-size);
   background-attachment: fixed;
-}
-
-/* The primary button is brushed metal: lit from above, a fine highlight on its top edge. */
-.ui.primary.button,
-.ui.primary.buttons .button {
-  background-image: var(--ct-metal);
-  box-shadow: var(--ct-metal-edge);
 }
 
 /* Links inside rendered text (README, issues, wiki, comments). Forgejo gives them the primary colour, which is the
