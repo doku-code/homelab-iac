@@ -154,6 +154,27 @@ body {
   text-decoration-color: currentcolor;
 }
 
+/* Tables of rendered text: Forgejo draws their lines in a tone that is this system's surface, so the cells ran
+   together (operator, 2026-11-28). Lines a step lighter, a header that stands out, alternate rows told apart. */
+.markup table th,
+.markup table td {
+  border: 1px solid var(--ct-border-strong);
+}
+
+.markup table th {
+  background-color: var(--ct-surface-active);
+  color: var(--ct-fg);
+}
+
+.markup table tr {
+  background-color: var(--ct-surface);
+  border-top: 1px solid var(--ct-border-strong);
+}
+
+.markup table tr:nth-child(2n) {
+  background-color: var(--ct-surface-elevated);
+}
+
 /* Anchors of headings and images that are links carry no underline. */
 .markup a.anchor,
 .markup a:has(img) {
