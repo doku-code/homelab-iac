@@ -67,7 +67,7 @@ def main():
     loader = importlib.util.spec_from_file_location("theme", ROOT / "scripts/theme.py")
     generator = importlib.util.module_from_spec(loader)
     loader.loader.exec_module(generator)
-    assert len(generator.ADAPTERS) == 4 and all((ROOT / name).exists() for name in generator.ADAPTERS)
+    assert len(generator.ADAPTERS) == 5 and all((ROOT / name).exists() for name in generator.ADAPTERS)
     for name in generator.ADAPTERS:
         text = (ROOT / name).read_text()
         own = text.split("/* tokens:end */", 1)[1]

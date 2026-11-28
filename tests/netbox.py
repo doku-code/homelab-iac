@@ -89,7 +89,13 @@ def plugins(deployments, settings):
     lines = data["requirements.txt"].split("\n")[:-1]
     assert all(re.fullmatch(r"[a-z-]+==\d+\.\d+\.\d+ --hash=sha256:[0-9a-f]{64}", line) for line in lines), "one pinned file each, by checksum"
     assert [line.split("==")[0] for line in lines] == ["netbox-topology-views", "netbox-floorplan-plugin", "netbox-reorder-rack"]
-    assert settings["PLUGINS"] == ["netbox_topology_views", "netbox_floorplan", "netbox_reorder_rack"]
+    assert settings["PLUGINS"] == ["netbox_topology_views", "netbox_floorplan", "netbox_reorder_rack", "netbox_charcoal_titanium"]
+    # The appearance plugin (TASK-039) is three files of a ConfigMap: a stylesheet in the head of the pages and nothing else.
+    theme = access[("ConfigMap", "netbox-theme")]["data"]
+    assert set(theme) == {"__init__.py", "template_content.py", "theme.css"} and 'name = "netbox_charcoal_titanium"' in theme["__init__.py"]
+    compile(theme["__init__.py"], "__init__.py", "exec"), compile(theme["template_content.py"], "template_content.py", "exec")
+    assert "def head(self)" in theme["template_content.py"] and not re.search(r"models|urls|migrat|request|subprocess|open\(", theme["template_content.py"])
+    assert "--tblr-body-bg: var(--ct-canvas);" in theme["theme.css"] and "url(" not in theme["theme.css"].split("/* tokens:end */")[1]
     install = data["install.sh"]
     assert "--require-hashes --no-deps --only-binary :all:" in install and "-r /config/requirements.txt" in install
     assert not re.search(r"curl|wget|pip install [a-z]|sudo|chmod", install), "nothing but the pinned files is fetched"
@@ -111,7 +117,9 @@ def plugins(deployments, settings):
         assert volumes["plugins"]["persistentVolumeClaim"] == {"claimName": "netbox-plugins"} and volumes["plugins-config"]["configMap"] == {"name": "netbox-plugins"}
         mounts = {m["mountPath"]: m for m in main["volumeMounts"] if m["name"] == "plugins"}
         assert mounts["/opt/netbox/plugins"] == {"name": "plugins", "mountPath": "/opt/netbox/plugins", "subPath": f"{release}/packages", "readOnly": True}
-        assert {e["name"]: e.get("value") for e in main["env"]}["PYTHONPATH"] == "/opt/netbox/plugins"
+        assert {e["name"]: e.get("value") for e in main["env"]}["PYTHONPATH"] == "/opt/netbox/plugins:/opt/netbox/theme"
+        assert volumes["theme"]["configMap"] == {"name": "netbox-theme"}
+        assert {"name": "theme", "mountPath": "/opt/netbox/theme/netbox_charcoal_titanium", "readOnly": True} in main["volumeMounts"]
         # Only the web serves static files: NetBox's own and the plugins', from the same release.
         static = mounts.get("/opt/netbox/netbox/static")
         assert (static == {"name": "plugins", "mountPath": "/opt/netbox/netbox/static", "subPath": f"{release}/static", "readOnly": True}) == (name == "netbox")

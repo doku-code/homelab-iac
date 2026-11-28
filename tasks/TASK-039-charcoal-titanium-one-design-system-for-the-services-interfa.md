@@ -12,8 +12,8 @@ tags: [theme, design-system, homepage]
 depends_on: []
 related: [GUIDE-charcoal-titanium-the-shared-design-system-and-each-service, TASK-027]
 related_decisions: []
-related_implementations: [scripts/theme.py, services/_shared/theme/tokens.json, services/homepage/config/custom.css, services/authentik/theme.css, services/argocd/theme.css, services/forgejo/theme-charcoal-titanium.css]
-related_tests: [tests/theme.py, tests/homepage-k3s.py, tests/authentik.py, tests/argocd.py, tests/dns.py]
+related_implementations: [scripts/theme.py, services/_shared/theme/tokens.json, services/homepage/config/custom.css, services/authentik/theme.css, services/argocd/theme.css, services/forgejo/theme-charcoal-titanium.css, services/netbox/theme.css, services/forgejo/install-theme.py, services/forgejo/contributions.sh]
+related_tests: [tests/theme.py, tests/homepage-k3s.py, tests/authentik.py, tests/argocd.py, tests/dns.py, tests/netbox.py]
 tests_justification: ""
 verification_commands: [make theme-check, make homepage-k3s-check, make authentik-check, make argocd-check, make dns-check]
 evidence: []
@@ -88,12 +88,13 @@ make dns-check
 | Forgejo, live | theme installed by `services/forgejo/install-theme.py`; Forgejo answers, 8 repositories of the same total size before and after, the explore page rendered in the theme | headless screenshot `.local/theme-shots/forgejo-live.png` | 2026-11-27 |
 | Homepage and Authentik, live | pushed; the operator found Homepage flat and Authentik's application search field bent, the admin interface fine. Second pass: icon wells, figures in one strip, status chips, stronger type, larger type on wide screens; a rule for the search field | local screenshot `.local/theme-shots/hp-after.png`; the search field's correction **not seen** | 2026-11-27 |
 | Authentik's sign-in page, seen locally | the live page served through a local preview with the stylesheet where the brand's CSS goes: with variables alone the page and card shared one tone, the button label was unreadable and the field was an underline; with the rules, a bordered card on the canvas, an off-white button with dark text, a boxed field | `.local/theme-shots/ak-login.png` | 2026-11-27 |
-| Argo CD, AdGuard Home rendered | **not verified**: not deployed | | 2026-11-27 |
+| Argo CD, AdGuard Home rendered | deployed (2026-11-27); **not seen rendered** by the agent (signed-in pages); the operator found Argo CD nearly stock, its adapter was rewritten against the rules of v3.6.1 | | 2026-11-27 |
+| Forgejo: mark, links, contribution counts | new mark and underlined links seen rendered with an empty browser profile; the counts file went from "generated 2026-09-10, 330" to the minute of the run, 962 contributions over 87 days, today included; two runs of the cron job succeeded | `.local/theme-shots/forgejo-md2.png`, TrueNAS job states | 2026-11-28 |
 | Background images removed from Homepage (operator, 2026-11-27) | switcher, layer, volume, mount and `make homepage-images` gone from the files; `make homepage-k3s-check` PASS. The volume `homepage-images` (7.4 MiB of images) is still in the cluster | | 2026-11-27 |
 | Keyboard focus, reduced motion, responsive layout | rules are in the stylesheets and the preview; **not tested in a browser by hand** | | 2026-11-27 |
 
 ## Completion summary
 
-Remaining: the operator's look at the second pass of Homepage and at Authentik's search field; `make argocd-deploy`
-and `make dns-configure` for the two others; the cluster's unused `homepage-images` volume. Third pass of Homepage (operator's
-requests): no icon wells, the search engine's button centred, Geist shipped with the page, a light under the cursor.
+Remaining: the operator's look at each interface after the last changes (dot grid, Authentik's application icons, Argo CD
+rule for rule, NetBox's plugin, Forgejo's mark, links and contribution counts). Not seen rendered by the agent:
+Argo CD, NetBox, Authentik's signed-in interfaces.

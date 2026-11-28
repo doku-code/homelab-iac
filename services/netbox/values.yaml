@@ -67,6 +67,11 @@ extraVolumes:
   - &plugins-tmp
     name: plugins-tmp
     emptyDir: {}
+  # The appearance plugin (TASK-039): three files of a ConfigMap, no installation.
+  - &theme-volume
+    name: theme
+    configMap:
+      name: netbox-theme
 extraVolumeMounts:
   - name: sso-pipeline
     mountPath: /opt/netbox/netbox/netbox/sso_pipeline.py
@@ -76,6 +81,10 @@ extraVolumeMounts:
     name: plugins
     mountPath: /opt/netbox/plugins
     subPath: v4.7.5-d787f1278b51/packages
+    readOnly: true
+  - &theme-package
+    name: theme
+    mountPath: /opt/netbox/theme/netbox_charcoal_titanium
     readOnly: true
   # NetBox's own static files with those of the plugins, in place of the image's.
   - name: plugins
@@ -93,6 +102,7 @@ plugins:
   - netbox_topology_views
   - netbox_floorplan
   - netbox_reorder_rack
+  - netbox_charcoal_titanium
 pluginsConfig:
   netbox_topology_views:
     # Positions arranged by hand in the diagram are kept.
@@ -162,7 +172,7 @@ replicaCount: 1
 # The image starts four web workers by default (about 1.5 GiB together); two are plenty for one household.
 extraEnvs:
   - {name: GRANIAN_WORKERS, value: "2"}
-  - &plugins-path {name: PYTHONPATH, value: /opt/netbox/plugins}
+  - &plugins-path {name: PYTHONPATH, value: "/opt/netbox/plugins:/opt/netbox/theme"}
 resources:
   requests: {cpu: 200m, memory: 768Mi}
   limits: {cpu: 2000m, memory: 2Gi}
@@ -175,8 +185,10 @@ worker:
     - *plugins-volume
     - *plugins-config
     - *plugins-tmp
+    - *theme-volume
   extraVolumeMounts:
     - *plugins-packages
+    - *theme-package
   extraEnvs:
     - *plugins-path
   resources:

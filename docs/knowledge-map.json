@@ -7721,14 +7721,18 @@
           "services/homepage/config/custom.css",
           "services/authentik/theme.css",
           "services/argocd/theme.css",
-          "services/forgejo/theme-charcoal-titanium.css"
+          "services/forgejo/theme-charcoal-titanium.css",
+          "services/netbox/theme.css",
+          "services/forgejo/install-theme.py",
+          "services/forgejo/contributions.sh"
         ],
         "related_tests": [
           "tests/theme.py",
           "tests/homepage-k3s.py",
           "tests/authentik.py",
           "tests/argocd.py",
-          "tests/dns.py"
+          "tests/dns.py",
+          "tests/netbox.py"
         ],
         "milestone": [
           "M010"

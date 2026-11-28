@@ -50,7 +50,7 @@ To change a colour for everything: edit `tokens.json`, `make theme`, `make homep
 | Grafana (chart 14.5.0, OSS) | none beyond its dark default | none | **native theme only**; the provisioned dashboards keep Grafana's palette | already dark | custom themes and branding are Grafana Enterprise features |
 | Phase 1.0.2 | none | none | **left as it is**: it is one of the references of this design | | no supported theming; the password-policy patch is not a place for cosmetics |
 | Headlamp 0.46.0 | per-user theme in its settings | none | **native theme only** | | a custom theme needs a compiled plugin: not worth a build pipeline |
-| NetBox v4.7.5 | per-user colour mode | none | **native theme only** | | no supported stylesheet hook; plugins and static files are left alone |
+| NetBox v4.7.5 | a plugin of three files (`netbox_charcoal_titanium`, a ConfigMap) that adds one stylesheet to the head of every page through `PluginTemplateExtension.head` | `services/netbox/theme.css`, `access.yaml` (ConfigMap `netbox-theme`), `values.yaml` (mount, `PYTHONPATH`, `plugins`) | **themed** in dark mode: Tabler's variables for surfaces, lines, text and the accent, the cards and the side menu NetBox paints itself, the dot grid | tests pass; **not seen rendered** | the light mode is NetBox's own: each user picks dark in their preferences; a new NetBox may rename `--tblr-*` variables |
 | Wiki.js 3.5.0 | site theme in its administration (stored in its database) | none | **native theme only** | | not declarative from this repository |
 | Windmill CE 1.876.1 | per-user dark mode | none | **native theme only** | | branding is an Enterprise feature |
 | Vaultwarden 1.37.2 | per-user theme of the web vault | none | **native theme only** | | a stylesheet override exists but a password vault is not themed for looks |
@@ -67,7 +67,8 @@ Nothing is live until the branch is pushed: Argo CD follows `main`.
 | Authentik | the push (ConfigMap `authentik-blueprints`; the worker applies blueprints within the hour, or at once from Customisation > Blueprints) | remove `blueprints/homelab-brand.yaml` from `kustomization.yaml`, then empty "Custom CSS" and the theme attribute of the default brand in the admin interface (a blueprint that is removed does not undo itself) |
 | Argo CD | `scripts/secrets.py run /authentik -- make argocd-deploy ARGOCD_DEPLOY_APPROVED=yes` (Argo CD is installed by Make, not by itself) | remove `configs.styles` from `values.yaml`, same target |
 | AdGuard Home | `scripts/secrets.py run /dns -- make dns-configure DNS_CONFIGURE_APPROVED=yes` | `theme: auto` in the template, same target |
-| Forgejo | `FORGEJO_THEME_APPROVED=yes scripts/secrets.py run /truenas -- services/forgejo/install-theme.py` (restarts Forgejo) | the same command with `undo` |
+| Forgejo | `FORGEJO_THEME_APPROVED=yes scripts/secrets.py run /truenas -- services/forgejo/install-theme.py` (theme, mark, contribution counts; restarts Forgejo only when its settings change) | the same command with `undo` |
+| NetBox | the push (Argo CD application `netbox`; the pods restart once for the new mount, later changes of the stylesheet show without a restart) | remove `netbox_charcoal_titanium` from `plugins` in `values.yaml` |
 
 Each adapter stands alone: any one can be left out or undone without the others.
 
@@ -78,6 +79,7 @@ Each adapter stands alone: any one can be left out or undone without the others.
 | Homepage | Homepage's element ids (`#information-widgets`, `.service-card`, …) and its `custom.css` hook | cards fall back to Homepage's look; the widgets are ours |
 | Authentik | PatternFly variable and class names (`--pf-global--…`, `.pf-c-login__main`, `.pf-c-button`, `.pf-c-form-control`) and the brand's `branding_custom_css` field | a renamed variable or class is ignored and Authentik's own look shows there; the rules hide, move and add nothing (`tests/theme.py`), so a sign-in step cannot disappear |
 | Argo CD | `.sidebar`, `.argo-button--base`, `.argo-button--base-o` | the rule stops applying; nothing breaks |
+| NetBox | Tabler's `--tblr-*` variables, `html[data-bs-theme=dark]`, the plugin hook `head()` | a renamed variable is ignored and NetBox's colour shows there; if the hook goes, NetBox refuses the plugin at start: remove it from `plugins` |
 | Forgejo | `--steel-*` and `--color-primary*` of `theme-forgejo-dark.css` | refresh `forgejo-17.0.1-dark-variables.txt` from the new version; `make theme-check` names what no longer exists |
 
 ## What was looked at, and how

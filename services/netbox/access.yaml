@@ -177,3 +177,197 @@ data:
     mv -T "$build" "$target" 2>/dev/null || rm -rf "$build"
     test -f "$target/.complete"
     echo "plugins ${PLUGINS_RELEASE}: installed"
+---
+# The appearance (TASK-039): a plugin of three files, read from this ConfigMap by the web and worker pods. It adds
+# one stylesheet to the head of every page through NetBox's own extension point (PluginTemplateExtension.head);
+# no model, no view, no database change. The stylesheet is services/netbox/theme.css, copied here by `make theme`.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbox-theme
+  namespace: netbox
+data:
+  __init__.py: |
+    from netbox.plugins import PluginConfig
+
+
+    class CharcoalTitanium(PluginConfig):
+        name = "netbox_charcoal_titanium"
+        verbose_name = "Charcoal Titanium"
+        description = "The homelab's shared appearance: one stylesheet in the head of every page."
+        version = "1.0.0"
+        base_url = "charcoal-titanium"
+        min_version = "4.2.0"
+
+
+    config = CharcoalTitanium
+  template_content.py: |
+    from pathlib import Path
+
+    from django.utils.safestring import mark_safe
+    from netbox.plugins import PluginTemplateExtension
+
+    STYLESHEET = Path(__file__).with_name("theme.css")
+
+
+    class Stylesheet(PluginTemplateExtension):
+        def head(self):
+            # Read at each page: a change of the ConfigMap shows without a restart. The file is ours, not user input.
+            return mark_safe("<style>" + STYLESHEET.read_text() + "</style>")  # noqa: S308
+
+
+    template_extensions = [Stylesheet]
+  theme.css: |
+    /* theme:start (scripts/theme.py) */
+    /* Charcoal Titanium for NetBox (TASK-039): the stylesheet the plugin netbox_charcoal_titanium puts in the head of
+       every page (copied into services/netbox/access.yaml by scripts/theme.py). */
+    /* tokens:start (written by scripts/theme.py from services/_shared/theme/tokens.json) */
+    :root {
+      --ct-canvas: #10100F;
+      --ct-sidebar: #151514;
+      --ct-surface: #1B1B19;
+      --ct-surface-elevated: #242423;
+      --ct-surface-hover: #292927;
+      --ct-surface-active: #30302E;
+      --ct-border: #30302E;
+      --ct-border-strong: #41413E;
+      --ct-fg: #EDECE9;
+      --ct-fg-secondary: #B5B4AF;
+      --ct-fg-muted: #999894;
+      --ct-fg-disabled: #666561;
+      --ct-action: #E6E5E1;
+      --ct-action-hover: #F5F4F0;
+      --ct-action-fg: #10100F;
+      --ct-action-secondary: #242423;
+      --ct-focus: #B5B4AF;
+      --ct-success: #79A88C;
+      --ct-warning: #C9A66B;
+      --ct-error: #D47D7D;
+      --ct-series-1: #8FA8BF;
+      --ct-series-2: #B9A283;
+      --ct-series-3: #8FB39F;
+      --ct-series-4: #B596AD;
+      --ct-series-5: #A9A7A0;
+      --ct-series-6: #C98F8F;
+      --ct-radius-sm: 4px;
+      --ct-radius-md: 6px;
+      --ct-radius-lg: 8px;
+      --ct-radius-dialog: 12px;
+      --ct-space-1: 4px;
+      --ct-space-2: 8px;
+      --ct-space-3: 12px;
+      --ct-space-4: 16px;
+      --ct-space-6: 24px;
+      --ct-space-8: 32px;
+      --ct-font-sans: "Geist", "Geist Sans", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --ct-font-mono: "Geist Mono", ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --ct-font-size-sm: 12px;
+      --ct-font-size-md: 13px;
+      --ct-font-size-lg: 14px;
+      --ct-font-size-heading: 20px;
+      --ct-grid-image: radial-gradient(circle at 1px 1px, rgba(237, 236, 233, 0.085) 1px, transparent 0);
+      --ct-grid-size: 22px 22px;
+      --ct-motion-duration: 140ms;
+      --ct-motion-easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+    /* tokens:end */
+
+    /* NetBox is built on Tabler, whose colours are variables: its dark mode is answered variable for variable, then
+       the few places where NetBox writes a colour itself (cards, the side menu). Only the dark mode is themed; a
+       user who chose the light mode keeps NetBox's own. Put into every page by the plugin netbox_charcoal_titanium
+       (services/netbox/access.yaml). */
+
+    html[data-bs-theme=dark],
+    html[data-bs-theme=dark] body {
+      --tblr-font-sans-serif: var(--ct-font-sans);
+      --tblr-font-monospace: var(--ct-font-mono);
+
+      /* Surfaces. */
+      --tblr-body-bg: var(--ct-canvas);
+      --tblr-body-bg-rgb: 16, 16, 15;
+      --tblr-bg-surface: var(--ct-surface);
+      --tblr-bg-surface-secondary: var(--ct-canvas);
+      --tblr-bg-surface-tertiary: var(--ct-surface-elevated);
+      --tblr-bg-forms: var(--ct-canvas);
+      --tblr-secondary-bg: var(--ct-surface-elevated);
+      --tblr-secondary-bg-rgb: 36, 36, 34;
+      --tblr-tertiary-bg: var(--ct-surface);
+      --tblr-tertiary-bg-rgb: 27, 27, 25;
+      --tblr-active-bg: var(--ct-surface-active);
+      --tblr-light-bg-subtle: var(--ct-surface-elevated);
+      --tblr-dark-bg-subtle: var(--ct-canvas);
+      --tblr-gray-700: var(--ct-border-strong);
+      --tblr-gray-800: var(--ct-surface);
+      --tblr-gray-900: var(--ct-canvas);
+      --tblr-dropdown-bg: var(--ct-surface-elevated);
+
+      /* Lines and text. */
+      --tblr-border-color: var(--ct-border);
+      --tblr-border-color-translucent: var(--ct-border);
+      --tblr-body-color: var(--ct-fg);
+      --tblr-body-color-rgb: 237, 236, 233;
+      --tblr-emphasis-color: var(--ct-fg);
+      --tblr-secondary-color: var(--ct-fg-secondary);
+      --tblr-tertiary-color: var(--ct-fg-muted);
+      --tblr-secondary: var(--ct-fg-muted);
+      --tblr-code-color: var(--ct-fg-secondary);
+
+      /* The one accent: NetBox's bright teal becomes the off-white of the system, with dark text on it. */
+      --tblr-primary: var(--ct-action);
+      --tblr-primary-rgb: 230, 229, 225;
+      --tblr-primary-fg: var(--ct-action-fg);
+      --tblr-primary-text-emphasis: var(--ct-fg);
+      --tblr-primary-bg-subtle: var(--ct-surface-active);
+      --tblr-primary-border-subtle: var(--ct-border-strong);
+      --tblr-link-color: var(--ct-fg);
+      --tblr-link-color-rgb: 237, 236, 233;
+      --tblr-link-hover-color: var(--ct-action-hover);
+      --tblr-link-hover-color-rgb: 255, 255, 255;
+      --tblr-border-radius: var(--ct-radius-md);
+    }
+
+    /* The page: the canvas with the system's fine dot grid. */
+    html[data-bs-theme=dark] body {
+      background-color: var(--ct-canvas);
+      background-image: var(--ct-grid-image);
+      background-size: var(--ct-grid-size);
+      background-attachment: fixed;
+    }
+
+    /* NetBox paints these itself in dark mode: cards in a blue-black, the side menu with a teal glow. */
+    html[data-bs-theme=dark] body .card {
+      background: var(--ct-surface) !important;
+      border-color: var(--ct-border);
+      box-shadow: none;
+    }
+
+    html[data-bs-theme=dark] body .navbar-vertical.navbar-expand-lg {
+      background: var(--ct-sidebar) !important;
+      border-right: 1px solid var(--ct-border);
+    }
+
+    html[data-bs-theme=dark] body .text-bg-primary {
+      color: var(--ct-action-fg) !important;
+    }
+
+    html[data-bs-theme=dark] body .text-secondary {
+      color: var(--ct-fg-muted) !important;
+    }
+
+    /* Links inside tables and text are told from the words by a fine underline, since the accent is the text colour. */
+    html[data-bs-theme=dark] body .table a:not(.btn):not(.badge):not(.dropdown-item),
+    html[data-bs-theme=dark] body .rendered-markdown a {
+      text-decoration: underline;
+      text-decoration-color: var(--ct-border-strong);
+      text-underline-offset: 0.18em;
+    }
+
+    html[data-bs-theme=dark] body .table a:not(.btn):not(.badge):not(.dropdown-item):hover {
+      text-decoration-color: currentcolor;
+    }
+
+    html[data-bs-theme=dark] body :focus-visible {
+      outline: 2px solid var(--ct-focus);
+      outline-offset: 2px;
+    }
+    /* theme:end */

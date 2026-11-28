@@ -127,3 +127,24 @@ body {
   background-size: var(--ct-grid-size);
   background-attachment: fixed;
 }
+
+/* Links inside rendered text (README, issues, wiki, comments). Forgejo gives them the primary colour, which is the
+   text colour in this system: they could not be told from the words around them. */
+.markup a,
+.markup a:visited {
+  color: var(--ct-series-1);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--ct-series-1) 45%, transparent);
+  text-underline-offset: 0.18em;
+}
+
+.markup a:hover {
+  color: var(--ct-fg);
+  text-decoration-color: currentcolor;
+}
+
+/* Anchors of headings and images that are links carry no underline. */
+.markup a.anchor,
+.markup a:has(img) {
+  text-decoration: none;
+}

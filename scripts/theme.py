@@ -30,6 +30,7 @@ ADAPTERS = [
     "services/authentik/theme.css",
     "services/argocd/theme.css",
     "services/forgejo/theme-charcoal-titanium.css",
+    "services/netbox/theme.css",
 ]
 # Stylesheets that carry the typeface itself, where the application serves no file of ours: (stylesheet, font file, family).
 FONT_START, FONT_END = "/* font:start (written by scripts/theme.py from services/_shared/theme/fonts) */", "/* font:end */"
@@ -38,6 +39,7 @@ FONTS = [("services/homepage/config/custom.css", "fonts/Geist-Variable.woff2", "
 EMBEDDED = [
     ("services/authentik/blueprints/homelab-brand.yaml", "services/authentik/theme.css", "        /* theme:start (scripts/theme.py) */", "        /* theme:end */", 8),
     ("services/argocd/values.yaml", "services/argocd/theme.css", "    /* theme:start (scripts/theme.py) */", "    /* theme:end */", 4),
+    ("services/netbox/access.yaml", "services/netbox/theme.css", "    /* theme:start (scripts/theme.py) */", "    /* theme:end */", 4),
 ]
 
 
