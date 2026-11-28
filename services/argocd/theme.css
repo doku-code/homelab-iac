@@ -46,8 +46,8 @@
   --ct-font-size-md: 13px;
   --ct-font-size-lg: 14px;
   --ct-font-size-heading: 20px;
-  --ct-grid-image: radial-gradient(circle at 1.5px 1.5px, rgba(237, 236, 233, 0.14) 1.5px, transparent 0);
-  --ct-grid-size: 28px 28px;
+  --ct-grid-image: radial-gradient(circle at 1px 1px, rgba(237, 236, 233, 0.13) 1px, transparent 0);
+  --ct-grid-size: 24px 24px;
   --ct-motion-duration: 140ms;
   --ct-motion-easing: cubic-bezier(0.2, 0, 0, 1);
 }
