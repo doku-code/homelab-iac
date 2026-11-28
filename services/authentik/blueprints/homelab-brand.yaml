@@ -68,8 +68,12 @@ entries:
           --ct-font-size-md: 13px;
           --ct-font-size-lg: 14px;
           --ct-font-size-heading: 20px;
-          --ct-grid-image: radial-gradient(circle at 1px 1px, rgba(237, 236, 233, 0.085) 1px, transparent 0);
-          --ct-grid-size: 22px 22px;
+          --ct-grid-image: radial-gradient(ellipse 85% 55% at 50% 0%, rgba(237, 236, 233, 0.10), transparent 72%), radial-gradient(circle at 1.5px 1.5px, rgba(237, 236, 233, 0.17) 1.5px, transparent 0);
+          --ct-grid-size: 100% 100%, 28px 28px;
+          --ct-metal: linear-gradient(180deg, #FAF9F6 0%, #E4E3DF 46%, #C9C8C3 100%);
+          --ct-metal-edge: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.45);
+          --ct-panel-sheen: linear-gradient(180deg, rgba(237, 236, 233, 0.055) 0%, rgba(237, 236, 233, 0) 48%);
+          --ct-panel-edge: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 2px rgba(0, 0, 0, 0.35);
           --ct-motion-duration: 140ms;
           --ct-motion-easing: cubic-bezier(0.2, 0, 0, 1);
         }
@@ -195,7 +199,8 @@ entries:
           background-color: var(--ct-surface) !important;
           border: 1px solid var(--ct-border);
           border-radius: var(--ct-radius-dialog);
-          box-shadow: none !important;
+          background-image: var(--ct-panel-sheen);
+          box-shadow: var(--ct-panel-edge) !important;
           padding-block-start: var(--ct-space-4);
         }
 
@@ -216,6 +221,8 @@ entries:
 
         .pf-c-button.pf-m-primary {
           background-color: var(--ct-action);
+          background-image: var(--ct-metal);
+          box-shadow: var(--ct-metal-edge);
           color: var(--ct-action-fg);
         }
 
@@ -314,7 +321,8 @@ entries:
         .pf-c-card {
           border: 1px solid var(--ct-border);
           border-radius: var(--ct-radius-lg);
-          box-shadow: none;
+          background-image: var(--ct-panel-sheen);
+          box-shadow: var(--ct-panel-edge);
         }
 
         .pf-c-modal-box {

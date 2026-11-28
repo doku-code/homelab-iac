@@ -71,7 +71,8 @@ def main():
     for name in generator.ADAPTERS:
         text = (ROOT / name).read_text()
         own = text.split("/* tokens:end */", 1)[1]
-        # No gradients, blur or glow; Homepage alone has one: the light under the cursor (operator, 2026-11-27).
+        # Gradients are the tokens of the group "pattern" (backdrop, metal, panel sheen), used by name; Homepage alone
+        # writes one more: the light under the cursor (operator, 2026-11-27 and 28). No blur, no glow.
         assert own.count("gradient(") == ("homepage" in name) and "backdrop-filter: blur" not in own and "text-shadow" not in own, name
         assert not re.search(r"https?://", re.sub(r"/\*.*?\*/", "", text, flags=re.S)), f"{name}: no request to another site"
         literals = re.findall(r"#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?\b", own)

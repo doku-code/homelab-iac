@@ -18,6 +18,9 @@ related: [TASK-039, TASK-027, ADR-017]
 
 One visual identity for the services' interfaces: neutral charcoal surfaces with a slight warmth, off-white primary
 actions, fine borders, compact type, and colour only where it means something (states, data series, logos, syntax).
+The page behind every themed interface is the same backdrop: a dot grid lit softly from the top. Primary buttons are
+brushed metal and panels carry a fine highlight on their top edge (tokens of the group `pattern`: the only gradients,
+written once and used by name).
 Each application keeps its own interface; an *adapter* maps the application's native theme variables to the shared
 tokens. Where an application has no supported way in, its own dark mode is left alone.
 
